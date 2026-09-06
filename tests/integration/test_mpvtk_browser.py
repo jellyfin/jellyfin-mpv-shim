@@ -660,5 +660,275 @@ class TestRealMousePosPath(unittest.TestCase):
                         "a real left click never reached the button")
 
 
+@h.require_real_mpv
+class ClassicOscReleasesTheMouseTest(unittest.TestCase):
+    """With a classic OSC on screen the renderer must own no mouse at all.
+
+    #724: with `osc_style` "mpv" or "default", neither button did anything
+    over the video. The mechanism is mpv's section precedence --
+    `mpvtk_mouse` sets no mouse area, so mpv gives it `{INT_MIN..INT_MAX}`
+    (`input.c: get_bind_section`) and prefers it over the builtin binding,
+    while both of the renderer's bare-video fall-throughs gate on
+    `state.phud.mode`, which classic modality never enters. A live section
+    there swallows both buttons and answers with nothing.
+
+    The behaviour is correct today and this is what keeps it correct: the
+    property is invisible from the Python side, since every one of these
+    calls "succeeds" whether or not mpv actually let go. `input-bindings`
+    is the only place that says, and `priority == -1` is mpv's own word for
+    "the owning section is not active" (`mp_input_get_bindings`).
+
+    Read `tools/probe_classic_osc_mouse.py` for the same measurement with
+    the stock OSC loaded alongside, which is what a real classic-OSC
+    session has.
+    """
+
+    MOUSE_SECTIONS = ("mpvtk_mouse", "mpvtk_thumb", "mpvtk_wheel")
+
+    @staticmethod
+    def _player_like_handle():
+        """A handle with the PLAYER's options, not the toolkit demo's.
+
+        `_spawn_handle` above uses `_SPAWN_OPTS`, which sets
+        `input_default_bindings: no` -- right for the standalone demo and
+        wrong here, because mpv then reports every builtin binding at
+        priority -1 (`mp_input_get_bindings`: `if (b->is_builtin &&
+        !default_bindings) b_priority = -1`). The question this class asks
+        is what the USER's button does once we let go, and that is only a
+        question at all when mpv's own bindings are on -- which the player
+        sets (`player.py`: `input_default_bindings=True`).
+        """
+        opts = {
+            "idle": "yes", "force_window": "yes",
+            "osc": "no",                     # REPLACES_OSC, as osc_style does
+            "input_default_bindings": "yes",
+            "config": "no", "keepaspect_window": "no",
+        }
+        if h.BACKEND == "jsonipc":
+            import python_mpv_jsonipc
+            return python_mpv_jsonipc.MPV(start_mpv=True, geometry="1280x720",
+                                          **opts), True
+        import mpv as libmpv
+        return libmpv.MPV(geometry="1280x720",
+                          **{k.replace("_", "-"): v
+                             for k, v in opts.items()}), False
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        self.handle, ext = self._player_like_handle()
+        self.app = MpvtkApp.attach(self.handle, ext=ext)
+        self._thread = threading.Thread(
+            target=lambda: self.app.run(lambda b: []), daemon=True)
+        self._thread.start()
+        self.assertTrue(self.app.ready.wait(15), "renderer never came up")
+        time.sleep(0.5)
+
+    def tearDown(self):
+        try:
+            self.app.quit()
+            self._thread.join(timeout=5)
+        finally:
+            try:
+                self.handle.terminate()
+            except Exception:
+                pass
+
+    def _claims(self, key="MBTN_RIGHT"):
+        """``{section: priority}`` for everything binding ``key``.
+
+        Through the property ACCESSOR, not `command("get_property", ...)`:
+        libmpv rejects the command form of a node-returning property with
+        MPV_ERROR_PROPERTY_FORMAT (measured -- "Invalid value for mpv
+        parameter", -4). Both bindings expose the attribute, so this is the
+        form that works on either backend.
+        """
+        rows = self.handle.input_bindings or ()
+        return {r.get("section") or "": int(r.get("priority", -1))
+                for r in rows if (r.get("key") or "").upper() == key}
+
+    def _ours_are_live(self, key="MBTN_RIGHT"):
+        claims = self._claims(key)
+        return [s for s in self.MOUSE_SECTIONS if claims.get(s, -1) >= 0]
+
+    def test_browse_owns_the_mouse(self):
+        """The premise: without this the release below proves nothing,
+        because a section that was never enabled is trivially released."""
+        self.assertTrue(self._ours_are_live(),
+                        "the renderer never claimed the right button")
+
+    def test_yielding_releases_every_mouse_section(self):
+        for key in ("MBTN_LEFT", "MBTN_RIGHT", "MBTN_BACK", "WHEEL_UP"):
+            self.app.set_active(False)
+            time.sleep(0.4)
+            with self.subTest(key=key):
+                self.assertEqual(self._ours_are_live(key), [],
+                                 "%s is still ours over a classic OSC" % key)
+
+    def test_mpvs_own_binding_wins_once_we_let_go(self):
+        """What the user is actually owed: whatever their mpv says the
+        button means. NOT asserted as "pause" -- mpv changed MBTN_RIGHT's
+        default from `cycle pause` to `script-binding select/context-menu`
+        at 0.41, and both shipped pins are past that, so hardcoding the
+        effect would fail on the next pin move for reasons unrelated to
+        this bug."""
+        self.app.set_active(False)
+        time.sleep(0.4)
+        claims = self._claims("MBTN_RIGHT")
+        self.assertGreaterEqual(claims.get("default", -1), 0,
+                                "mpv's own binding is not reachable")
+
+    def test_it_hands_back_the_built_in_dragging(self):
+        """The classic-OSC half of #726. The renderer turns mpv's built-in
+        dragging off while it owns the pointer -- its own sections would
+        otherwise make mpv refuse every VO drag -- so a yield that forgot
+        to restore it would leave a video window that cannot be dragged at
+        all, with nothing on screen to explain why."""
+        try:
+            before = self.handle.input_builtin_dragging
+        except Exception:
+            self.skipTest("input-builtin-dragging is mpv 0.39+")
+        self.assertIs(before, False, "the renderer did not take dragging")
+        self.app.set_active(False)
+        time.sleep(0.4)
+        self.assertIs(self.handle.input_builtin_dragging, True)
+
+    def test_browse_takes_it_all_back_afterwards(self):
+        """Three rounds: the library is dead to the pointer if a return
+        from playback ever fails to re-take the sections, and that is the
+        half a single yield-and-check cannot see."""
+        for round_no in range(1, 4):
+            with self.subTest(round=round_no):
+                self.app.set_active(False)
+                time.sleep(0.4)
+                self.assertEqual(self._ours_are_live(), [])
+                self.app.set_active(True)
+                time.sleep(0.4)
+                self.assertTrue(self._ours_are_live(),
+                                "round %d came back without the mouse"
+                                % round_no)
+
+@h.require_real_mpv
+class BrowseKeyBlockTest(unittest.TestCase):
+    """#730: mpv's own shortcuts must not act while the library is up.
+
+    mpv is constructed with `input_default_bindings=yes` for the life of the
+    process, so every key the shim has not taken is still mpv's -- and in the
+    library they act on a video that is not there, persist into the next
+    thing played, and report themselves in ASS OSD *underneath* the overlay
+    bitmaps the UI is drawn with.
+
+    Measured here rather than asserted in a unit test because the whole
+    mechanism is a claim about mpv's binding precedence: one forced
+    `any_unicode` binding outranks every exact-key default. Nothing on the
+    Python side can see whether that is true -- the Lua call "succeeds"
+    either way, and `contrast` is the only witness.
+
+    The OFF leg is not decoration. Without it, "the key did nothing" is
+    equally consistent with a keypress that never arrived, which is exactly
+    how this measurement first went wrong.
+    """
+
+    def _up(self, blocked):
+        from jellyfin_mpv_shim.conf import settings
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+        from jellyfin_mpv_shim.mpvtk.widgets import Text
+
+        saved = settings.browse_block_keys
+        self.addCleanup(
+            lambda: setattr(settings, "browse_block_keys", saved))
+        settings.browse_block_keys = blocked
+
+        # The PLAYER's options, not the toolkit demo's: `_SPAWN_OPTS` sets
+        # `input_default_bindings: no`, under which mpv reports every builtin
+        # at priority -1 and there is nothing to block. See
+        # ClassicOscReleasesTheMouseTest._player_like_handle, which this is.
+        handle, ext = ClassicOscReleasesTheMouseTest._player_like_handle()
+        self.addCleanup(lambda: self._teardown(handle))
+        app = MpvtkApp.attach(handle, ext=ext)
+        self._app = app
+        thread = threading.Thread(
+            target=lambda: app.run(lambda b: [Text("library", 0, 0)]),
+            daemon=True)
+        thread.start()
+        self.assertTrue(app.ready.wait(15), "renderer never came up")
+        time.sleep(0.8)
+        return handle
+
+    def _teardown(self, handle):
+        try:
+            self._app.quit()
+        except Exception:
+            pass
+        try:
+            handle.terminate()
+        except Exception:
+            pass
+
+    @staticmethod
+    def _press(handle, key):
+        handle.command("keypress", key)
+        time.sleep(0.4)
+
+    def test_the_defaults_fire_with_the_block_off(self):
+        """The premise. A swallowed key and a key that never arrived look
+        identical from here, so this is what tells them apart."""
+        handle = self._up(blocked=False)
+        before = handle.contrast
+        self._press(handle, "1")
+        self.assertNotEqual(handle.contrast, before,
+                            "mpv never saw the keypress, so the ON leg "
+                            "below would prove nothing")
+
+    def test_the_block_swallows_mpv_s_picture_keys(self):
+        handle = self._up(blocked=True)
+        before = handle.contrast
+        self._press(handle, "1")
+        self.assertEqual(handle.contrast, before,
+                         "`1` still moved the picture from the library")
+
+    def test_it_is_one_any_unicode_binding_and_it_is_ours(self):
+        """`priority >= 0` is mpv's own word for "this section is active"
+        (`mp_input_get_bindings`), and the section name is what says the
+        binding is the renderer's rather than something else's."""
+        handle = self._up(blocked=True)
+        live = [r for r in (handle.input_bindings or ())
+                if (r.get("key") or "").lower() == "any_unicode"
+                and int(r.get("priority", -1)) >= 0]
+        self.assertEqual(len(live), 1, live)
+        self.assertIn("renderer", (live[0].get("section") or ""))
+
+    def test_a_claimed_key_still_arrives_through_the_block(self):
+        """The block must ROUTE a claim, not eat it -- and the lookup has to
+        use mpv's key NAME, not the text.
+
+        SPACE is the whole reason: `key_name` is "SPACE" while `key_text` is
+        " ", and claims are pushed as names (`reader.py` and `comic.py` both
+        claim "SPACE"). Keying the lookup on the text meant a claimed SPACE
+        matched nothing and was swallowed -- taking page-turn with it, and
+        pause along with it, since a forced binding that returns does not
+        pass the key on to the binding underneath.
+        """
+        handle = self._up(blocked=True)
+        got = []
+        self._app.on_key = lambda k: got.append(k)
+        self._app.claim_keys(("SPACE", "9"))
+        time.sleep(0.6)
+        self._press(handle, "SPACE")
+        self._press(handle, "9")
+        self.assertEqual(got, ["SPACE", "9"],
+                         "a claimed key was swallowed by the block")
+
+    def test_the_opt_out_binds_nothing(self):
+        """Off means the keyboard really is given back -- not intercepted
+        and forwarded, which would still take it from the user's own
+        input.conf."""
+        handle = self._up(blocked=False)
+        live = [r for r in (handle.input_bindings or ())
+                if (r.get("key") or "").lower() == "any_unicode"
+                and int(r.get("priority", -1)) >= 0]
+        self.assertEqual(live, [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -75,39 +75,74 @@ class SettingsCase(unittest.TestCase):
 
 class ResolveOscStyleTest(SettingsCase):
     def test_jellyfin_is_a_legacy_alias_for_the_hud(self):
-        self.set(osc_style="jellyfin", enable_gui=True,
-                 thumbnail_osc_builtin=True)
+        self.set(osc_style="jellyfin", enable_gui=True)
         self.assertEqual(mpv_options.resolve_osc_style(), "mpvtk")
 
     def test_without_a_gui_there_is_nothing_to_draw_the_hud(self):
         # The HUD is rendered by the library browser.
-        self.set(osc_style="mpvtk", enable_gui=False,
-                 thumbnail_osc_builtin=True)
+        self.set(osc_style="mpvtk", enable_gui=False)
         self.assertEqual(mpv_options.resolve_osc_style(), "mpv")
 
-    def test_the_legacy_opt_out_still_yields_the_users_own_osc(self):
-        self.set(osc_style="mpvtk", enable_gui=True,
-                 thumbnail_osc_builtin=False)
-        self.assertEqual(mpv_options.resolve_osc_style(), "default")
+    def test_no_resolution_can_leave_a_user_with_no_osc_by_accident(self):
+        """Every style that turns mpv's own OSC off must be one where either
+        we load one (`mpvtk`, `mpv`), the user asked for none (`none`), or
+        the user said they have their own (`custom`). A FALLBACK must never
+        land on the last two -- nobody chose them.
 
-    def test_the_opt_out_does_not_apply_once_the_gui_fallback_has(self):
-        # Order matters: enable_gui=False moves mpvtk -> mpv, and "mpv" is
-        # not subject to the thumbnail_osc_builtin opt-out.
-        self.set(osc_style="mpvtk", enable_gui=False,
-                 thumbnail_osc_builtin=False)
-        self.assertEqual(mpv_options.resolve_osc_style(), "mpv")
+        Kept as a property after `thumbnail_osc_builtin` (the fallback this
+        was written against) was deleted, because the rule outlives the
+        branch: it is what the next fallback added here has to satisfy."""
+        chosen_none = {"none", "custom"}
+        for gui in (True, False):
+            for style in ("mpvtk", "jellyfin", "default"):
+                with self.subTest(enable_gui=gui, osc_style=style):
+                    self.set(osc_style=style, enable_gui=gui)
+                    got = mpv_options.resolve_osc_style()
+                    self.assertNotIn(got, chosen_none,
+                                     "a fallback from %r landed on a "
+                                     "style that draws no controls" % style)
 
     def test_explicit_styles_pass_through(self):
-        for style in ("mpv", "default", "none"):
-            self.set(osc_style=style, enable_gui=True,
-                     thumbnail_osc_builtin=True)
-            self.assertEqual(mpv_options.resolve_osc_style(), style)
+        for style in ("mpv", "custom", "none"):
+            with self.subTest(style=style):
+                self.set(osc_style=style, enable_gui=True)
+                self.assertEqual(mpv_options.resolve_osc_style(), style)
+
+    def test_default_is_a_legacy_alias_for_mpv(self):
+        """"MPV built-in default" and "MPV UI with thumbnails" only differed
+        in who loaded the OSC, and once the shim started loading mpv's own
+        for both the difference showed up only as a bug -- nothing
+        suppressed the idle logo under "default". `_migrate` rewrites the
+        stored value at CONFIG_VERSION 5; this is what covers a hand-edited
+        conf.json, or one restored from a backup taken before it."""
+        self.set(osc_style="default", enable_gui=True)
+        self.assertEqual(mpv_options.resolve_osc_style(), "mpv")
+
+    def test_nothing_resolves_to_default_any_more(self):
+        """"default" is an inbound legacy value only.
+
+        It survived as an internal resolution for exactly one caller -- the
+        `thumbnail_osc_builtin` opt-out -- and went when that did. This is
+        the half of the deletion that is invisible from the settings screen:
+        `build_mpv_options` still maps "default" (it is a pure style ->
+        options function), so a branch quietly re-appearing here would turn
+        mpv's own OSC back on for somebody and nothing else would say so.
+
+        Every value `osc_style` can hold and both sides of the one
+        surviving fallback, rather than a sample -- the claim is about the
+        whole function, not about the branch that was removed."""
+        for style in ("mpvtk", "jellyfin", "default", "mpv", "custom",
+                      "none"):
+            for gui in (True, False):
+                with self.subTest(osc_style=style, enable_gui=gui):
+                    self.set(osc_style=style, enable_gui=gui)
+                    self.assertNotEqual(mpv_options.resolve_osc_style(),
+                                        "default")
 
     def test_no_controls_is_not_talked_out_of_it(self):
-        """Both fallbacks exist to find something to draw the HUD with.
+        """The fallback exists to find something to draw the HUD with.
         Someone who asked for nothing has not got a problem to solve."""
-        self.set(osc_style="none", enable_gui=False,
-                 thumbnail_osc_builtin=False)
+        self.set(osc_style="none", enable_gui=False)
         self.assertEqual(mpv_options.resolve_osc_style(), "none")
 
 
@@ -116,15 +151,26 @@ class ScriptListTest(SettingsCase):
         import os
         return [os.path.basename(p) for p in mpv_options.mpv_scripts(*a, **kw)]
 
-    def test_load_order_is_mouse_then_thumbfast_then_osc(self):
+    def test_load_order_is_mouse_then_thumbfast(self):
         self.set(menu_mouse=True)
         self.assertEqual(self.names("mpv", True),
-                         ["mouse.lua", "thumbfast.lua", "trickplay-osc.lua"])
+                         ["mouse.lua", "thumbfast.lua"])
 
-    def test_only_the_mpv_style_loads_an_osc_script(self):
+    def test_no_osc_script_is_chosen_here_any_more(self):
+        """Which classic OSC to load depends on the mpv about to be built --
+        the stock one on 0.41+, where its Preview API can drive our seek
+        previews, and the bundled fork below that. The version is not
+        knowable until the player exists (and the libmpv client API cannot
+        stand in: 0.40 and 0.41 both report 2.5), so the choice moved to
+        `PlayerManager._load_classic_osc`, right after construction.
+
+        Asserted for every style, including "mpv": a construction-time entry
+        would load the fork on top of whatever that method then chooses,
+        which is two OSCs at once."""
         self.set(menu_mouse=False)
-        for style in ("mpvtk", "default"):
-            self.assertNotIn("trickplay-osc.lua", self.names(style, True))
+        for style in ("mpv", "mpvtk", "default", "none"):
+            with self.subTest(style=style):
+                self.assertNotIn("trickplay-osc.lua", self.names(style, True))
 
     def test_thumbfast_follows_the_worker_not_the_setting(self):
         # A TrickPlay worker that failed to start must not advertise

@@ -84,6 +84,36 @@ class SettingsBase:
                     _("Saved: %(key)s (also turned off \"%(other)s\")")
                     % {"key": key,
                        "other": cfg.label_for("start_minimized")})
+        if ok and key in ("window_controls", "window_controls_fullscreen"):
+            # The chrome snapshot is PUSHED, on decoration changes only
+            # (`playerManager.on_decorations_changed`), and editing the
+            # setting is not one. Without this the new answer waits for the
+            # next fullscreen, maximize or border event -- so the row looks
+            # like it did nothing. True of `window_controls` before
+            # `window_controls_fullscreen` joined it; both are live now.
+            refresh = getattr(self, "refresh_window_controls", None)
+            if refresh is not None:
+                refresh()
+        if ok and key == "browse_block_keys":
+            # Live, because the switch is one somebody flips to find out
+            # what it does -- and the renderer only binds or removes one
+            # key binding, so there is nothing to rebuild. The volume claim
+            # reads the same setting, so ask for a frame: `_claim_page_keys`
+            # runs from build().
+            push = getattr(self.app, "push_browse_keys", None) if self.app \
+                else None
+            if push is not None:
+                push()
+            self.invalidate()
+        if ok and key == "browser_fullscreen":
+            # #729: this was read only on a browse TRANSITION, so it took
+            # effect after the next thing you played -- which from inside
+            # Settings looks exactly like a switch that does nothing, and is
+            # not something the restart banner could honestly say either.
+            ctl = getattr(self, "controller", None)
+            apply_fs = getattr(ctl, "apply_browser_fullscreen", None)
+            if apply_fs is not None:
+                apply_fs()
         if ok and key == "work_offline":
             self._apply_work_offline(bool(value))
         if ok and key == "auto_download_enable" and value:
@@ -108,6 +138,17 @@ class SettingsBase:
             # need a restart; mpv reads that one once, at startup.)
             if self.app is not None and hasattr(self.app, "push_gamepad"):
                 self.app.push_gamepad()
+        if ok and key == "ui_select_key":
+            # BOTH pushes, always. The keyboard's binding and the pad's
+            # are two spellings of one key (`conf.select_key`), and the
+            # pad's is a literal baked into the table it was pushed with
+            # -- so a re-push of one without the other is exactly the
+            # disagreement #717 is about, with the gamepad left pressing
+            # a key nothing listens for.
+            for name in ("push_select_key", "push_gamepad"):
+                push = getattr(self.app, name, None) if self.app else None
+                if push is not None:
+                    push()
         if ok and key == "poster_scale":
             # Applies live, unlike the theme's own cover size below: this
             # control is *labelled* Cover Size, so watching it happen is the

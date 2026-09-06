@@ -75,7 +75,7 @@ def _durable_flags():
     Everything else is left out by construction -- see the module docstring
     for why the allowlist is the safe direction.
     """
-    from .args import get_args
+    from .args import CLI_OVERRIDES, get_args
 
     try:
         args = get_args()
@@ -100,18 +100,18 @@ def _durable_flags():
     # Only for the settings being restarted for, not always: somebody who
     # passed `--scale 2.0` and restarts for an unrelated reason still means
     # it for this sitting.
+    #
+    # Driven from `args.CLI_OVERRIDES` rather than a list written out here,
+    # because this is the THIRD place that has to know which flag shadows
+    # which setting -- the other two being where they are applied
+    # (`mpv_shim.main`) and where they are kept out of the config file
+    # (`settings_base.apply_cli_override`). Three hand-maintained copies of
+    # one pairing is three chances to add a flag to two of them.
     pending = _pending_settings
-    enable_gui = getattr(args, "enable_gui", None)
-    if enable_gui is not None and "enable_gui" not in pending:
-        out.append("--gui" if enable_gui else "--no-gui")
-    minimized = getattr(args, "start_minimized", None)
-    if minimized is not None and "start_minimized" not in pending:
-        out.append("--minimized" if minimized else "--no-minimized")
-    if getattr(args, "mpv_loglevel", None) and "mpv_log_level" not in pending:
-        out += ["--mpv-loglevel", args.mpv_loglevel]
-    if (getattr(args, "ui_scale", None) is not None
-            and "ui_scale" not in pending):
-        out += ["--scale", str(args.ui_scale)]
+    for override in CLI_OVERRIDES:
+        value = getattr(args, override.dest, None)
+        if value is not None and override.key not in pending:
+            out += override.spell(value)
     if getattr(args, "disable_hwdec", False):
         # Kept unconditionally, unlike the four above, and the difference is
         # what dropping it costs: this is the recovery flag for hardware

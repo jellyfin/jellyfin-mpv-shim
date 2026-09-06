@@ -79,14 +79,23 @@ class TestSettings(unittest.TestCase):
 
     def test_hud_key_settings_sit_under_the_keybind_note(self):
         """The real schema: the two HUD keyboard settings are curated
-        into Interface directly below the note explaining the default,
-        not buried in the auto-generated Advanced list."""
+        into Interface below the note explaining the default, not buried
+        in the auto-generated Advanced list.
+
+        Adjacent to each other and after `osc_style`, rather than pinned to
+        an exact slice of the group. The slice version broke when
+        `thumbnail_enable` was promoted between them and `osc_style` -- it
+        was over-specifying position for a claim that is about curation."""
         from jellyfin_mpv_shim.mpvtk_browser import config as real
 
         controls = dict(real.sections("playback"))["Player Controls"]
-        self.assertEqual(
-            controls[controls.index("osc_style"):][:3],
-            ["osc_style", "hud_grab_keys", "hud_wake_key"])
+        self.assertEqual(controls[0], "osc_style",
+                         "the group leads with the style picker; the rest "
+                         "of it may not apply at all until that is chosen")
+        self.assertEqual(controls.index("hud_wake_key"),
+                         controls.index("hud_grab_keys") + 1)
+        self.assertLess(controls.index("osc_style"),
+                        controls.index("hud_grab_keys"))
         self.assertIn("osc_style", real.NOTES)
         advanced = dict(real.sections()).get("Advanced", [])
         self.assertNotIn("hud_grab_keys", advanced)
@@ -1093,6 +1102,87 @@ class TestGamepadSwapAppliesLive(unittest.TestCase):
         b = self._browser()
         b._set_setting("player_name", "Bud")
         b.app.push_gamepad.assert_not_called()
+
+
+class TestBrowserFullscreenAppliesLive(unittest.TestCase):
+    """#729. It was read only on a browse TRANSITION, so it took effect
+    after the next thing you played -- and the reporter, sitting in
+    Settings watching nothing happen, read that as "needs a restart".
+
+    Not the restart banner: a restart is not what it needed, and
+    `RESTART_REQUIRED` means literally nothing happened. See
+    docs/settings-curation.md section 3.
+    """
+
+    def _browser(self):
+        from unittest import mock
+
+        cfg = FakeConfig()
+        cfg.schema["browser_fullscreen"] = "bool"
+        cfg.values["browser_fullscreen"] = False
+        cfg.schema["player_name"] = "str"
+        cfg.values["player_name"] = "x"
+        b = MpvtkBrowser(app=mock.Mock(), source=FakeSource(),
+                         controller=mock.Mock(), config=cfg)
+        b._pool = _SyncPool()
+        return b
+
+    def test_saving_it_moves_the_window(self):
+        b = self._browser()
+        b._set_setting("browser_fullscreen", True)
+        b.controller.apply_browser_fullscreen.assert_called_once_with()
+
+    def test_turning_it_off_does_too(self):
+        """Both directions, because the window has to come back."""
+        b = self._browser()
+        b._set_setting("browser_fullscreen", False)
+        b.controller.apply_browser_fullscreen.assert_called_once_with()
+
+    def test_an_unrelated_setting_does_not(self):
+        b = self._browser()
+        b._set_setting("player_name", "Bud")
+        b.controller.apply_browser_fullscreen.assert_not_called()
+
+    def test_it_is_not_marked_as_needing_a_restart(self):
+        from jellyfin_mpv_shim.mpvtk_browser import config as cfg
+        self.assertNotIn("browser_fullscreen", cfg.RESTART_REQUIRED)
+
+
+class TestSelectKeyAppliesLive(unittest.TestCase):
+    """Moving the select key re-pushes BOTH producers of it.
+
+    The keyboard's binding and the game controller's are two spellings of
+    one key (`conf.select_key`), and the pad's is a literal baked into the
+    table it was last pushed with. Re-push one without the other and the
+    pad is pressing a key nothing listens for -- which is #717 again, in
+    the code that closed it.
+    """
+
+    def _browser(self):
+        from unittest import mock
+
+        cfg = FakeConfig()
+        cfg.schema["ui_select_key"] = "str"
+        cfg.values["ui_select_key"] = "ENTER"
+        cfg.schema["player_name"] = "str"
+        cfg.values["player_name"] = "x"
+        b = MpvtkBrowser(app=mock.Mock(), source=FakeSource(),
+                         controller=mock.Mock(), config=cfg)
+        b._pool = _SyncPool()
+        b.app.push_select_key.reset_mock()
+        b.app.push_gamepad.reset_mock()
+        return b
+
+    def test_saving_it_re_pushes_both(self):
+        b = self._browser()
+        b._set_setting("ui_select_key", "KP_ENTER")
+        b.app.push_select_key.assert_called_once_with()
+        b.app.push_gamepad.assert_called_once_with()
+
+    def test_an_unrelated_setting_does_not(self):
+        b = self._browser()
+        b._set_setting("player_name", "Bud")
+        b.app.push_select_key.assert_not_called()
 
 
 class TestPinStartupSeeding(unittest.TestCase):

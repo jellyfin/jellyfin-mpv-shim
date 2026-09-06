@@ -307,6 +307,26 @@ The governing rule is *stop intercepting keys whose meaning we did not change*.
   `seeking` property and applies it to *any* forward seek, mpv's own bindings
   included. Claiming a key would double-handle, since the claim's own `seek()`
   raises that same observer.
+- **The library is the exception, and it is a different rule (#730).** Everything
+  above is about *playback*, where mpv's meaning is the right meaning and taking a
+  key is only justified by having changed it. In the library there is no video, so
+  the commands are not differently-interpreted but inapplicable: `1`-`8` move a
+  picture that is not there, the change survives into the next thing played, and
+  the OSD reporting it is ASS and therefore draws *under* the overlay bitmaps the
+  UI is made of. `browse_block_keys` (default on) swallows them with **one forced
+  `any_unicode` binding**, which outranks every exact-key default across the
+  printable range — measured, and pinned by
+  `tests/integration/test_mpvtk_browser.py:BrowseKeyBlockTest`. It covers nothing
+  else and does not need to: the arrows, PGUP/PGDWN, HOME/END and the wheel are
+  the renderer's own, and modified keys are left alone. `keyclaim.block_*` in
+  `renderer.lua`; browse only, never a summoned playback HUD.
+  - A focused text box binds its **own** `any_unicode`, and between two forced
+    bindings of one key the last bound wins — so typing is unaffected. The block's
+    handler routes to the text box anyway, which is what makes the order stop
+    mattering when the setting is changed live.
+  - `9`/`0`/`m` are claimed back by the browser while music plays, so they still
+    work and now move the now-playing bar's slider with them. Turning the setting
+    off gives those back to mpv along with everything else.
 - ENTER confirms the OSD menu and does nothing else. It is swallowed rather than
   left to mpv, which binds it to `playlist-next`; the shim's mpv playlist holds
   one file, so what that does depends on `keep-open` and is not a behaviour to

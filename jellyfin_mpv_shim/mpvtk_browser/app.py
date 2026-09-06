@@ -127,6 +127,18 @@ NO_NOW_PLAYING = {"login", "locked", "connecting"}
 # is why these also poll.
 LIVE_KINDS = {"livetv", "channel", "program"}
 
+#: Route kinds a `UserDataChanged` event re-reads.
+#:
+#: Home for its Continue Watching / Next Up rows (#560); a series and a
+#: season for the per-season "N episodes remaining" badge, which is the
+#: server-computed `UnplayedItemCount` on the PARENT and so cannot be
+#: patched from here (#722).
+#:
+#: `grid`, `favorites` and `detail` are candidates and are deliberately not
+#: in yet: each needs its refresh-versus-page-in interleaving checked first,
+#: which is what `_refresh_current`'s `_refreshing` marker is for.
+USERDATA_KINDS = {"home", "series", "season"}
+
 #: How often a Live TV route re-reads itself. jellyfin-web's own staleness
 #: guard is five minutes, but it re-renders on every tab change and this
 #: screen is often left sitting on the Guide — a two-minute floor keeps "on
@@ -195,6 +207,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Latest now-playing snapshot (from on_playstate) for the audio bar,
         # plus the 1s ticker that keeps its clock moving (see _start_np_ticker).
         self._now_playing = None
+        #: Servers whose UserDataChanged events a pending debounce has
+        #: swallowed. Drained by the tick; see `_userdata_target`.
+        self._userdata_servers = set()
         self._np_thread = None
         # Pending drag target on the now-playing bar's seek slider, in
         # seconds (None when not scrubbing) — the elapsed clock reads this
@@ -249,7 +264,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._dl_thread = None
         # Tail poller for the logs tab — see SettingsMixin._poll_logs.
         self._log_thread = None
-        # Debounce slot for UserDataChanged — see refresh_home.
+        # Debounce slot for UserDataChanged — see refresh_userdata.
         self._userdata_thread = None
         # Long job (currently only the download-folder move) — see _run_long.
         self._long_thread = None
@@ -548,35 +563,68 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._start_daemon("_livetv_poll", "mpvtk-livetv", tick,
                            restartable=True)
 
+    def _refresh_current(self, kinds, server=None):
+        """Re-read the current route in place, if it is one of ``kinds``.
+
+        **The one implementation of "refresh what is on screen".** There were
+        two, and they had drifted: the Live TV one took a `_refreshing` marker
+        and the Home one did not, so only one of them was safe against a
+        scroll paging in against a list about to be replaced. Widening either
+        gate would have made a third copy -- see docs/browser-shell.md
+        section 4.
+
+        Every rule here has a reason and none of them is optional:
+
+        * a **load, not a reload** -- the epoch stays put, nothing in flight
+          is cancelled, and the loaders write in place, so a refresh nobody
+          asked for does not blink a spinner over what is being read;
+        * **deferred, never forced** while a menu or dialog is up: yanking a
+          list out from under someone mid-interaction is worse than being one
+          refresh stale, and the next event is seconds away;
+        * ``_refreshing`` is set here and cleared by ``_route_async``'s
+          ``always`` however the load ends -- `pagination` reads it, so a
+          page-in cannot append to a list this is about to replace;
+        * ``self.server is None`` is refused because ``_load_route`` would
+          not dispatch, and then nothing would ever clear the marker.
+
+        ``server`` filters by the server the event came FROM. Home is exempt:
+        it is assembled from every logged-in server, so an event from any of
+        them can change it. Everything else belongs to one server, and
+        re-fetching a Series page on server B because something happened on
+        server A is at best a wasted round trip and at worst an unrelated
+        event driving the screen into the offline fallback.
+
+        Reached from the websocket thread and from the Live TV poller, so it
+        must be safe off the loop thread and cheap when it does not apply.
+        Returns True if a load was dispatched.
+        """
+        route = self.route
+        if route.get("kind") not in kinds or not self._browsing:
+            return False
+        if self.source is None or self.server is None:
+            return False
+        if (server is not None and route.get("kind") != "home"
+                and (route.get("server") or self.server) != server):
+            return False
+        if self._menu is not None or self._dialog is not None:
+            return False
+        if route.get("_loading") or route.get("_refreshing"):
+            return False
+        route["_refreshing"] = True
+        self._load_route(route)
+        return True
+
     def refresh_live_tv(self, _client=None):
         """Re-fetch the Live TV screen, if that is what is showing.
 
         Reached from the websocket thread (a timer created or cancelled,
-        possibly by another client entirely) and from the poller above, so it
-        must be safe off the loop thread and cheap when it does not apply.
+        possibly by another client entirely) and from the poller above.
 
-        A **load, not a reload**: the epoch stays put, nothing in flight is
-        cancelled, and every Live TV loader writes in place -- a refresh nobody
-        asked for must not blink a spinner over what they are reading.
-
-        **Deferred, never forced, while the user is mid-interaction**, and it
-        marks the route ``_loading`` while it runs so a scroll cannot page in
-        against a list this is about to replace. ``_route_async`` clears it
-        however the load ends. Both halves, and why scroll survives:
-        docs/browser-shell.md section 4.
+        Not filtered by server: a timer event carries no route of its own and
+        the guide is the screen it would affect, so the old unfiltered
+        behaviour is kept deliberately rather than by omission.
         """
-        route = self.route
-        if route.get("kind") not in LIVE_KINDS or self.source is None:
-            return
-        if self.server is None:
-            return          # _load_route would not dispatch, so nothing would
-            #                 clear the marker below
-        if self._menu is not None or self._dialog is not None:
-            return
-        if route.get("_loading") or route.get("_refreshing"):
-            return
-        route["_refreshing"] = True
-        self._load_route(route)
+        self._refresh_current(LIVE_KINDS)
 
     #: How long a UserDataChanged burst settles before Home re-reads.
     #:
@@ -591,27 +639,24 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     #: a handful still arrives together and Home is several requests.
     USERDATA_DEBOUNCE = 3.0
 
-    def refresh_home(self, _client=None, now=False):
-        """Re-read the home screen, if that is what is showing.
+    def refresh_userdata(self, server=None, now=False):
+        """Re-read the current screen when watched/favourite state changes.
 
-        Continue Watching and Next Up are the only library rows a *third party*
-        changes while you are looking at them (#560), and a stale one is not
-        cosmetic -- it offers to resume something already watched, and pressing
-        it starts it over.
+        **Every screen that shows it, not only Home.** Home's Continue
+        Watching and Next Up were the reported case (#560) and the gate was
+        written for them; a series page's per-season "N episodes remaining"
+        is the same field from the same event, and it went stale until the
+        app was restarted (#722). `UnplayedItemCount` is computed by the
+        server on the PARENT, so there is nothing to patch client-side --
+        re-reading is the only honest answer, and a client-side aggregate
+        would be a second authority on it.
 
-        A **load, not a reload**, exactly like refresh_live_tv. Reached from the
-        websocket thread, so it must be safe off the loop thread.
-
-        ``now`` skips the debounce, for the caller that is not a burst: coming
-        back from playback (see enter_browse). See docs/browser-shell.md
-        section 4.
+        ``now`` skips the debounce, for the caller that is not a burst:
+        coming back from playback (see enter_browse). ``server`` is the
+        server the event came from; see ``_refresh_current``.
         """
-        if self.route.get("kind") != "home" or not self._browsing:
-            return
         if now:
-            if self._menu is None and self._dialog is None \
-                    and not self.route.get("_loading"):
-                self._load_route(self.route)
+            self._refresh_current(USERDATA_KINDS, server)
             return
 
         def tick():
@@ -619,20 +664,42 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # schedules exactly one re-read: the first arrival starts the
             # wait and the rest land while the slot is taken.
             self._shutdown_evt.wait(self.USERDATA_DEBOUNCE)
-            route = self.route
-            if route.get("kind") != "home" or not self._browsing:
-                return
-            # Deferred, never forced, while the user is mid-interaction --
-            # see refresh_live_tv for the full reasoning. Skipping costs
-            # nothing here: the next event is seconds away, and returning to
-            # Home re-reads anyway.
-            if self._menu is not None or self._dialog is not None:
-                return
-            if route.get("_loading"):
-                return
-            self._load_route(route)
+            pending, self._userdata_servers = self._userdata_servers, set()
+            self._refresh_current(USERDATA_KINDS,
+                                  self._userdata_target(pending))
 
+        # Cheap pre-check so a burst that cannot apply does not take the
+        # slot for three seconds; `tick` asks again for real, because the
+        # route can change while it waits.
+        if self.route.get("kind") not in USERDATA_KINDS or not self._browsing:
+            return
+        # Every server in the burst, not just the one that happened to take
+        # the slot. The refresh is server-FILTERED since #722, so a captured
+        # first arrival could coalesce away the event for the page actually
+        # on screen and then filter itself out -- leaving it stale.
+        self._userdata_servers.add(server)
         self._start_daemon("_userdata_thread", "mpvtk-userdata", tick)
+
+    def _userdata_target(self, pending):
+        """Which server to hand `_refresh_current` for a coalesced burst.
+
+        One value, because the route on screen belongs to one server and
+        Home is exempt from the filter -- so refreshing once per server
+        would re-read Home several times for nothing.
+
+        `None` wins outright: it means an event that could not be
+        attributed, which refreshes unfiltered, and swallowing it behind a
+        filtered one would lose the very event we cannot reason about.
+        Otherwise prefer the route's own server when the burst contains it;
+        failing that any of them, which the filter then declines exactly as
+        a single event would have.
+        """
+        if not pending or None in pending:
+            return None
+        route_server = self.route.get("server") or self.server
+        if route_server in pending:
+            return route_server
+        return next(iter(pending))
 
     def _reload_route(self, route):
         """Re-run a route's loader in place: the data changed, the screen did
@@ -892,7 +959,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             if self._minimized or self._browsing:
                 # Idle or already browsing: bring the page forward.
                 self.enter_browse()
-                if self.controller is not None:
+                # Taking the FOREGROUND is the summon, and the window being
+                # on screen already does not make it a cheaper one: on
+                # Windows `raise_window` is a real SetForegroundWindow, so an
+                # already-browsing client stole focus from the very browser
+                # the user was casting from, once per page they opened
+                # (#728). The early return above covers the minimized half of
+                # the same setting; this covers the visible half.
+                if (self.controller is not None
+                        and settings.display_mirror_summon):
                     self._safe(lambda c: c.raise_window())
         self.run_async(work, done, ep)
 
@@ -1303,7 +1378,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     #:
     #: NOT the epoch, and the old name (`_load_ep`) is what invited stamping
     #: one. A refresh is deliberately a load rather than a *re*load --
-    #: `refresh_home` calls `_load_route` with no `_bump_epoch()`, since
+    #: `_refresh_current` calls `_load_route` with no `_bump_epoch()`, since
     #: bumping would cancel everything else in flight -- so two loads of the
     #: same route routinely share an epoch, and a guard comparing epochs
     #: cannot tell them apart. This is unique per dispatch.
@@ -1328,7 +1403,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
         def landed(data):
             # The success half of the same guard. `run_async` gates on_done by
-            # EPOCH, and a refresh deliberately shares one (`refresh_home`
+            # EPOCH, and a refresh deliberately shares one (`_refresh_current`
             # loads without bumping) -- so an older load answering after a
             # newer one was still applied, putting stale rows back. That is
             # the mirror of the failure case below, and gating only the
@@ -1369,7 +1444,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 self._offline_fallback(route)
 
         def settled():
-            # `always`, so a background refresh (refresh_live_tv) releases its
+            # `always`, so a background refresh (`_refresh_current`) releases its
             # marker however this ends — including the epoch-superseded case,
             # which runs neither callback. A marker left set would stop the
             # screen refreshing for the rest of its life.
@@ -1739,10 +1814,49 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # CALL instead would have broken the release-on-leave the comment
         # above describes.
         page = self._page_for(route) if self._browsing else None
+        keys = tuple(getattr(page, "claimed_keys", ()) or ())
+        keys += self._shell_claimed_keys()
         try:
-            claim(getattr(page, "claimed_keys", ()) or ())
+            claim(keys)
         except Exception:
             log.debug("key claim failed", exc_info=True)
+
+    #: Volume, mute -- the shell's own keys while music is playing, spelled
+    #: with mpv's names so the muscle memory carries over (#730).
+    SHELL_VOLUME_KEYS = {"9": -2.0, "0": 2.0}
+
+    def _shell_claimed_keys(self):
+        """Keys the SHELL takes, on top of whatever the page claimed.
+
+        Only while audio is playing, because that is the whole of the case:
+        `browse_block_keys` swallows mpv's own `9`/`0`/`m` along with every
+        other printable key, and music is the one thing you can be listening
+        to *while looking at the library*. Claiming them back means the
+        now-playing bar's slider tracks the change and the server hears
+        about it, which mpv's own binding did neither of.
+
+        Gated on the setting as well: someone who turned the block off asked
+        for their own keyboard back, and taking three keys out of it anyway
+        would be the same interception with a smaller footprint.
+        """
+        from ..conf import settings
+
+        # `_browsing` for the reason the caller's comment gives, and it is
+        # the same trap one step over: a playback update on a foreign thread
+        # can flip that flag mid-render, and the claim call is unconditional
+        # on purpose, so it is the ANSWER that has to go empty. Reading only
+        # `_now_playing` happens to agree today -- video clears it -- but by
+        # coincidence of two writers, not by construction.
+        if not self._browsing or self._now_playing is None:
+            return ()
+        if not settings.browse_block_keys:
+            return ()
+        # SPACE is here for a different reason from the other three, and a
+        # sharper one: the block swallows it like any printable key, and a
+        # forced binding that returns does not hand the key back to the
+        # binding underneath -- so `kb_pause` never saw it and the only
+        # transport key on the keyboard went dead with nothing replacing it.
+        return tuple(self.SHELL_VOLUME_KEYS) + ("m", "SPACE")
 
     def _set_picture_pan(self, config=None):
         """Push (or drop) the renderer's gesture model for a picture."""
@@ -1771,9 +1885,47 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         except Exception:
             log.warning("page picture gesture failed", exc_info=True)
 
+    def _shell_key(self, key):
+        """Handle a key the SHELL claimed, and say whether it did.
+
+        Only for keys the current page did not claim by name -- see
+        `_on_claimed_key`. The two claims are unioned into one list, so the
+        renderer delivers both with nothing to say whose a key was; the
+        caller resolves that, once, rather than each page defending itself.
+
+        The state is read HERE and not captured at claim time. A claim is
+        installed from a frame and the press arrives later, so between the
+        two the music can have stopped -- the standing footgun of this
+        shell, and the reason there is a test named for it.
+        """
+        if self._now_playing is None or self.controller is None:
+            return False
+        step = self.SHELL_VOLUME_KEYS.get(key)
+        try:
+            if step is not None:
+                self.controller.adjust_volume(step)
+                return True
+            if key == "m":
+                self.controller.toggle_mute()
+                return True
+            if key == "SPACE":
+                self.controller.toggle_pause()
+                return True
+        except Exception:
+            log.debug("shell volume key failed", exc_info=True)
+            return True
+        return False
+
     def _on_claimed_key(self, key):
         """A key this route claimed. Handed to the page, on the loop thread."""
         page = self._page_for(self.route)
+        # The PAGE wins for anything it claimed by name. Both readers claim
+        # SPACE to turn a page, and the shell claims it to pause -- on the
+        # screen that asked for it, the page's meaning is the right one.
+        # Only keys no page named fall through to the shell.
+        if key not in (getattr(page, "claimed_keys", ()) or ()):
+            if self._shell_key(key):
+                return
         handler = getattr(page, "on_key", None)
         if handler is None:
             return
@@ -2270,7 +2422,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # for this reason all along; coming back from PLAYBACK does not go
         # through it, which is why watching something in the shim itself left
         # its own Continue Watching row stale (#560).
-        self.refresh_home(now=True)
+        self.refresh_userdata(now=True)
         self._set_renderer_active(True)
         self.invalidate()
 

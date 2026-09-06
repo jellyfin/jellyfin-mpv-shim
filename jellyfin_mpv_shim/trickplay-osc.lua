@@ -2923,9 +2923,19 @@ function visibility_mode(mode, no_osd)
     elseif mode == "never" then
         enable_osc(false)
         -- BEGIN patch add thumbnails
-        if img_is_shown then
-            mp.commandv("overlay-remove", 46)
-        end
+        -- `thumbfast_clear()`, NOT a local `overlay-remove 46`.
+        --
+        -- This used to read `img_is_shown`, which is a global in
+        -- thumbfast.lua -- a DIFFERENT script, so a different Lua
+        -- environment. Here it was always nil, so the branch never ran and
+        -- a preview left on screen when visibility went to "never" stayed
+        -- there. It also hardcoded the overlay id, which thumbfast owns.
+        --
+        -- Clearing through the message thumbfast already answers fixes both:
+        -- it is guarded by `thumb_requested`, which is state this script
+        -- actually has, and thumbfast removes its own overlay and resets its
+        -- own bookkeeping.
+        thumbfast_clear()
         -- END patch add thumbnails
     else
         msg.warn("Ignoring unknown visibility mode '" .. mode .. "'")

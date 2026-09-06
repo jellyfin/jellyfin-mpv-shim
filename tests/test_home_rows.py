@@ -472,7 +472,7 @@ class ContinueWatchingStaysCurrentTest(unittest.TestCase):
         b, loads = self._browser()
         b.USERDATA_DEBOUNCE = 0.01
         for _ in range(20):
-            b.refresh_home()
+            b.refresh_userdata()
         for _ in range(200):
             if loads:
                 break
@@ -482,14 +482,14 @@ class ContinueWatchingStaysCurrentTest(unittest.TestCase):
     def test_nothing_happens_off_the_home_screen(self):
         b, loads = self._browser()
         b.route["kind"] = "grid"
-        b.refresh_home()
-        b.refresh_home(now=True)
+        b.refresh_userdata()
+        b.refresh_userdata(now=True)
         self.assertEqual(loads, [])
 
     def test_nothing_happens_while_playback_owns_the_window(self):
         b, loads = self._browser()
         b._browsing = False
-        b.refresh_home()
+        b.refresh_userdata()
         self.assertEqual(loads, [])
 
     def test_an_open_menu_defers_it(self):
@@ -497,11 +497,11 @@ class ContinueWatchingStaysCurrentTest(unittest.TestCase):
         on -- the rule refresh_live_tv established."""
         b, loads = self._browser()
         b._menu = {"kind": "history"}
-        b.refresh_home(now=True)
+        b.refresh_userdata(now=True)
         self.assertEqual(loads, [])
         b._menu = None
         b._dialog = lambda: None
-        b.refresh_home(now=True)
+        b.refresh_userdata(now=True)
         self.assertEqual(loads, [])
 
     def _live_browser(self):

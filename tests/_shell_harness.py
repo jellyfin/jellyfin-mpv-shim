@@ -393,6 +393,28 @@ class FakeSource:
         return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",
                  "ParentIndexNumber": 1, "IndexNumber": i} for i in range(5)]
 
+    #: How many of `get_season_queue`'s episodes come back watched. A test
+    #: moves it to put the first unplayed episode somewhere specific.
+    season_watched = 2
+
+    def get_season_queue(self, server_uuid, series_id, season_id):
+        """A season, as a play queue.
+
+        **UserData.Played is on every row on purpose.** The season play
+        chip's whole behaviour is "start at the first unplayed episode"
+        (#720), so a stand-in without that field would make the rule
+        unreachable while a test named after it still passed -- and
+        `get_series_queue` above, which this one is NOT, is exactly that
+        shape. `SeasonId` for the same reason: it is what distinguishes
+        this query from the series-wide one.
+        """
+        return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",
+                 "SeriesId": series_id, "SeasonId": season_id,
+                 "ParentIndexNumber": 1, "IndexNumber": i,
+                 "UserData": {"Played": i < self.season_watched,
+                              "PlaybackPositionTicks": 0}}
+                for i in range(5)]
+
     def search(self, server_uuid, term, limit=60):
         return [{"Id": "r1", "Name": "Movie " + term, "Type": "Movie"},
                 {"Id": "r2", "Name": "Ep", "Type": "Episode"},
@@ -662,8 +684,13 @@ class FakeController:
         self.entered = 0
         self.left = 0
         self.minimized = 0
+        self.raised = 0
         self.played = []
         self.transport = []
+        #: Volume state the browser's own volume keys move (#730).
+        self.volume_level = 100.0
+        self.muted = False
+        self.paused = False
         #: item_id -> (status, absolute path or None), as the real gateway
         #: answers. Tests set entries to put a book on disk.
         self.book_downloads = {}
@@ -757,6 +784,32 @@ class FakeController:
 
     def on_minimize(self):
         self.minimized += 1
+
+    def adjust_volume(self, delta):
+        """Record it AND apply it, like toggle_deinterlace above.
+
+        The volume is the thing the keys are named after, so a fake that
+        recorded the call without moving the number could not tell a step
+        that lands from one that is clamped away -- or two presses from
+        one.
+        """
+        self.volume_level = max(0.0, min(100.0, self.volume_level + delta))
+        self.transport.append(("adjust_volume", (delta,)))
+
+    def toggle_mute(self):
+        self.muted = not self.muted
+        self.transport.append(("toggle_mute", ()))
+
+    def toggle_pause(self):
+        self.paused = not self.paused
+        self.transport.append(("toggle_pause", ()))
+
+    def raise_window(self):
+        # Modelled, not omitted: `_safe` swallows an AttributeError, so a
+        # fake without this method makes every "did we take the foreground"
+        # question answer "no" whatever the app did -- which is how #728
+        # went untested through the summon test that sits right beside it.
+        self.raised += 1
 
     def play(self, item, server_uuid, offset_ticks=None, srcid=None,
              aid=None, sid=None):

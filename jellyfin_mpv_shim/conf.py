@@ -28,7 +28,9 @@ config_path = None
 #      "None" and been saved back verbatim; those become real nulls.
 #   4: the seek_* settings leave conf.json -- the keys the user CHANGED
 #      become real bindings in their input.conf (see input_conf.py).
-CONFIG_VERSION = 4
+#   5: osc_style "default" folds into "mpv" -- one "MPV UI" instead of two
+#      that only differed in who loaded the OSC.
+CONFIG_VERSION = 5
 
 # Media segment types the server publishes, and the setting that decides what
 # each one does. Jellyfin's enum also has "Unknown", which has no meaning to
@@ -80,6 +82,25 @@ SCROLL_MODES = ("continuous", "aligned", "row")
 # unsynchronized truncate+rewrite writers can interleave into invalid JSON,
 # which load() swallows — silently resetting every setting on next launch.
 _save_lock = threading.Lock()
+
+
+def select_key():
+    """The key that activates whatever the in-window UI has focused.
+
+    **One reader for three producers.** The gamepad's Confirm button, a
+    Jellyfin remote's "ok" and the renderer's own binding all have to name
+    this same key: each of the first two synthesizes a KEYPRESS, so a
+    remap that moves one and not the others leaves that one pressing a key
+    nothing listens for. `gamepad.bindings` takes it as a parameter (that
+    module is pure), the player reads it per press, and the fallback lives
+    here rather than at each call site -- two spellings of a default is
+    how they come to differ.
+
+    Falls back when cleared: a config with no select key is an interface
+    that cannot be operated by anything but the mouse, and the settings
+    screen that would fix it is inside that interface.
+    """
+    return getattr(settings, "ui_select_key", None) or "ENTER"
 
 
 def get_default_sdir():
@@ -241,6 +262,22 @@ class Settings(SettingsBase):
     #
     # "always" / "never" override it.
     window_controls: str = "auto"
+    #: Ask the desktop for no title bar at all (mpv's `border`), so the
+    #: browser's own top bar is the only one.
+    #:
+    #: Off by default because it is a one-way door on some desktops: with no
+    #: title bar and no window controls drawn, a window can be hard to move
+    #: or close. It pairs with `window_controls` -- "auto" starts answering
+    #: yes the moment this is on, because it asks mpv the same `border`
+    #: question this sets.
+    hide_title_bar: bool = False
+    #: Keep the browser's own window buttons on screen in fullscreen.
+    #:
+    #: Off, because a fullscreen window has no title bar anywhere and nothing
+    #: to minimize, maximize or drag -- so the buttons are furniture over the
+    #: top of a video. On for anyone who wants a way out of fullscreen that
+    #: is not a keyboard shortcut. See `window_controls_wanted`.
+    window_controls_fullscreen: bool = False
     # Persist the window size across launches. Off means window_width/height
     # are a fixed preference the app always opens at, which is what you want
     # if you deliberately pinned a size.
@@ -542,15 +579,21 @@ class Settings(SettingsBase):
     # segment. Applies to keyboard/remote seeks; seeks made from the
     # jellyfin OSC's seekbar never trigger it (it has its own button).
     skip_intro_on_seek: bool = False
+    # The trickplay feature as a whole: the worker that fetches the images
+    # and the thumbfast script that draws them. Every OSC style consumes it
+    # — the HUD's own bubble, both classic OSCs, and a thumbfast-aware
+    # script of the user's — so it is not an OSC question and does not
+    # live with them.
     thumbnail_enable: bool = True
-    thumbnail_osc_builtin: bool = True
     # In-player UI: "mpvtk" (the in-window playback HUD rendered by the
     # library browser — jellyfin-web styled, remote navigable; needs
-    # enable_gui, falls back to "mpv" otherwise), "mpv" (stock
-    # mpv OSC patched with trickplay previews), or "default" (whatever
-    # OSC is built into the mpv binary / the user's own scripts).
-    # "jellyfin" is a legacy alias for "mpvtk" (the lua OSC it used to
-    # name was retired once the HUD reached parity).
+    # enable_gui, falls back to "mpv" otherwise), "mpv" (mpv's own OSC,
+    # loaded by us so it can draw trickplay previews), "custom" (the
+    # user's own OSC script; ours stays out of the way) or "none".
+    # Two legacy aliases, both accepted on the way in and neither
+    # produced: "jellyfin" for "mpvtk" (the lua OSC it used to name was
+    # retired once the HUD reached parity) and "default" for "mpv"
+    # (CONFIG_VERSION 5).
     osc_style: str = "mpvtk"
     # Playback HUD looks and lifecycle (osc_style "mpvtk"). The scrim
     # is what makes the controls legible over any frame; "none" pays
@@ -563,6 +606,11 @@ class Settings(SettingsBase):
     # Seconds of no input before they hide. 0 means "as soon as the
     # pointer is not on them", and forces the hover mode.
     hud_hide_secs: float = 4.0
+    # Let the controls shrink further on a narrow window before any of
+    # them are dropped. Off is the older behaviour: they stop at 72% and
+    # buttons start disappearing instead. On, they shrink until the
+    # smallest hit target reaches the accessibility minimum.
+    hud_auto_scale: bool = True
     # Scale factor for the whole in-player UI (tiles, text, chrome).
     # null follows the display: mpv's display-hidpi-scale, which is 1.0
     # on X11 and the compositor's factor on Wayland/macOS. Set a number
@@ -669,6 +717,28 @@ class Settings(SettingsBase):
     # The key that summons the HUD for keyboard driving while it is
     # hidden (mpv key name syntax). ENTER also toggles pause on wake.
     hud_wake_key: str = "ENTER"
+    # The key that ACTIVATES whatever the in-window UI has focused -- the
+    # library's tiles and the player controls both. An mpv key name, and
+    # uppercase like hud_wake_key beside it rather than lowercase like the
+    # kb_* family, because it is bound by the renderer and not by
+    # _bind_key.
+    #
+    # Distinct from kb_menu_ok, which is the LEGACY OSD menu's OK and
+    # reaches nothing else -- the confusion behind #717.
+    #
+    # A replacement and not an alias [iw]: the renderer stops force-binding
+    # ENTER when this moves, which is the point -- the request was to get
+    # ENTER back for mpv's own use.
+    ui_select_key: str = "ENTER"
+    #: Swallow mpv's own keyboard shortcuts while the library is on screen
+    #: (#730). What it covers and how: docs/mpv-backends.md section 5.
+    #:
+    #: On by default, which is the half worth writing down here: browsing a
+    #: library is not a context where anybody means "adjust the picture",
+    #: and the change would outlive the browse session. It is a setting at
+    #: all because turning it off is the only way to reach your own
+    #: input.conf bindings there.
+    browse_block_keys: bool = True
     thumbnail_preferred_size: int = 320
     #: Load every trickplay preview frame at once instead of a window
     #: around where you are seeking.
@@ -766,6 +836,28 @@ class Settings(SettingsBase):
                     "(mpv now supports Dolby Vision natively)."
                 )
                 self.transcode_dolby_vision = False
+        if self.config_version < 5:
+            # "MPV built-in default" and "MPV UI with thumbnails" collapse
+            # into one "MPV UI". They only ever differed in who loaded the
+            # OSC -- mpv itself, or us -- and once the shim started using
+            # mpv's OWN OSC for both (the 0.41 Preview API, see
+            # `player._load_classic_osc`) the difference stopped being
+            # visible except as a bug: under "default" nothing suppressed
+            # mpv's "Drop files or URLs to play" logo, so it sat behind the
+            # library.
+            #
+            # [iw]: "we already have a custom and no osc option for people
+            # who want that" -- `custom` leaves the user's own OSC to run
+            # and `none` turns controls off, so nothing is lost by the shim
+            # owning this one.
+            #
+            # A RENAME-shaped step: it carries a real choice across rather
+            # than overriding one.
+            if self.osc_style == "default":
+                log.info("Config migration: osc_style \"default\" -> "
+                         "\"mpv\" (one MPV UI; see CONFIG_VERSION 5).")
+                self.osc_style = "mpv"
+                changed = True
         if self.config_version < 4:
             # #16: the keys the user CHANGED become real mpv bindings, and
             # the settings are cleared so nothing binds them twice. The

@@ -26,12 +26,18 @@ from .utils import get_resource
 
 log = logging.getLogger("mpv_options")
 
-#: Styles that must not leave mpv's built-in OSC on: two that replace it
-#: with something of ours, one that replaces it with nothing, and one where
-#: the replacement is a script of the user's that we never see.
+#: Styles that must not leave mpv's built-in OSC to load itself.
 #:
-#: "default" is deliberately absent -- there mpv's own OSC is the answer, and
-#: whether to have it is the user's to say in their mpv.conf (section 12 of
+#: Since CONFIG_VERSION 5 that is every style there is, and for three
+#: different reasons: "mpvtk" replaces it with the in-window HUD, "none" with
+#: nothing, "custom" with a script of the user's that we never see, and "mpv"
+#: loads mpv's OWN OSC -- but by hand, after construction, so the version can
+#: be checked and the idle logo suppressed first
+#: (`player._load_classic_osc`).
+#:
+#: The `elif` below is therefore no longer reachable from a configured value.
+#: It stays for a hand-edited `osc_style` nobody recognises, where behaving
+#: like mpv normally would is the right answer (section 12 of
 #: docs/mpv-backends.md).
 REPLACES_OSC = ("mpv", "mpvtk", "none", "custom")
 
@@ -154,18 +160,29 @@ def resolve_osc_style():
     """Which in-player UI to load, after the aliases and fallbacks.
 
     ``settings.osc_style`` is not the answer on its own: it may hold a legacy
-    alias, and two settings can force a fallback. The result is stored on the
+    alias, and `enable_gui` can force a fallback. The result is stored on the
     player as ``_osc_style_resolved`` because the c-menu routing, enable_osc
     and the skip-button path all key off the resolved value rather than the
     configured one.
+
+    **Nothing resolves TO "default" any more.** It is an inbound legacy value
+    only -- a pre-CONFIG_VERSION-5 conf.json, or one hand-edited -- and the
+    alias below turns it into "mpv". It survived as an internal resolution
+    for exactly one caller, the `thumbnail_osc_builtin` opt-out, and went
+    with it; `build_mpv_options` still maps the value because it is a pure
+    style -> options function and that mapping is still what "default"
+    means.
     """
     # Which in-player UI to load: the in-window mpvtk playback HUD
     # ("mpvtk"; no lua script — the browser renders it, see
-    # mpvtk_browser/hud.py), the stock mpv OSC patched with
-    # trickplay previews ("mpv"), whatever the mpv binary ships and
-    # the user's own scripts ("default"), or nothing at all ("none").
-    # "jellyfin" is a legacy alias for the HUD — the jellyfin-styled
-    # lua OSC it used to name was retired once the HUD reached parity.
+    # mpvtk_browser/hud.py), mpv's own OSC ("mpv"), a script of the
+    # user's that we leave alone ("custom"), or nothing at all
+    # ("none"). Two legacy aliases: "jellyfin" for the HUD — the
+    # jellyfin-styled lua OSC it named was retired once the HUD reached
+    # parity — and "default", which folded into "mpv" at
+    # CONFIG_VERSION 5. `thumbnail_osc_builtin` was a third way in and is
+    # gone: "use your own OSC but keep trickplay" is `custom`, and
+    # "no controls" is `none`, so it named nothing this cannot say.
     #
     # "none" is where the old enable_osc setting went. That was a
     # separate switch that only ever reached mpv's OWN controls, so
@@ -175,24 +192,71 @@ def resolve_osc_style():
     osc_style = settings.osc_style
     if osc_style == "jellyfin":
         osc_style = "mpvtk"
+    if osc_style == "default":
+        # Legacy alias since CONFIG_VERSION 5. "MPV built-in default" and
+        # "MPV UI with thumbnails" collapsed into one "MPV UI": they only
+        # differed in who loaded the OSC, and once the shim started loading
+        # mpv's own (`player._load_classic_osc`) the difference showed up
+        # only as a bug -- nothing suppressed the idle logo under "default",
+        # so it sat behind the library. `_migrate` rewrites the stored
+        # value; this covers a hand-edited conf.json and a config from the
+        # future that was never migrated.
+        osc_style = "mpv"
     if osc_style == "mpvtk" and not settings.enable_gui:
         # The playback HUD is rendered by the library browser; with the
         # GUI disabled there is nothing to render it, so the patched
         # stock OSC is the closest thing.
         osc_style = "mpv"
-    if osc_style == "mpvtk" and not settings.thumbnail_osc_builtin:
-        # Legacy opt-out: thumbnail_osc_builtin=False used to mean
-        # "don't replace my OSC" (e.g. users running uosc).
-        osc_style = "default"
     return osc_style
 
 
+def osc_script_opts(osc_style):
+    """The ``osc-*`` entries appended to ``script-opts`` at construction.
+
+    Every osc.lua and every fork of it reads ``script-opts`` under the
+    ``osc`` prefix at startup, so these are read by construction rather than
+    in time. They are appended, never written over the whole property, which
+    is shared with the user's own scripts.
+
+    ``osc-idlescreen`` is unconditional: it has to cover the styles where
+    mpv loads the OSC itself as well as the one we load by hand, and it is
+    inert for a style with no OSC and for a third-party one reading another
+    prefix.
+
+    ``osc-windowcontrols`` is **not**, and the difference is who is drawing
+    window buttons over PLAYBACK. Only ``mpvtk`` does -- its HUD asks
+    ``window_chrome.window_controls`` for a set -- so only there does a
+    second set from the OSC mean two. Under every other style the OSC on
+    screen is the only thing that could offer any: the stock OSC, our
+    ``trickplay-osc.lua`` fork under ``mpv``, and whatever ``custom``
+    loaded. Their default is "auto", i.e. "whenever the window has no
+    border" -- which is precisely the ``hide_title_bar`` case, where saying
+    no left a windowed video with no title bar and no buttons anywhere and
+    nothing but an undocumented key to close it (#727 follow-up).
+
+    The library's own top bar is not the answer to that: it is not on screen
+    while a video is playing.
+    """
+    opts = ["osc-idlescreen=no"]
+    if osc_style == "mpvtk":
+        opts.append("osc-windowcontrols=no")
+    return opts
+
+
 def mpv_scripts(osc_style, trickplay):
-    """Lua scripts to load, in load order.
+    """Lua scripts to load at construction, in load order.
 
     ``trickplay`` is whether the TrickPlay worker actually started -- not
     whether it was asked to. thumbfast is the script side of that feature, so
     a worker that failed to come up must not advertise it to mpv.
+
+    **The classic OSC is deliberately not here.** Which one to load depends
+    on the mpv that is about to be built -- the stock OSC where it can drive
+    our previews (0.41+, the OSC Preview API), our fork where it cannot --
+    and the version is not knowable until the player exists. The libmpv
+    client API cannot stand in for it either: 0.40 and 0.41 both report 2.5.
+    So `PlayerManager._load_classic_osc` picks one and `load-script`s it
+    right after construction, while nothing is on screen yet.
     """
     scripts = []
     if settings.menu_mouse:
@@ -202,8 +266,6 @@ def mpv_scripts(osc_style, trickplay):
         # it, and thumbfast-aware user OSCs (e.g. uosc) benefit
         # under "default" too.
         scripts.append(get_resource("thumbfast.lua"))
-    if osc_style == "mpv":
-        scripts.append(get_resource("trickplay-osc.lua"))
     return scripts
 
 
@@ -543,6 +605,16 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
     # library browser. Property expansion is mpv's, evaluated live, so
     # the title follows playback without us pushing updates.
     mpv_options["title"] = "${?media-title:${media-title} - }%s" % USER_APP_NAME
+
+    # No desktop title bar, so the browser's own top bar is the only one
+    # (#727). A construction option rather than a runtime write, and only
+    # when it is ON: `border` is one of the properties `window_controls`
+    # "auto" reads to decide whether to draw its own buttons, so writing
+    # `border=True` unconditionally would override a user who set
+    # `border=no` in their mpv.conf and take those buttons away from
+    # exactly the person who wants them. Off means "say nothing".
+    if settings.hide_title_bar:
+        mpv_options["border"] = False
 
     # Window size. mpv defaults to a fixed 960x540 whatever the display
     # size, which is cramped for a browsable UI. Restored from the last

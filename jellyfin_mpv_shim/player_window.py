@@ -97,10 +97,16 @@ class WindowMixin:
         fullscreen_disable: bool
         on_decorations_changed: Any
 
-        # Provided by siblings on the composed PlayerManager. Three, and the
+        # Provided by siblings on the composed PlayerManager. Four, and the
         # count is the point: if it grows, the window concern is drifting back
         # into the lifecycle it was separated from.
         def _init_mpv(self) -> None: ...
+
+        # Grown deliberately, for `apply_browser_fullscreen`: "is the library
+        # on screen" is a question about what is PLAYING, which this mixin
+        # does not own and must not answer with a local approximation --
+        # `_video is None` is the wrong answer during music.
+        def _library_showing(self) -> bool: ...
 
         def idle_quit(self, reason: str = ...) -> None: ...
 
@@ -312,6 +318,67 @@ class WindowMixin:
     @synchronous("_lock")
     def toggle_fullscreen(self):
         self.set_fullscreen(not self._player.fs, persist=True)
+
+    def _apply_browse_fullscreen(self):
+        """Put the browse window at the size ``browser_fullscreen`` asks for.
+
+        Browsing is a desktop-UI activity: only go fullscreen if the user
+        explicitly asked for a fullscreen browser. ``settings.fullscreen``
+        still applies when playback starts.
+
+        headless is a kiosk: the cast screen IS the display, so it stays
+        fullscreen throughout. Without this, stopping playback dropped a
+        cast-target box back to a window whenever ``browser_fullscreen`` was
+        off — and ``browser_fullscreen`` is about the library, which headless
+        does not even have.
+
+        The `elif` is what keeps audio out of it: music leaves `_video` set
+        and keeps the library on screen, and the fullscreen the *video*
+        session chose outranks this one.
+
+        Called on every browse transition and, since #729, whenever the
+        setting itself is written — one decision in one place, because two
+        copies of it would disagree the first time either moved.
+        """
+        if settings.browser_fullscreen or settings.headless:
+            self._player.fs = True
+        elif not self._video:
+            self._player.fs = False
+
+    @synchronous("_lock")
+    def apply_browser_fullscreen(self):
+        """Live-apply ``browser_fullscreen`` from the settings page (#729).
+
+        The setting used to wait for the next browse transition, which for
+        someone sitting in Settings is indistinguishable from a control that
+        does nothing.
+
+        **Not `set_fullscreen()`**, which is the other plausible way to write
+        this and is wrong: that one also records `fullscreen_disable`, a
+        *user intent* flag read at the next playback start — so turning the
+        library's fullscreen off would quietly turn off auto-fullscreen for
+        the next video too.
+        """
+        from .player import _mpv_errors
+
+        if not self._mpv_alive:
+            return
+        # **Only while the library actually owns the window.** The gateway's
+        # `_act` defers through `run_action`, so a write made while the
+        # player lock was held by a playback start lands AFTER that start --
+        # and `_apply_browse_fullscreen`'s `_video` guard protects only the
+        # OFF direction, so `browser_fullscreen` would have taken a playing
+        # video fullscreen against the user's choice.
+        #
+        # `_library_showing()`, never `_video is None`: music keeps `_video`
+        # set and keeps the library up, and that is the case this whole
+        # method exists to serve.
+        if not self._library_showing():
+            return
+        try:
+            self._apply_browse_fullscreen()
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
 
     @synchronous("_lock")
     def set_fullscreen(self, enabled: bool, persist: bool = False):
@@ -649,20 +716,7 @@ class WindowMixin:
                         self._player.command("stop")
                         self._showing_browse_bg = True
                         self._browse_bg_deferred = False
-                # Browsing is a desktop-UI activity: only go fullscreen if the
-                # user explicitly asked for a fullscreen browser. settings.
-                # fullscreen still applies when playback starts.
-                #
-                # headless is a kiosk: the cast screen IS the display, so it
-                # stays fullscreen throughout. Without this, stopping
-                # playback dropped a cast-target box back to a window
-                # whenever browser_fullscreen was off — and browser_
-                # fullscreen is about the library, which headless does not
-                # even have.
-                if settings.browser_fullscreen or settings.headless:
-                    self._player.fs = True
-                elif not self._video:
-                    self._player.fs = False
+                self._apply_browse_fullscreen()
             else:
                 try:
                     self._player.keepaspect = True
@@ -769,11 +823,17 @@ class WindowMixin:
         # minimize, maximize or drag. Checked ahead of "always" because
         # "always" is an answer to "does this desktop decorate my windows",
         # not a request for furniture over the top of a fullscreen video.
-        try:
-            if self._player is not None and self._player.fullscreen:
-                return False
-        except Exception:
-            pass
+        #
+        # `window_controls_fullscreen` is the opt-in for the other reading
+        # (#727): with no title bar and no keyboard, fullscreen is a room
+        # with no door. Still off by default -- the buttons are over the
+        # picture, and every other way out still works.
+        if not settings.window_controls_fullscreen:
+            try:
+                if self._player is not None and self._player.fullscreen:
+                    return False
+            except Exception:
+                pass
         if mode == "always":
             return True
         # "auto" and anything unrecognised: ask mpv. An unanswerable question

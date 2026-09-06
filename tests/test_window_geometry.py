@@ -198,6 +198,8 @@ class WindowMixinIsWiredInTest(unittest.TestCase):
         self.assertTrue(issubclass(PlayerManager, WindowMixin))
         for name in ("set_browse_window", "browse_yield", "force_window",
                      "raise_window", "set_fullscreen", "toggle_fullscreen",
+                     "apply_browser_fullscreen",
+                     "_apply_browse_fullscreen",
                      "_sync_window_geometry", "_rearm_window_geometry",
                      "_save_window_geometry", "_set_force_window",
                      "_reopen_window_size"):

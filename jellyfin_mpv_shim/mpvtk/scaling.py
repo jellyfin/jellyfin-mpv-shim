@@ -71,8 +71,16 @@ def _round(v):
 
 # Pixel geometry, uniform across every node type (audited against
 # layout.py's emission and renderer.lua's reads).
+#
+# `isz` is the icon-trigger dropdown's glyph size, and it is a BOX rather
+# than a type size despite measuring a glyph: the renderer floors it and
+# centres it in the trigger, and a `Button`'s icon reaches the same drawing
+# code through `w`, which rounds here. Exact would put the two families one
+# pixel apart at any fractional scale -- 17 at 1.5x is 25.5, floored to 25
+# against the button's 26 -- which is the drift tests/test_hud_icon_sizes.py
+# is named after (#721).
 _PX_KEYS = ("x", "y", "w", "h", "radius", "bw", "pw", "cw", "ch",
-            "rh", "snap", "snap_off", "off0")
+            "rh", "snap", "snap_off", "off0", "isz")
 
 # Scaled but NOT rounded: a font size is not a box, and rounding one makes
 # the text render wider than the width layout fitted it to. The LINE BOX

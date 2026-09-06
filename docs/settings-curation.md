@@ -38,6 +38,17 @@ Two conventions:
   and turning the parent off *says so* if it also had to clear a dependant
   (`TRAY_DEPENDENT` → `start_minimized`). Leaving a hidden setting acting at
   every startup with no way to see or undo it is the failure being avoided.
+  The sets are `TRAY_DEPENDENT`, `BACKGROUND_DEPENDENT`, `AUDIO_MODE_ONLY`,
+  `HUD_ONLY` and `TRICKPLAY_DEPENDENT`; each is seeded into `sections()`'s
+  `curated` set, and **that seeding is the part to get wrong**. `hidden` is
+  computed as `curated - shown`, so a key nobody seeded is never in `hidden`
+  and the filter never reaches it: the row goes on being drawn and nothing
+  says why. Silently, and with a form that still looks complete — which is
+  why the test for a new dependent asserts it is *absent from every group*
+  when its parent is off, not merely that it is absent from Advanced. That
+  second assertion cannot fail (`hidden` is a subset of `curated` by
+  construction); `c06e0351` deleted one written that way, and
+  `tests/test_trickplay_setting.py` says so where the next one would go.
 - **A control that is not offered beats a control that is disabled** where the
   reason is a permission or a missing capability, because a disabled control
   invites the user to go looking for the switch that enables it.
@@ -88,6 +99,9 @@ picked was the wrong one or whether the control does nothing.
 | `audio_*` | `_apply_audio_settings` |
 | `scroll_wheel_pixels`, `scroll_mode` | `app.push_scroll_config()` — the renderer re-derives |
 | `gamepad_swap_confirm` | `app.push_gamepad()` — the renderer rebinds |
+| `ui_select_key` | `app.push_select_key()` **and** `app.push_gamepad()` — one key, two pushes: the pad's binding table spells it out as a literal, so re-pushing the keyboard alone leaves the controller on the old key (#717) |
+| `browse_block_keys` | `app.push_browse_keys()` — the renderer binds or removes one key binding; the shell's volume claim reads the same setting, so the write also asks for a frame (#730) |
+| `browser_fullscreen` | `controller.apply_browser_fullscreen()` -> `WindowMixin._apply_browse_fullscreen`, the same decision `set_browse_window` makes (#729) |
 | `poster_scale` (Cover Size) | `apply_cover_size()` |
 | `ui_text_scale`, `ui_text_min` | toolkit type scale **and** `apply_cover_size()` |
 | `logo_legibility_*` | `apply_logo_legibility()` → `StripStore.retag()` |
@@ -170,6 +184,7 @@ type.
 |---|---|
 | `ui_scale` | the whole interface geometry is derived once |
 | `osc_style` | picks which OSC mpv is *constructed* with |
+| `thumbnail_enable` | `_init_mpv` starts the TrickPlay worker, and `mpv_scripts` loads thumbfast only if it did — and mpv is not re-created between queue items |
 | `input_gamepad` | mpv reads it once, at startup |
 | `theme` — the **size** half | `poster_scale`/`tile_landscape` feed sizes a live rebuild would have to rediscover through every cached row; see `docs/browser-shell.md` §9 |
 | shader pack directory | read once at startup |

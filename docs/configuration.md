@@ -423,7 +423,7 @@ You can use the config file to enable and disable features.
   - The library browser and the player share one window, so playback no longer takes over the screen unless you ask it to.
 - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
   - Turning this off puts the app in command-line mode: no window, no system tray and no settings screen, so on Windows the only way back is editing `conf.json` by hand. It is listed under "Advanced" in the settings form for that reason.
-  - It is *not* how you get MPV's own on-screen controls back — set `osc_style` to `mpv` (or `default`) and leave this on.
+  - It is *not* how you get MPV's own on-screen controls back — set `osc_style` to `mpv` and leave this on.
   - For the classic "sit in the background and play what is cast to me" setup, enable `close_to_tray` (or `allow_background` where there is no tray), `start_minimized` and `fullscreen`; closing the video with `q` or the back button returns to waiting.
 - `browser_fullscreen` - Run the in-window library browser fullscreen. Default: `false`
   - Browsing is a desktop activity, so it opens windowed even when `fullscreen` is set. `fullscreen` still applies when playback starts.
@@ -444,8 +444,24 @@ You can use the config file to enable and disable features.
   - The playback HUD grows the same three buttons and the same corner, so a windowed video is not a window you can only get out of by pressing ESC first.
   - `always` and `never` override the detection. `never` is the escape hatch if your compositor decorates windows in a way MPV does not report.
   - **Dragging needs MPV 0.39.** MPV refuses to drag its window while the pointer is inside a script's input section, and the only way to say "except for this one" also re-arms MPV's own drag-from-anywhere — which over a UI moves the window instead of dragging a scrollbar. Turning that off is `--input-builtin-dragging`, added in 0.39, so on 0.38 the buttons and the resize grip work but the bar does not drag. Resizing and the buttons need nothing special.
-- `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
-  - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
+- `window_controls_fullscreen` - Keep those buttons on screen in full screen. Default: `false`
+  - Off, because full screen has no title bar anywhere and nothing to move, maximize or drag — so the buttons are furniture over the picture.
+  - On is for anyone who wants a way out of full screen that is not a keyboard shortcut, which matters most with `hide_title_bar` also on.
+  - In-window UI only. A classic OSC decides its own window buttons from `border` and never asks about full screen, so this cannot be passed on to it.
+- `hide_title_bar` - Ask the desktop for no title bar on the player window, so the browser's own top bar is the only one. Default: `false`
+  - This is MPV's `border` option, set at startup, so changing it needs a restart.
+  - It pairs with `window_controls`: on `auto`, the buttons appear as soon as this is on, because `auto` reads the same `border` property.
+  - Set only when it is on. Leaving it alone otherwise is what lets someone who put `border=no` in their own `mpv.conf` keep the buttons — writing `border=yes` for them would take the title bar back *and* the replacement with it.
+  - Leave both off unless you want them: a window with neither a title bar nor the top-bar buttons can be awkward to move on some desktops.
+  - During video playback under an `osc_style` other than the in-window one, the OSC on screen draws its own window buttons — the stock MPV OSC, this client's classic OSC and most custom ones all do, and they turn them on for exactly this case (no border). The in-window UI's buttons are only suppressed there, so you are not offered two sets.
+- `display_mirror_summon` - Let casting take the screen: open the window when it is closed to the tray, and bring it forward when it is already open. Default: `false`
+  - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open or in front of what you are doing.
+  - With it off, casting a page to an already-open library still navigates it — silently, without taking focus back from the web client you are casting *from*.
+- `browse_block_keys` - Swallow MPV's own keyboard shortcuts while the library browser is on screen. Default: `true`
+  - MPV is started with its default bindings on for the whole session, so in the library every key the client has not taken is still MPV's — `1`-`8` move contrast, brightness, gamma and saturation, `d` cycles deinterlacing, `s` writes a screenshot. There is no video for them to act on, they persist into the *next* thing you play, and the only feedback is MPV's own OSD, which draws underneath the library.
+  - Only unmodified printable keys are blocked. The arrows, Page Up/Down, Home/End and the scroll wheel are the browser's own either way, and modified keys (`ctrl+`, `alt+`) are left alone.
+  - While music is playing, `9`, `0` and `m` are re-claimed by the browser itself, so they still change the volume — and unlike MPV's own bindings they move the now-playing bar's slider with them.
+  - Turn it off to use your own `input.conf` bindings in the library. That also gives MPV's `9`/`0`/`m` back in place of the browser's.
 - `library_image_cache_mb` - Memory budget for **decoded** library artwork. Default: `96`
   - Requires restart. The budget is baked into the artwork cache when the browser starts.
   - Decoded is the expensive form — a 4K backdrop is 33 MB decoded against ~400 KB on the wire — and this is a working set rather than a library: decoded images exist to composite tile strips, and the strips are cached in their own right, so scrolling back over a cached row never asks for one. Raise it if you browse enormous libraries on a machine with RAM to spare.
@@ -548,14 +564,21 @@ You can use the config file to enable and disable features.
     navigable with a keyboard or a Jellyfin remote. Needs `enable_gui`
     (falls back to `mpv` otherwise). `jellyfin` is accepted as a legacy
     alias.
-  - `mpv` - The stock mpv controls, patched with trickplay preview support.
-  - `default` - Whatever OSC is built into your mpv, or your own OSC scripts.
-    Thumbnail data is still published for thumbfast-aware OSCs like uosc.
-    - **Running your own OSC:** drop the script in the `scripts/` folder beside
-      `conf.json` (see the paths at the top of this file) and any font it needs
-      in `fonts/`, then put `osc=no` in `mpv.conf` there so mpv's built-in one
-      does not draw underneath it. That line is honoured — `default` is the one
-      style where the shim never overrides the option.
+  - `mpv` - MPV's own on-screen controls, with seek previews where your mpv
+    can show them. Turn previews on or off with `thumbnail_enable`.
+    - On **mpv 0.41 and newer** this is mpv's stock OSC, driven through its
+      OSC Preview API (`user-data/osc/draw-preview`) — you get upstream's
+      controls, upstream's fixes, and our trickplay images in them.
+    - On **older mpv** the shim loads a bundled fork of mpv 0.38's OSC
+      instead, because the Preview API does not exist there and that fork is
+      the only way to get previews. Which one you get is an implementation
+      detail; the controls look and behave the same either way.
+    - `default` is accepted as a legacy alias. It used to be a separate
+      choice — "whatever OSC is built into your mpv" — and folded into `mpv`
+      once the shim started using mpv's own OSC for both. It is migrated
+      automatically.
+    - Thumbnail data is still published for thumbfast-aware OSCs like uosc;
+      to run one of those, use `custom`.
     - The shim asks the OSC to get out of the way when the library browser
       opens, and when you choose `none`, with the `osc-visibility` and
       `osc-idlescreen` script-messages. Mpv's own OSC and the scripts forked
@@ -571,8 +594,12 @@ You can use the config file to enable and disable features.
       paints itself can.
     - This style also lets the library draw above the OSC's own layer, which
       uosc in particular needs. That is why it is a separate choice rather
-      than something `default` does for everyone: the same layer is used by
+      than something `mpv` does for everyone: the same layer is used by
       MPV's console when it is showing a menu.
+    - **Running your own OSC:** drop the script in the `scripts/` folder beside
+      `conf.json` (see the paths at the top of this file) and any font it needs
+      in `fonts/`, then put `osc=no` in `mpv.conf` there. This style already
+      turns MPV's built-in controls off, so nothing draws underneath yours.
     - **Two things a third-party OSC cannot do, and will not.** Both apply to
       `default` as well; trickplay previews are the part that does work.
       - **Tracks.** Its subtitle and audio pickers see only what MPV has, and
@@ -607,6 +634,27 @@ You can use the config file to enable and disable features.
   driving while they are hidden, and that takes keyboard control of controls
   already showing (mpv key name syntax). ENTER also toggles pause/play when
   it wakes them. Default: `ENTER`
+- `ui_select_key` - The key that **activates** whatever the in-window
+  interface has focused — a tile in the library, a button on the player
+  controls (mpv key name syntax). Default: `ENTER`
+  - Not the same as `hud_wake_key`, which *summons* hidden controls, nor as
+    `kb_menu_ok`, which is the legacy OSD menu's OK and reaches neither the
+    library nor the player controls.
+  - The gamepad's Confirm button and a Jellyfin remote's Select both send
+    this key, so remapping it moves all three together rather than leaving
+    two of them on a key nothing listens for.
+  - A **replacement**, not an alias: point it somewhere else and `ENTER`
+    stops being taken in the library and on the player controls, which is
+    the reason to change it. Applies without a restart.
+  - In Settings under **General → Advanced**, or search the settings screen
+    for "enter" or "remap". Deliberately not promoted into a normal group:
+    remapping keys is an answer for somebody who wants it rather than a
+    control everyone has to read past.
+  - Two keys it does *not* move with it. While the controls are hidden,
+    `hud_wake_key` still holds its own key — move that one too if you want
+    `ENTER` free during playback. And `kb_menu_ok` stays where it is, so a
+    game controller's Confirm stops reaching the legacy OSD menu once these
+    two disagree.
 - `hud_scrim` - How the picture is shaded behind the player controls, so they
   stay legible over any frame. One of `default`, `panel`, `none`.
   Default: `default`
@@ -629,6 +677,19 @@ You can use the config file to enable and disable features.
     mode — a zero delay means nothing without a pointer test, since mouse
     motion is also what summons them. The timer never runs shorter than
     0.5s, so the controls cannot blink out in the same frame they appear.
+- `hud_auto_scale` - Let the player controls shrink further on a narrow
+  window before any of them are dropped. Default: `true`
+  - On, the controls shrink until the smallest button reaches **24x24**
+    logical pixels — WCAG 2.2 SC 2.5.8 (AA), the published minimum for a
+    pointer target — and only then are the less important ones given up,
+    in the order under **Player Controls** below.
+  - Off restores the older floor of 72%, where the controls stop shrinking
+    sooner and buttons start disappearing instead. It is the compatibility
+    setting, not a third behaviour.
+  - The floor is in *logical* pixels, so it does not fight `ui_scale`:
+    raising that makes the controls bigger, never smaller. A forced
+    `ui_scale` for a TV across the room keeps every button above the
+    minimum by a wide margin.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `mouse_chapter_nav` - The mouse's back/forward buttons jump a chapter
   during playback. Off by default: they are easy to hit by accident on
@@ -783,7 +844,8 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_unwatched` - Mark the video as unwatched and quit. (Default: `u`)
 - `kb_menu` - Open the configuration menu. (Default: `c`)
 - `kb_menu_esc` - Leave the menu. Exits fullscreen otherwise. (Default: `esc`)
-- `kb_menu_ok` - "ok" for menu. (Default: `enter`)
+- `kb_menu_ok` - "ok" for the **legacy OSD menu only** — not the library and
+  not the player controls, which use `ui_select_key`. (Default: `enter`)
 - `kb_menu_left` - "left" for menu. Seeks otherwise. (Default: `left`)
 - `kb_menu_right` - "right" for menu. Seeks otherwise. (Default: `right`)
 - `kb_menu_up` - "up" for menu. Seeks otherwise. (Default: `up`)
@@ -995,9 +1057,10 @@ between themes already on disk repaints immediately.
 
 ## Trickplay Thumbnails
 
-MPV will automatically display thumbnail previews. By default it uses the Trickplay images and falls back to chapter images. It also requires
-overriding the default MPV OSC, which may conflict with some custom user script. Trickplay is compatible
-with any OSC that uses [thumbfast](https://github.com/po5/thumbfast), as I have added a [compatibility layer](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/jellyfin_mpv_shim/thumbfast.lua).
+MPV will automatically display thumbnail previews. By default it uses the Trickplay images and falls back to chapter images. Trickplay is compatible
+with any OSC that uses [thumbfast](https://github.com/po5/thumbfast), as I have added a [compatibility layer](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/jellyfin_mpv_shim/thumbfast.lua)
+— so previews reach the Jellyfin UI, MPV's own controls and your own OSC
+script alike, whatever `osc_style` you have chosen.
 
 Previews are downloaded as JPEG mosaics and uncompressed to raw bitmaps, which
 is where the size is: a two-hour film is about 130 MB of them at the default
@@ -1011,10 +1074,15 @@ short enough to fit under the limit are loaded whole and never wait at all.
 older versions did — every preview is then instant, at the cost of the full
 download and the full memory.
 
-- `thumbnail_enable` - Enable thumbnail feature. (Default: `true`)
-- `thumbnail_osc_builtin` - Legacy alias: disabling this behaves like `osc_style: default` (use your own OSC but leave trickplay enabled). Prefer `osc_style`. (Default: `true`)
+- `thumbnail_enable` - Enable trickplay thumbnails: the preview frame shown while you drag the seek bar. Applies to every `osc_style`. Read when MPV is built, so changing it needs a restart. Turning it off also stops the images being downloaded, which is the reason to. (Default: `true`)
 - `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
 - `trickplay_fast_mode` - Load every preview frame at once instead of a window around the seek position. Previews never wait, but a long video costs hundreds of megabytes of memory. Turning it *on* applies to the video you are watching, the next time you scrub outside the part already loaded; turning it *off* applies to the next video. (Default: `false`)
+
+`thumbnail_osc_builtin` was removed. It meant "use your own custom OSC but
+leave trickplay enabled", which is `osc_style: custom` — thumbfast is loaded
+whatever the style, so your OSC still gets the previews. A `false` left in
+`conf.json` is ignored (the log says so) and dropped on the next save; if you
+run your own OSC, set `osc_style` to `custom`.
 
 ## SVP Integration
 

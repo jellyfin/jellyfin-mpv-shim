@@ -55,6 +55,10 @@ object_types = {
 
 class SettingsBase:
     def __init__(self):
+        #: Fields a command-line flag is overriding FOR THIS RUN, mapped to
+        #: the value that was on disk. See `apply_cli_override`. First,
+        #: because `__setattr__` reads it.
+        self.__cli_overrides__ = {}
         self.__fields_set__ = set()
         self.__fields__ = []
         for attr in self.__class__.__annotations__.keys():
@@ -64,10 +68,58 @@ class SettingsBase:
             self.__fields__.append(attr)
             setattr(self, attr, getattr(self.__class__, attr))
 
+    def __setattr__(self, name, value):
+        """Any ordinary write drops a CLI override on that field.
+
+        The user has now stated an intent for it -- from the settings
+        screen, or from one of the several places that persist a value as a
+        side effect -- and that outranks a flag which only ever applied to
+        this run.
+
+        Here rather than at the writers, because there are eight of them and
+        one of them is "whatever gets added next". `self.__dict__.get` and
+        not `getattr`: this runs on every attribute set including the ones
+        in `__init__` before the record exists, and it must not recurse.
+        """
+        overrides = self.__dict__.get("__cli_overrides__")
+        if overrides:
+            overrides.pop(name, None)
+        object.__setattr__(self, name, value)
+
+    def apply_cli_override(self, key, value):
+        """Set ``key`` for this run without letting it reach the config file.
+
+        `save()` serializes `dict()`, and `dict()` walks every field -- so a
+        flag assigned straight onto the settings object is written out by the
+        next save from anywhere, and there are many: window geometry (with
+        `remember_window_size` on by default), audio device, shader profile,
+        every settings-screen edit. One run with `--minimized` and the option
+        was on for good.
+
+        So the on-disk value is remembered here and handed back by `dict()`
+        instead of the live one. `--scale` used to dodge this with a comment
+        asking callers not to save; three sibling flags had the same shape
+        and no such comment.
+        """
+        if key not in self.__fields__:
+            raise KeyError(key)
+        was = getattr(self, key)
+        setattr(self, key, value)          # clears any earlier record
+        self.__cli_overrides__[key] = was
+
     def dict(self):
+        """The settings as they should be PERSISTED and presented.
+
+        Not quite "as they are in effect": a field under a CLI override
+        reports the value from the config file. That is what keeps
+        `--minimized` out of `conf.json`, and it is also the honest answer
+        for the settings screen, which is showing what is configured rather
+        than what this particular launch was told to do.
+        """
+        overrides = self.__cli_overrides__
         result = {}
         for attr in self.__fields__:
-            value = getattr(self, attr)
+            value = overrides[attr] if attr in overrides else getattr(self, attr)
             # Structured fields opt in by exposing _to_dict() on their items.
             if isinstance(value, list) and value and hasattr(value[0], "_to_dict"):
                 result[attr] = [item._to_dict() for item in value]

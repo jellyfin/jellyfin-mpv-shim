@@ -56,6 +56,49 @@ produce a finding a third time:
 
 ## 3. Settled design decisions
 
+- **`enable_osc` from a 2.9.0 config is ignored on purpose, and must not be
+  migrated to `osc_style: none`.** It is gone from the schema, so an upgrader
+  who had it off gets `Config item enable_osc was ignored` in the log and
+  lands on the `mpvtk` default. That reads exactly like a missing migration
+  and is the intended destination.
+
+  In 2.9.0 mpv's OSC was the only OSC, so turning it off meant "this OSC is
+  not good enough". The Jellyfin UI is new in v3 and is markedly better than
+  every other option because the shim integrates with it at the player level
+  — so the upgrade *answers* that complaint rather than contradicting it.
+  Mapping the old flag to "no controls at all" would take the new one away
+  from precisely the users it was built for. [iw].
+
+  `resolve_osc_style`'s comment that "none is where the old enable_osc
+  setting went" is about where the *switch* went as a user-facing choice, not
+  about migrating anyone onto it.
+- **`osc_style: "default"` no longer being offered is not a lost feature.**
+  It folded into "MPV UI" at CONFIG_VERSION 5 — the two only differed in who
+  loaded the OSC, and once the shim used mpv's own for both, `default` was
+  just the one that forgot to suppress the idle logo. `custom` covers "I run
+  my own OSC" and `none` covers "no controls". It is now an inbound legacy
+  value only: `resolve_osc_style` accepts it and returns "mpv", and nothing
+  resolves *to* it. `build_mpv_options` still maps it, because that function
+  is a pure style → options mapping and "let mpv decide" is still what the
+  value means — not because a caller can produce it.
+- **`thumbnail_osc_builtin` is deleted with no migration, like `enable_osc`
+  above, and a `false` in an old config is ignored on purpose.** Its one
+  documented meaning was "use your own custom osc but leave trickplay
+  enabled" (`acbc3e9d`'s README), which is exactly `osc_style: custom` — and
+  `mpv_scripts` loads thumbfast under every style, so `custom` keeps the
+  previews that sentence promises. Nothing it could express was lost, so
+  there is nothing to carry across.
+
+  It is not migrated to `custom` automatically because the flag is a
+  default-*on* switch somebody turned off, not proof that a replacement OSC
+  exists, and `custom` sets `osc=False` and loads nothing — the one outcome
+  a silent upgrade must never produce is a user with no controls at all.
+  [iw]. Someone who really is running uosc sets `osc_style: custom` once and
+  can see that they have.
+
+  Do not re-add the key as a compatibility shim. The `resolve_osc_style`
+  branch it had was the last thing that could resolve to `"default"`, which
+  is why that value's status changed in the entry above.
 - **The startup PIN is parental control, not a security boundary.** It stops a
   kid on an HTPC opening R-rated films. So the work is enumerating the doors and
   a catch-all test — *not* deferring connection until unlock.
@@ -106,6 +149,7 @@ then dropped in the same commit).
 | F25 | `sync/manager.py`, `sync/auto.py` | A live `work_offline` toggle leaves the download worker streaming on a metered link. Low priority per section 3; "won't fix" and removing the setting are both on the table. |
 | F26 | `cast.py` | Cast parks the last composite. |
 | F29 | `player.py` load gate / `_on_cache_pause` | Field report, below. |
+| F35 | `renderer.lua` `phud_skip_bind` | Binds literal `'ENTER'` for the Skip button whatever `hud_wake_key` says, so a moved wake key leaves ENTER accepting a skip. Found while doing #717 and deliberately left: it is a `hud_wake_key` bug, and it wants a decision about whether the idle Skip offer follows the wake key or `ui_select_key`. |
 
 ### F29 — sleeping NAS, not reproduced
 

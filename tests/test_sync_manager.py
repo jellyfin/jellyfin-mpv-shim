@@ -2420,7 +2420,8 @@ class TheRollbackNeverOverwritesTest(TmpTest):
         os.makedirs(old)
         os.makedirs(new)
         for name in ("a", "b"):
-            with open(os.path.join(old, name), "w") as fh:
+            with open(os.path.join(old, name), "w",
+                      encoding="utf-8") as fh:
                 fh.write("ORIGINAL-" + name)
 
         m = SyncManager()
@@ -2434,7 +2435,7 @@ class TheRollbackNeverOverwritesTest(TmpTest):
                 real_rename(src, dst)
                 moved_first["path"] = src
                 if recreate:
-                    with open(src, "w") as fh:
+                    with open(src, "w", encoding="utf-8") as fh:
                         fh.write("NEW USER DATA")
                 return
             raise OSError(18, "force the copy path")   # EXDEV
@@ -2453,7 +2454,7 @@ class TheRollbackNeverOverwritesTest(TmpTest):
 
     def test_a_source_recreated_during_the_move_is_not_replaced(self):
         old, new, first = self._raced_move(recreate=True)
-        with open(first) as fh:
+        with open(first, encoding="utf-8") as fh:
             self.assertEqual(fh.read(), "NEW USER DATA",
                              "the rollback destroyed a file written into the "
                              "store while the move was running")
@@ -2464,7 +2465,7 @@ class TheRollbackNeverOverwritesTest(TmpTest):
     def test_an_untouched_source_is_still_put_back(self):
         """The control, so the refusal cannot become "never roll back"."""
         old, new, first = self._raced_move(recreate=False)
-        with open(first) as fh:
+        with open(first, encoding="utf-8") as fh:
             self.assertEqual(fh.read(),
                              "ORIGINAL-" + os.path.basename(first))
         self.assertFalse(

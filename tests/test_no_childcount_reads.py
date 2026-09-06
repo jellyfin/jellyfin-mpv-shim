@@ -89,7 +89,8 @@ class NoChildCountReadsTest(unittest.TestCase):
         `"ChildCount": ...` key the filter above silently reclassifies it
         as a read, and this says so in one line instead of failing the
         real test with a confusing message."""
-        text = (PKG / "mpvtk_browser" / "repository.py").read_text()
+        text = (PKG / "mpvtk_browser" / "repository.py").read_text(
+            encoding="utf-8")
         self.assertIn('"ChildCount": len(members),', text)
 
 

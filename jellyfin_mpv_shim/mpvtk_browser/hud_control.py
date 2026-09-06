@@ -56,6 +56,11 @@ class HudController:
         #: renderer is showing no HUD, so it is showing no panel either.
         self.info = False
         self.tc_remaining = False
+        #: Which optional transport controls the last bar build gave up
+        #: (``hud._shed``), so the gear menu can offer a row for what is
+        #: not on screen. ``None`` until a bar has been built, which the
+        #: menu reads as "unknown" and fails open.
+        self.shed = None
 
     # -- is the HUD in play at all ----------------------------------------
 

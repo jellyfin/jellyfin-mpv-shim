@@ -234,6 +234,13 @@ local state = {
     dd_open = nil,          -- open dropdown id
     keys = {},              -- key name -> true: claimed by the app (mpvtk-keys)
     keys_bound = {},        -- key name -> true for the ones we forced ourselves
+    -- The key that activates whatever is focused (`ui_select_key`, #717),
+    -- pushed by mpvtk-select-key. A REPLACEMENT for ENTER and not an alias
+    -- [iw]: handing ENTER back to mpv is the whole request, so nothing may
+    -- keep a literal. Everything that names it goes through
+    -- `keyclaim.nav_key`; NAV_KEYS is built once at load and this arrives
+    -- later.
+    select_key = 'ENTER',
     cursor_on = true,
     geo = {},               -- scroll id -> {dx, dy, x1,y1,x2,y2 (clip)}
     bars = {},              -- scroll id -> thumb geometry (for hit test)
@@ -4694,7 +4701,13 @@ local NAV_KEYS = {
     { 'DOWN', function() if not keyclaim.take('DOWN') then nav_move(0, 1) end end },
     { 'LEFT', function() if not keyclaim.take('LEFT') then nav_move(-1, 0) end end },
     { 'RIGHT', function() if not keyclaim.take('RIGHT') then nav_move(1, 0) end end },
-    { 'ENTER', function() if not keyclaim.take('ENTER') then nav_activate() end end },
+    -- Activation. 'ENTER' is this row's DEFAULT, not its binding: the
+    -- third field marks it as following `state.select_key` (#717), and
+    -- every consumer of this table has to resolve it through
+    -- `keyclaim.nav_key` rather than reading k[1].
+    { 'ENTER', function()
+        if not keyclaim.take(state.select_key) then nav_activate() end
+    end, true },
     { 'TAB', function() nav_tab(1) end },
     { 'shift+TAB', function() nav_tab(-1) end },
     { 'MENU', function() nav_context() end },
@@ -4705,13 +4718,33 @@ local NAV_KEYS = {
 
 }
 
+-- The name a NAV_KEYS row is actually bound to. Only the activation row
+-- moves; everything else is fixed. Falls back for the same reason
+-- `conf.select_key` does: a UI with no select key can be operated by
+-- nothing but the mouse, and the settings screen that would fix it is
+-- inside that UI.
+function keyclaim.nav_key(k)
+    return k[3] and (state.select_key or 'ENTER') or k[1]
+end
+
 -- Every key in NAV_KEYS is already force-bound, so claiming one only changes
 -- what its handler does. A claimed key that is NOT in that list needs a
 -- binding of its own, and needs it removed again when the claim is dropped
 -- (SPACE is mpv's pause; leaving it bound after the reader closes would
 -- swallow it for the whole session).
-keyclaim.nav_names = {}
-for _, k in ipairs(NAV_KEYS) do keyclaim.nav_names[k[1]] = true end
+--
+-- So this is derived, not written down: move the select key and ENTER
+-- leaves the set while the new key joins it, in one step. Both halves
+-- matter -- a stale entry for ENTER means a page claiming it gets no
+-- binding at all, and a missing entry for the new key means a second
+-- binding on top of the nav one, which is two events per press.
+function keyclaim.rebuild_nav()
+    keyclaim.nav_names = {}
+    for _, k in ipairs(NAV_KEYS) do
+        keyclaim.nav_names[keyclaim.nav_key(k)] = true
+    end
+end
+keyclaim.rebuild_nav()
 
 -- The wheel is delivered by the `mpvtk_wheel` section, not by a per-key
 -- binding, so a claim on it must NOT add one -- two bindings for one
@@ -4774,6 +4807,88 @@ function keyclaim.set(list)
     state.wheel_sync()
 end
 
+-- ------------------------------------------------- browse key block (#730)
+-- mpv is constructed with `input_default_bindings=yes` for the life of the
+-- process, so in the library every key the shim has not taken is still
+-- mpv's: `1`-`8` move contrast/brightness/gamma/saturation, `d` cycles
+-- deinterlace, `s` writes a screenshot. They act on a video that is not
+-- there, they OUTLIVE the browse session (mpv options survive a queue
+-- item), and their only feedback is mpv's own OSD -- which is ASS, so it
+-- draws UNDERNEATH the overlay bitmaps this UI is made of.
+--
+-- One forced `any_unicode` binding is the whole block: it outranks every
+-- exact-key default, measured across the printable range. Modified keys
+-- (`ctrl+`, `alt+`) and named keys are NOT covered and do not need to be --
+-- the arrows, PGUP/PGDWN, HOME/END and the wheel are already ours.
+--
+-- These hang off `keyclaim` rather than being file-scope functions because
+-- this chunk is AT LuaJIT's 200-local ceiling; see tests/test_renderer_lua.py.
+function keyclaim.block_take(e)
+    if not e or e.event == 'up' then return end
+    local t = e.key_text
+    if not t or t == '' or t:byte(1) < 0x20 then return end
+    -- A focused text box binds its own `any_unicode`, and between two forced
+    -- bindings of one key the LAST one bound wins -- so typing normally
+    -- never reaches here at all. Routing it anyway is what makes the order
+    -- stop mattering: re-installing this block while a box already has
+    -- focus (a live settings change) would otherwise eat every keystroke.
+    if state.focus then return tb_key_text(e) end
+    -- A claim still gets its key. Looked up by mpv's key NAME and never by
+    -- the text: they are the same character for nearly every printable key
+    -- and NOT for SPACE, whose name is "SPACE" and whose text is " " --
+    -- which both readers claim, and which is also the shim's pause key. A
+    -- text lookup matched nothing there and swallowed it, and a forced
+    -- binding that returns does not hand the key back to the binding
+    -- underneath, so "swallowed" meant gone.
+    --
+    -- `keyclaim.take` owns the rest of the precedence -- dropdown, menu,
+    -- modal, focus ring -- and answers false when something on screen
+    -- outranks it, which for a blocked key means swallow after all.
+    local name = e.key_name or t
+    -- The select key, which is configurable and may be printable (#717).
+    -- Bind order already keeps it ahead of this block everywhere the UI
+    -- installs it -- but a LIVE re-install (the setting toggled from the
+    -- settings screen) puts this binding last again, so route it rather
+    -- than rely on the order holding. Same fallback the nav row uses.
+    if name == state.select_key then
+        if not keyclaim.take(name) then nav_activate() end
+        return
+    end
+    if state.keys[name] then keyclaim.take(name) end
+end
+
+function keyclaim.block_bind()
+    if state.kb_block or not state.block_keys then return end
+    if state.kb_saved then            -- see bind_nav_keys
+        state.kb_saved.block = true
+        return
+    end
+    mp.add_forced_key_binding('any_unicode', 'mpvtk_block',
+        keyclaim.block_take, { repeatable = true, complex = true })
+    state.kb_block = true
+end
+
+function keyclaim.block_unbind()
+    if not state.kb_block then return end
+    mp.remove_key_binding('mpvtk_block')
+    state.kb_block = false
+end
+
+-- `browse_block_keys`, pushed on ready and again whenever the setting
+-- changes. Its own message for the reason `mpvtk-select-key` gives: the
+-- `mpvtk-hud` opts blob only arrives on HUD engage, and this governs
+-- browse, which is installed by `mpvtk-active` and carries no opts.
+mp.register_script_message('mpvtk-browse-keys', function(on)
+    state.block_keys = (on == 'yes' or on == 'true' or on == '1')
+    if state.block_keys then
+        -- Only where ui_resume would have: browse, never a summoned
+        -- playback HUD, where mpv's keys have their real meaning.
+        if state.active and not state.phud.mode then keyclaim.block_bind() end
+    else
+        keyclaim.block_unbind()
+    end
+end)
+
 -- **While mpv's console has the keyboard on loan, binding is recording an
 -- INTENT, not taking a key.** The lifecycle moves during a loan -- a pointer
 -- movement summons the HUD, playback starts, browse resumes -- and each of
@@ -4789,7 +4904,8 @@ local function bind_nav_keys()
         return
     end
     for _, k in ipairs(NAV_KEYS) do
-        mp.add_forced_key_binding(k[1], 'mpvtk_nav_' .. k[1], k[2],
+        local name = keyclaim.nav_key(k)
+        mp.add_forced_key_binding(name, 'mpvtk_nav_' .. name, k[2],
             { repeatable = true })
     end
     state.kb_nav = true
@@ -4797,10 +4913,36 @@ end
 
 local function unbind_nav_keys()
     for _, k in ipairs(NAV_KEYS) do
-        mp.remove_key_binding('mpvtk_nav_' .. k[1])
+        mp.remove_key_binding('mpvtk_nav_' .. keyclaim.nav_key(k))
     end
     state.kb_nav = false
 end
+
+-- `ui_select_key` (#717), pushed on ready and again whenever the setting
+-- changes, so a remap applies without a restart. Its own message rather
+-- than a field on the mpvtk-hud opts blob: that blob only arrives on HUD
+-- engage, while browse-mode nav is installed by mpvtk-active, which
+-- carries none -- and this key governs both.
+mp.register_script_message('mpvtk-select-key', function(name)
+    name = (name ~= nil and name ~= '') and name or 'ENTER'
+    if name == state.select_key then return end
+    -- Every teardown below resolves through `state.select_key`, and mpv
+    -- has no "remove whatever is on this key" -- so the OLD name has to
+    -- still be current while they run, and the new one only afterwards.
+    --
+    -- The claim goes through `keyclaim.set` rather than being repaired in
+    -- place: it owns which keys carry a binding of their own, and that
+    -- answer changes in BOTH directions here (see keyclaim.rebuild_nav).
+    local claimed = {}
+    for key in pairs(state.keys or {}) do claimed[#claimed + 1] = key end
+    local held = state.kb_nav
+    if held then unbind_nav_keys() end
+    keyclaim.set({})
+    state.select_key = name
+    keyclaim.rebuild_nav()
+    if held then bind_nav_keys() end
+    keyclaim.set(claimed)
+end)
 
 bind_nav_keys()
 pcall(mp.set_property_native, 'user-data/mpvtk/active', true)
@@ -5562,6 +5704,17 @@ local function ui_resume(no_nav)
     -- no_nav: the playback HUD came up under the pointer with
     -- hud_grab_keys off — the mouse drives it and the arrows stay
     -- mpv's seek keys. Browse always takes the arrows.
+    -- **First, before every exact binding below.** The block is
+    -- `any_unicode`, which outranks an exact key, and between two forced
+    -- bindings of one key the LATER one wins -- so installing it last made
+    -- it outrank the UI's own keys. A printable `ui_select_key` (#717 made
+    -- it configurable) was then swallowed instead of activating what was
+    -- focused. Bound first, everything installed afterwards outranks it by
+    -- construction, and the block only ever catches what nothing took.
+    --
+    -- Browse only (#730). Over a real video mpv's keys have their real
+    -- meaning, and taking them there is the interception #16 removed.
+    if not state.phud.mode then keyclaim.block_bind() end
     if not no_nav then bind_nav_keys() end
     mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
         state.hud = not state.hud
@@ -5573,6 +5726,7 @@ local function ui_suspend()
     blur()                    -- drops the text-edit bindings + caret timer
     stop_repeat()
     unbind_nav_keys()         -- playback needs the arrows (seek/OSC)
+    keyclaim.block_unbind()   -- ...and every other key it binds (#730)
     state.nav = nil
     state.nav_pidx = nil
     state.nav_adjust = nil
@@ -5649,6 +5803,12 @@ mp.register_script_message('mpvtk-active', function(on)
         -- ...and the wheel, which a summoned HUD declines for the same
         -- reason and which browse cannot do without.
         state.wheel_sync()
+        -- The key block (#730) is a third thing that fails this way, and it
+        -- fails LOUDER than the two above: it is the whole of the feature,
+        -- and the states that skip ui_resume include startup. It records its
+        -- own console-loan intent, so it is called flat -- and it goes
+        -- FIRST, for the ordering reason ui_resume spells out.
+        keyclaim.block_bind()
         if state.kb_saved then
             -- mpv's console has them on loan; let it give them back.
             state.kb_saved.nav = true
@@ -6189,8 +6349,13 @@ mp.register_script_message('mpvtk-gamepad', function(json)
     -- mpv's own arrows and the left stick would seek. It is the RIGHT
     -- stick that seeks; the left one drives the UI in every mode, which is
     -- the whole point of there being two.
-    local wake = { UP = true, DOWN = true, LEFT = true, RIGHT = true,
-                   ENTER = true }
+    --
+    -- Confirm is not in here: it is `state.select_key`, which the user
+    -- may have moved, and the pushed `arg` moves with it (Python's
+    -- `conf.select_key` builds both). Asked as a literal 'ENTER', a
+    -- remapped pad sent its Confirm down the keypress path below, where
+    -- over a hidden HUD nothing is bound to answer it.
+    local wake = { UP = true, DOWN = true, LEFT = true, RIGHT = true }
     for key in pairs(state.gp_bound or {}) do
         mp.remove_key_binding('mpvtk_gp_' .. key)
     end
@@ -6229,11 +6394,12 @@ mp.register_script_message('mpvtk-gamepad', function(json)
                     send({ t = 'gpseek', dir = arg })
                 elseif kind == 'nav' then
                     send({ t = 'gpnav', a = arg })
-                elseif wake[arg] and state.phud.mode
-                    and not state.phud.shown then
-                    state.phud_wake(arg == 'ENTER' and 'select' or 'nav')
-                elseif wake[arg] and state.phud.mode
-                    and not state.phud.kbd then
+                elseif (wake[arg] or arg == state.select_key)
+                    and state.phud.mode and not state.phud.shown then
+                    state.phud_wake(
+                        arg == state.select_key and 'select' or 'nav')
+                elseif (wake[arg] or arg == state.select_key)
+                    and state.phud.mode and not state.phud.kbd then
                     -- The bar is UP but the MOUSE owns it: a pointer
                     -- summon with hud_grab_keys off (the default) leaves
                     -- the arrows to mpv deliberately, so `shown` is not
@@ -6650,8 +6816,13 @@ mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
         -- handler exists to stop, in the one state nothing described.
         local wake = state.phud.shown and not state.phud.kbd
         state.kb_saved = { nav = state.kb_nav, summon = state.kb_summon,
-                           skip = state.kb_skip, wake = wake }
+                           skip = state.kb_skip, wake = wake,
+                           block = state.kb_block }
         if state.kb_nav then unbind_nav_keys() end
+        -- The block is `any_unicode`: left bound, it would swallow the
+        -- console's own typing, which is the exact theft this handler
+        -- exists to stop.
+        keyclaim.block_unbind()
         if state.kb_summon then phud_unbind_summon() end
         if state.kb_skip then phud_skip_unbind() end
         if wake then mp.remove_key_binding('mpvtk_wake') end
@@ -6679,6 +6850,10 @@ mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
         -- and the arrows, ENTER and TAB would be taken as forced bindings
         -- over a video nobody could seek any more. This is the predicate the
         -- binders themselves use.
+        -- Before the nav keys, for the ordering reason ui_resume gives.
+        if was.block and state.active and not state.phud.mode then
+            keyclaim.block_bind()
+        end
         if was.nav and ((state.active and not state.phud.mode)
                         or (state.phud.mode and state.phud.kbd)) then
             bind_nav_keys()

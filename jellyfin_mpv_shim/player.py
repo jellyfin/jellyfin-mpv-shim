@@ -38,6 +38,7 @@ from .player_reporting import ReportingMixin
 from . import player_window
 from .player_window import WindowMixin, wlog
 from .mpv_options import (REPLACES_OSC, build_mpv_options, mpv_scripts,
+                          osc_script_opts,
                           resolve_osc_style)
 from .session_reporter import SessionReporter
 from . import conf
@@ -289,6 +290,42 @@ def runtime_force_window_works(version):
     that works everywhere, assuming new costs a window that will not go away.
     Why the browser is the first caller to need this: docs/mpv-backends.md
     section 3.
+    """
+    m = re.search(r"(\d+)\.(\d+)", version or "")
+    if not m:
+        return False
+    return (int(m.group(1)), int(m.group(2))) >= (0, 41)
+
+
+#: mpv's own name for the builtin OSC (`player/scripting.c`:
+#: `load_builtin_script(..., "@osc.lua")`). `load-script` takes it, which is
+#: how the stock OSC can be loaded *after* construction even though `--osc=no`
+#: stopped it loading itself. Not a documented public API, which is why the
+#: caller falls back to our fork rather than trusting it.
+BUILTIN_OSC = "@osc.lua"
+
+
+def osc_preview_api_works(version):
+    """Whether mpv's own OSC can drive our seek previews.
+
+    mpv 0.41 added the **OSC Preview API** (``DOCS/man/osc.rst``): the OSC
+    publishes ``user-data/osc/draw-preview`` -- ``{x, y, w, h, hover-sec,
+    ass}`` -- and any thumbnailer script draws into it, clearing when the
+    property goes nil.
+
+    That is the hook `trickplay-osc.lua` was forked to work around; its own
+    header says "sadly there is no way to do this without forking the entire
+    OSC script", and as of 0.41 there is. So on a new enough mpv we load the
+    STOCK OSC and answer its requests, and the fork is only for older ones --
+    Debian and others still ship 0.40.
+
+    Same threshold as `runtime_force_window_works` and deliberately its own
+    predicate: they are two different questions that happen to share an
+    answer today, and folding them would make a backport of either a silent
+    lie about the other.
+
+    An unreadable version is treated as old, which costs a fork that works
+    everywhere (measured on 0.41+) rather than an OSC with no previews.
     """
     m = re.search(r"(\d+)\.(\d+)", version or "")
     if not m:
@@ -1052,6 +1089,46 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             log.info("This mpv cannot give up its window on request "
                      "(needs 0.41+); minimizing will quit mpv instead.")
 
+        # **Before any OSC draws, as an OPTION, not after it as a message.**
+        #
+        # `enable_osc` broadcasts `osc-idlescreen no` and says in its own
+        # comment that it "has to land BEFORE the OSC's first draw". A
+        # message cannot promise that: against an OSC mpv loaded at
+        # construction it races the script's own startup, and against one we
+        # `load-script` it races that too, because `load-script` is
+        # asynchronous. Lose either race and mpv's "Drop files or URLs to
+        # play" logo is drawn once and then sits behind the library for the
+        # session -- which is what [iw] hit under the styles that let mpv
+        # load its own OSC.
+        #
+        # Every osc.lua and every fork of it reads `script-opts` under the
+        # `osc` prefix at startup, so setting it here is read by
+        # construction rather than in time. Measured: the OSC starts with
+        # `idlescreen = true` without it and `false` with it.
+        #
+        # `change-list ... append`, never a whole-property write:
+        # `script-opts` is shared with the user's own scripts, and replacing
+        # it would take their options with it (verified: an unrelated entry
+        # survives the append). Same rule as never writing over their
+        # `mpv.conf`.
+        #
+        # WHICH options, and which styles get them, is `osc_script_opts` --
+        # `osc-windowcontrols` is not unconditional, and the reasoning for
+        # that lives with the decision rather than here.
+        try:
+            for _opt in osc_script_opts(osc_style):
+                self._player.command("change-list", "script-opts", "append",
+                                     _opt)
+        except Exception:
+            log.debug("could not pre-set the OSC script options",
+                      exc_info=True)
+
+        # The classic OSC, chosen against this mpv rather than at option-build
+        # time -- which is why it is a `load-script` here and not an entry in
+        # `mpv_scripts`. Nothing is on screen yet, so the gap costs nothing.
+        if osc_style == "mpv":
+            self._load_classic_osc()
+
         # The menu object must survive mpv re-creation (crash recovery,
         # idle-quit): its is_menu_shown state gates idle_quit, and callers
         # outside this class hold on to it. A fresh OSDMenu here used to reset
@@ -1198,6 +1275,43 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         token; nothing here unregisters, because mpv is torn down whole.
         """
         return observe_property(self._player, prop, handler)
+
+    def _load_classic_osc(self):
+        """Load the OSC for ``osc_style`` "mpv": the stock one where it can
+        drive our previews, our fork where it cannot.
+
+        `trickplay-osc.lua` is a fork of mpv 0.38's `osc.lua` whose only
+        purpose is seek-bar thumbnails -- its whole patch set is six
+        thumbfast blocks and one compatibility fix. mpv 0.41 made that
+        unnecessary by publishing the OSC Preview API, so a modern mpv gets
+        its own OSC (upstream fixes, upstream look) and `thumbfast.lua`
+        answers the property instead.
+
+        The fork stays for older builds, and it is also the fallback if the
+        builtin name is ever refused: `@osc.lua` is mpv's internal spelling
+        rather than a documented one, so the failure it could produce -- an
+        OSC style with no OSC at all -- is caught rather than shipped.
+        """
+        if osc_preview_api_works(getattr(self._player, "mpv_version", "")):
+            try:
+                self._player.command("load-script", BUILTIN_OSC)
+                log.info("Using mpv's own OSC; previews go through its "
+                         "Preview API.")
+                return
+            except Exception:
+                log.warning("mpv refused %s; falling back to the bundled OSC.",
+                            BUILTIN_OSC, exc_info=True)
+        else:
+            log.info("This mpv has no OSC Preview API (needs 0.41+); using "
+                     "the bundled OSC so seek previews still work.")
+        try:
+            self._player.command("load-script",
+                                 get_resource("trickplay-osc.lua"))
+        except Exception:
+            # An OSC style with no OSC is a worse outcome than a logged
+            # failure, but there is nothing further to try.
+            log.error("Could not load an OSC for the 'mpv' style.",
+                      exc_info=True)
 
     def _bind_mpv_handlers(self):
         """Attach every key binding and event handler to the current mpv."""
@@ -4642,8 +4756,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self._osc_suppressed = False
             # Mpv's own, held off against an mpv.conf `osc=yes` -- which a
             # construction option cannot do (build_mpv_options). Not keyed
-            # on `enabled`: these styles never want it back. "default" is
-            # the user's option and is never written.
+            # on `enabled`: these styles never want it back.
+            #
+            # The membership test reads as vacuous now that every style
+            # `resolve_osc_style` can return is in REPLACES_OSC -- "default"
+            # left that set of answers with `thumbnail_osc_builtin`. It is
+            # not: `style` is read with a None default, so this also covers
+            # a call before _init_mpv has recorded one.
             if style in REPLACES_OSC and hasattr(self._player, "osc"):
                 self._player.osc = False
         except _mpv_errors:
@@ -4735,8 +4854,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # client) -> mpv key names. While the mpvtk browser owns input its
     # forced nav bindings catch these; during video playback they fall
     # through to kb_seek as before.
+    #: The remote's directional verbs as the keys the renderer's spatial
+    #: navigation is bound to. "ok" is absent on purpose: it is the one
+    #: the user may remap, so it is resolved per press by
+    #: `_nav_select_key` rather than frozen into a class attribute that
+    #: is built once at import.
     _NAV_KEYPRESS = {"up": "UP", "down": "DOWN", "left": "LEFT",
-                     "right": "RIGHT", "ok": "ENTER", "back": "ESC",
+                     "right": "RIGHT", "back": "ESC",
                      # jellyfin-web's hamburger, while the library is up:
                      # the context menu of whatever is focused. That menu
                      # holds Play / Queue / Watched / Favorite / Download,
@@ -4860,11 +4984,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.menu.menu_action(self._MENU_ALIAS.get(action, action))
         elif action in self._NAV_COMMANDS and self._nav_command(action):
             pass    # the in-window UI has its own home / settings pages
-        elif action in self._NAV_KEYPRESS and self._mpvtk_input_active():
+        elif ((action in self._NAV_KEYPRESS or action == "ok")
+                and self._mpvtk_input_active()):
             # remote drives the UI's spatial navigation
             try:
+                # `select_key()` per press, not a `_NAV_KEYPRESS` entry:
+                # that dict is a class attribute built at import, so a
+                # value read there would be whatever the setting said when
+                # `player` was first imported.
                 self._player.command(
-                    "keypress", self._NAV_KEYPRESS[action])
+                    "keypress",
+                    self._NAV_KEYPRESS.get(action) or conf.select_key())
             except Exception:
                 log.debug("nav keypress failed", exc_info=True)
         elif action == "settings":

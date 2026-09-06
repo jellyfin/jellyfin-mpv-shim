@@ -6,11 +6,14 @@ the in-process ``conf.settings`` singleton directly (no IPC — the mpvtk
 browser runs in the player's process).
 """
 
+import logging
 import sys
 import typing
 
 from ..conf import Settings, settings
 from ..i18n import _, _p
+
+log = logging.getLogger("mpvtk_browser.config")
 
 # Structured / non-scalar config that the flat form can't express, plus
 # internal bookkeeping. Everything else is editable.
@@ -68,6 +71,60 @@ EXCLUSIVE_PLATFORMS = ("win32", "darwin")
 # offering a setting that cannot do anything. Shown directly below it.
 BACKGROUND_DEPENDENT = ("start_minimized",)
 
+#: Settings that reach the in-window playback HUD and nothing else, so they
+#: do nothing at all unless `osc_style` resolves to "mpvtk".
+#:
+#: Every one of them is read in exactly one place --
+#: `gateway/hud.py:hud_key_opts`, which builds the blob sent with the
+#: `mpvtk-hud` engage -- and that message is only ever sent by the HUD
+#: modality. Under "MPV UI" or "Custom OSC" they are inert, and offering
+#: them there is what #724 reads like from the outside: "Left Click Pauses
+#: Playback" is on, the left button does nothing over the video, so the
+#: client looks broken. It is not; the setting was simply never going to
+#: reach that player.
+#:
+#: `mouse_chapter_nav` is deliberately NOT here despite sitting in the same
+#: group: `player.py` binds the thumb buttons itself, so it works under
+#: every style. Nor are `thumbnail_enable` and `trickplay_fast_mode` --
+#: thumbfast is loaded whatever the style, so the previews reach both
+#: classic OSCs and a thumbfast-aware script of the user's. The second one
+#: has a dependency of its own, on the first: see TRICKPLAY_DEPENDENT.
+#:
+#: Keyed on the RESOLVED style (`mpv_options.resolve_osc_style`), not the
+#: configured one, so the legacy "jellyfin" alias counts and the
+#: `enable_gui` fallback that quietly demotes "mpvtk" does too. `osc_style`
+#: needs a restart, so these rows appear the moment the Jellyfin UI is
+#: chosen and go when it is left -- which is right: the form describes the
+#: configuration, and the restart banner covers the gap.
+HUD_ONLY = ("hud_grab_keys", "hud_wake_key", "hud_scrim", "hud_autohide",
+            "hud_hide_secs", "hud_auto_scale", "mouse_click_pauses")
+
+#: Settings that tune trickplay and so do nothing with `thumbnail_enable`
+#: off. Hidden rather than disabled, per docs/settings-curation.md §2.
+#:
+#: `thumbnail_preferred_size` is deliberately not here. It is uncurated, so
+#: hiding it would move it in and out of Advanced -- and Advanced is where
+#: somebody goes to read what a value currently is, which is a reason to
+#: show a setting rather than to hide it.
+TRICKPLAY_DEPENDENT = ("trickplay_fast_mode",)
+
+
+def hud_style_selected():
+    """Whether the in-window playback HUD is what `osc_style` resolves to.
+
+    Guarded like `visible_passthrough_keys` below: this is only ever used to
+    decide whether to DRAW a row, and a settings form that refuses to open
+    is worse than one showing a setting that does nothing.
+    """
+    try:
+        from ..mpv_options import resolve_osc_style
+
+        return resolve_osc_style() == "mpvtk"
+    except Exception:
+        log.debug("could not resolve the OSC style", exc_info=True)
+        return True
+
+
 # Curated groups, per settings tab. Anything not listed shows under
 # "Advanced", which lives on the General tab.
 #
@@ -106,11 +163,24 @@ TAB_SECTIONS = {
         # people are looking for, and on Linux desktops that route media
         # keys through MPRIS it is likely broken anyway. Promoting it would
         # be offering a switch we cannot say works.
-        (_("Input"), ["input_gamepad", "gamepad_swap_confirm"]),
+        #
+        # `ui_select_key` is deliberately NOT here, and not anywhere else in
+        # a curated group: key remapping is an answer to give somebody who
+        # asks for it, not a control to put in front of everyone [iw]. It
+        # falls through to Advanced, which is a real editable row -- searched
+        # like any other (`sections`), labelled and noted below -- so there
+        # is still a setting to point at. That is the whole requirement.
+        (_("Input"), ["input_gamepad", "gamepad_swap_confirm",
+                      # Curated, unlike `ui_select_key` above:
+                      # this is not a remap but a policy, and it is
+                      # what somebody goes looking for after `1`
+                      # dimmed their picture from the library (#730).
+                      "browse_block_keys"]),
         # Everything about the window itself, in the order you meet it:
         # how it opens, whether it remembers, what closing it means.
         (_("Window"), ["fullscreen", "browser_fullscreen",
                        "remember_window_size", "window_controls",
+                       "window_controls_fullscreen", "hide_title_bar",
                        "close_to_tray", "allow_background",
                        "start_minimized", "display_mirror_summon"]),
     ],
@@ -164,8 +234,10 @@ TAB_SECTIONS = {
         # The in-player UI leads: it is the thing you are looking at while
         # watching, and osc_style decides whether the rest of the group
         # applies at all.
-        (_("Player Controls"), ["osc_style", "hud_grab_keys", "hud_wake_key",
+        (_("Player Controls"), ["osc_style", "thumbnail_enable",
+                                "hud_grab_keys", "hud_wake_key",
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
+                                "hud_auto_scale",
                                 "mouse_chapter_nav", "mouse_click_pauses",
                                 "trickplay_fast_mode"]),
         (_("Playback"), ["auto_play", "hwdec", "network_buffer",
@@ -227,6 +299,10 @@ TAB_SECTIONS = {
 RESTART_REQUIRED = frozenset({
     # The whole interface geometry is derived once, at startup.
     "ui_scale",
+    # A construction option: `border` is read when the window is made, and
+    # writing it live would fight `window_controls` "auto", which reads the
+    # same property to decide whether to draw its own buttons.
+    "hide_title_bar",
     # `theme` is deliberately NOT here, even though half of it waits for a
     # restart. Colours repaint the moment you pick one, so marking the row
     # "Requires restart" would say nothing happened when something visibly
@@ -236,6 +312,12 @@ RESTART_REQUIRED = frozenset({
     #
     # Decides which OSC mpv is CONSTRUCTED with.
     "osc_style",
+    # Read once per mpv, in `_init_mpv`: it decides whether the TrickPlay
+    # worker starts, and `mpv_scripts` loads thumbfast only if it did. mpv
+    # is not re-created between queue items, so nothing short of a restart
+    # re-asks -- turning it ON without one leaves the worker fetching for a
+    # script that was never loaded.
+    "thumbnail_enable",
     # mpv reads it exactly once, in mp_input_load_config -- a runtime write
     # succeeds and reads back yes while the SDL thread is never started.
     "input_gamepad",
@@ -380,10 +462,16 @@ LABELED_ENUMS = {
         (_("Large (20 seconds)"), "large"),
         (_("Very large (60 seconds)"), "huge"),
     ],
+    # "MPV built-in default" is gone: it and "MPV UI with thumbnails" only
+    # differed in who loaded the OSC, and since the shim uses mpv's OWN OSC
+    # for this style (the 0.41 Preview API) there is one thing to offer.
+    # Whether it shows seek previews is `thumbnail_enable`, which is a
+    # question about trickplay rather than about which controls you want.
+    # Migrated at CONFIG_VERSION 5; `resolve_osc_style` still accepts the
+    # old value.
     "osc_style": [
         (_("Jellyfin UI"), "mpvtk"),
-        (_("MPV UI with thumbnails"), "mpv"),
-        (_("MPV built-in default"), "default"),
+        (_("MPV UI"), "mpv"),
         (_("Custom OSC"), "custom"),
         (_("No player controls"), "none"),
     ],
@@ -543,7 +631,10 @@ LABEL_OVERRIDES = {
     "allow_background": _("Keep Running in Background"),
     "remember_window_size": _("Remember Window Size"),
     "window_controls": _("Window Buttons in the Top Bar"),
+    "window_controls_fullscreen": _("Keep Window Buttons in Full Screen"),
+    "hide_title_bar": _("Hide the Desktop Title Bar"),
     "osc_style": _("Player Controls Style"),
+    "thumbnail_enable": _("Enable Trickplay Thumbnails"),
     "trickplay_fast_mode": _("Load All Seek Previews at Once"),
     "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
@@ -566,8 +657,10 @@ LABEL_OVERRIDES = {
     "headless": _("Cast-target mode (no library browsing)"),
     "display_mirror_summon": _("Casting Opens the Library Browser"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
+    "browse_block_keys": _("Block Player Keybinds While Browsing"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
+    "ui_select_key": _("Select Key"),
     "segment_intro": _("Skip Intros"),
     # The one segment label that collides with its own Skip BUTTON:
     # gettext keys on the English, the other four are pluralised ("Skip
@@ -582,6 +675,7 @@ LABEL_OVERRIDES = {
     "hud_scrim": _("Shading Behind the Player Controls"),
     "hud_autohide": _("When the Player Controls Hide"),
     "hud_hide_secs": _("Hide the Player Controls After (seconds)"),
+    "hud_auto_scale": _("Shrink the Player Controls on a Narrow Window"),
     "mouse_chapter_nav": _("Mouse Back/Forward Buttons Skip Chapters"),
     "audio_mode": _("Audio Output Mode"),
     "audio_device": _("Audio Output Device"),
@@ -631,6 +725,27 @@ NOTES = {
     "gamepad_swap_confirm": _("Turn this on for a controller whose A button "
                               "is on the right rather than at the bottom "
                               "(Switch Pro, most 8BitDo pads)."),
+    # Names the EFFECTS rather than the keys, and that is the choice: the
+    # keys are whatever the user's input.conf says, so listing `1`-`8`
+    # would be wrong for exactly the person who rebound them. What is
+    # constant is what those commands do -- and "the picture changed" is
+    # what somebody arrives here having seen. `SEARCH_ALIASES` below
+    # carries the key words for the search box, where being literal costs
+    # nothing.
+    "browse_block_keys": _("Stops MPV's own shortcuts -- picture "
+                           "adjustment, screenshots, subtitle and audio "
+                           "switching -- from acting while you are in the "
+                           "library, where there is no video for them to "
+                           "act on. Turn it off to use your own MPV key "
+                           "bindings there."),
+    # Two things the label cannot carry: that this REPLACES Enter (which is
+    # the reason to change it -- getting Enter back for mpv), and that the
+    # controller and the phone follow it, so nothing is left behind.
+    "ui_select_key": _("Activates whatever is highlighted, in the library "
+                       "and on the player controls. An mpv key name; "
+                       "changing it hands Enter back to MPV. The game "
+                       "controller's Confirm button and a phone's Select "
+                       "follow it."),
     # A blank numeric field meaning "use the setting above" is not
     # guessable from a label, and these three are the ones where leaving
     # them alone is the right answer for almost everybody.
@@ -649,10 +764,16 @@ NOTES = {
     # What turning it OFF buys, since that is the non-obvious half: the
     # left button is what the VO drags the window with, so pausing with it
     # and dragging with it are mutually exclusive.
+    # NOT "right click to pause", which this said and which is no longer
+    # true on the mpv we ship: upstream changed MBTN_RIGHT's default from
+    # `cycle pause` to `script-binding select/context-menu` at 0.41, and
+    # both pins are past that. Naming the effect would go stale again at
+    # the next such change, so it names where the answer comes from.
     "mouse_click_pauses": _("Off gives MPV's own mouse behaviour instead: "
-                            "drag the video to move the window, and right "
-                            "click to pause. Double click is full screen "
-                            "either way."),
+                            "drag the video to move the window, and the "
+                            "right button does whatever your MPV config "
+                            "gives it. Double click is full screen either "
+                            "way."),
     # The reason this is off by default, in the place someone deciding
     # whether to change it is looking. mpv's own manual says to
     # "acknowledge that this may cause problems"; the tail it breaks for
@@ -734,6 +855,29 @@ NOTES = {
         "drag the window by it. On \"Only when the window has no title bar\", "
         "MPV is asked whether this window got one, so desktops that draw a "
         "title bar are left alone."),
+    "window_controls_fullscreen": _(
+        "Full screen has no title bar anywhere and nothing to move or "
+        "maximize, so the buttons are normally hidden there. Turn this on "
+        "to keep a way out of full screen that is not a keyboard shortcut."),
+    "hide_title_bar": _(
+        "Asks the desktop for no title bar on the player window, so the "
+        "top bar above is the only one. Pairs with the setting above: on "
+        "\"Only when the window has no title bar\" the buttons appear as "
+        "soon as this is on. Leave both off unless you want them, since a "
+        "window with neither can be awkward to move on some desktops."),
+    # The cost is the half a label cannot carry, and it is the reason
+    # somebody turns this off: the images are downloaded and uncompressed
+    # per video, which is disk and memory rather than a one-off. Says which
+    # players it reaches, because it sits under a dropdown that decides
+    # which player you get and is the one row in that group that is NOT
+    # about the choice above it.
+    "thumbnail_enable": _("Shows a preview frame while you drag the seek "
+                          "bar. Works with every player control style, "
+                          "including your own OSC script if it supports "
+                          "thumbfast. The images are fetched from the "
+                          "server per video, which costs disk space and "
+                          "memory -- tens of MB for an episode, a few "
+                          "hundred for a long film."),
     "trickplay_fast_mode": _("Seek previews are normally fetched a few "
                              "minutes at a time around where you are "
                              "seeking, so scrubbing somewhere new waits "
@@ -826,6 +970,10 @@ NOTES = {
                       "the pointer is on them, paused or not."),
     "hud_hide_secs": _("0 hides them as soon as the pointer is not on "
                        "them, and forces \"Hide unless hovered\"."),
+    "hud_auto_scale": _("Narrowing the window shrinks the controls until "
+                        "the smallest button reaches the accessibility "
+                        "minimum, instead of dropping buttons sooner. "
+                        "Off keeps the older, larger floor."),
     "mouse_chapter_nav": _(
         "During playback only; in the library those buttons stay Back and "
         "Forward. Off by default because they are easy to hit by accident on "
@@ -935,6 +1083,7 @@ def sections(tab=None):
     # it must not reappear under "Advanced" as an uncurated key.
     curated = ({k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
                | set(TRAY_DEPENDENT) | set(BACKGROUND_DEPENDENT)
+               | set(HUD_ONLY) | set(TRICKPLAY_DEPENDENT)
                | {"audio_exclusive"})
     out = []
     try:
@@ -945,6 +1094,10 @@ def sections(tab=None):
     shown |= {k for k, modes in AUDIO_MODE_ONLY.items() if mode in modes}
     if sys.platform in EXCLUSIVE_PLATFORMS:
         shown.add("audio_exclusive")
+    if hud_style_selected():
+        shown.update(HUD_ONLY)
+    if settings.thumbnail_enable:
+        shown.update(TRICKPLAY_DEPENDENT)
     keep_running = "close_to_tray" if tray_available() else "allow_background"
     shown.add(keep_running)
     if getattr(settings, keep_running, False):
@@ -999,6 +1152,24 @@ SEARCH_ALIASES = {
     # "am" and "24" are what somebody types and neither is in the label or
     # the note; "pm", "clock" and "time" would be redundant with them.
     "clock_12h": "am 24 format",
+    # The two ENTER keys. Neither is in a curated group any more --
+    # `ui_select_key` by choice [iw], `hud_wake_key` only under the mpvtk
+    # OSC -- so search is how somebody sent looking for "the Enter setting"
+    # arrives, and "remap"/"rebind"/"keyboard"/"shortcut" were measured
+    # misses for both. `hud_wake_key` also missed **enter** itself, which is
+    # the word that brings anyone here at all: its note is the one that says
+    # what the key does without ever naming the key.
+    "ui_select_key": "remap rebind keyboard shortcut",
+    "hud_wake_key": "remap rebind keyboard shortcut enter summon",
+    # What somebody types is the SYMPTOM, not the mechanism: they pressed a
+    # key and the picture changed, or the contrast is wrong and they cannot
+    # say why. None of those words are in the label or the note.
+    "browse_block_keys": "keys keyboard contrast brightness gamma "
+                         "saturation hotkey",
+    # "trickplay" is the server's word and is in the label; these are the
+    # words somebody who has never read the server's docs types. "scrubbing"
+    # rather than "scrub", since matching is directional.
+    "thumbnail_enable": "scrubbing seeking bif chapter",
 }
 
 

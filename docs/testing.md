@@ -223,9 +223,15 @@ process per module:
 xvfb-run -a python3 tools/run_tests_parallel.py
 ```
 
-**~64s against ~7 minutes**, same 4,905 tests. It is stdlib-only, like the
-suite, and it exists because the suite got slow enough that re-running it to
-see a failure you did not keep costs more than the failure did.
+**~30s against ~2m15s**, same ~5,500 tests (measured 2026-09-05 on a 16-core
+box). It is stdlib-only, like the suite, and it exists because the suite got
+slow enough that re-running it to see a failure you did not keep costs more
+than the failure did.
+
+Both figures had rotted -- they were written as 64s against 7 minutes, and the
+serial suite has since roughly halved while the test count grew by 600. Quote
+them as the shape of the wait rather than as a benchmark, and re-measure
+before using either as evidence about a change.
 
 `xvfb-run` goes in front of *this script*, not around the workers: `-a` picks
 a display by probing for a free one, and sixteen of those probing at once race

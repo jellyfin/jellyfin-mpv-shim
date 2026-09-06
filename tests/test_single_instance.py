@@ -64,6 +64,60 @@ class SingleInstanceTest(unittest.TestCase):
         c = self._make()
         self.assertTrue(c.acquire())
 
+    def test_a_blocked_launch_releasing_leaves_the_endpoint_alone(self):
+        """Only the instance that WROTE the endpoint file may remove it.
+
+        It is how a later launch finds the running copy to ask it to show
+        its window. A non-primary `release()` used to unlink it anyway, and
+        the damage is invisible and permanent: the primary keeps running and
+        keeps listening, but nothing can find it, so every launch after the
+        first silently declines to start *and* fails to surface the window
+        somebody launched it to get at.
+
+        `main` returns without releasing on the blocked path, so nothing
+        shipped reaches this -- which is why it is a guard and not a
+        promise. Measured with the guard removed: the second of three
+        repeat launches stops activating the primary.
+        """
+        a = self._make()
+        self.assertTrue(a.acquire())
+        endpoint = a._lockpath
+        self.assertTrue(os.path.exists(endpoint))
+
+        b = self._make()
+        self.assertFalse(b.acquire())
+        b.release()
+        self.assertTrue(os.path.exists(endpoint),
+                        "a blocked launch deleted the primary's endpoint")
+
+    def test_a_later_launch_can_still_reach_the_primary_after_that(self):
+        """The consequence, stated as behaviour rather than as a file."""
+        a = self._make()
+        activated = threading.Event()
+        self.assertTrue(a.acquire())
+        a.on_activate = activated.set
+
+        first = self._make()
+        self.assertFalse(first.acquire())
+        first.release()
+        activated.clear()
+
+        second = self._make()
+        self.assertFalse(second.acquire())
+        self.assertTrue(activated.wait(5),
+                        "the primary became unreachable after one blocked "
+                        "launch released")
+
+    def test_the_owner_still_removes_it(self):
+        """The guard must not have turned the cleanup off entirely: a
+        stale endpoint naming a dead port is what `_request` then has to
+        time out against."""
+        a = self._make()
+        self.assertTrue(a.acquire())
+        endpoint = a._lockpath
+        a.release()
+        self.assertFalse(os.path.exists(endpoint))
+
     def test_unresponsive_primary_still_blocks_duplicates(self):
         # The election is the lock, not the handoff: even when the primary's
         # listener is gone (simulated by closing its socket), a second launch

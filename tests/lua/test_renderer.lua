@@ -3485,6 +3485,116 @@ fake.advance(1)
 fake.fire_timers()
 eq(fake.osd.z, 0, "mpvtk-z no did not put the z order back")
 
+-- ================================================ the configurable Select key
+
+-- #717: ENTER was hardcoded here while `ui_select_key` moved the gamepad
+-- and the remote, so a remap left the keyboard behind. It is a REPLACEMENT,
+-- not an alias [iw] -- yielding ENTER back to mpv is the whole request --
+-- so every assertion below has a negative half.
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+fake.send("mpvtk-keys", fake.token({ keys = {} }))
+
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "sanity: browse does not hold ENTER to begin with")
+
+fake.send("mpvtk-select-key", "k")
+ok(fake.log.keybinds["mpvtk_nav_k"] ~= nil,
+   "the configured key was never bound")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
+   "ENTER was not yielded -- the setting is an alias, not a replacement")
+eq(fake.log.keykeys["mpvtk_nav_k"], "k",
+   "the binding was made under the wrong key name")
+
+-- ...and it ACTIVATES. A binding that exists and does nothing is the
+-- failure this whole item is about.
+scene({ tile("sel1", 0, 0), tile("sel2", 0, 100) })
+fake.key("mpvtk_nav_DOWN")
+fake.reset_events()
+fake.key("mpvtk_nav_k")
+ok(last_event("click") ~= nil, "the configured key did not activate focus")
+
+-- The claim table has to move with it, and the invariant it protects is
+-- the comment above `keyclaim.nav_names`: a claimed key OUTSIDE the nav
+-- set needs a binding of its own. ENTER is now outside it.
+fake.send("mpvtk-keys", fake.token({ keys = { "ENTER" } }))
+ok(fake.log.keybinds["mpvtk_key_ENTER"] ~= nil,
+   "a page claiming ENTER got no binding: nav_names still calls it a nav key")
+-- No focus ring while the claim is tested: a ring outranks a claim (see
+-- `keyclaim.take`), so leaving the one the activation test just raised
+-- would prove nothing about the binding.
+scene({})
+fake.reset_events()
+fake.key("mpvtk_key_ENTER")
+local claimed = last_event("key")
+eq(claimed and claimed.key, "ENTER", "the claimed ENTER was not delivered")
+
+-- The symmetric half, which is the one a rebuild that only ADDS would
+-- fail: the select key is inside the set, so claiming it must NOT add a
+-- second binding on top of the nav one. Two bindings for one press is
+-- two events.
+fake.send("mpvtk-keys", fake.token({ keys = { "k" } }))
+ok(fake.log.keybinds["mpvtk_key_k"] == nil,
+   "claiming the select key bound it twice")
+
+-- A claim held ACROSS the move is the case no single-direction rebuild
+-- covers: `mpvtk_key_j` is live, and then j becomes the select key.
+fake.send("mpvtk-keys", fake.token({ keys = { "j" } }))
+ok(fake.log.keybinds["mpvtk_key_j"] ~= nil, "sanity: the claim on j is live")
+fake.send("mpvtk-select-key", "j")
+ok(fake.log.keybinds["mpvtk_key_j"] == nil,
+   "the claim binding survived the move, so j now fires twice")
+ok(fake.log.keybinds["mpvtk_nav_j"] ~= nil, "j did not become the nav binding")
+ok(fake.log.keybinds["mpvtk_nav_k"] == nil, "the previous select key was left bound")
+fake.send("mpvtk-keys", fake.token({ keys = {} }))
+
+-- It survives the playback round trip, because `bind_nav_keys` runs again
+-- on every resume and would otherwise put ENTER back.
+fake.send("mpvtk-active", "no")
+eq(fake.log.keybinds["mpvtk_nav_j"], nil, "playback kept the select key")
+fake.send("mpvtk-active", "yes")
+ok(fake.log.keybinds["mpvtk_nav_j"] ~= nil, "browse resumed without the select key")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil, "browse resumed holding ENTER again")
+
+-- A summoned HUD is the OTHER installer of these bindings, and the two
+-- are why the key rides its own message: the `mpvtk-hud` opts blob would
+-- have covered this case and not the browse one above it, since
+-- `mpvtk-active` carries no opts at all.
+fake.send("mpvtk-active", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover", grab = true }))
+fake.key("mpvtk_wake")
+ok(fake.log.keybinds["mpvtk_nav_j"] ~= nil,
+   "a keyboard-summoned HUD bound ENTER instead of the select key")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
+   "a keyboard-summoned HUD took ENTER back")
+
+-- The gamepad's Confirm sends the CONFIGURED key (conf.select_key, the
+-- Python half), so the renderer's own "is this Select?" test has to ask
+-- the same question. Asking `arg == 'ENTER'` sent A over a hidden HUD to
+-- mpv's own keypress path, where nothing is listening.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.send("mpvtk-gamepad", fake.token({
+    { "GAMEPAD_ACTION_DOWN", "key", "j", 0 },
+}))
+fake.send("mpvtk-hud-skip", "Skip Intro")
+fake.advance(1)
+fake.reset_events()
+fake.key("mpvtk_gp_GAMEPAD_ACTION_DOWN")
+ok(last_event("hudskip") ~= nil,
+   "gamepad Confirm on the remapped key did not mean Select")
+
+-- Cleared falls back rather than unbinding, for the reason conf.select_key
+-- gives: a UI with no select key is one only the mouse can operate, and
+-- the settings screen that would fix it is inside it.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+fake.send("mpvtk-select-key", "")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "a cleared select key left nothing bound")
+ok(fake.log.keybinds["mpvtk_nav_j"] == nil, "the old select key was left bound")
+
 -- ========================================================== teardown
 
 scene({})
