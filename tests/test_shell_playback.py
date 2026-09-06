@@ -63,6 +63,30 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertEqual(seek.get("marks"), [0.4, 0.8],
                          "chapter slits should be the interior chapters")
 
+    def test_the_clock_fits_its_own_text_with_no_duration(self):
+        """Live TV and unbounded streams report `duration` 0.
+
+        The clock's box is pinned to the widest reading the DURATION can
+        produce, which is right while there is one -- position can only
+        reach the duration, so that is the ceiling and the bar stops
+        shifting once a second. With `dur == 0` that ceiling is "0:00 /
+        -0:00" while the text keeps growing with the position, so past an
+        hour the position alone is wider than the whole box and the
+        non-wrapping Text ellipsizes inside it.
+
+        Asserted on the TEXT, not on box width against text width: the
+        renderer ellipsizes to fit, so those two always agree -- the
+        measured symptom was `"1:02:03 / 0\u2026"` in a box still sized for
+        `"0:00 / -0:00"`. Comparing the widths is a test that cannot fail.
+        """
+        b, _ctl = self._browser()
+        b.hud.state = dict(b.hud.state, duration=0.0, position=3723.0)
+        nodes, _handlers = build_scene(b, (1280, 720))
+        shown = [n.get("text") for n in nodes
+                 if (n.get("text") or "").startswith("1:02:03")]
+        self.assertEqual(shown, ["1:02:03 / 0:00"],
+                         "the clock ellipsized its own time")
+
     def test_play_pause_is_where_a_vertical_arrow_lands(self):
         """DOWN off the seek bar has to reach play/pause at every width.
 

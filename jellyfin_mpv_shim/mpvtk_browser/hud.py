@@ -1014,11 +1014,19 @@ def build_hud(b, size):
         # characters at the hour mark -- and it is measured like
         # everything else, so that shift flipped a shed decision: the
         # favourite button vanished at 1:00:00 with nothing on screen to
-        # explain it. Position can only reach the duration and the
-        # remaining form only adds a minus, so this is the ceiling. It
-        # also stops the whole bar shifting once a second.
+        # explain it. It also stops the whole bar shifting once a second.
+        #
+        # The ceiling is the LARGER of duration and position. Duration alone
+        # is right whenever there is one -- position can only reach it, and
+        # the remaining form only adds a minus -- but Live TV and unbounded
+        # streams report 0, and there the box was pinned to "0:00 / -0:00"
+        # while the position went on growing: past an hour it was narrower
+        # than its own text, which the non-wrapping Text then ellipsized
+        # ("1:02:03 / 0…"). Either way it moves only at a digit-count
+        # boundary, never once a second.
         clock_pad = 4
-        widest = "%s / -%s" % (_clock(dur), _clock(dur))
+        ceiling = max(dur, shown_pos)
+        widest = "%s / -%s" % (_clock(ceiling), _clock(ceiling))
         items.append(("clock", Box(
             [Text("%s / %s" % (_clock(shown_pos), end_part),
                   size=sz(17),
