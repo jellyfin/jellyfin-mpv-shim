@@ -218,7 +218,7 @@ class HudUsesOneSizeTest(unittest.TestCase):
     def test_it_is_the_same_size_the_buttons_use(self):
         """`HUD_ICON` is the one number, so the two families cannot drift
         apart again -- which is how they were 30 and 24 to begin with."""
-        src = pathlib.Path(hud.__file__).read_text()
+        src = pathlib.Path(hud.__file__).read_text(encoding="utf-8")
         self.assertIn("icon_size=HUD_ICON", src,
                       "the transport buttons no longer use HUD_ICON")
         self.assertIn("picker_icon = sz(HUD_ICON)", src,
@@ -230,7 +230,7 @@ class TriggerColourTest(unittest.TestCase):
         """Read from renderer.lua: the colour is chosen there, and there
         is no scene field to assert on."""
         src = (pathlib.Path(hud.__file__).parent.parent
-               / "mpvtk" / "renderer.lua").read_text()
+               / "mpvtk" / "renderer.lua").read_text(encoding="utf-8")
         block = src[src.index("chromeless icon trigger"):]
         block = block[:block.index("return")]
         # The draw call, not the whole block: the comment beside it names

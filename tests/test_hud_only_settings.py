@@ -186,7 +186,7 @@ class ResolverTest(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser import hud as hud_ui
         from jellyfin_mpv_shim.mpvtk_browser.gateway import hud as hud_gw
 
-        src = "".join(pathlib.Path(m.__file__).read_text()
+        src = "".join(pathlib.Path(m.__file__).read_text(encoding="utf-8")
                       for m in (hud_gw, hud_ui))
         for key in cfg.HUD_ONLY:
             with self.subTest(key=key):
@@ -214,7 +214,7 @@ class ResolverTest(unittest.TestCase):
             for path in root.rglob("*.py"):
                 if path.resolve() in allowed:
                     continue
-                if "settings.%s" % key in path.read_text():
+                if "settings.%s" % key in path.read_text(encoding="utf-8"):
                     offenders.append(path.relative_to(root).as_posix())
             with self.subTest(key=key):
                 self.assertEqual(offenders, [],

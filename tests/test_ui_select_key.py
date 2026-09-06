@@ -89,7 +89,7 @@ def renderer_activate_key():
     rather than passing as one.
     """
     src = ROOT.joinpath("jellyfin_mpv_shim", "mpvtk",
-                        "renderer.lua").read_text()
+                        "renderer.lua").read_text(encoding="utf-8")
     block = src[src.index("local NAV_KEYS = {"):]
     block = block[:block.index("\n}")]
     marker = re.search(r"end,\s*true\s*\},", block)
@@ -128,7 +128,8 @@ class AgreementTest(unittest.TestCase):
         prove nothing about the remote. This is what ties the two: read
         from source, matching the CALL and the table it replaced -- never
         a bare identifier, which the surrounding comment also contains."""
-        src = ROOT.joinpath("jellyfin_mpv_shim", "player.py").read_text()
+        src = ROOT.joinpath("jellyfin_mpv_shim", "player.py").read_text(
+            encoding="utf-8")
         body = src[src.index("elif ((action in self._NAV_KEYPRESS"):]
         body = body[:body.index("elif action ==")]
         self.assertIn("conf.select_key()", body)
@@ -217,7 +218,7 @@ class OfferedTest(unittest.TestCase):
         `tests/test_shell_settings.py:TestSelectKeyAppliesLive`.
         """
         src = ROOT.joinpath("jellyfin_mpv_shim", "mpvtk",
-                            "app.py").read_text()
+                            "app.py").read_text(encoding="utf-8")
         body = src[src.index("    def push_select_key"):]
         body = body[:body.index("\n    def ", 10)]
         self.assertIn("mpvtk-select-key", body)
@@ -242,7 +243,8 @@ class DistinctFromTheMenuKeyTest(unittest.TestCase):
     def test_the_docs_say_which_one_reaches_the_hud(self):
         """The whole of the bug report: the name promised the HUD. A user
         reading the reference has to be able to tell them apart."""
-        doc = ROOT.joinpath("docs", "configuration.md").read_text()
+        doc = ROOT.joinpath("docs", "configuration.md").read_text(
+            encoding="utf-8")
         entry = doc[doc.index("- `kb_menu_ok`"):]
         entry = entry[:entry.index("\n- `")]
         self.assertIn("legacy OSD menu only", entry)

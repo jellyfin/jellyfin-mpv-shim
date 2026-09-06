@@ -173,7 +173,7 @@ class WiringTest(unittest.TestCase):
 
         from jellyfin_mpv_shim import mpv_shim
 
-        src = pathlib.Path(mpv_shim.__file__).read_text()
+        src = pathlib.Path(mpv_shim.__file__).read_text(encoding="utf-8")
         for _flag, key, _value in FLAGS:
             with self.subTest(key=key):
                 self.assertNotIn("settings.%s = args" % key, src)
@@ -187,7 +187,7 @@ class WiringTest(unittest.TestCase):
 
         from jellyfin_mpv_shim import restart
 
-        src = pathlib.Path(restart.__file__).read_text()
+        src = pathlib.Path(restart.__file__).read_text(encoding="utf-8")
         self.assertIn("CLI_OVERRIDES", src)
         for _flag, key, _value in FLAGS:
             with self.subTest(key=key):

@@ -32,6 +32,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
 
+import os
 import sys
 import unittest
 
@@ -56,7 +57,7 @@ def _preview_api(version):
 
     src = pathlib.Path(
         __file__).resolve().parent.parent.joinpath(
-            "jellyfin_mpv_shim", "player.py").read_text()
+            "jellyfin_mpv_shim", "player.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     fn = next(n for n in tree.body
               if isinstance(n, ast.FunctionDef)
@@ -98,10 +99,23 @@ class PreviewApiVersionTest(unittest.TestCase):
 
         src = pathlib.Path(
             __file__).resolve().parent.parent.joinpath(
-                "jellyfin_mpv_shim", "player.py").read_text()
+                "jellyfin_mpv_shim", "player.py").read_text(encoding="utf-8")
         self.assertIn("def osc_preview_api_works", src)
         self.assertIn("def runtime_force_window_works", src)
 
+
+def script_names(style, trickplay):
+    """The basenames mpv is told to load, for the running platform.
+
+    `os.path.basename`, not `rsplit("/")`: `mpv_scripts` returns native
+    paths, so on Windows every one of these came back as the whole
+    `C:\\...\\thumbfast.lua` and the comparisons below stopped meaning
+    anything. The `assertIn` failed and said so; the two `assertNotIn`
+    passed, because a full path is never equal to a bare filename either
+    -- so the checks that guard "two OSCs at once" were vacuously green on
+    Windows rather than broken-looking.
+    """
+    return [os.path.basename(p) for p in mpv_scripts(style, trickplay)]
 
 class ConstructionScriptsTest(unittest.TestCase):
     def test_no_osc_is_loaded_at_construction(self):
@@ -110,8 +124,7 @@ class ConstructionScriptsTest(unittest.TestCase):
         whichever it chose on top of it."""
         for style in ("mpv", "mpvtk", "default", "none"):
             with self.subTest(style=style):
-                names = [p.rsplit("/", 1)[-1]
-                         for p in mpv_scripts(style, True)]
+                names = script_names(style, True)
                 self.assertNotIn("trickplay-osc.lua", names)
 
     def test_thumbfast_is_still_loaded_for_every_style(self):
@@ -120,12 +133,11 @@ class ConstructionScriptsTest(unittest.TestCase):
         become conditional on the OSC choice."""
         for style in ("mpv", "mpvtk", "default"):
             with self.subTest(style=style):
-                names = [p.rsplit("/", 1)[-1]
-                         for p in mpv_scripts(style, True)]
+                names = script_names(style, True)
                 self.assertIn("thumbfast.lua", names)
 
     def test_and_not_when_trickplay_never_started(self):
-        names = [p.rsplit("/", 1)[-1] for p in mpv_scripts("mpv", False)]
+        names = script_names("mpv", False)
         self.assertNotIn("thumbfast.lua", names)
 
 
@@ -155,7 +167,7 @@ class IdleScreenTest(unittest.TestCase):
 
         return pathlib.Path(
             __file__).resolve().parent.parent.joinpath(
-                "jellyfin_mpv_shim", "player.py").read_text()
+                "jellyfin_mpv_shim", "player.py").read_text(encoding="utf-8")
 
     def _init_mpv_body(self):
         src = self._src()
@@ -202,7 +214,8 @@ class ThumbfastAnswersBothDoorsTest(unittest.TestCase):
 
         return pathlib.Path(
             __file__).resolve().parent.parent.joinpath(
-                "jellyfin_mpv_shim", "thumbfast.lua").read_text()
+                "jellyfin_mpv_shim", "thumbfast.lua").read_text(
+                    encoding="utf-8")
 
     def test_it_observes_the_preview_property(self):
         self.assertIn("user-data/osc/draw-preview", self._src())

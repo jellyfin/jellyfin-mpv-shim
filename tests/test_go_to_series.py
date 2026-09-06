@@ -163,7 +163,7 @@ class VerbTest(unittest.TestCase):
 
         from jellyfin_mpv_shim.mpvtk_browser.pages import detail
 
-        src = pathlib.Path(detail.__file__).read_text()
+        src = pathlib.Path(detail.__file__).read_text(encoding="utf-8")
         self.assertIn('_("Go to Series")', src)
         self.assertIn('"movie"', src)
 

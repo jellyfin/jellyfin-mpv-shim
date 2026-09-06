@@ -159,14 +159,15 @@ class LiveApplyTest(unittest.TestCase):
         fullscreen or maximize to take effect and looks broken. True of
         `window_controls` before this, too."""
         src = ROOT.joinpath("jellyfin_mpv_shim", "mpvtk_browser",
-                            "settings", "base.py").read_text()
+                            "settings", "base.py").read_text(encoding="utf-8")
         self.assertIn('"window_controls", "window_controls_fullscreen"', src)
         self.assertIn("refresh_window_controls", src)
 
 
 class ClassicOscTest(unittest.TestCase):
     def _init_mpv_body(self):
-        src = ROOT.joinpath("jellyfin_mpv_shim", "player.py").read_text()
+        src = ROOT.joinpath("jellyfin_mpv_shim", "player.py").read_text(
+            encoding="utf-8")
         body = src[src.index("    def _init_mpv(self):"):]
         return body[:body.index("\n    def ")]
 
