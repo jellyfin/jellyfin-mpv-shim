@@ -38,6 +38,7 @@ from .player_reporting import ReportingMixin
 from . import player_window
 from .player_window import WindowMixin, wlog
 from .mpv_options import (REPLACES_OSC, build_mpv_options, mpv_scripts,
+                          osc_script_opts,
                           resolve_osc_style)
 from .session_reporter import SessionReporter
 from . import conf
@@ -1105,37 +1106,19 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # construction rather than in time. Measured: the OSC starts with
         # `idlescreen = true` without it and `false` with it.
         #
-        # Unconditional, and that is the point -- it has to cover the styles
-        # where mpv loads the OSC itself (the legacy `thumbnail_osc_builtin`
-        # resolution) as well as the one we load by hand. It is inert for a
-        # style with no OSC and for a third-party one that reads a different
-        # prefix.
-        #
         # `change-list ... append`, never a whole-property write:
         # `script-opts` is shared with the user's own scripts, and replacing
         # it would take their options with it (verified: an unrelated entry
         # survives the append). Same rule as never writing over their
         # `mpv.conf`.
         #
-        # `osc-windowcontrols` rides the same append, and is the "push the
-        # window controls option to other OSCs where possible" half of #727.
-        # Our own answer is `window_controls_wanted`, which a classic OSC
-        # cannot see; the stock OSC and its forks read this opt and default
-        # it to "auto", which shows THEIR buttons whenever the window has no
-        # border -- so with `hide_title_bar` on, a user would get two sets.
-        # We draw ours, so theirs are always off.
-        #
-        # It carries only that one axis. The OSC's own
-        # `window_controls_enabled` consults `windowcontrols` and `border`
-        # and never fullscreen, so `window_controls_fullscreen` has no
-        # spelling here and is scoped to the in-window UI; saying "yes"
-        # would show their buttons fullscreen too, which is the opposite of
-        # what that setting is for when it is off.
+        # WHICH options, and which styles get them, is `osc_script_opts` --
+        # `osc-windowcontrols` is not unconditional, and the reasoning for
+        # that lives with the decision rather than here.
         try:
-            self._player.command("change-list", "script-opts", "append",
-                                 "osc-idlescreen=no")
-            self._player.command("change-list", "script-opts", "append",
-                                 "osc-windowcontrols=no")
+            for _opt in osc_script_opts(osc_style):
+                self._player.command("change-list", "script-opts", "append",
+                                     _opt)
         except Exception:
             log.debug("could not pre-set the OSC script options",
                       exc_info=True)

@@ -453,6 +453,7 @@ You can use the config file to enable and disable features.
   - It pairs with `window_controls`: on `auto`, the buttons appear as soon as this is on, because `auto` reads the same `border` property.
   - Set only when it is on. Leaving it alone otherwise is what lets someone who put `border=no` in their own `mpv.conf` keep the buttons — writing `border=yes` for them would take the title bar back *and* the replacement with it.
   - Leave both off unless you want them: a window with neither a title bar nor the top-bar buttons can be awkward to move on some desktops.
+  - During video playback under an `osc_style` other than the in-window one, the OSC on screen draws its own window buttons — the stock MPV OSC, this client's classic OSC and most custom ones all do, and they turn them on for exactly this case (no border). The in-window UI's buttons are only suppressed there, so you are not offered two sets.
 - `display_mirror_summon` - Let casting take the screen: open the window when it is closed to the tray, and bring it forward when it is already open. Default: `false`
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open or in front of what you are doing.
   - With it off, casting a page to an already-open library still navigates it — silently, without taking focus back from the web client you are casting *from*.

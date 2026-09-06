@@ -220,6 +220,39 @@ def resolve_osc_style():
     return osc_style
 
 
+def osc_script_opts(osc_style):
+    """The ``osc-*`` entries appended to ``script-opts`` at construction.
+
+    Every osc.lua and every fork of it reads ``script-opts`` under the
+    ``osc`` prefix at startup, so these are read by construction rather than
+    in time. They are appended, never written over the whole property, which
+    is shared with the user's own scripts.
+
+    ``osc-idlescreen`` is unconditional: it has to cover the styles where
+    mpv loads the OSC itself as well as the one we load by hand, and it is
+    inert for a style with no OSC and for a third-party one reading another
+    prefix.
+
+    ``osc-windowcontrols`` is **not**, and the difference is who is drawing
+    window buttons over PLAYBACK. Only ``mpvtk`` does -- its HUD asks
+    ``window_chrome.window_controls`` for a set -- so only there does a
+    second set from the OSC mean two. Under every other style the OSC on
+    screen is the only thing that could offer any: the stock OSC, our
+    ``trickplay-osc.lua`` fork under ``mpv``, and whatever ``custom``
+    loaded. Their default is "auto", i.e. "whenever the window has no
+    border" -- which is precisely the ``hide_title_bar`` case, where saying
+    no left a windowed video with no title bar and no buttons anywhere and
+    nothing but an undocumented key to close it (#727 follow-up).
+
+    The library's own top bar is not the answer to that: it is not on screen
+    while a video is playing.
+    """
+    opts = ["osc-idlescreen=no"]
+    if osc_style == "mpvtk":
+        opts.append("osc-windowcontrols=no")
+    return opts
+
+
 def mpv_scripts(osc_style, trickplay):
     """Lua scripts to load at construction, in load order.
 

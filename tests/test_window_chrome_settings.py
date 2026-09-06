@@ -171,39 +171,61 @@ class ClassicOscTest(unittest.TestCase):
         body = src[src.index("    def _init_mpv(self):"):]
         return body[:body.index("\n    def ")]
 
-    def test_the_osc_is_told_not_to_draw_its_own(self):
-        """The stock OSC defaults `windowcontrols` to "auto", which means
-        "whenever the window has no border" -- exactly when
-        `hide_title_bar` is on and we are already drawing a set."""
-        self.assertIn("osc-windowcontrols=no", self._init_mpv_body())
-
-    def test_it_rides_the_same_append(self):
+    def test_the_options_are_pushed_by_appending(self):
         """One place that knows how to hand an option to a classic OSC, and
-        it appends rather than replacing `script-opts`."""
+        it appends rather than replacing `script-opts` -- which is shared
+        with the user's own scripts."""
         body = self._init_mpv_body()
         self.assertIn('"change-list", "script-opts", "append"', body)
-        self.assertLess(body.index("osc-windowcontrols=no"),
+        self.assertIn("osc_script_opts(", body)
+        self.assertLess(body.index("osc_script_opts("),
                         body.index("_load_classic_osc()"))
 
-    def test_exactly_two_options_are_pushed_and_no_more(self):
-        """It has no spelling there: the OSC's `window_controls_enabled`
-        reads `windowcontrols` and `border` and never asks about full
-        screen. Saying "yes" to carry the opt-in would show ITS buttons in
-        full screen even when ours are meant to be hidden.
 
-        Asserted as the SET of `osc-*` options actually pushed, not as
-        "`window_controls_fullscreen` does not appear" -- the comment right
-        above the call explains why it is absent, so a name search finds the
-        explanation and fails. That trap has caught three tests in this
-        branch: when reading source, match the code form (a quoted literal,
-        a call) and never a bare identifier that prose can also contain.
+class OscScriptOptsTest(unittest.TestCase):
+    """WHICH `osc-*` options are pushed, by resolved style.
+
+    This was a flat pair of literals in `_init_mpv`, asserted by reading the
+    source -- which is why the question below was never put to it: the text
+    said `osc-windowcontrols=no` and every style got it.
+    """
+
+    def _opts(self, style):
+        return set(mpv_options.osc_script_opts(style))
+
+    def test_idlescreen_is_off_under_every_style(self):
+        """It has to cover the styles where mpv loads the OSC itself as well
+        as the one we load by hand, and is inert where there is no OSC."""
+        for style in ("mpv", "mpvtk", "default", "custom", "none"):
+            with self.subTest(style=style):
+                self.assertIn("osc-idlescreen=no", self._opts(style))
+
+    def test_only_mpvtk_suppresses_the_osc_s_window_buttons(self):
+        """We draw our own over PLAYBACK in exactly one style -- the mpvtk
+        HUD asks `window_chrome.window_controls` for a set. Everywhere else
+        the OSC on screen is the only thing that could offer any, and the
+        stock OSC, our own `trickplay-osc.lua` fork under "mpv", and a
+        custom one can all draw them. Telling them not to, with
+        `hide_title_bar` on, left a windowed video with no title bar and no
+        buttons anywhere.
         """
-        import re
+        self.assertIn("osc-windowcontrols=no", self._opts("mpvtk"))
+        for style in ("mpv", "default", "custom", "none"):
+            with self.subTest(style=style):
+                self.assertNotIn("osc-windowcontrols=no", self._opts(style),
+                                 "took the window buttons away from the "
+                                 "only thing drawing any")
 
-        pushed = set(re.findall(r'"(osc-[a-z-]+=[a-z]+)"',
-                                self._init_mpv_body()))
-        self.assertEqual(pushed, {"osc-idlescreen=no",
-                                  "osc-windowcontrols=no"})
+    def test_nothing_else_is_pushed(self):
+        """`window_controls_fullscreen` has no spelling here: the OSC's own
+        `window_controls_enabled` reads `windowcontrols` and `border` and
+        never asks about full screen, so saying "yes" to carry the opt-in
+        would show ITS buttons in full screen even when ours are hidden."""
+        for style in ("mpv", "mpvtk", "default", "custom", "none"):
+            with self.subTest(style=style):
+                self.assertTrue(
+                    self._opts(style) <= {"osc-idlescreen=no",
+                                          "osc-windowcontrols=no"})
 
 
 if __name__ == "__main__":

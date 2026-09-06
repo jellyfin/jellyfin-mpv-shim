@@ -176,7 +176,7 @@ class IdleScreenTest(unittest.TestCase):
 
     def test_the_option_is_set_before_any_osc_is_chosen(self):
         body = self._init_mpv_body()
-        opt = body.index('"osc-idlescreen=no"')
+        opt = body.index("osc_script_opts(")
         load = body.index("_load_classic_osc()")
         self.assertLess(opt, load,
                         "the idlescreen option must be set before an OSC is "
@@ -185,14 +185,18 @@ class IdleScreenTest(unittest.TestCase):
     def test_it_is_set_for_every_style_not_just_the_one_we_load(self):
         """The styles where MPV loads the OSC itself need it most -- there
         is no `load-script` of ours to order against, so the broadcast has
-        nothing to beat the race with. Asserted structurally: the call sits
-        outside the `if osc_style ==` guard."""
-        body = self._init_mpv_body()
-        opt = body.index('"osc-idlescreen=no"')
-        guard = body.index('if osc_style == "mpv":')
-        self.assertLess(opt, guard,
-                        "the option is inside the style guard, so a style "
-                        "that loads its own OSC never gets it")
+        nothing to beat the race with.
+
+        Asserted on the VALUE now, not on where the push sits relative to
+        the `if osc_style ==` guard: the options moved into
+        `mpv_options.osc_script_opts`, which is the thing that decides, and
+        the structural reading would go on passing whatever it decided.
+        """
+        from jellyfin_mpv_shim.mpv_options import osc_script_opts
+
+        for style in ("mpv", "mpvtk", "default", "custom", "none"):
+            with self.subTest(style=style):
+                self.assertIn("osc-idlescreen=no", osc_script_opts(style))
 
     def test_it_appends_rather_than_replacing_script_opts(self):
         """`script-opts` is shared with the user's own scripts. A whole
@@ -203,7 +207,15 @@ class IdleScreenTest(unittest.TestCase):
 
     def test_it_is_set_exactly_once(self):
         """One place that knows, so the two OSC paths cannot drift."""
-        self.assertEqual(self._src().count('"osc-idlescreen=no"'), 1)
+        import inspect
+
+        from jellyfin_mpv_shim import mpv_options
+
+        src = inspect.getsource(mpv_options)
+        self.assertEqual(src.count('"osc-idlescreen=no"'), 1)
+        self.assertEqual(self._src().count('"osc-idlescreen=no"'), 0,
+                         "player.py should push what osc_script_opts "
+                         "decides, not spell an option itself")
 
 
 class ThumbfastAnswersBothDoorsTest(unittest.TestCase):
