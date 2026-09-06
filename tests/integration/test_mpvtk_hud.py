@@ -399,6 +399,65 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._wait(lambda: self._state().get("preview") is None,
                    msg="preview never cleared after cancel")
 
+    def test_a_real_drag_on_the_seek_bar_scrubs_and_commits_once(self):
+        """The same gesture as `test_scrub_commit_cancel_and_preview`, made
+        with the pointer instead of the arrow keys.
+
+        `state.slider_drag` -- the renderer's whole drag branch, and the
+        `pv_id` that carries the preview along with it -- had no test at
+        all: every scrub assertion in this file arrives through LEFT/ENTER,
+        and the toolkit's own drag coverage is a dropdown scrollbar. A media
+        player's most-used pointer gesture was reaching Python only from the
+        keyboard.
+
+        Through mpv's own input stack (`mouse` + `keydown`/`keyup`), not
+        `app.debug(cmd="down")`, which calls `on_mouse_down` directly and so
+        answers yes however the sections were left.
+        """
+        self._summon()
+        self._wait(lambda: self.app.node_rect("hud-seek") is not None,
+                   msg="seek bar never materialized")
+        bar = next((n for n in (self.app._nodes or [])
+                    if n.get("id") == "hud-seek"), None)
+        self.assertIsNotNone(bar, "the seek bar never reached the renderer")
+        y = int(bar["y"] + bar["h"] / 2)
+        x0 = int(bar["x"] + bar["w"] * 0.20)
+        x1 = int(bar["x"] + bar["w"] * 0.70)
+
+        self.handle.command("mouse", x0, y)
+        self._wait(lambda: self._state().get("hover") == "hud-seek",
+                   msg="the pointer never came to rest on the seek bar")
+        self.handle.command("keydown", "MBTN_LEFT")
+        self.handle.command("mouse", x1, y)
+        self._wait(lambda: self.browser.hud.scrub is not None,
+                   msg="dragging the seek bar never reached the browser")
+
+        # Mid-gesture: a scrub is a pending target, not a seek. Seeking per
+        # motion event would send one request per pixel dragged.
+        seeks = [c for c in self.ctl.calls
+                 if isinstance(c, tuple) and c[0] == "seek"]
+        self.assertEqual(seeks, [], "dragging must not seek mid-gesture")
+        self._wait(lambda: self._state().get("preview") is not None,
+                   msg="the preview never followed the drag")
+
+        target = self.browser.hud.scrub
+        self.handle.command("keyup", "MBTN_LEFT")
+        self._wait(lambda: any(isinstance(c, tuple) and c[0] == "seek"
+                               for c in self.ctl.calls),
+                   msg="releasing the drag never seeked")
+        seeks = [c for c in self.ctl.calls
+                 if isinstance(c, tuple) and c[0] == "seek"]
+        self.assertEqual(len(seeks), 1, "a release must commit exactly once")
+        self.assertAlmostEqual(seeks[0][1], target, delta=2.0)
+        # Against the DERIVED position, not only against `target`: the clip
+        # is 30s and the release was at 70% of the bar, so a commit that
+        # honoured the press and ignored the motion would land near 6s and
+        # still agree with `hud.scrub`. Asserting the two against each other
+        # only says the browser and the renderer tell the same story.
+        self.assertAlmostEqual(seeks[0][1], 0.70 * 30.0, delta=4.0)
+        self.assertIsNone(self.browser.hud.scrub,
+                          "the scrub outlived the gesture that made it")
+
     def test_pickers_chapters_and_skip_button(self):
         self.ctl.menu_state = {
             "has_media": True,
