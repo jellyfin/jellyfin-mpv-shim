@@ -124,14 +124,42 @@ class LiveApplyBrowserFullscreenTest(unittest.TestCase):
     _pm = KioskFullscreenTest._pm
     _settings = KioskFullscreenTest._settings
 
-    def _live(self, video=None, **kw):
+    def _live(self, video=None, audio=False, **kw):
         from threading import RLock
 
         self._settings(**kw)
         pm = self._pm(video)
         pm._lock = RLock()          # apply_browser_fullscreen is synchronous
         pm.fullscreen_disable = False
+        # Music keeps `_video` set AND keeps the library on screen; a video
+        # takes the window. That is the distinction the live apply turns on,
+        # so the stand-in has to model it rather than assume one answer.
+        pm._current_is_audio = lambda: audio
         return pm
+
+    def test_a_deferred_apply_does_not_fullscreen_a_playing_video(self):
+        """The gateway's `_act` DEFERS through `run_action`, so a write made
+        while the player lock was held by a playback start lands AFTER that
+        start. By then the library does not own the window, and
+        `browser_fullscreen` must not be applied to the video that took it
+        -- the `_video` guard only ever protected the OFF direction.
+        """
+        pm = self._live(video=object(), audio=False,
+                        browser_fullscreen=True, headless=False)
+        pm._player.fs = False           # the video is playing windowed
+        pm.apply_browser_fullscreen()
+        self.assertFalse(pm._player.fs,
+                         "a late browser-fullscreen write took the video "
+                         "fullscreen against the user's choice")
+
+    def test_music_still_gets_it_because_the_library_is_on_screen(self):
+        """The other side of the same predicate, and why it cannot just be
+        `_video is None`: audio keeps `_video` set with the library up."""
+        pm = self._live(video=object(), audio=True,
+                        browser_fullscreen=True, headless=False)
+        pm._player.fs = False
+        pm.apply_browser_fullscreen()
+        self.assertTrue(pm._player.fs)
 
     def test_it_agrees_with_a_browse_transition_on_every_branch(self):
         for browser_fs, headless, video, want in (
@@ -139,7 +167,7 @@ class LiveApplyBrowserFullscreenTest(unittest.TestCase):
                 (False, False, None, False),
                 (True, True, None, True),
                 (False, True, None, True),      # kiosk: see the class above
-                (False, False, object(), True),  # a video owns fullscreen
+                (False, False, object(), True),  # playing: left alone
         ):
             with self.subTest(browser_fullscreen=browser_fs,
                               headless=headless, playing=video is not None):

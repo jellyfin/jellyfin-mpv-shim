@@ -898,6 +898,27 @@ class BrowseKeyBlockTest(unittest.TestCase):
         self.assertEqual(len(live), 1, live)
         self.assertIn("renderer", (live[0].get("section") or ""))
 
+    def test_a_claimed_key_still_arrives_through_the_block(self):
+        """The block must ROUTE a claim, not eat it -- and the lookup has to
+        use mpv's key NAME, not the text.
+
+        SPACE is the whole reason: `key_name` is "SPACE" while `key_text` is
+        " ", and claims are pushed as names (`reader.py` and `comic.py` both
+        claim "SPACE"). Keying the lookup on the text meant a claimed SPACE
+        matched nothing and was swallowed -- taking page-turn with it, and
+        pause along with it, since a forced binding that returns does not
+        pass the key on to the binding underneath.
+        """
+        handle = self._up(blocked=True)
+        got = []
+        self._app.on_key = lambda k: got.append(k)
+        self._app.claim_keys(("SPACE", "9"))
+        time.sleep(0.6)
+        self._press(handle, "SPACE")
+        self._press(handle, "9")
+        self.assertEqual(got, ["SPACE", "9"],
+                         "a claimed key was swallowed by the block")
+
     def test_the_opt_out_binds_nothing(self):
         """Off means the keyboard really is given back -- not intercepted
         and forwarded, which would still take it from the user's own

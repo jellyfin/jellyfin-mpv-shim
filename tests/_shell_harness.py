@@ -690,6 +690,7 @@ class FakeController:
         #: Volume state the browser's own volume keys move (#730).
         self.volume_level = 100.0
         self.muted = False
+        self.paused = False
         #: item_id -> (status, absolute path or None), as the real gateway
         #: answers. Tests set entries to put a book on disk.
         self.book_downloads = {}
@@ -798,6 +799,10 @@ class FakeController:
     def toggle_mute(self):
         self.muted = not self.muted
         self.transport.append(("toggle_mute", ()))
+
+    def toggle_pause(self):
+        self.paused = not self.paused
+        self.transport.append(("toggle_pause", ()))
 
     def raise_window(self):
         # Modelled, not omitted: `_safe` swallows an AttributeError, so a

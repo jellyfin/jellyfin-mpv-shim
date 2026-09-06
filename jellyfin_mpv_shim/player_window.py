@@ -97,10 +97,16 @@ class WindowMixin:
         fullscreen_disable: bool
         on_decorations_changed: Any
 
-        # Provided by siblings on the composed PlayerManager. Three, and the
+        # Provided by siblings on the composed PlayerManager. Four, and the
         # count is the point: if it grows, the window concern is drifting back
         # into the lifecycle it was separated from.
         def _init_mpv(self) -> None: ...
+
+        # Grown deliberately, for `apply_browser_fullscreen`: "is the library
+        # on screen" is a question about what is PLAYING, which this mixin
+        # does not own and must not answer with a local approximation --
+        # `_video is None` is the wrong answer during music.
+        def _library_showing(self) -> bool: ...
 
         def idle_quit(self, reason: str = ...) -> None: ...
 
@@ -356,6 +362,18 @@ class WindowMixin:
         from .player import _mpv_errors
 
         if not self._mpv_alive:
+            return
+        # **Only while the library actually owns the window.** The gateway's
+        # `_act` defers through `run_action`, so a write made while the
+        # player lock was held by a playback start lands AFTER that start --
+        # and `_apply_browse_fullscreen`'s `_video` guard protects only the
+        # OFF direction, so `browser_fullscreen` would have taken a playing
+        # video fullscreen against the user's choice.
+        #
+        # `_library_showing()`, never `_video is None`: music keeps `_video`
+        # set and keeps the library up, and that is the case this whole
+        # method exists to serve.
+        if not self._library_showing():
             return
         try:
             self._apply_browse_fullscreen()

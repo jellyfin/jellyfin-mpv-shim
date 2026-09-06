@@ -4833,10 +4833,28 @@ function keyclaim.block_take(e)
     -- stop mattering: re-installing this block while a box already has
     -- focus (a live settings change) would otherwise eat every keystroke.
     if state.focus then return tb_key_text(e) end
-    -- A claim still gets its key. `keyclaim.take` owns the precedence --
-    -- dropdown, menu, modal, focus ring -- and answers false when something
-    -- on screen outranks it, which for a blocked key means "swallow".
-    if state.keys[t] then keyclaim.take(t) end
+    -- A claim still gets its key. Looked up by mpv's key NAME and never by
+    -- the text: they are the same character for nearly every printable key
+    -- and NOT for SPACE, whose name is "SPACE" and whose text is " " --
+    -- which both readers claim, and which is also the shim's pause key. A
+    -- text lookup matched nothing there and swallowed it, and a forced
+    -- binding that returns does not hand the key back to the binding
+    -- underneath, so "swallowed" meant gone.
+    --
+    -- `keyclaim.take` owns the rest of the precedence -- dropdown, menu,
+    -- modal, focus ring -- and answers false when something on screen
+    -- outranks it, which for a blocked key means swallow after all.
+    local name = e.key_name or t
+    -- The select key, which is configurable and may be printable (#717).
+    -- Bind order already keeps it ahead of this block everywhere the UI
+    -- installs it -- but a LIVE re-install (the setting toggled from the
+    -- settings screen) puts this binding last again, so route it rather
+    -- than rely on the order holding. Same fallback the nav row uses.
+    if name == state.select_key then
+        if not keyclaim.take(name) then nav_activate() end
+        return
+    end
+    if state.keys[name] then keyclaim.take(name) end
 end
 
 function keyclaim.block_bind()
@@ -5686,10 +5704,18 @@ local function ui_resume(no_nav)
     -- no_nav: the playback HUD came up under the pointer with
     -- hud_grab_keys off — the mouse drives it and the arrows stay
     -- mpv's seek keys. Browse always takes the arrows.
-    if not no_nav then bind_nav_keys() end
+    -- **First, before every exact binding below.** The block is
+    -- `any_unicode`, which outranks an exact key, and between two forced
+    -- bindings of one key the LATER one wins -- so installing it last made
+    -- it outrank the UI's own keys. A printable `ui_select_key` (#717 made
+    -- it configurable) was then swallowed instead of activating what was
+    -- focused. Bound first, everything installed afterwards outranks it by
+    -- construction, and the block only ever catches what nothing took.
+    --
     -- Browse only (#730). Over a real video mpv's keys have their real
     -- meaning, and taking them there is the interception #16 removed.
     if not state.phud.mode then keyclaim.block_bind() end
+    if not no_nav then bind_nav_keys() end
     mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
         state.hud = not state.hud
         request_render()
@@ -5777,17 +5803,18 @@ mp.register_script_message('mpvtk-active', function(on)
         -- ...and the wheel, which a summoned HUD declines for the same
         -- reason and which browse cannot do without.
         state.wheel_sync()
+        -- The key block (#730) is a third thing that fails this way, and it
+        -- fails LOUDER than the two above: it is the whole of the feature,
+        -- and the states that skip ui_resume include startup. It records its
+        -- own console-loan intent, so it is called flat -- and it goes
+        -- FIRST, for the ordering reason ui_resume spells out.
+        keyclaim.block_bind()
         if state.kb_saved then
             -- mpv's console has them on loan; let it give them back.
             state.kb_saved.nav = true
         else
             bind_nav_keys()
         end
-        -- The key block (#730) is a third thing that fails this way, and it
-        -- fails LOUDER than the two above: it is the whole of the feature,
-        -- and the states that skip ui_resume include startup. It records its
-        -- own console-loan intent, so it is called flat.
-        keyclaim.block_bind()
     end
     if want == state.active then return end
     state.active = want
@@ -6823,12 +6850,13 @@ mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
         -- and the arrows, ENTER and TAB would be taken as forced bindings
         -- over a video nobody could seek any more. This is the predicate the
         -- binders themselves use.
+        -- Before the nav keys, for the ordering reason ui_resume gives.
+        if was.block and state.active and not state.phud.mode then
+            keyclaim.block_bind()
+        end
         if was.nav and ((state.active and not state.phud.mode)
                         or (state.phud.mode and state.phud.kbd)) then
             bind_nav_keys()
-        end
-        if was.block and state.active and not state.phud.mode then
-            keyclaim.block_bind()
         end
         if was.summon and state.phud.mode and not state.phud.shown then
             phud_bind_summon()

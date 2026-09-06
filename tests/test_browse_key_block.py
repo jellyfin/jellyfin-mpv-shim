@@ -68,7 +68,8 @@ class ShellVolumeClaimTest(_Base):
     def test_music_playing_claims_volume_and_mute(self):
         self._block(True)
         b = self._browser(playing_audio=True)
-        self.assertEqual(set(b._shell_claimed_keys()), {"9", "0", "m"})
+        self.assertEqual(set(b._shell_claimed_keys()),
+                         {"9", "0", "m", "SPACE"})
 
     def test_nothing_playing_claims_nothing(self):
         """The keys exist to serve the now-playing bar. With no bar there is
@@ -86,6 +87,28 @@ class ShellVolumeClaimTest(_Base):
         b = self._browser(playing_audio=True)
         self.assertEqual(b._shell_claimed_keys(), ())
 
+    def test_a_stale_frame_after_yielding_claims_nothing(self):
+        """`_claim_page_keys` answers "no keys" when the browser is not
+        browsing, and that is not an optimisation -- it is the whole of the
+        fix for a frame still in flight when playback took the window. A
+        playback update arrives on a foreign thread and can flip `_browsing`
+        DURING the render, so the claim call is deliberately unconditional
+        and its ANSWER is what has to go empty. The page half already did
+        that; the shell half has to as well, or the stale frame installs
+        keys on a renderer that has yielded -- which is how SPACE stopped
+        pausing video for a whole session last time.
+        """
+        self._block(True)
+        b = self._browser(playing_audio=True)
+        b._browsing = False          # playback took the window mid-render
+        self.assertEqual(b._shell_claimed_keys(), ())
+        page = mock.Mock()
+        page.claimed_keys = ("LEFT",)
+        with mock.patch.object(b, "_page_for", return_value=page):
+            b._claim_page_keys(b.route)
+        self.assertEqual(b.app.claim_keys.call_args[0][0], (),
+                         "a stale frame re-installed keys after yielding")
+
     def test_the_claim_reaches_the_renderer_beside_the_page_s_own(self):
         """Union, not replacement: a page that claims keys still gets them
         while music plays."""
@@ -97,7 +120,7 @@ class ShellVolumeClaimTest(_Base):
         with mock.patch.object(b, "_page_for", return_value=page):
             b._claim_page_keys(b.route)
         pushed = set(b.app.claim_keys.call_args[0][0])
-        self.assertEqual(pushed, {"LEFT", "RIGHT", "9", "0", "m"})
+        self.assertEqual(pushed, {"LEFT", "RIGHT", "9", "0", "m", "SPACE"})
 
 
 class ShellVolumeKeyTest(_Base):
@@ -106,7 +129,7 @@ class ShellVolumeKeyTest(_Base):
     def _press(self, b, key):
         b._on_claimed_key(key)
         return [c for c in self.ctl.transport
-                if c[0] in ("adjust_volume", "toggle_mute")]
+                if c[0] in ("adjust_volume", "toggle_mute", "toggle_pause")]
 
     def test_the_keys_step_the_volume_mpv_s_own_way(self):
         """Same direction and same step as mpv's `9`/`0`, so the muscle
@@ -117,6 +140,33 @@ class ShellVolumeKeyTest(_Base):
         self.assertEqual(self.ctl.volume_level, 98.0)
         b._on_claimed_key("0")
         self.assertEqual(self.ctl.volume_level, 100.0)
+
+    def test_space_still_pauses_the_music(self):
+        """The block swallows SPACE like every other printable key, and a
+        forced binding that returns does not hand the key back -- so the one
+        transport key on the keyboard was dead with nothing replacing it.
+        Measured: with the block installed mpv's `cycle pause` never fired.
+        """
+        self._block(True)
+        b = self._browser(playing_audio=True)
+        self.assertIn("SPACE", b._shell_claimed_keys())
+        self.assertEqual(self._press(b, "SPACE"), [("toggle_pause", ())])
+        self.assertTrue(self.ctl.paused)
+
+    def test_a_page_that_claims_space_outranks_the_shell(self):
+        """Both readers claim SPACE to turn a page (`reader.py`,
+        `comic.py`). The shell's transport meaning must not take it on the
+        one screen that asked for it -- and the shell looks first, so
+        without this the page turn would silently become a pause.
+        """
+        self._block(True)
+        b = self._browser(playing_audio=True)
+        page = mock.Mock()
+        page.claimed_keys = ("SPACE", "LEFT")
+        with mock.patch.object(b, "_page_for", return_value=page):
+            b._on_claimed_key("SPACE")
+        page.on_key.assert_called_once_with("SPACE")
+        self.assertFalse(self.ctl.paused, "the shell took the reader's key")
 
     def test_m_mutes(self):
         self._block(True)
@@ -153,6 +203,7 @@ class ShellVolumeKeyTest(_Base):
         self._block(True)
         b = self._browser(playing_audio=True)
         page = mock.Mock()
+        page.claimed_keys = ("LEFT",)
         with mock.patch.object(b, "_page_for", return_value=page):
             b._on_claimed_key("LEFT")
         page.on_key.assert_called_once_with("LEFT")
@@ -161,6 +212,7 @@ class ShellVolumeKeyTest(_Base):
         self._block(True)
         b = self._browser(playing_audio=True)
         page = mock.Mock()
+        page.claimed_keys = ()      # a real Page's default
         with mock.patch.object(b, "_page_for", return_value=page):
             b._on_claimed_key("m")
         page.on_key.assert_not_called()

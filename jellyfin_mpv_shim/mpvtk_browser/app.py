@@ -1810,9 +1810,22 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         """
         from ..conf import settings
 
-        if self._now_playing is None or not settings.browse_block_keys:
+        # `_browsing` for the reason the caller's comment gives, and it is
+        # the same trap one step over: a playback update on a foreign thread
+        # can flip that flag mid-render, and the claim call is unconditional
+        # on purpose, so it is the ANSWER that has to go empty. Reading only
+        # `_now_playing` happens to agree today -- video clears it -- but by
+        # coincidence of two writers, not by construction.
+        if not self._browsing or self._now_playing is None:
             return ()
-        return tuple(self.SHELL_VOLUME_KEYS) + ("m",)
+        if not settings.browse_block_keys:
+            return ()
+        # SPACE is here for a different reason from the other three, and a
+        # sharper one: the block swallows it like any printable key, and a
+        # forced binding that returns does not hand the key back to the
+        # binding underneath -- so `kb_pause` never saw it and the only
+        # transport key on the keyboard went dead with nothing replacing it.
+        return tuple(self.SHELL_VOLUME_KEYS) + ("m", "SPACE")
 
     def _set_picture_pan(self, config=None):
         """Push (or drop) the renderer's gesture model for a picture."""
@@ -1844,10 +1857,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _shell_key(self, key):
         """Handle a key the SHELL claimed, and say whether it did.
 
-        Ahead of the page, deliberately: the two claims are unioned into
-        one list, so if a page ever wanted one of these three the renderer
-        would deliver it here with nothing to say whose it was. Looking
-        first is what decides that, once, rather than per page.
+        Only for keys the current page did not claim by name -- see
+        `_on_claimed_key`. The two claims are unioned into one list, so the
+        renderer delivers both with nothing to say whose a key was; the
+        caller resolves that, once, rather than each page defending itself.
 
         The state is read HERE and not captured at claim time. A claim is
         installed from a frame and the press arrives later, so between the
@@ -1864,6 +1877,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             if key == "m":
                 self.controller.toggle_mute()
                 return True
+            if key == "SPACE":
+                self.controller.toggle_pause()
+                return True
         except Exception:
             log.debug("shell volume key failed", exc_info=True)
             return True
@@ -1871,9 +1887,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
     def _on_claimed_key(self, key):
         """A key this route claimed. Handed to the page, on the loop thread."""
-        if self._shell_key(key):
-            return
         page = self._page_for(self.route)
+        # The PAGE wins for anything it claimed by name. Both readers claim
+        # SPACE to turn a page, and the shell claims it to pause -- on the
+        # screen that asked for it, the page's meaning is the right one.
+        # Only keys no page named fall through to the shell.
+        if key not in (getattr(page, "claimed_keys", ()) or ()):
+            if self._shell_key(key):
+                return
         handler = getattr(page, "on_key", None)
         if handler is None:
             return
