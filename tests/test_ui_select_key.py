@@ -164,15 +164,43 @@ class OfferedTest(unittest.TestCase):
     presses the moved key and checks ENTER was handed back.
     """
 
-    def test_it_is_on_the_settings_screen(self):
-        """Under Input, not with the HUD keys: it governs the library too,
-        and the library exists under every `osc_style`. A key you can only
-        reach by editing conf.json is what #717 reported."""
+    def test_it_is_reachable_from_the_settings_screen(self):
+        """The requirement is that a setting EXISTS to point somebody at
+        [iw] -- an editable row, not a curated one.
+
+        `sections()` is the "reachable at all" question and Advanced is
+        one of its groups, so this passes for an uncurated key and fails
+        for one the form hides. `SECTIONS` would be the wrong ask: it is
+        the curated tabs only, and asserting membership there would pin
+        the placement decision rather than the requirement.
+        """
+        reachable = {key for _title, keys in cfg.sections() for key in keys}
+        self.assertIn("ui_select_key", reachable)
+
+    def test_but_it_is_not_advertised_in_a_curated_group(self):
+        """Key remapping is an answer to give somebody who asks, not a
+        control to put in front of everyone [iw]. It falls through to
+        Advanced, behind the disclosure.
+
+        Not a tripwire like the case this replaces: that one meant "the
+        renderer cannot honour this yet". This one is a placement the
+        settings screen is expected to keep.
+        """
         curated = {key for _title, keys in cfg.SECTIONS for key in keys}
-        self.assertIn("ui_select_key", curated)
-        self.assertNotIn("ui_select_key", cfg.HUD_ONLY,
-                         "hiding it under a non-mpvtk OSC would hide the "
-                         "library's own select key")
+        self.assertNotIn("ui_select_key", curated)
+
+    def test_and_the_words_someone_looking_for_it_types(self):
+        """Advanced is behind a disclosure, so search is how somebody sent
+        looking for "the Enter setting" arrives. Measured misses, not
+        guesses -- and asserted for `hud_wake_key` too, because it is the
+        OTHER Enter during playback and answering only for this one is how
+        the pair drifts."""
+        for query in ("enter", "remap", "rebind", "keyboard", "shortcut"):
+            with self.subTest(query=query):
+                found = {key for _tab, _title, keys in cfg.search(query)
+                         for key in keys}
+                self.assertIn("ui_select_key", found)
+                self.assertIn("hud_wake_key", found)
 
     def test_the_keyboard_is_pushed_the_value(self):
         """The keyboard's third of the agreement, at its one source.

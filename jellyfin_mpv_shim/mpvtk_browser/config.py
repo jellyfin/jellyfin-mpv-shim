@@ -152,12 +152,14 @@ TAB_SECTIONS = {
         # people are looking for, and on Linux desktops that route media
         # keys through MPRIS it is likely broken anyway. Promoting it would
         # be offering a switch we cannot say works.
-        # `ui_select_key` is here and NOT in HUD_ONLY beside `hud_wake_key`:
-        # it governs the library as much as the player controls, and the
-        # library exists under every osc_style. Under "MPV built-in default"
-        # the row still means something.
-        (_("Input"), ["input_gamepad", "gamepad_swap_confirm",
-                      "ui_select_key"]),
+        #
+        # `ui_select_key` is deliberately NOT here, and not anywhere else in
+        # a curated group: key remapping is an answer to give somebody who
+        # asks for it, not a control to put in front of everyone [iw]. It
+        # falls through to Advanced, which is a real editable row -- searched
+        # like any other (`sections`), labelled and noted below -- so there
+        # is still a setting to point at. That is the whole requirement.
+        (_("Input"), ["input_gamepad", "gamepad_swap_confirm"]),
         # Everything about the window itself, in the order you meet it:
         # how it opens, whether it remembers, what closing it means.
         (_("Window"), ["fullscreen", "browser_fullscreen",
@@ -1096,6 +1098,15 @@ SEARCH_ALIASES = {
     # "am" and "24" are what somebody types and neither is in the label or
     # the note; "pm", "clock" and "time" would be redundant with them.
     "clock_12h": "am 24 format",
+    # The two ENTER keys. Neither is in a curated group any more --
+    # `ui_select_key` by choice [iw], `hud_wake_key` only under the mpvtk
+    # OSC -- so search is how somebody sent looking for "the Enter setting"
+    # arrives, and "remap"/"rebind"/"keyboard"/"shortcut" were measured
+    # misses for both. `hud_wake_key` also missed **enter** itself, which is
+    # the word that brings anyone here at all: its note is the one that says
+    # what the key does without ever naming the key.
+    "ui_select_key": "remap rebind keyboard shortcut",
+    "hud_wake_key": "remap rebind keyboard shortcut enter summon",
 }
 
 

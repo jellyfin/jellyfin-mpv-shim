@@ -27,7 +27,7 @@
 {"click": true, "fill": "2e3138", "h": 41.2, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 56.7, "x": 676.3, "y": 76.0}
 {"align": "center", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.0.6.0", "size": 17, "t": "text", "text": "Logs", "w": 36.7, "x": 686.3, "y": 86.0}
 {"force": true, "h": 32.3, "id": "set-search-box", "ph": "Search settings\u2026", "size": 17, "t": "textbox", "text": "", "w": 320.0, "x": 16.0, "y": 149.2}
-{"axis": "y", "bar": true, "ch": 1236.9, "cw": 1270.0, "h": 522.5, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 197.6}
+{"axis": "y", "bar": true, "ch": 1136.1, "cw": 1270.0, "h": 522.5, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 197.6}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.2.0.0", "sc": "settings", "size": 24, "t": "text", "text": "This Device", "w": 1238.0, "x": 16.0, "y": 213.6}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.2.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 257.1}
 {"h": 32.3, "id": "set-player_name", "ph": "", "sc": "settings", "size": 17, "t": "textbox", "text": "jms-test-host", "w": 340.0, "x": 368.0, "y": 251.6}
@@ -63,50 +63,45 @@
 {"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.13.1", "sc": "settings", "size": 17, "t": "text", "text": "Swap Confirm and Back Buttons", "w": 243.4, "x": 46.0, "y": 656.1}
 {"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.14", "sc": "settings", "size": 14, "t": "text", "text": "Turn this on for a controller whose A button is on the right rather than at the bottom (Switch Pro, most", "w": 665.3, "x": 16.0, "y": 685.4}
 {"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.14.l1", "sc": "settings", "size": 14, "t": "text", "text": "8BitDo pads).", "w": 665.3, "x": 16.0, "y": 702.9}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.2.0.15.0", "sc": "settings", "size": 17, "t": "text", "text": "Select Key", "w": 340.0, "x": 16.0, "y": 733.9}
-{"h": 32.3, "id": "set-ui_select_key", "ph": "", "sc": "settings", "size": 17, "t": "textbox", "text": "ENTER", "w": 340.0, "x": 368.0, "y": 728.4}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.16", "sc": "settings", "size": 14, "t": "text", "text": "Activates whatever is highlighted, in the library and on the player controls. An mpv key name;", "w": 665.3, "x": 16.0, "y": 768.6}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.16.l1", "sc": "settings", "size": 14, "t": "text", "text": "changing it hands Enter back to MPV. The game controller's Confirm button and a phone's Select follow", "w": 665.3, "x": 16.0, "y": 786.1}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.16.l2", "sc": "settings", "size": 14, "t": "text", "text": "it.", "w": 665.3, "x": 16.0, "y": 803.6}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.2.0.17", "sc": "settings", "size": 24, "t": "text", "text": "Window", "w": 1238.0, "x": 16.0, "y": 829.1}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 867.1}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.18.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 867.8}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.18.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen", "w": 81.6, "x": 46.0, "y": 867.1}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-browser_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 896.4}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.19.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 897.0}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.19.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen Library Browser", "w": 208.6, "x": 46.0, "y": 896.4}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-remember_window_size", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 925.6}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.2.0.20.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 926.3}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.2.0.20.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 926.9}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.20.1", "sc": "settings", "size": 17, "t": "text", "text": "Remember Window Size", "w": 186.3, "x": 46.0, "y": 925.6}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.2.0.21.0", "sc": "settings", "size": 17, "t": "text", "text": "Window Buttons in the Top Bar", "w": 340.0, "x": 16.0, "y": 960.4}
-{"force": true, "h": 32.3, "id": "set-window_controls", "items": ["Only when the window has no title bar", "Always", "Never"], "sc": "settings", "sel": 0, "size": 17, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 954.9}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.22", "sc": "settings", "size": 14, "t": "text", "text": "Some desktops, GNOME on Wayland in particular, draw no title bar on the player window, leaving no", "w": 665.3, "x": 16.0, "y": 995.2}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.22.l1", "sc": "settings", "size": 14, "t": "text", "text": "way to move or close it. This puts minimize, maximize and close in the top bar instead, and lets you", "w": 665.3, "x": 16.0, "y": 1012.7}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.22.l2", "sc": "settings", "size": 14, "t": "text", "text": "drag the window by it. On \"Only when the window has no title bar\", MPV is asked whether this window", "w": 665.3, "x": 16.0, "y": 1030.2}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.22.l3", "sc": "settings", "size": 14, "t": "text", "text": "got one, so desktops that draw a title bar are left alone.", "w": 665.3, "x": 16.0, "y": 1047.7}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-window_controls_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1073.2}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.23.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1073.8}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.23.1", "sc": "settings", "size": 17, "t": "text", "text": "Keep Window Buttons in Full Screen", "w": 278.5, "x": 46.0, "y": 1073.2}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.24", "sc": "settings", "size": 14, "t": "text", "text": "Full screen has no title bar anywhere and nothing to move or maximize, so the buttons are normally", "w": 665.3, "x": 16.0, "y": 1102.4}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.24.l1", "sc": "settings", "size": 14, "t": "text", "text": "hidden there. Turn this on to keep a way out of full screen that is not a keyboard shortcut.", "w": 665.3, "x": 16.0, "y": 1119.9}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-hide_title_bar", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1145.4}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.25.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1146.1}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.25.1", "sc": "settings", "size": 17, "t": "text", "text": "Hide the Desktop Title Bar", "w": 198.6, "x": 46.0, "y": 1145.4}
-{"align": "left", "c": "e5c07b", "h": 17.5, "id": "r.1.2.0.26", "sc": "settings", "size": 14, "t": "text", "text": "Requires restart", "w": 1238.0, "x": 16.0, "y": 1174.7}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.27", "sc": "settings", "size": 14, "t": "text", "text": "Asks the desktop for no title bar on the player window, so the top bar above is the only one. Pairs with", "w": 665.3, "x": 16.0, "y": 1200.2}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.27.l1", "sc": "settings", "size": 14, "t": "text", "text": "the setting above: on \"Only when the window has no title bar\" the buttons appear as soon as this is on.", "w": 665.3, "x": 16.0, "y": 1217.7}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.27.l2", "sc": "settings", "size": 14, "t": "text", "text": "Leave both off unless you want them, since a window with neither can be awkward to move on some", "w": 665.3, "x": 16.0, "y": 1235.2}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.27.l3", "sc": "settings", "size": 14, "t": "text", "text": "desktops.", "w": 665.3, "x": 16.0, "y": 1252.7}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-allow_background", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1278.2}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.28.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1278.8}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.28.1", "sc": "settings", "size": 17, "t": "text", "text": "Keep Running in Background", "w": 216.2, "x": 46.0, "y": 1278.2}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.29", "sc": "settings", "size": 14, "t": "text", "text": "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target setup: the app waits out of the", "w": 665.3, "x": 16.0, "y": 1307.4}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.29.l1", "sc": "settings", "size": 14, "t": "text", "text": "way, plays fullscreen when something casts to it, and goes back to waiting when the video ends or", "w": 665.3, "x": 16.0, "y": 1324.9}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.29.l2", "sc": "settings", "size": 14, "t": "text", "text": "you press Q.", "w": 665.3, "x": 16.0, "y": 1342.4}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-display_mirror_summon", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1367.9}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.30.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1368.6}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.30.1", "sc": "settings", "size": 17, "t": "text", "text": "Casting Opens the Library Browser", "w": 264.7, "x": 46.0, "y": 1367.9}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1397.2}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.31.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1397.8}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.31.1", "sc": "settings", "size": 17, "t": "text", "text": "Show advanced settings", "w": 188.9, "x": 46.0, "y": 1397.2}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.2.0.15", "sc": "settings", "size": 24, "t": "text", "text": "Window", "w": 1238.0, "x": 16.0, "y": 728.4}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 766.4}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.16.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 767.0}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.16.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen", "w": 81.6, "x": 46.0, "y": 766.4}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-browser_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 795.6}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.17.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 796.2}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.17.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen Library Browser", "w": 208.6, "x": 46.0, "y": 795.6}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-remember_window_size", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 824.9}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.2.0.18.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 825.5}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.2.0.18.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 826.1}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.18.1", "sc": "settings", "size": 17, "t": "text", "text": "Remember Window Size", "w": 186.3, "x": 46.0, "y": 824.9}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.2.0.19.0", "sc": "settings", "size": 17, "t": "text", "text": "Window Buttons in the Top Bar", "w": 340.0, "x": 16.0, "y": 859.6}
+{"force": true, "h": 32.3, "id": "set-window_controls", "items": ["Only when the window has no title bar", "Always", "Never"], "sc": "settings", "sel": 0, "size": 17, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 854.1}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.20", "sc": "settings", "size": 14, "t": "text", "text": "Some desktops, GNOME on Wayland in particular, draw no title bar on the player window, leaving no", "w": 665.3, "x": 16.0, "y": 894.4}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.20.l1", "sc": "settings", "size": 14, "t": "text", "text": "way to move or close it. This puts minimize, maximize and close in the top bar instead, and lets you", "w": 665.3, "x": 16.0, "y": 911.9}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.20.l2", "sc": "settings", "size": 14, "t": "text", "text": "drag the window by it. On \"Only when the window has no title bar\", MPV is asked whether this window", "w": 665.3, "x": 16.0, "y": 929.4}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.20.l3", "sc": "settings", "size": 14, "t": "text", "text": "got one, so desktops that draw a title bar are left alone.", "w": 665.3, "x": 16.0, "y": 946.9}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-window_controls_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 972.4}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.21.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 973.0}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.21.1", "sc": "settings", "size": 17, "t": "text", "text": "Keep Window Buttons in Full Screen", "w": 278.5, "x": 46.0, "y": 972.4}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.22", "sc": "settings", "size": 14, "t": "text", "text": "Full screen has no title bar anywhere and nothing to move or maximize, so the buttons are normally", "w": 665.3, "x": 16.0, "y": 1001.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.22.l1", "sc": "settings", "size": 14, "t": "text", "text": "hidden there. Turn this on to keep a way out of full screen that is not a keyboard shortcut.", "w": 665.3, "x": 16.0, "y": 1019.1}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-hide_title_bar", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1044.7}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.23.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1045.3}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.23.1", "sc": "settings", "size": 17, "t": "text", "text": "Hide the Desktop Title Bar", "w": 198.6, "x": 46.0, "y": 1044.7}
+{"align": "left", "c": "e5c07b", "h": 17.5, "id": "r.1.2.0.24", "sc": "settings", "size": 14, "t": "text", "text": "Requires restart", "w": 1238.0, "x": 16.0, "y": 1073.9}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.25", "sc": "settings", "size": 14, "t": "text", "text": "Asks the desktop for no title bar on the player window, so the top bar above is the only one. Pairs with", "w": 665.3, "x": 16.0, "y": 1099.4}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.25.l1", "sc": "settings", "size": 14, "t": "text", "text": "the setting above: on \"Only when the window has no title bar\" the buttons appear as soon as this is on.", "w": 665.3, "x": 16.0, "y": 1116.9}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.25.l2", "sc": "settings", "size": 14, "t": "text", "text": "Leave both off unless you want them, since a window with neither can be awkward to move on some", "w": 665.3, "x": 16.0, "y": 1134.4}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.25.l3", "sc": "settings", "size": 14, "t": "text", "text": "desktops.", "w": 665.3, "x": 16.0, "y": 1151.9}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-allow_background", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1177.4}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.26.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1178.0}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.26.1", "sc": "settings", "size": 17, "t": "text", "text": "Keep Running in Background", "w": 216.2, "x": 46.0, "y": 1177.4}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.27", "sc": "settings", "size": 14, "t": "text", "text": "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target setup: the app waits out of the", "w": 665.3, "x": 16.0, "y": 1206.7}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.27.l1", "sc": "settings", "size": 14, "t": "text", "text": "way, plays fullscreen when something casts to it, and goes back to waiting when the video ends or", "w": 665.3, "x": 16.0, "y": 1224.2}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.2.0.27.l2", "sc": "settings", "size": 14, "t": "text", "text": "you press Q.", "w": 665.3, "x": 16.0, "y": 1241.7}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-display_mirror_summon", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1267.2}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.28.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1267.8}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.28.1", "sc": "settings", "size": 17, "t": "text", "text": "Casting Opens the Library Browser", "w": 264.7, "x": 46.0, "y": 1267.2}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1296.4}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.2.0.29.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1297.0}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.2.0.29.1", "sc": "settings", "size": 17, "t": "text", "text": "Show advanced settings", "w": 188.9, "x": 46.0, "y": 1296.4}

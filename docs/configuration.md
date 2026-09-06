@@ -638,8 +638,11 @@ You can use the config file to enable and disable features.
     two of them on a key nothing listens for.
   - A **replacement**, not an alias: point it somewhere else and `ENTER`
     stops being taken in the library and on the player controls, which is
-    the reason to change it. Applies without a restart. Also in Settings →
-    General → Input.
+    the reason to change it. Applies without a restart.
+  - In Settings under **General → Advanced**, or search the settings screen
+    for "enter" or "remap". Deliberately not promoted into a normal group:
+    remapping keys is an answer for somebody who wants it rather than a
+    control everyone has to read past.
   - Two keys it does *not* move with it. While the controls are hidden,
     `hud_wake_key` still holds its own key — move that one too if you want
     `ENTER` free during playback. And `kb_menu_ok` stays where it is, so a
