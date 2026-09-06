@@ -458,6 +458,16 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertIsNone(self.browser.hud.scrub,
                           "the scrub outlived the gesture that made it")
 
+        # Hand the pointer back. A test that presses a button owes the next
+        # one a clean input state: this one leaves the pointer parked on the
+        # seek bar of a playing video, and on Windows that was enough to
+        # cost `test_pickers_chapters_and_skip_button` its audio popup --
+        # measured, 17/17 without this test in the module and one failure
+        # with it, while the test itself passed either way. It runs first
+        # alphabetically, so it is the one that has to tidy up.
+        self.handle.command("keypress", "MOUSE_LEAVE")
+        time.sleep(0.2)
+
     def test_pickers_chapters_and_skip_button(self):
         self.ctl.menu_state = {
             "has_media": True,
