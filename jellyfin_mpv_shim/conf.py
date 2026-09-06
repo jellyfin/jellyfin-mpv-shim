@@ -579,15 +579,21 @@ class Settings(SettingsBase):
     # segment. Applies to keyboard/remote seeks; seeks made from the
     # jellyfin OSC's seekbar never trigger it (it has its own button).
     skip_intro_on_seek: bool = False
+    # The trickplay feature as a whole: the worker that fetches the images
+    # and the thumbfast script that draws them. Every OSC style consumes it
+    # — the HUD's own bubble, both classic OSCs, and a thumbfast-aware
+    # script of the user's — so it is not an OSC question and does not
+    # live with them.
     thumbnail_enable: bool = True
-    thumbnail_osc_builtin: bool = True
     # In-player UI: "mpvtk" (the in-window playback HUD rendered by the
     # library browser — jellyfin-web styled, remote navigable; needs
-    # enable_gui, falls back to "mpv" otherwise), "mpv" (stock
-    # mpv OSC patched with trickplay previews), or "default" (whatever
-    # OSC is built into the mpv binary / the user's own scripts).
-    # "jellyfin" is a legacy alias for "mpvtk" (the lua OSC it used to
-    # name was retired once the HUD reached parity).
+    # enable_gui, falls back to "mpv" otherwise), "mpv" (mpv's own OSC,
+    # loaded by us so it can draw trickplay previews), "custom" (the
+    # user's own OSC script; ours stays out of the way) or "none".
+    # Two legacy aliases, both accepted on the way in and neither
+    # produced: "jellyfin" for "mpvtk" (the lua OSC it used to name was
+    # retired once the HUD reached parity) and "default" for "mpv"
+    # (CONFIG_VERSION 5).
     osc_style: str = "mpvtk"
     # Playback HUD looks and lifecycle (osc_style "mpvtk"). The scrim
     # is what makes the controls legible over any frame; "none" pays

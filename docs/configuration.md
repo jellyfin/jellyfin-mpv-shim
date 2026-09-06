@@ -1057,9 +1057,10 @@ between themes already on disk repaints immediately.
 
 ## Trickplay Thumbnails
 
-MPV will automatically display thumbnail previews. By default it uses the Trickplay images and falls back to chapter images. It also requires
-overriding the default MPV OSC, which may conflict with some custom user script. Trickplay is compatible
-with any OSC that uses [thumbfast](https://github.com/po5/thumbfast), as I have added a [compatibility layer](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/jellyfin_mpv_shim/thumbfast.lua).
+MPV will automatically display thumbnail previews. By default it uses the Trickplay images and falls back to chapter images. Trickplay is compatible
+with any OSC that uses [thumbfast](https://github.com/po5/thumbfast), as I have added a [compatibility layer](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/jellyfin_mpv_shim/thumbfast.lua)
+— so previews reach the Jellyfin UI, MPV's own controls and your own OSC
+script alike, whatever `osc_style` you have chosen.
 
 Previews are downloaded as JPEG mosaics and uncompressed to raw bitmaps, which
 is where the size is: a two-hour film is about 130 MB of them at the default
@@ -1073,10 +1074,15 @@ short enough to fit under the limit are loaded whole and never wait at all.
 older versions did — every preview is then instant, at the cost of the full
 download and the full memory.
 
-- `thumbnail_enable` - Enable thumbnail feature. (Default: `true`)
-- `thumbnail_osc_builtin` - Legacy alias: disabling this behaves like `osc_style: custom` (use your own OSC but leave trickplay enabled). Prefer `osc_style`. (Default: `true`)
+- `thumbnail_enable` - Enable trickplay thumbnails: the preview frame shown while you drag the seek bar. Applies to every `osc_style`. Read when MPV is built, so changing it needs a restart. Turning it off also stops the images being downloaded, which is the reason to. (Default: `true`)
 - `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
 - `trickplay_fast_mode` - Load every preview frame at once instead of a window around the seek position. Previews never wait, but a long video costs hundreds of megabytes of memory. Turning it *on* applies to the video you are watching, the next time you scrub outside the part already loaded; turning it *off* applies to the next video. (Default: `false`)
+
+`thumbnail_osc_builtin` was removed. It meant "use your own custom OSC but
+leave trickplay enabled", which is `osc_style: custom` — thumbfast is loaded
+whatever the style, so your OSC still gets the previews. A `false` left in
+`conf.json` is ignored (the log says so) and dropped on the next save; if you
+run your own OSC, set `osc_style` to `custom`.
 
 ## SVP Integration
 

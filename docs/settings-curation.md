@@ -38,6 +38,17 @@ Two conventions:
   and turning the parent off *says so* if it also had to clear a dependant
   (`TRAY_DEPENDENT` → `start_minimized`). Leaving a hidden setting acting at
   every startup with no way to see or undo it is the failure being avoided.
+  The sets are `TRAY_DEPENDENT`, `BACKGROUND_DEPENDENT`, `AUDIO_MODE_ONLY`,
+  `HUD_ONLY` and `TRICKPLAY_DEPENDENT`; each is seeded into `sections()`'s
+  `curated` set, and **that seeding is the part to get wrong**. `hidden` is
+  computed as `curated - shown`, so a key nobody seeded is never in `hidden`
+  and the filter never reaches it: the row goes on being drawn and nothing
+  says why. Silently, and with a form that still looks complete — which is
+  why the test for a new dependent asserts it is *absent from every group*
+  when its parent is off, not merely that it is absent from Advanced. That
+  second assertion cannot fail (`hidden` is a subset of `curated` by
+  construction); `c06e0351` deleted one written that way, and
+  `tests/test_trickplay_setting.py` says so where the next one would go.
 - **A control that is not offered beats a control that is disabled** where the
   reason is a permission or a missing capability, because a disabled control
   invites the user to go looking for the switch that enables it.
@@ -173,6 +184,7 @@ type.
 |---|---|
 | `ui_scale` | the whole interface geometry is derived once |
 | `osc_style` | picks which OSC mpv is *constructed* with |
+| `thumbnail_enable` | `_init_mpv` starts the TrickPlay worker, and `mpv_scripts` loads thumbfast only if it did — and mpv is not re-created between queue items |
 | `input_gamepad` | mpv reads it once, at startup |
 | `theme` — the **size** half | `poster_scale`/`tile_landscape` feed sizes a live rebuild would have to rediscover through every cached row; see `docs/browser-shell.md` §9 |
 | shader pack directory | read once at startup |

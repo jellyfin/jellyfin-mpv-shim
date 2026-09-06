@@ -160,10 +160,18 @@ def resolve_osc_style():
     """Which in-player UI to load, after the aliases and fallbacks.
 
     ``settings.osc_style`` is not the answer on its own: it may hold a legacy
-    alias, and two settings can force a fallback. The result is stored on the
+    alias, and `enable_gui` can force a fallback. The result is stored on the
     player as ``_osc_style_resolved`` because the c-menu routing, enable_osc
     and the skip-button path all key off the resolved value rather than the
     configured one.
+
+    **Nothing resolves TO "default" any more.** It is an inbound legacy value
+    only -- a pre-CONFIG_VERSION-5 conf.json, or one hand-edited -- and the
+    alias below turns it into "mpv". It survived as an internal resolution
+    for exactly one caller, the `thumbnail_osc_builtin` opt-out, and went
+    with it; `build_mpv_options` still maps the value because it is a pure
+    style -> options function and that mapping is still what "default"
+    means.
     """
     # Which in-player UI to load: the in-window mpvtk playback HUD
     # ("mpvtk"; no lua script — the browser renders it, see
@@ -172,7 +180,9 @@ def resolve_osc_style():
     # ("none"). Two legacy aliases: "jellyfin" for the HUD — the
     # jellyfin-styled lua OSC it named was retired once the HUD reached
     # parity — and "default", which folded into "mpv" at
-    # CONFIG_VERSION 5.
+    # CONFIG_VERSION 5. `thumbnail_osc_builtin` was a third way in and is
+    # gone: "use your own OSC but keep trickplay" is `custom`, and
+    # "no controls" is `none`, so it named nothing this cannot say.
     #
     # "none" is where the old enable_osc setting went. That was a
     # separate switch that only ever reached mpv's OWN controls, so
@@ -197,26 +207,6 @@ def resolve_osc_style():
         # GUI disabled there is nothing to render it, so the patched
         # stock OSC is the closest thing.
         osc_style = "mpv"
-    if osc_style == "mpvtk" and not settings.thumbnail_osc_builtin:
-        # Legacy opt-out: thumbnail_osc_builtin=False used to mean
-        # "don't replace my OSC" (e.g. users running uosc).
-        #
-        # **"default" survives here as an internal resolution, and only
-        # here.** It is gone from the settings screen and migrated out of
-        # conf.json (CONFIG_VERSION 5), but it is the only value that leaves
-        # mpv's own OSC to load itself -- everything else is in
-        # `REPLACES_OSC` and turns it off.
-        #
-        # That matters because of who reaches this line. `custom` was tried
-        # and is wrong: it sets `osc=False` and loads nothing, which is
-        # right for someone who really is running uosc and leaves anyone
-        # else **with no OSC at all**. The flag is a legacy default-off
-        # switch, not proof that a replacement exists, so the safe reading
-        # is "let mpv decide", which is what it has always done.
-        #
-        # Note the ordering: the "default" -> "mpv" alias above has already
-        # run, so this assignment is not folded back into "mpv".
-        osc_style = "default"
     return osc_style
 
 

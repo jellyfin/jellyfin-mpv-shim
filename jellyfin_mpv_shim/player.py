@@ -4756,8 +4756,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self._osc_suppressed = False
             # Mpv's own, held off against an mpv.conf `osc=yes` -- which a
             # construction option cannot do (build_mpv_options). Not keyed
-            # on `enabled`: these styles never want it back. "default" is
-            # the user's option and is never written.
+            # on `enabled`: these styles never want it back.
+            #
+            # The membership test reads as vacuous now that every style
+            # `resolve_osc_style` can return is in REPLACES_OSC -- "default"
+            # left that set of answers with `thumbnail_osc_builtin`. It is
+            # not: `style` is read with a None default, so this also covers
+            # a call before _init_mpv has recorded one.
             if style in REPLACES_OSC and hasattr(self._player, "osc"):
                 self._player.osc = False
         except _mpv_errors:

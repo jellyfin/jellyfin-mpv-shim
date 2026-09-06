@@ -75,62 +75,37 @@ class SettingsCase(unittest.TestCase):
 
 class ResolveOscStyleTest(SettingsCase):
     def test_jellyfin_is_a_legacy_alias_for_the_hud(self):
-        self.set(osc_style="jellyfin", enable_gui=True,
-                 thumbnail_osc_builtin=True)
+        self.set(osc_style="jellyfin", enable_gui=True)
         self.assertEqual(mpv_options.resolve_osc_style(), "mpvtk")
 
     def test_without_a_gui_there_is_nothing_to_draw_the_hud(self):
         # The HUD is rendered by the library browser.
-        self.set(osc_style="mpvtk", enable_gui=False,
-                 thumbnail_osc_builtin=True)
+        self.set(osc_style="mpvtk", enable_gui=False)
         self.assertEqual(mpv_options.resolve_osc_style(), "mpv")
-
-    def test_the_legacy_opt_out_still_yields_the_users_own_osc(self):
-        """Still "default", which is why that value survives as an INTERNAL
-        resolution after CONFIG_VERSION 5 removed it from the settings
-        screen and from conf.json.
-
-        `custom` was tried here and is wrong. It sets `osc=False` and loads
-        nothing, which is right for someone genuinely running uosc and
-        leaves everyone else **with no OSC at all** -- and this flag is a
-        legacy default-off switch, not proof that a replacement exists.
-        "default" is the only value that leaves mpv's own OSC to load
-        itself, which is the safe reading of "don't replace my OSC"."""
-        self.set(osc_style="mpvtk", enable_gui=True,
-                 thumbnail_osc_builtin=False)
-        self.assertEqual(mpv_options.resolve_osc_style(), "default")
 
     def test_no_resolution_can_leave_a_user_with_no_osc_by_accident(self):
-        """The whole point of the paragraph above, as a property.
+        """Every style that turns mpv's own OSC off must be one where either
+        we load one (`mpvtk`, `mpv`), the user asked for none (`none`), or
+        the user said they have their own (`custom`). A FALLBACK must never
+        land on the last two -- nobody chose them.
 
-        Every style that turns mpv's own OSC off must be one where either we
-        load one (`mpvtk`, `mpv`), the user asked for none (`none`), or the
-        user said they have their own (`custom`). A FALLBACK must never land
-        on the last two -- nobody chose them."""
+        Kept as a property after `thumbnail_osc_builtin` (the fallback this
+        was written against) was deleted, because the rule outlives the
+        branch: it is what the next fallback added here has to satisfy."""
         chosen_none = {"none", "custom"}
         for gui in (True, False):
-            for builtin in (True, False):
-                with self.subTest(enable_gui=gui,
-                                  thumbnail_osc_builtin=builtin):
-                    self.set(osc_style="mpvtk", enable_gui=gui,
-                             thumbnail_osc_builtin=builtin)
+            for style in ("mpvtk", "jellyfin", "default"):
+                with self.subTest(enable_gui=gui, osc_style=style):
+                    self.set(osc_style=style, enable_gui=gui)
                     got = mpv_options.resolve_osc_style()
                     self.assertNotIn(got, chosen_none,
-                                     "a fallback from 'mpvtk' landed on a "
-                                     "style that draws no controls")
-
-    def test_the_opt_out_does_not_apply_once_the_gui_fallback_has(self):
-        # Order matters: enable_gui=False moves mpvtk -> mpv, and "mpv" is
-        # not subject to the thumbnail_osc_builtin opt-out.
-        self.set(osc_style="mpvtk", enable_gui=False,
-                 thumbnail_osc_builtin=False)
-        self.assertEqual(mpv_options.resolve_osc_style(), "mpv")
+                                     "a fallback from %r landed on a "
+                                     "style that draws no controls" % style)
 
     def test_explicit_styles_pass_through(self):
         for style in ("mpv", "custom", "none"):
             with self.subTest(style=style):
-                self.set(osc_style=style, enable_gui=True,
-                         thumbnail_osc_builtin=True)
+                self.set(osc_style=style, enable_gui=True)
                 self.assertEqual(mpv_options.resolve_osc_style(), style)
 
     def test_default_is_a_legacy_alias_for_mpv(self):
@@ -140,23 +115,34 @@ class ResolveOscStyleTest(SettingsCase):
         suppressed the idle logo under "default". `_migrate` rewrites the
         stored value at CONFIG_VERSION 5; this is what covers a hand-edited
         conf.json, or one restored from a backup taken before it."""
-        self.set(osc_style="default", enable_gui=True,
-                 thumbnail_osc_builtin=True)
+        self.set(osc_style="default", enable_gui=True)
         self.assertEqual(mpv_options.resolve_osc_style(), "mpv")
 
-    def test_the_alias_is_resolved_before_the_opt_out_can_see_it(self):
-        """Order: "default" becomes "mpv", and "mpv" is not subject to the
-        thumbnail_osc_builtin opt-out -- so an old config with both set does
-        not end up somewhere neither value asked for."""
-        self.set(osc_style="default", enable_gui=True,
-                 thumbnail_osc_builtin=False)
-        self.assertEqual(mpv_options.resolve_osc_style(), "mpv")
+    def test_nothing_resolves_to_default_any_more(self):
+        """"default" is an inbound legacy value only.
+
+        It survived as an internal resolution for exactly one caller -- the
+        `thumbnail_osc_builtin` opt-out -- and went when that did. This is
+        the half of the deletion that is invisible from the settings screen:
+        `build_mpv_options` still maps "default" (it is a pure style ->
+        options function), so a branch quietly re-appearing here would turn
+        mpv's own OSC back on for somebody and nothing else would say so.
+
+        Every value `osc_style` can hold and both sides of the one
+        surviving fallback, rather than a sample -- the claim is about the
+        whole function, not about the branch that was removed."""
+        for style in ("mpvtk", "jellyfin", "default", "mpv", "custom",
+                      "none"):
+            for gui in (True, False):
+                with self.subTest(osc_style=style, enable_gui=gui):
+                    self.set(osc_style=style, enable_gui=gui)
+                    self.assertNotEqual(mpv_options.resolve_osc_style(),
+                                        "default")
 
     def test_no_controls_is_not_talked_out_of_it(self):
-        """Both fallbacks exist to find something to draw the HUD with.
+        """The fallback exists to find something to draw the HUD with.
         Someone who asked for nothing has not got a problem to solve."""
-        self.set(osc_style="none", enable_gui=False,
-                 thumbnail_osc_builtin=False)
+        self.set(osc_style="none", enable_gui=False)
         self.assertEqual(mpv_options.resolve_osc_style(), "none")
 
 

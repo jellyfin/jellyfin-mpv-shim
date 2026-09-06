@@ -42,7 +42,7 @@ from jellyfin_mpv_shim.mpvtk_browser import config as cfg  # noqa: E402
 def _shown(style, **overrides):
     """Every key the settings form would draw under ``style``."""
     patches = {"osc_style": style, "enable_gui": True,
-               "thumbnail_osc_builtin": True}
+               "thumbnail_enable": True}
     patches.update(overrides)
     with mock.patch.multiple(settings, **patches):
         return {k for _title, keys in cfg.sections() for k in keys}
@@ -76,11 +76,15 @@ class VisibilityTest(unittest.TestCase):
         self.assertTrue(set(cfg.HUD_ONLY) <= _shown("jellyfin"))
 
     def test_a_fallback_that_demotes_mpvtk_hides_them_too(self):
-        """`resolve_osc_style` demotes "mpvtk" when the GUI is off or the
-        legacy `thumbnail_osc_builtin` opt-out is set. The HUD does not run
-        in either case, so neither should its settings appear."""
+        """`resolve_osc_style` demotes "mpvtk" when the GUI is off: the
+        browser renders the HUD, so there is nothing to run it. The HUD
+        does not run, so neither should its settings appear.
+
+        This read `thumbnail_osc_builtin=False` until that flag was
+        deleted. `enable_gui` is the surviving fallback and the assertion
+        is about fallbacks, not about which flag drove one."""
         self.assertFalse(set(cfg.HUD_ONLY)
-                         & _shown("mpvtk", thumbnail_osc_builtin=False))
+                         & _shown("mpvtk", enable_gui=False))
 
 
 class NotHiddenTest(unittest.TestCase):
@@ -123,7 +127,7 @@ class SeedingTest(unittest.TestCase):
 
     def test_hud_only_is_seeded_so_the_filter_can_reach_it(self):
         with mock.patch.multiple(settings, osc_style="mpv", enable_gui=True,
-                                 thumbnail_osc_builtin=True):
+                                 thumbnail_enable=True):
             groups = dict(cfg.sections())
         drawn = {k for keys in groups.values() for k in keys}
         self.assertFalse(set(cfg.HUD_ONLY) & drawn,
@@ -134,7 +138,7 @@ class SeedingTest(unittest.TestCase):
         """Seeding must not become hiding-forever: with the HUD selected
         they belong in their real group, not nowhere."""
         with mock.patch.multiple(settings, osc_style="mpvtk", enable_gui=True,
-                                 thumbnail_osc_builtin=True):
+                                 thumbnail_enable=True):
             groups = dict(cfg.sections())
         controls = set(groups.get("Player Controls", ()))
         self.assertTrue(set(cfg.HUD_ONLY) <= controls)
@@ -145,7 +149,7 @@ class SeedingTest(unittest.TestCase):
         that filters a group WITHOUT seeding is caught here rather than
         shipping rows nobody can explain."""
         with mock.patch.multiple(settings, osc_style="mpv", enable_gui=True,
-                                 thumbnail_osc_builtin=True):
+                                 thumbnail_enable=True):
             groups = dict(cfg.sections())
         advanced = set(groups.get("Advanced", ()))
         curated = {k for title, keys in groups.items()

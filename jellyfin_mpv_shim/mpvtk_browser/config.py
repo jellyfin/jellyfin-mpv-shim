@@ -77,25 +77,36 @@ BACKGROUND_DEPENDENT = ("start_minimized",)
 #: Every one of them is read in exactly one place --
 #: `gateway/hud.py:hud_key_opts`, which builds the blob sent with the
 #: `mpvtk-hud` engage -- and that message is only ever sent by the HUD
-#: modality. Under "MPV UI with thumbnails" or "MPV built-in default" they
-#: are inert, and offering them there is what #724 reads like from the
-#: outside: "Left Click Pauses Playback" is on, the left button does
-#: nothing over the video, so the client looks broken. It is not; the
-#: setting was simply never going to reach that player.
+#: modality. Under "MPV UI" or "Custom OSC" they are inert, and offering
+#: them there is what #724 reads like from the outside: "Left Click Pauses
+#: Playback" is on, the left button does nothing over the video, so the
+#: client looks broken. It is not; the setting was simply never going to
+#: reach that player.
 #:
 #: `mouse_chapter_nav` is deliberately NOT here despite sitting in the same
 #: group: `player.py` binds the thumb buttons itself, so it works under
-#: every style. Nor is `trickplay_fast_mode` -- thumbfast is loaded for
-#: both OSCs.
+#: every style. Nor are `thumbnail_enable` and `trickplay_fast_mode` --
+#: thumbfast is loaded whatever the style, so the previews reach both
+#: classic OSCs and a thumbfast-aware script of the user's. The second one
+#: has a dependency of its own, on the first: see TRICKPLAY_DEPENDENT.
 #:
 #: Keyed on the RESOLVED style (`mpv_options.resolve_osc_style`), not the
-#: configured one, so the legacy "jellyfin" alias counts and the two
-#: fallbacks that quietly demote "mpvtk" do too. `osc_style` needs a
-#: restart, so these rows appear the moment the Jellyfin UI is chosen and
-#: go when it is left -- which is right: the form describes the
+#: configured one, so the legacy "jellyfin" alias counts and the
+#: `enable_gui` fallback that quietly demotes "mpvtk" does too. `osc_style`
+#: needs a restart, so these rows appear the moment the Jellyfin UI is
+#: chosen and go when it is left -- which is right: the form describes the
 #: configuration, and the restart banner covers the gap.
 HUD_ONLY = ("hud_grab_keys", "hud_wake_key", "hud_scrim", "hud_autohide",
             "hud_hide_secs", "hud_auto_scale", "mouse_click_pauses")
+
+#: Settings that tune trickplay and so do nothing with `thumbnail_enable`
+#: off. Hidden rather than disabled, per docs/settings-curation.md §2.
+#:
+#: `thumbnail_preferred_size` is deliberately not here. It is uncurated, so
+#: hiding it would move it in and out of Advanced -- and Advanced is where
+#: somebody goes to read what a value currently is, which is a reason to
+#: show a setting rather than to hide it.
+TRICKPLAY_DEPENDENT = ("trickplay_fast_mode",)
 
 
 def hud_style_selected():
@@ -223,7 +234,8 @@ TAB_SECTIONS = {
         # The in-player UI leads: it is the thing you are looking at while
         # watching, and osc_style decides whether the rest of the group
         # applies at all.
-        (_("Player Controls"), ["osc_style", "hud_grab_keys", "hud_wake_key",
+        (_("Player Controls"), ["osc_style", "thumbnail_enable",
+                                "hud_grab_keys", "hud_wake_key",
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
                                 "hud_auto_scale",
                                 "mouse_chapter_nav", "mouse_click_pauses",
@@ -300,6 +312,12 @@ RESTART_REQUIRED = frozenset({
     #
     # Decides which OSC mpv is CONSTRUCTED with.
     "osc_style",
+    # Read once per mpv, in `_init_mpv`: it decides whether the TrickPlay
+    # worker starts, and `mpv_scripts` loads thumbfast only if it did. mpv
+    # is not re-created between queue items, so nothing short of a restart
+    # re-asks -- turning it ON without one leaves the worker fetching for a
+    # script that was never loaded.
+    "thumbnail_enable",
     # mpv reads it exactly once, in mp_input_load_config -- a runtime write
     # succeeds and reads back yes while the SDL thread is never started.
     "input_gamepad",
@@ -616,6 +634,7 @@ LABEL_OVERRIDES = {
     "window_controls_fullscreen": _("Keep Window Buttons in Full Screen"),
     "hide_title_bar": _("Hide the Desktop Title Bar"),
     "osc_style": _("Player Controls Style"),
+    "thumbnail_enable": _("Enable Trickplay Thumbnails"),
     "trickplay_fast_mode": _("Load All Seek Previews at Once"),
     "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
@@ -846,6 +865,19 @@ NOTES = {
         "\"Only when the window has no title bar\" the buttons appear as "
         "soon as this is on. Leave both off unless you want them, since a "
         "window with neither can be awkward to move on some desktops."),
+    # The cost is the half a label cannot carry, and it is the reason
+    # somebody turns this off: the images are downloaded and uncompressed
+    # per video, which is disk and memory rather than a one-off. Says which
+    # players it reaches, because it sits under a dropdown that decides
+    # which player you get and is the one row in that group that is NOT
+    # about the choice above it.
+    "thumbnail_enable": _("Shows a preview frame while you drag the seek "
+                          "bar. Works with every player control style, "
+                          "including your own OSC script if it supports "
+                          "thumbfast. The images are fetched from the "
+                          "server per video, which costs disk space and "
+                          "memory -- tens of MB for an episode, a few "
+                          "hundred for a long film."),
     "trickplay_fast_mode": _("Seek previews are normally fetched a few "
                              "minutes at a time around where you are "
                              "seeking, so scrubbing somewhere new waits "
@@ -1051,7 +1083,8 @@ def sections(tab=None):
     # it must not reappear under "Advanced" as an uncurated key.
     curated = ({k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
                | set(TRAY_DEPENDENT) | set(BACKGROUND_DEPENDENT)
-               | set(HUD_ONLY) | {"audio_exclusive"})
+               | set(HUD_ONLY) | set(TRICKPLAY_DEPENDENT)
+               | {"audio_exclusive"})
     out = []
     try:
         shown = set(visible_passthrough_keys())
@@ -1063,6 +1096,8 @@ def sections(tab=None):
         shown.add("audio_exclusive")
     if hud_style_selected():
         shown.update(HUD_ONLY)
+    if settings.thumbnail_enable:
+        shown.update(TRICKPLAY_DEPENDENT)
     keep_running = "close_to_tray" if tray_available() else "allow_background"
     shown.add(keep_running)
     if getattr(settings, keep_running, False):
@@ -1131,6 +1166,10 @@ SEARCH_ALIASES = {
     # say why. None of those words are in the label or the note.
     "browse_block_keys": "keys keyboard contrast brightness gamma "
                          "saturation hotkey",
+    # "trickplay" is the server's word and is in the label; these are the
+    # words somebody who has never read the server's docs types. "scrubbing"
+    # rather than "scrub", since matching is directional.
+    "thumbnail_enable": "scrubbing seeking bif chapter",
 }
 
 

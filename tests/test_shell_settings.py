@@ -79,14 +79,23 @@ class TestSettings(unittest.TestCase):
 
     def test_hud_key_settings_sit_under_the_keybind_note(self):
         """The real schema: the two HUD keyboard settings are curated
-        into Interface directly below the note explaining the default,
-        not buried in the auto-generated Advanced list."""
+        into Interface below the note explaining the default, not buried
+        in the auto-generated Advanced list.
+
+        Adjacent to each other and after `osc_style`, rather than pinned to
+        an exact slice of the group. The slice version broke when
+        `thumbnail_enable` was promoted between them and `osc_style` -- it
+        was over-specifying position for a claim that is about curation."""
         from jellyfin_mpv_shim.mpvtk_browser import config as real
 
         controls = dict(real.sections("playback"))["Player Controls"]
-        self.assertEqual(
-            controls[controls.index("osc_style"):][:3],
-            ["osc_style", "hud_grab_keys", "hud_wake_key"])
+        self.assertEqual(controls[0], "osc_style",
+                         "the group leads with the style picker; the rest "
+                         "of it may not apply at all until that is chosen")
+        self.assertEqual(controls.index("hud_wake_key"),
+                         controls.index("hud_grab_keys") + 1)
+        self.assertLess(controls.index("osc_style"),
+                        controls.index("hud_grab_keys"))
         self.assertIn("osc_style", real.NOTES)
         advanced = dict(real.sections()).get("Advanced", [])
         self.assertNotIn("hud_grab_keys", advanced)

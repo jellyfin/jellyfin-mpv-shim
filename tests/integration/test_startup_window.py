@@ -50,7 +50,7 @@ class StartupForceWindowTest(unittest.TestCase):
         with mock.patch.object(settings, "osc_style", osc_style), \
                 mock.patch.object(settings, "start_minimized", start_minimized), \
                 mock.patch.object(settings, "enable_gui", True), \
-                mock.patch.object(settings, "thumbnail_osc_builtin", True):
+                mock.patch.object(settings, "thumbnail_enable", False):
             pm._ensure_mpv()
         return pm._player.init_options
 
