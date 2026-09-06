@@ -272,6 +272,83 @@ class ComicReaderTest(_e2e.E2ETestCase):
             "its EOF and the timeline will report a session for it")
         self.assertIsNone(route.get("_error"))
 
+    def test_a_film_after_a_comic_is_neither_zoomed_nor_stretched(self):
+        """The comic -> video seam, which is where this feature has bitten
+        twice and which no test crosses end to end.
+
+        `test_type_seams` runs the other pairs and deliberately leaves this
+        one out: `keepaspect` and the zoom/pan reset belong to the browser
+        handoff, not to `play()`, so a browser-less harness cannot ask. This
+        class has a browser, so it can.
+
+        Both halves, because they failed in opposite directions:
+
+        * **zoom/pan.** They are global mpv options. A comic leaves them set
+          and the next thing loaded inherits them -- "every film after a
+          comic played zoomed until a comic was opened and closed again with
+          nothing playing" (`reset_picture_view`).
+        * **keepaspect.** NOT the picture's property but the window's, owned
+          by `set_browse_window` (off) and `browse_yield` (on). Restoring it
+          from the reset path instead stretched **every** film, with no comic
+          anywhere in the session, because `run_action` defers whenever the
+          player lock is busy -- and it is busy for the whole of a playback
+          start. `tests/test_window_geometry.py:PictureViewHandoffTest`
+          asserts both interleavings against fakes; this asserts the outcome
+          against a real mpv.
+
+        The handoff is driven through `_yield()` rather than by calling the
+        two players' methods in the order this test would like: `_yield` is
+        what a real hand-over runs, `_release_page_grabs` then
+        `on_browse_leave`, and picking the order by hand here would be
+        asserting against the bug's own sibling.
+        """
+        episodes = self.session.episodes("The Standard Show", season=1)
+        if not episodes:
+            self.skipTest("no episode to play after the comic")
+        item = episodes[0]
+        self.session.reset_played(item["Id"])
+        self.addCleanup(self.session.reset_played, item["Id"])
+
+        self._open()
+        self._loaded_path()
+        # Zoom and pan the page, as the reader's own fit modes do
+        # (`pages/comic.py` calls exactly this). Without a gesture the
+        # options are still at their defaults and a pass would mean nothing.
+        self.pm.set_picture_view(zoom=1.25, pan_x=0.2, pan_y=-0.3)
+        self.assertAlmostEqual(
+            float(self.pm._player.video_zoom), 1.25, places=3,
+            msg="the zoom never reached mpv, so nothing is staged to leak")
+
+        self.browser._yield()
+        media = _e2e.build_media(self.session, [item["Id"]])
+        self.pm.play(media.video, is_initial_play=True)
+        self.assertIsNotNone(self.pm._video, "the episode never started")
+
+        self.assertAlmostEqual(
+            float(self.pm._player.video_zoom), 0.0, places=3,
+            msg="the film inherited the comic's zoom (%r) -- this is 'every "
+                "film after a comic plays zoomed'"
+                % (self.pm._player.video_zoom,))
+        self.assertAlmostEqual(float(self.pm._player.video_pan_x), 0.0,
+                               places=3, msg="the film inherited the pan")
+        self.assertAlmostEqual(float(self.pm._player.video_pan_y), 0.0,
+                               places=3, msg="the film inherited the pan")
+        # ...and now the interleaving that actually shipped the stretch.
+        # `_yield` ran the reset BEFORE `browse_yield`, which is the safe
+        # order and the only one reachable by calling it; the bug is the
+        # reset landing LAST, which is what `run_action` produces whenever
+        # the player lock is busy -- and it is busy for the whole of a
+        # playback start. Driving the safe order only is why the first
+        # version of this assertion could not fail: measured, dropping
+        # `reset_picture_view`'s `_video is None and not self._loading`
+        # guard left it green.
+        self.pm.reset_picture_view()
+        self.assertTrue(
+            self.pm._player.keepaspect,
+            "the film is being stretched to the window: a picture reset that "
+            "landed after playback started put keepaspect back, which is the "
+            "half that needed no comic in the session at all")
+
     def test_turning_a_page_loads_a_different_file(self):
         """The observable a page turn actually has.
 

@@ -29,10 +29,12 @@ the BROWSER, and says nothing about a photo after a film or after a track.
 **Scope, deliberately.** These are the properties `play()` itself owns.
 `keepaspect` and the zoom/pan reset are owned by the browser handoff
 (`browse_yield`, `_release_page_grabs`) and not by the player, so asserting
-them in a browser-less harness would fail for a reason that is not a bug;
-they are covered by `test_comic_reader` and `PictureViewHandoffTest`, which
-have a browser. See `reset_picture_view`'s docstring for why that split is
-not an accident.
+them here would fail for a reason that is not a bug. The comic -> video pair
+carries them and lives in
+`test_comic_reader.test_a_film_after_a_comic_is_neither_zoomed_nor_stretched`,
+which has a browser; `PictureViewHandoffTest` covers the same two
+interleavings against fakes. See `reset_picture_view`'s docstring for why
+that split is not an accident.
 """
 
 import os
