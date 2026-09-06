@@ -139,6 +139,14 @@ PER_BACKEND = [
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",
     "tests.e2e.test_input_routing",
+    # The mouse half of the same question. `test_input_routing` presses real
+    # keys because declaring a binding and enabling its section are different
+    # calls; every other mouse test in the tree drives `app.debug(cmd=...)`,
+    # which calls the renderer's gesture handlers directly and so answers yes
+    # however the SECTIONS were left. Per backend for the same reason as the
+    # keyboard: which binding wins is mpv's section stack, and the two
+    # backends reach it by different paths.
+    "tests.e2e.test_mouse_routing",
     "tests.e2e.test_scroll_recovery",
     "tests.e2e.test_window_resize",
     # Client-side decorations: the controls have to reach the real
