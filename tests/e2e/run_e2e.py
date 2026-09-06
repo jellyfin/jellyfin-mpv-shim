@@ -144,6 +144,11 @@ PER_BACKEND = [
     # the seam it pins -- audio keeps `_video` set and keeps the library up
     # -- is asked of the PLAYER, whose backend selection happens at import.
     "tests.e2e.test_music_playback",
+    # The seam matrix: what one content type leaves set for the next. mpv
+    # is not re-created between queue items, so this is the axis every
+    # other playback module is the wrong shape to see -- they are each
+    # vertical, one type per class, by design.
+    "tests.e2e.test_type_seams",
     "tests.e2e.test_input_routing",
     # The mouse half of the same question. `test_input_routing` presses real
     # keys because declaring a binding and enabling its section are different
