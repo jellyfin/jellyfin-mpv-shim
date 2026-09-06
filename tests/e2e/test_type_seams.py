@@ -139,6 +139,62 @@ class TypeSeamMatrixTest(_e2e.E2ETestCase):
                 "the queue is waiting for"
                 % (kind, after, self._display_secs(), want["display_secs"]))
 
+    def _loops(self):
+        """Whether mpv will loop the current file.
+
+        Asked as a question rather than compared to a literal: the property
+        is written as the strings "inf" and "no", and **mpv does not answer
+        in the same alphabet it accepts** -- measured, "inf" reads back as
+        "inf" and "no" reads back as the boolean False. Asserting
+        `loop_file == "no"` fails against correct behaviour, on the backend
+        it was written on.
+        """
+        value = self.pm._player.loop_file
+        return value not in (False, "no", 0, "0", None)
+
+    def test_repeat_one_on_a_track_does_not_loop_the_next_film(self):
+        """`loop-file` is the seam with the sharpest failure: the film never
+        ends.
+
+        Repeat is a MUSIC feature (`set_repeat`: "loop-file is applied only
+        while audio plays... so it never makes a video loop"), and `loop-file`
+        is a global option that outlives the item it was set for. The write
+        lives at the TOP of `_play_media`, before `play()`, and its comment
+        records why: it used to run at the very end of the start, past the
+        `if not loaded: return`, so a video whose load FAILED kept whatever
+        the previous item set -- and if that was a track under repeat-one, it
+        stayed "inf".
+
+        Nothing in tests/ touches `loop_file` outside the fakes, so neither
+        half of that was pinned.
+        """
+        self.addCleanup(self.pm.set_repeat, "none")
+
+        self._play("music")
+        self.pm.set_repeat("one")
+        self.assertTrue(
+            self._loops(),
+            "repeat-one did not reach mpv, so nothing is staged to leak")
+
+        self._play("video")
+        self.assertFalse(
+            self._loops(),
+            "the film inherited repeat-one from the track before it: it will "
+            "play for ever and the queue behind it will never move")
+        self.assertTrue(
+            self.pm.repeat_mode == "one",
+            "the user's repeat preference was silently forgotten rather than "
+            "just not applied -- going back to music should still repeat")
+
+        # ...and it comes back for the next track, because the preference was
+        # kept. A fix that cleared `repeat_mode` would pass the line above
+        # and break the feature.
+        self._play("music")
+        self.assertTrue(
+            self._loops(),
+            "repeat-one did not come back for the next track, so the film "
+            "turned the setting off for good")
+
     def test_the_matrix(self):
         """Every ordered pair, plus each type from the browser as the
         control row -- if a type is already wrong with no predecessor, the
