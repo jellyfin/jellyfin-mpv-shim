@@ -33,6 +33,15 @@ class PlaybackMixin(GatewayCore):
         # places it ends. The other is on_minimize; see there.
         playerManager.clear_deinterlace_override()
 
+    def apply_browser_fullscreen(self):
+        """Push a just-written ``browser_fullscreen`` at the window (#729).
+
+        Through ``_act`` like every other player call from this thread: the
+        settings page runs on the browser's loop, and the player's lock can
+        be held by a playback start.
+        """
+        self._act(lambda pm: pm.apply_browser_fullscreen())
+
     def on_minimize(self):
         """Drop to the windowless state. set_browse_window(False) releases
         force_window when nothing is playing; if a cast is in flight it

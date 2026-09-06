@@ -313,6 +313,55 @@ class WindowMixin:
     def toggle_fullscreen(self):
         self.set_fullscreen(not self._player.fs, persist=True)
 
+    def _apply_browse_fullscreen(self):
+        """Put the browse window at the size ``browser_fullscreen`` asks for.
+
+        Browsing is a desktop-UI activity: only go fullscreen if the user
+        explicitly asked for a fullscreen browser. ``settings.fullscreen``
+        still applies when playback starts.
+
+        headless is a kiosk: the cast screen IS the display, so it stays
+        fullscreen throughout. Without this, stopping playback dropped a
+        cast-target box back to a window whenever ``browser_fullscreen`` was
+        off — and ``browser_fullscreen`` is about the library, which headless
+        does not even have.
+
+        The `elif` is what keeps audio out of it: music leaves `_video` set
+        and keeps the library on screen, and the fullscreen the *video*
+        session chose outranks this one.
+
+        Called on every browse transition and, since #729, whenever the
+        setting itself is written — one decision in one place, because two
+        copies of it would disagree the first time either moved.
+        """
+        if settings.browser_fullscreen or settings.headless:
+            self._player.fs = True
+        elif not self._video:
+            self._player.fs = False
+
+    @synchronous("_lock")
+    def apply_browser_fullscreen(self):
+        """Live-apply ``browser_fullscreen`` from the settings page (#729).
+
+        The setting used to wait for the next browse transition, which for
+        someone sitting in Settings is indistinguishable from a control that
+        does nothing.
+
+        **Not `set_fullscreen()`**, which is the other plausible way to write
+        this and is wrong: that one also records `fullscreen_disable`, a
+        *user intent* flag read at the next playback start — so turning the
+        library's fullscreen off would quietly turn off auto-fullscreen for
+        the next video too.
+        """
+        from .player import _mpv_errors
+
+        if not self._mpv_alive:
+            return
+        try:
+            self._apply_browse_fullscreen()
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+
     @synchronous("_lock")
     def set_fullscreen(self, enabled: bool, persist: bool = False):
         """``persist`` remembers the choice, for toggles the *user* made (a
@@ -649,20 +698,7 @@ class WindowMixin:
                         self._player.command("stop")
                         self._showing_browse_bg = True
                         self._browse_bg_deferred = False
-                # Browsing is a desktop-UI activity: only go fullscreen if the
-                # user explicitly asked for a fullscreen browser. settings.
-                # fullscreen still applies when playback starts.
-                #
-                # headless is a kiosk: the cast screen IS the display, so it
-                # stays fullscreen throughout. Without this, stopping
-                # playback dropped a cast-target box back to a window
-                # whenever browser_fullscreen was off — and browser_
-                # fullscreen is about the library, which headless does not
-                # even have.
-                if settings.browser_fullscreen or settings.headless:
-                    self._player.fs = True
-                elif not self._video:
-                    self._player.fs = False
+                self._apply_browse_fullscreen()
             else:
                 try:
                     self._player.keepaspect = True

@@ -94,6 +94,15 @@ class SettingsBase:
             refresh = getattr(self, "refresh_window_controls", None)
             if refresh is not None:
                 refresh()
+        if ok and key == "browser_fullscreen":
+            # #729: this was read only on a browse TRANSITION, so it took
+            # effect after the next thing you played -- which from inside
+            # Settings looks exactly like a switch that does nothing, and is
+            # not something the restart banner could honestly say either.
+            ctl = getattr(self, "controller", None)
+            apply_fs = getattr(ctl, "apply_browser_fullscreen", None)
+            if apply_fs is not None:
+                apply_fs()
         if ok and key == "work_offline":
             self._apply_work_offline(bool(value))
         if ok and key == "auto_download_enable" and value:

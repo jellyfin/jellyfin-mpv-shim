@@ -53,6 +53,7 @@ PKG = os.path.dirname(inspect.getfile(gw))
 #: Anything else disappearing is the bug this is here to catch.
 BEFORE_SPLIT = {
     "add_server", "add_user", "any_client", "apply_audio_settings",
+    "apply_browser_fullscreen",
     "cancel_load", "chapters", "check_updates", "client_for",
     "collection_add", "collection_new", "collection_remove", "config_dir",
     "connect_and_rebuild", "copy_text", "delete_download", "delete_user",

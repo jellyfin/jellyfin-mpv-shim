@@ -89,6 +89,7 @@ picked was the wrong one or whether the control does nothing.
 | `scroll_wheel_pixels`, `scroll_mode` | `app.push_scroll_config()` — the renderer re-derives |
 | `gamepad_swap_confirm` | `app.push_gamepad()` — the renderer rebinds |
 | `ui_select_key` | `app.push_select_key()` **and** `app.push_gamepad()` — one key, two pushes: the pad's binding table spells it out as a literal, so re-pushing the keyboard alone leaves the controller on the old key (#717) |
+| `browser_fullscreen` | `controller.apply_browser_fullscreen()` -> `WindowMixin._apply_browse_fullscreen`, the same decision `set_browse_window` makes (#729) |
 | `poster_scale` (Cover Size) | `apply_cover_size()` |
 | `ui_text_scale`, `ui_text_min` | toolkit type scale **and** `apply_cover_size()` |
 | `logo_legibility_*` | `apply_logo_legibility()` → `StripStore.retag()` |

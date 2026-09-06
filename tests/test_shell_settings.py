@@ -1095,6 +1095,50 @@ class TestGamepadSwapAppliesLive(unittest.TestCase):
         b.app.push_gamepad.assert_not_called()
 
 
+class TestBrowserFullscreenAppliesLive(unittest.TestCase):
+    """#729. It was read only on a browse TRANSITION, so it took effect
+    after the next thing you played -- and the reporter, sitting in
+    Settings watching nothing happen, read that as "needs a restart".
+
+    Not the restart banner: a restart is not what it needed, and
+    `RESTART_REQUIRED` means literally nothing happened. See
+    docs/settings-curation.md section 3.
+    """
+
+    def _browser(self):
+        from unittest import mock
+
+        cfg = FakeConfig()
+        cfg.schema["browser_fullscreen"] = "bool"
+        cfg.values["browser_fullscreen"] = False
+        cfg.schema["player_name"] = "str"
+        cfg.values["player_name"] = "x"
+        b = MpvtkBrowser(app=mock.Mock(), source=FakeSource(),
+                         controller=mock.Mock(), config=cfg)
+        b._pool = _SyncPool()
+        return b
+
+    def test_saving_it_moves_the_window(self):
+        b = self._browser()
+        b._set_setting("browser_fullscreen", True)
+        b.controller.apply_browser_fullscreen.assert_called_once_with()
+
+    def test_turning_it_off_does_too(self):
+        """Both directions, because the window has to come back."""
+        b = self._browser()
+        b._set_setting("browser_fullscreen", False)
+        b.controller.apply_browser_fullscreen.assert_called_once_with()
+
+    def test_an_unrelated_setting_does_not(self):
+        b = self._browser()
+        b._set_setting("player_name", "Bud")
+        b.controller.apply_browser_fullscreen.assert_not_called()
+
+    def test_it_is_not_marked_as_needing_a_restart(self):
+        from jellyfin_mpv_shim.mpvtk_browser import config as cfg
+        self.assertNotIn("browser_fullscreen", cfg.RESTART_REQUIRED)
+
+
 class TestSelectKeyAppliesLive(unittest.TestCase):
     """Moving the select key re-pushes BOTH producers of it.
 
