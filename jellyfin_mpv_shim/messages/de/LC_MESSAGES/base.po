@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-09-06 11:50+0000\n"
+"PO-Revision-Date: 2026-09-06 13:13+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -2205,12 +2205,17 @@ msgid ""
 "Nothing renders smaller than this, whatever Text Size works out to. Raises "
 "the smallest labels without enlarging headings, which a percentage cannot do."
 msgstr ""
+"Nichts wird kleiner als das ausgebeben, egal welche Textgröße eingestellt "
+"ist. Macht die kleinsten Beschriftungen größer, ohne Überschriften zu "
+"vergrößern - etwas, das mit Prozentangaben nicht geht."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
+"\"Standard\" ändert nichts und lässt MPV (und deine eigene mpv.conf) "
+"entscheiden. Wähle nur einen Modus, wenn du Audio an einen Receiver sendest."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2218,29 +2223,42 @@ msgid ""
 "surround fits down an optical cable. Turn this off if the encoder causes "
 "audio delay; those tracks become stereo instead."
 msgstr ""
+"Audio, das nicht direkt an deinen Receiver gesendet werden kann, wird zu AC3 "
+"enkodiert (die einzige Möglichkeit wie Surround durch ein optisches Kabel "
+"passt). Stelle dies ab, wenn der Encoder Audioverzögerungen verursacht; die "
+"Spuren werden dann Stereo ausgegeben."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card."
 msgstr ""
+"\"hq\" bietet leistungsstärkere Profile. Wähle es, wenn du eine schnelle "
+"Grafikkarte hast."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
+"Lass es auf Automatisch, es sei denn Video kann nicht gespielt werden wenn "
+"ein Profil geladen ist. Dies gilt nur wenn ein Profil aktiv ist. OpenGL kann "
+"de HDR Ausgabe verhinden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "In pixels, before interface scaling. The A- and A+ buttons in the reader "
 "change this too."
 msgstr ""
+"In Pixeln, bevor die Oberfläche skaliert. Die A- und A+ Buttons im Reader "
+"ändern dies auch."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
 msgstr ""
+"Wie eine Comicseite ans Fenster angepasst wird, wenn du sie öffnest. Die "
+"Buttons des Readers ändern dies auch."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2248,6 +2266,9 @@ msgid ""
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
+"Gleicht laute Effekte und leisen Dialog aus. Ist dies aktiviert, wird "
+"Passthrough abgeschaltet, weil die Lautstärke angepasst werden muss, bevor "
+"der Receiver den Ton erhält."
 
 # seeded from jellyfin-web: HeaderStatus
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
