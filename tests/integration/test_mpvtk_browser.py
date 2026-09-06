@@ -808,6 +808,106 @@ class ClassicOscReleasesTheMouseTest(unittest.TestCase):
                                 "round %d came back without the mouse"
                                 % round_no)
 
+@h.require_real_mpv
+class BrowseKeyBlockTest(unittest.TestCase):
+    """#730: mpv's own shortcuts must not act while the library is up.
+
+    mpv is constructed with `input_default_bindings=yes` for the life of the
+    process, so every key the shim has not taken is still mpv's -- and in the
+    library they act on a video that is not there, persist into the next
+    thing played, and report themselves in ASS OSD *underneath* the overlay
+    bitmaps the UI is drawn with.
+
+    Measured here rather than asserted in a unit test because the whole
+    mechanism is a claim about mpv's binding precedence: one forced
+    `any_unicode` binding outranks every exact-key default. Nothing on the
+    Python side can see whether that is true -- the Lua call "succeeds"
+    either way, and `contrast` is the only witness.
+
+    The OFF leg is not decoration. Without it, "the key did nothing" is
+    equally consistent with a keypress that never arrived, which is exactly
+    how this measurement first went wrong.
+    """
+
+    def _up(self, blocked):
+        from jellyfin_mpv_shim.conf import settings
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+        from jellyfin_mpv_shim.mpvtk.widgets import Text
+
+        saved = settings.browse_block_keys
+        self.addCleanup(
+            lambda: setattr(settings, "browse_block_keys", saved))
+        settings.browse_block_keys = blocked
+
+        # The PLAYER's options, not the toolkit demo's: `_SPAWN_OPTS` sets
+        # `input_default_bindings: no`, under which mpv reports every builtin
+        # at priority -1 and there is nothing to block. See
+        # ClassicOscReleasesTheMouseTest._player_like_handle, which this is.
+        handle, ext = ClassicOscReleasesTheMouseTest._player_like_handle()
+        self.addCleanup(lambda: self._teardown(handle))
+        app = MpvtkApp.attach(handle, ext=ext)
+        self._app = app
+        thread = threading.Thread(
+            target=lambda: app.run(lambda b: [Text("library", 0, 0)]),
+            daemon=True)
+        thread.start()
+        self.assertTrue(app.ready.wait(15), "renderer never came up")
+        time.sleep(0.8)
+        return handle
+
+    def _teardown(self, handle):
+        try:
+            self._app.quit()
+        except Exception:
+            pass
+        try:
+            handle.terminate()
+        except Exception:
+            pass
+
+    @staticmethod
+    def _press(handle, key):
+        handle.command("keypress", key)
+        time.sleep(0.4)
+
+    def test_the_defaults_fire_with_the_block_off(self):
+        """The premise. A swallowed key and a key that never arrived look
+        identical from here, so this is what tells them apart."""
+        handle = self._up(blocked=False)
+        before = handle.contrast
+        self._press(handle, "1")
+        self.assertNotEqual(handle.contrast, before,
+                            "mpv never saw the keypress, so the ON leg "
+                            "below would prove nothing")
+
+    def test_the_block_swallows_mpv_s_picture_keys(self):
+        handle = self._up(blocked=True)
+        before = handle.contrast
+        self._press(handle, "1")
+        self.assertEqual(handle.contrast, before,
+                         "`1` still moved the picture from the library")
+
+    def test_it_is_one_any_unicode_binding_and_it_is_ours(self):
+        """`priority >= 0` is mpv's own word for "this section is active"
+        (`mp_input_get_bindings`), and the section name is what says the
+        binding is the renderer's rather than something else's."""
+        handle = self._up(blocked=True)
+        live = [r for r in (handle.input_bindings or ())
+                if (r.get("key") or "").lower() == "any_unicode"
+                and int(r.get("priority", -1)) >= 0]
+        self.assertEqual(len(live), 1, live)
+        self.assertIn("renderer", (live[0].get("section") or ""))
+
+    def test_the_opt_out_binds_nothing(self):
+        """Off means the keyboard really is given back -- not intercepted
+        and forwarded, which would still take it from the user's own
+        input.conf."""
+        handle = self._up(blocked=False)
+        live = [r for r in (handle.input_bindings or ())
+                if (r.get("key") or "").lower() == "any_unicode"
+                and int(r.get("priority", -1)) >= 0]
+        self.assertEqual(live, [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -456,6 +456,11 @@ You can use the config file to enable and disable features.
 - `display_mirror_summon` - Let casting take the screen: open the window when it is closed to the tray, and bring it forward when it is already open. Default: `false`
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open or in front of what you are doing.
   - With it off, casting a page to an already-open library still navigates it — silently, without taking focus back from the web client you are casting *from*.
+- `browse_block_keys` - Swallow MPV's own keyboard shortcuts while the library browser is on screen. Default: `true`
+  - MPV is started with its default bindings on for the whole session, so in the library every key the client has not taken is still MPV's — `1`-`8` move contrast, brightness, gamma and saturation, `d` cycles deinterlacing, `s` writes a screenshot. There is no video for them to act on, they persist into the *next* thing you play, and the only feedback is MPV's own OSD, which draws underneath the library.
+  - Only unmodified printable keys are blocked. The arrows, Page Up/Down, Home/End and the scroll wheel are the browser's own either way, and modified keys (`ctrl+`, `alt+`) are left alone.
+  - While music is playing, `9`, `0` and `m` are re-claimed by the browser itself, so they still change the volume — and unlike MPV's own bindings they move the now-playing bar's slider with them.
+  - Turn it off to use your own `input.conf` bindings in the library. That also gives MPV's `9`/`0`/`m` back in place of the browser's.
 - `library_image_cache_mb` - Memory budget for **decoded** library artwork. Default: `96`
   - Requires restart. The budget is baked into the artwork cache when the browser starts.
   - Decoded is the expensive form — a 4K backdrop is 33 MB decoded against ~400 KB on the wire — and this is a working set rather than a library: decoded images exist to composite tile strips, and the strips are cached in their own right, so scrolling back over a cached row never asks for one. Raise it if you browse enormous libraries on a machine with RAM to spare.

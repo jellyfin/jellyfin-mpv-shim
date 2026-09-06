@@ -509,6 +509,26 @@ class MpvtkApp:
             "script-message", "mpvtk-select-key", select_key()
         )
 
+    def push_browse_keys(self):
+        """Tell the renderer whether to swallow mpv's own keyboard
+        shortcuts while the library is on screen (``browse_block_keys``,
+        #730).
+
+        Its own message rather than a field on the ``mpvtk-hud`` opts blob,
+        for the reason :meth:`push_select_key` gives: that blob only arrives
+        on HUD engage, and this governs BROWSE, whose input is installed by
+        ``mpvtk-active``, which carries no opts at all.
+
+        Safe to re-push live in either direction -- the renderer binds or
+        removes one key binding and holds no derived state.
+        """
+        from ..conf import settings
+
+        self.backend.command(
+            "script-message", "mpvtk-browse-keys",
+            "yes" if settings.browse_block_keys else "no"
+        )
+
     def push_scroll_config(self):
         """Forward the wheel step (px per notch) and what ``scroll_mode``
         means to the renderer. All are safe to re-push live: the renderer
@@ -695,6 +715,7 @@ class MpvtkApp:
                 self.push_scroll_config()
                 self.push_gamepad()
                 self.push_select_key()
+                self.push_browse_keys()
                 self.push_overlay_z()
                 self.ready.set()
             return

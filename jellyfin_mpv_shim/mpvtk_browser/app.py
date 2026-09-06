@@ -1783,10 +1783,36 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # CALL instead would have broken the release-on-leave the comment
         # above describes.
         page = self._page_for(route) if self._browsing else None
+        keys = tuple(getattr(page, "claimed_keys", ()) or ())
+        keys += self._shell_claimed_keys()
         try:
-            claim(getattr(page, "claimed_keys", ()) or ())
+            claim(keys)
         except Exception:
             log.debug("key claim failed", exc_info=True)
+
+    #: Volume, mute -- the shell's own keys while music is playing, spelled
+    #: with mpv's names so the muscle memory carries over (#730).
+    SHELL_VOLUME_KEYS = {"9": -2.0, "0": 2.0}
+
+    def _shell_claimed_keys(self):
+        """Keys the SHELL takes, on top of whatever the page claimed.
+
+        Only while audio is playing, because that is the whole of the case:
+        `browse_block_keys` swallows mpv's own `9`/`0`/`m` along with every
+        other printable key, and music is the one thing you can be listening
+        to *while looking at the library*. Claiming them back means the
+        now-playing bar's slider tracks the change and the server hears
+        about it, which mpv's own binding did neither of.
+
+        Gated on the setting as well: someone who turned the block off asked
+        for their own keyboard back, and taking three keys out of it anyway
+        would be the same interception with a smaller footprint.
+        """
+        from ..conf import settings
+
+        if self._now_playing is None or not settings.browse_block_keys:
+            return ()
+        return tuple(self.SHELL_VOLUME_KEYS) + ("m",)
 
     def _set_picture_pan(self, config=None):
         """Push (or drop) the renderer's gesture model for a picture."""
@@ -1815,8 +1841,38 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         except Exception:
             log.warning("page picture gesture failed", exc_info=True)
 
+    def _shell_key(self, key):
+        """Handle a key the SHELL claimed, and say whether it did.
+
+        Ahead of the page, deliberately: the two claims are unioned into
+        one list, so if a page ever wanted one of these three the renderer
+        would deliver it here with nothing to say whose it was. Looking
+        first is what decides that, once, rather than per page.
+
+        The state is read HERE and not captured at claim time. A claim is
+        installed from a frame and the press arrives later, so between the
+        two the music can have stopped -- the standing footgun of this
+        shell, and the reason there is a test named for it.
+        """
+        if self._now_playing is None or self.controller is None:
+            return False
+        step = self.SHELL_VOLUME_KEYS.get(key)
+        try:
+            if step is not None:
+                self.controller.adjust_volume(step)
+                return True
+            if key == "m":
+                self.controller.toggle_mute()
+                return True
+        except Exception:
+            log.debug("shell volume key failed", exc_info=True)
+            return True
+        return False
+
     def _on_claimed_key(self, key):
         """A key this route claimed. Handed to the page, on the loop thread."""
+        if self._shell_key(key):
+            return
         page = self._page_for(self.route)
         handler = getattr(page, "on_key", None)
         if handler is None:

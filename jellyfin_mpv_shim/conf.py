@@ -724,6 +724,15 @@ class Settings(SettingsBase):
     # ENTER when this moves, which is the point -- the request was to get
     # ENTER back for mpv's own use.
     ui_select_key: str = "ENTER"
+    #: Swallow mpv's own keyboard shortcuts while the library is on screen
+    #: (#730). What it covers and how: docs/mpv-backends.md section 5.
+    #:
+    #: On by default, which is the half worth writing down here: browsing a
+    #: library is not a context where anybody means "adjust the picture",
+    #: and the change would outlive the browse session. It is a setting at
+    #: all because turning it off is the only way to reach your own
+    #: input.conf bindings there.
+    browse_block_keys: bool = True
     thumbnail_preferred_size: int = 320
     #: Load every trickplay preview frame at once instead of a window
     #: around where you are seeking.

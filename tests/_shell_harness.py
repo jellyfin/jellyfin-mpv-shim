@@ -687,6 +687,9 @@ class FakeController:
         self.raised = 0
         self.played = []
         self.transport = []
+        #: Volume state the browser's own volume keys move (#730).
+        self.volume_level = 100.0
+        self.muted = False
         #: item_id -> (status, absolute path or None), as the real gateway
         #: answers. Tests set entries to put a book on disk.
         self.book_downloads = {}
@@ -780,6 +783,21 @@ class FakeController:
 
     def on_minimize(self):
         self.minimized += 1
+
+    def adjust_volume(self, delta):
+        """Record it AND apply it, like toggle_deinterlace above.
+
+        The volume is the thing the keys are named after, so a fake that
+        recorded the call without moving the number could not tell a step
+        that lands from one that is clamped away -- or two presses from
+        one.
+        """
+        self.volume_level = max(0.0, min(100.0, self.volume_level + delta))
+        self.transport.append(("adjust_volume", (delta,)))
+
+    def toggle_mute(self):
+        self.muted = not self.muted
+        self.transport.append(("toggle_mute", ()))
 
     def raise_window(self):
         # Modelled, not omitted: `_safe` swallows an AttributeError, so a

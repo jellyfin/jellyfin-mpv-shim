@@ -4807,6 +4807,70 @@ function keyclaim.set(list)
     state.wheel_sync()
 end
 
+-- ------------------------------------------------- browse key block (#730)
+-- mpv is constructed with `input_default_bindings=yes` for the life of the
+-- process, so in the library every key the shim has not taken is still
+-- mpv's: `1`-`8` move contrast/brightness/gamma/saturation, `d` cycles
+-- deinterlace, `s` writes a screenshot. They act on a video that is not
+-- there, they OUTLIVE the browse session (mpv options survive a queue
+-- item), and their only feedback is mpv's own OSD -- which is ASS, so it
+-- draws UNDERNEATH the overlay bitmaps this UI is made of.
+--
+-- One forced `any_unicode` binding is the whole block: it outranks every
+-- exact-key default, measured across the printable range. Modified keys
+-- (`ctrl+`, `alt+`) and named keys are NOT covered and do not need to be --
+-- the arrows, PGUP/PGDWN, HOME/END and the wheel are already ours.
+--
+-- These hang off `keyclaim` rather than being file-scope functions because
+-- this chunk is AT LuaJIT's 200-local ceiling; see tests/test_renderer_lua.py.
+function keyclaim.block_take(e)
+    if not e or e.event == 'up' then return end
+    local t = e.key_text
+    if not t or t == '' or t:byte(1) < 0x20 then return end
+    -- A focused text box binds its own `any_unicode`, and between two forced
+    -- bindings of one key the LAST one bound wins -- so typing normally
+    -- never reaches here at all. Routing it anyway is what makes the order
+    -- stop mattering: re-installing this block while a box already has
+    -- focus (a live settings change) would otherwise eat every keystroke.
+    if state.focus then return tb_key_text(e) end
+    -- A claim still gets its key. `keyclaim.take` owns the precedence --
+    -- dropdown, menu, modal, focus ring -- and answers false when something
+    -- on screen outranks it, which for a blocked key means "swallow".
+    if state.keys[t] then keyclaim.take(t) end
+end
+
+function keyclaim.block_bind()
+    if state.kb_block or not state.block_keys then return end
+    if state.kb_saved then            -- see bind_nav_keys
+        state.kb_saved.block = true
+        return
+    end
+    mp.add_forced_key_binding('any_unicode', 'mpvtk_block',
+        keyclaim.block_take, { repeatable = true, complex = true })
+    state.kb_block = true
+end
+
+function keyclaim.block_unbind()
+    if not state.kb_block then return end
+    mp.remove_key_binding('mpvtk_block')
+    state.kb_block = false
+end
+
+-- `browse_block_keys`, pushed on ready and again whenever the setting
+-- changes. Its own message for the reason `mpvtk-select-key` gives: the
+-- `mpvtk-hud` opts blob only arrives on HUD engage, and this governs
+-- browse, which is installed by `mpvtk-active` and carries no opts.
+mp.register_script_message('mpvtk-browse-keys', function(on)
+    state.block_keys = (on == 'yes' or on == 'true' or on == '1')
+    if state.block_keys then
+        -- Only where ui_resume would have: browse, never a summoned
+        -- playback HUD, where mpv's keys have their real meaning.
+        if state.active and not state.phud.mode then keyclaim.block_bind() end
+    else
+        keyclaim.block_unbind()
+    end
+end)
+
 -- **While mpv's console has the keyboard on loan, binding is recording an
 -- INTENT, not taking a key.** The lifecycle moves during a loan -- a pointer
 -- movement summons the HUD, playback starts, browse resumes -- and each of
@@ -5623,6 +5687,9 @@ local function ui_resume(no_nav)
     -- hud_grab_keys off — the mouse drives it and the arrows stay
     -- mpv's seek keys. Browse always takes the arrows.
     if not no_nav then bind_nav_keys() end
+    -- Browse only (#730). Over a real video mpv's keys have their real
+    -- meaning, and taking them there is the interception #16 removed.
+    if not state.phud.mode then keyclaim.block_bind() end
     mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
         state.hud = not state.hud
         request_render()
@@ -5633,6 +5700,7 @@ local function ui_suspend()
     blur()                    -- drops the text-edit bindings + caret timer
     stop_repeat()
     unbind_nav_keys()         -- playback needs the arrows (seek/OSC)
+    keyclaim.block_unbind()   -- ...and every other key it binds (#730)
     state.nav = nil
     state.nav_pidx = nil
     state.nav_adjust = nil
@@ -5715,6 +5783,11 @@ mp.register_script_message('mpvtk-active', function(on)
         else
             bind_nav_keys()
         end
+        -- The key block (#730) is a third thing that fails this way, and it
+        -- fails LOUDER than the two above: it is the whole of the feature,
+        -- and the states that skip ui_resume include startup. It records its
+        -- own console-loan intent, so it is called flat.
+        keyclaim.block_bind()
     end
     if want == state.active then return end
     state.active = want
@@ -6716,8 +6789,13 @@ mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
         -- handler exists to stop, in the one state nothing described.
         local wake = state.phud.shown and not state.phud.kbd
         state.kb_saved = { nav = state.kb_nav, summon = state.kb_summon,
-                           skip = state.kb_skip, wake = wake }
+                           skip = state.kb_skip, wake = wake,
+                           block = state.kb_block }
         if state.kb_nav then unbind_nav_keys() end
+        -- The block is `any_unicode`: left bound, it would swallow the
+        -- console's own typing, which is the exact theft this handler
+        -- exists to stop.
+        keyclaim.block_unbind()
         if state.kb_summon then phud_unbind_summon() end
         if state.kb_skip then phud_skip_unbind() end
         if wake then mp.remove_key_binding('mpvtk_wake') end
@@ -6748,6 +6826,9 @@ mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
         if was.nav and ((state.active and not state.phud.mode)
                         or (state.phud.mode and state.phud.kbd)) then
             bind_nav_keys()
+        end
+        if was.block and state.active and not state.phud.mode then
+            keyclaim.block_bind()
         end
         if was.summon and state.phud.mode and not state.phud.shown then
             phud_bind_summon()

@@ -159,7 +159,12 @@ TAB_SECTIONS = {
         # falls through to Advanced, which is a real editable row -- searched
         # like any other (`sections`), labelled and noted below -- so there
         # is still a setting to point at. That is the whole requirement.
-        (_("Input"), ["input_gamepad", "gamepad_swap_confirm"]),
+        (_("Input"), ["input_gamepad", "gamepad_swap_confirm",
+                      # Curated, unlike `ui_select_key` above:
+                      # this is not a remap but a policy, and it is
+                      # what somebody goes looking for after `1`
+                      # dimmed their picture from the library (#730).
+                      "browse_block_keys"]),
         # Everything about the window itself, in the order you meet it:
         # how it opens, whether it remembers, what closing it means.
         (_("Window"), ["fullscreen", "browser_fullscreen",
@@ -633,6 +638,7 @@ LABEL_OVERRIDES = {
     "headless": _("Cast-target mode (no library browsing)"),
     "display_mirror_summon": _("Casting Opens the Library Browser"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
+    "browse_block_keys": _("Block Player Keybinds While Browsing"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
     "ui_select_key": _("Select Key"),
@@ -700,6 +706,19 @@ NOTES = {
     "gamepad_swap_confirm": _("Turn this on for a controller whose A button "
                               "is on the right rather than at the bottom "
                               "(Switch Pro, most 8BitDo pads)."),
+    # Names the EFFECTS rather than the keys, and that is the choice: the
+    # keys are whatever the user's input.conf says, so listing `1`-`8`
+    # would be wrong for exactly the person who rebound them. What is
+    # constant is what those commands do -- and "the picture changed" is
+    # what somebody arrives here having seen. `SEARCH_ALIASES` below
+    # carries the key words for the search box, where being literal costs
+    # nothing.
+    "browse_block_keys": _("Stops MPV's own shortcuts -- picture "
+                           "adjustment, screenshots, subtitle and audio "
+                           "switching -- from acting while you are in the "
+                           "library, where there is no video for them to "
+                           "act on. Turn it off to use your own MPV key "
+                           "bindings there."),
     # Two things the label cannot carry: that this REPLACES Enter (which is
     # the reason to change it -- getting Enter back for mpv), and that the
     # controller and the phone follow it, so nothing is left behind.
@@ -1107,6 +1126,11 @@ SEARCH_ALIASES = {
     # what the key does without ever naming the key.
     "ui_select_key": "remap rebind keyboard shortcut",
     "hud_wake_key": "remap rebind keyboard shortcut enter summon",
+    # What somebody types is the SYMPTOM, not the mechanism: they pressed a
+    # key and the picture changed, or the contrast is wrong and they cannot
+    # say why. None of those words are in the label or the note.
+    "browse_block_keys": "keys keyboard contrast brightness gamma "
+                         "saturation hotkey",
 }
 
 

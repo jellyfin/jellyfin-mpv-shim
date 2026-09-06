@@ -94,6 +94,17 @@ class SettingsBase:
             refresh = getattr(self, "refresh_window_controls", None)
             if refresh is not None:
                 refresh()
+        if ok and key == "browse_block_keys":
+            # Live, because the switch is one somebody flips to find out
+            # what it does -- and the renderer only binds or removes one
+            # key binding, so there is nothing to rebuild. The volume claim
+            # reads the same setting, so ask for a frame: `_claim_page_keys`
+            # runs from build().
+            push = getattr(self.app, "push_browse_keys", None) if self.app \
+                else None
+            if push is not None:
+                push()
+            self.invalidate()
         if ok and key == "browser_fullscreen":
             # #729: this was read only on a browse TRANSITION, so it took
             # effect after the next thing you played -- which from inside

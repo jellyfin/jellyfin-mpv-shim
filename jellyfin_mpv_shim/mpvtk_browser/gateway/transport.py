@@ -124,6 +124,22 @@ class TransportMixin(GatewayCore):
     def set_volume(self, pct, notify=True):
         self._act(lambda pm: pm.set_volume(float(pct), notify=notify))
 
+    def adjust_volume(self, delta):
+        """Step the volume by ``delta`` percent, clamped to 0-100 (#730).
+
+        The read and the write happen together on the PLAYER thread rather
+        than from the pushed now-playing snapshot. That snapshot arrives by
+        playstate push, so under key repeat several presses would each
+        compute from the same stale base and the volume would stick a
+        notch below where it was asked to go.
+        """
+        def step(pm):
+            current = pm.get_volume(True)
+            if current is None:
+                return
+            pm.set_volume(max(0.0, min(100.0, float(current) + delta)))
+        self._act(step)
+
     def set_repeat(self, mode):
         self._act(lambda pm: pm.set_repeat(mode))
 
