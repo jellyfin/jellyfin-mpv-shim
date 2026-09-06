@@ -928,7 +928,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             if self._minimized or self._browsing:
                 # Idle or already browsing: bring the page forward.
                 self.enter_browse()
-                if self.controller is not None:
+                # Taking the FOREGROUND is the summon, and the window being
+                # on screen already does not make it a cheaper one: on
+                # Windows `raise_window` is a real SetForegroundWindow, so an
+                # already-browsing client stole focus from the very browser
+                # the user was casting from, once per page they opened
+                # (#728). The early return above covers the minimized half of
+                # the same setting; this covers the visible half.
+                if (self.controller is not None
+                        and settings.display_mirror_summon):
                     self._safe(lambda c: c.raise_window())
         self.run_async(work, done, ep)
 

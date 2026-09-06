@@ -1734,6 +1734,34 @@ class TestRemoteDisplayContent(unittest.TestCase):
         self.assertFalse(self.b.minimized)
         self.assertTrue(self.b._browsing)
         self.assertEqual(self.b.route["kind"], "detail")
+        self.assertEqual(self.ctl.raised, 1, "a summon must take the window")
+
+    def _summon(self, enabled):
+        from jellyfin_mpv_shim.conf import settings
+        saved = settings.display_mirror_summon
+        self.addCleanup(
+            lambda: setattr(settings, "display_mirror_summon", saved))
+        settings.display_mirror_summon = enabled
+
+    def test_does_not_take_the_foreground_while_already_browsing(self):
+        """#728. The window is already on screen, so there is nothing to
+        summon -- and raising it anyway is a real SetForegroundWindow on
+        Windows, which stole focus back from the web client the user was
+        casting FROM, once per page they opened."""
+        self._summon(False)
+        self.assertTrue(self.b._browsing, "premise: the window is up")
+        self.b.display_item("srv1", "m1")
+        self.assertEqual(self.b.route["kind"], "detail",
+                         "the page must still follow the remote")
+        self.assertEqual(self.ctl.raised, 0, "stole the foreground")
+
+    def test_summon_still_raises_a_visible_client(self):
+        """The setting is one answer to "may this app take the foreground",
+        not two: someone who opted in wants the cast target brought forward
+        whether it was closed to the tray or merely behind something."""
+        self._summon(True)
+        self.b.display_item("srv1", "m1")
+        self.assertEqual(self.ctl.raised, 1)
 
     def test_never_interrupts_playback(self):
         """jellyfin-web emits DisplayContent as you browse on the phone, so

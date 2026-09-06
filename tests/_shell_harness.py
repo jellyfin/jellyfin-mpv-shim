@@ -684,6 +684,7 @@ class FakeController:
         self.entered = 0
         self.left = 0
         self.minimized = 0
+        self.raised = 0
         self.played = []
         self.transport = []
         #: item_id -> (status, absolute path or None), as the real gateway
@@ -779,6 +780,13 @@ class FakeController:
 
     def on_minimize(self):
         self.minimized += 1
+
+    def raise_window(self):
+        # Modelled, not omitted: `_safe` swallows an AttributeError, so a
+        # fake without this method makes every "did we take the foreground"
+        # question answer "no" whatever the app did -- which is how #728
+        # went untested through the summon test that sits right beside it.
+        self.raised += 1
 
     def play(self, item, server_uuid, offset_ticks=None, srcid=None,
              aid=None, sid=None):

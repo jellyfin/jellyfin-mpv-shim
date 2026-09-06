@@ -453,8 +453,9 @@ You can use the config file to enable and disable features.
   - It pairs with `window_controls`: on `auto`, the buttons appear as soon as this is on, because `auto` reads the same `border` property.
   - Set only when it is on. Leaving it alone otherwise is what lets someone who put `border=no` in their own `mpv.conf` keep the buttons — writing `border=yes` for them would take the title bar back *and* the replacement with it.
   - Leave both off unless you want them: a window with neither a title bar nor the top-bar buttons can be awkward to move on some desktops.
-- `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
-  - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
+- `display_mirror_summon` - Let casting take the screen: open the window when it is closed to the tray, and bring it forward when it is already open. Default: `false`
+  - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open or in front of what you are doing.
+  - With it off, casting a page to an already-open library still navigates it — silently, without taking focus back from the web client you are casting *from*.
 - `library_image_cache_mb` - Memory budget for **decoded** library artwork. Default: `96`
   - Requires restart. The budget is baked into the artwork cache when the browser starts.
   - Decoded is the expensive form — a 4K backdrop is 33 MB decoded against ~400 KB on the wire — and this is a working set rather than a library: decoded images exist to composite tile strips, and the strips are cached in their own right, so scrolling back over a cached row never asks for one. Raise it if you browse enormous libraries on a machine with RAM to spare.
