@@ -123,6 +123,51 @@ class ServerFilterTest(unittest.TestCase):
         self.assertEqual(len(loads), 1)
 
 
+class CoalescedBurstTest(unittest.TestCase):
+    """A burst carries one server per event, and the debounce keeps one.
+
+    The refresh became server-FILTERED when #722 widened it past Home. The
+    debounce did not follow: the first arrival takes the single slot and
+    its server is captured in the closure, so in a two-server session an
+    event from B could take the slot, coalesce away A's event three hundred
+    milliseconds later, and then filter ITSELF out against the A page on
+    screen. The badge stayed stale until something else re-read the page.
+
+    Home never showed this, because Home is exempt from the filter -- which
+    is exactly why widening the kinds is what exposed it.
+    """
+
+    def _burst(self, page_server, event_servers, kind="series"):
+        b, loads = _browser(kind=kind, server=page_server)
+        b.USERDATA_DEBOUNCE = 0.01
+        for server in event_servers:
+            b.refresh_userdata(server)
+        thread = b._userdata_thread
+        if thread is not None:
+            thread.join(timeout=2)
+        return loads
+
+    def test_the_relevant_event_survives_an_earlier_irrelevant_one(self):
+        loads = self._burst("srv1", ["srv2", "srv1"])
+        self.assertEqual(len(loads), 1,
+                         "the event for the page on screen was coalesced "
+                         "away behind another server's")
+
+    def test_a_burst_for_another_server_alone_still_refreshes_nothing(self):
+        """The filter is the point of #722 and must survive the fix."""
+        self.assertEqual(self._burst("srv1", ["srv2", "srv2"]), [])
+
+    def test_home_still_refreshes_from_any_server(self):
+        """Home is assembled from every logged-in server, so it is exempt
+        from the filter and a burst from anywhere has to reach it."""
+        self.assertEqual(len(self._burst("srv1", ["srv2"], kind="home")), 1)
+
+    def test_an_unresolved_client_still_refreshes(self):
+        """`None` means the event could not be attributed to a server; it
+        refreshes unfiltered, as the pre-#722 path did."""
+        self.assertEqual(len(self._burst("srv1", ["srv2", None])), 1)
+
+
 class SharedRulesTest(unittest.TestCase):
     """The rules Live TV had and Home did not, now that both go through one
     implementation. Each of these used to hold for `refresh_live_tv` only."""

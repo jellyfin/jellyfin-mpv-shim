@@ -207,6 +207,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Latest now-playing snapshot (from on_playstate) for the audio bar,
         # plus the 1s ticker that keeps its clock moving (see _start_np_ticker).
         self._now_playing = None
+        #: Servers whose UserDataChanged events a pending debounce has
+        #: swallowed. Drained by the tick; see `_userdata_target`.
+        self._userdata_servers = set()
         self._np_thread = None
         # Pending drag target on the now-playing bar's seek slider, in
         # seconds (None when not scrubbing) — the elapsed clock reads this
@@ -661,14 +664,42 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # schedules exactly one re-read: the first arrival starts the
             # wait and the rest land while the slot is taken.
             self._shutdown_evt.wait(self.USERDATA_DEBOUNCE)
-            self._refresh_current(USERDATA_KINDS, server)
+            pending, self._userdata_servers = self._userdata_servers, set()
+            self._refresh_current(USERDATA_KINDS,
+                                  self._userdata_target(pending))
 
         # Cheap pre-check so a burst that cannot apply does not take the
         # slot for three seconds; `tick` asks again for real, because the
         # route can change while it waits.
         if self.route.get("kind") not in USERDATA_KINDS or not self._browsing:
             return
+        # Every server in the burst, not just the one that happened to take
+        # the slot. The refresh is server-FILTERED since #722, so a captured
+        # first arrival could coalesce away the event for the page actually
+        # on screen and then filter itself out -- leaving it stale.
+        self._userdata_servers.add(server)
         self._start_daemon("_userdata_thread", "mpvtk-userdata", tick)
+
+    def _userdata_target(self, pending):
+        """Which server to hand `_refresh_current` for a coalesced burst.
+
+        One value, because the route on screen belongs to one server and
+        Home is exempt from the filter -- so refreshing once per server
+        would re-read Home several times for nothing.
+
+        `None` wins outright: it means an event that could not be
+        attributed, which refreshes unfiltered, and swallowing it behind a
+        filtered one would lose the very event we cannot reason about.
+        Otherwise prefer the route's own server when the burst contains it;
+        failing that any of them, which the filter then declines exactly as
+        a single event would have.
+        """
+        if not pending or None in pending:
+            return None
+        route_server = self.route.get("server") or self.server
+        if route_server in pending:
+            return route_server
+        return next(iter(pending))
 
     def _reload_route(self, route):
         """Re-run a route's loader in place: the data changed, the screen did
