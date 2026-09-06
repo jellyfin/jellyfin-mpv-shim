@@ -127,6 +127,12 @@ class MouseRoutingTest(unittest.TestCase):
         return self._tile("grid-", "tile on the library grid")
 
     def _tile(self, prefix, what):
+        found = self._find_tile(prefix)
+        if found is None:
+            self.fail("no on-screen %s in the pushed scene" % what)
+        return found
+
+    def _find_tile(self, prefix):
         state = self._state()
         ww, wh = state.get("w") or 0, state.get("h") or 0
         for n in (self.app._nodes or []):
@@ -145,7 +151,7 @@ class MouseRoutingTest(unittest.TestCase):
             cy = int(n["y"] + n["h"] * 0.25)
             if 0 <= cx < ww and 0 <= cy < wh:
                 return n["id"], cx, cy
-        self.fail("no on-screen %s in the pushed scene" % what)
+        return None
 
     def _click(self, button, node_id, x, y):
         """Position, confirm the pointer really landed, then press.
@@ -325,6 +331,51 @@ class MouseRoutingTest(unittest.TestCase):
         self._click("MBTN_RIGHT", tile, tx, ty)
         self._wait(lambda: self._state().get("menu_open"),
                    "a real right click on grid tile %s opened no menu" % tile)
+
+
+    def test_the_browsers_own_resume_leaves_the_mouse_live(self):
+        """Through `_yield()` / `enter_browse()` -- the browser's own round
+        trip -- and **with no repaint from the test**.
+
+        This is the one the other three in this file structurally cannot be.
+        They drive `app.set_active`, which pushes no scene, so they call
+        `_repaint()` themselves -- and that is exactly the call whose absence
+        would break the app. A test that supplies the missing repaint cannot
+        notice it is missing.
+
+        What is asserted is the property -- a resume repaints -- and not the
+        line that provides it, because **`enter_browse` provides it twice**:
+        its closing `self.invalidate()`, and the `refresh_userdata(now=True)`
+        above it. Measured: deleting the `invalidate()` alone changes
+        nothing here, and only removing BOTH turns this red. That redundancy
+        is worth knowing before "simplifying" either one, and it is why the
+        assertion is written against what the user gets rather than against
+        a call.
+
+        The failure it guards is total and self-sustaining, not cosmetic.
+        `_yield` leaves an EMPTY scene behind (measured: overlays 0, no tile
+        in the tree), so `node_at` matches nothing and `hover` stays nil --
+        and `on_mouse_move` only calls `request_render` when hover CHANGES,
+        so nil-to-nil asks for nothing. No scene, no hover, no render, no
+        scene. Moving the pointer never recovers it; the library is dead to
+        the mouse for the rest of the session.
+
+        Control: with both repaint sources removed from `enter_browse` this
+        test fails -- on the tile wait, naming the missing repaint -- and the
+        other four in this file still pass.
+        """
+        self.browser._yield()
+        time.sleep(0.5)
+        self.browser.enter_browse()
+        # Wait for a tile to come BACK, rather than repainting to make one:
+        # the repaint is the thing under test.
+        self._wait(lambda: self._find_tile("row-") is not None,
+                   "the browser's own resume never put a tile back on "
+                   "screen -- nothing repainted after enter_browse")
+        self._assert_a_click_activates(
+            "a real left click is dead after the browser's own resume, with "
+            "no repaint from the test -- enter_browse left the renderer with "
+            "no node table and pointer input cannot recover it")
 
 
 if __name__ == "__main__":
