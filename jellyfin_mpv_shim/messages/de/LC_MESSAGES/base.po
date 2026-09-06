@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-27 11:04+0000\n"
+"PO-Revision-Date: 2026-09-06 11:50+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -1402,7 +1402,7 @@ msgstr "MPV integrierter Standard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "Eigener OSC"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
@@ -1898,12 +1898,20 @@ msgid ""
 "with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
 "log says so. Any button can be reassigned in your input.conf."
 msgstr ""
+"Bewege mit dem D-Pad oder linken Stick, suche mit dem rechten Stick, "
+"Schulter Knöpfe für Seiten, Start fürs Menü. Ein Controller kennt keinen "
+"Fokus. Er wird diese App erreichen auch wenn ein anderes Fenster vorne ist. "
+"Benötigt ein MPV das mit SDL2 Gamepad Unterstützung gebaut ist; Wenn es bei "
+"deinem fehlt, wird diese Einstellung ignoriert und das im Log ausgegeben. "
+"Alle Knöpfe können in deine input.conf neu zugewiesen werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Turn this on for a controller whose A button is on the right rather than at "
 "the bottom (Switch Pro, most 8BitDo pads)."
 msgstr ""
+"Stelle dies an, wenn sich der A Button bei deinem Controller rechts und "
+"nicht unten befindet (Switch Pro, meiste 8BitDo Pads)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2132,36 +2140,50 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
+"Überschreibt die Covergröße des Themes. Auch im Ansichtenmenü jeder "
+"Bibliothek."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"Die Steuerelemente müssen über jedem Bild lesbar bleiben. \"Keine\" gibt dem "
+"Text einen Schlagschatten anstelle das Bild dahinter abzudunkeln."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"„Ausblenden, solange der Mauszeiger nicht darüber ist“ sorgt dafür, dass sie "
+"nur so lange angezeigt werden, wie sich der Mauszeiger darüber befindet, "
+"unabhängig davon, ob pausiert oder nicht."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"0 blendet sich aus, sobald der Zeiger nicht über ihnen ist und erzwingt "
+"\"Ausblenden , solange der Mauszeiger nicht darüber ist\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
+"Nur während der Wiedergabe; in der Bibliothek bleiben diese Buttons Zurück "
+"und Vorwärts. Standardmäßig aus, weil sie mit einigen Mäusen einfach "
+"getroffen werden können."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, no-python-format
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
+"\"Anzeige folgen\" verwendet die Größe, die dein Desktop angibt. Diese ist "
+"100% auf X11."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2171,6 +2193,12 @@ msgid ""
 "captions are ellipsized, and what needs to be bigger is the whole interface, "
 "which is Interface Scale."
 msgstr ""
+"Skaliert nur den Text. Die Oberflächenskalierung oben verändert die Größe "
+"von allem, auch Artwork, Abständen und Steuerelementen. Verwende deshalb "
+"diese Einstellung wenn nur die Worte zu klein sind und nicht die gesamte "
+"Oberfläche. Es hört bei 150% auf: Jenseits davon sind die meisten "
+"Kacheltexte abgeschnitten und was dann größer sein muss, ist die gesamte "
+"Oberfläche (Oberflächenskalierung verwenden)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
