@@ -108,6 +108,12 @@ class WindowMixin:
         # `_video is None` is the wrong answer during music.
         def _library_showing(self) -> bool: ...
 
+        # Same reason, one step on: `show_picture` has to tell a track from
+        # a film, and `stop` is how a page takes the window off the music.
+        def _current_is_audio(self) -> bool: ...
+
+        def stop(self, leave_group: bool = ...) -> None: ...
+
         def idle_quit(self, reason: str = ...) -> None: ...
 
         def _handle_mpv_disconnect(self) -> None: ...
@@ -485,8 +491,23 @@ class WindowMixin:
         here, and a later ``set_browse_window(True)`` has to know to stop
         the picture before claiming it again.
         """
-        if not self._mpv_alive or self._video is not None:
+        if not self._mpv_alive:
             return False
+        if self._video is not None:
+            # `_video is not None` was the whole guard, and for AUDIO it is
+            # the wrong question: music keeps `_video` set *and* keeps the
+            # library on screen, so a comic opened from behind the
+            # now-playing bar was refused here -- silently, because the page
+            # sets `route["_showing"]` regardless and disarms its own
+            # self-repair. The reader drew its bars and never a page.
+            #
+            # There is one mpv and one file, so a page cannot share the
+            # window with a track: opening a comic stops the music [iw].
+            # A VIDEO still refuses -- it owns the window, and the library
+            # is not on screen to navigate from in the first place.
+            if not self._current_is_audio():
+                return False
+            self.stop()
         from .player import _mpv_errors     # per call: see the module docs
         try:
             # **keepaspect, first.** set_browse_window turns it OFF so the

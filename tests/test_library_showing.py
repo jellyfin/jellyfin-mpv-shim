@@ -231,6 +231,64 @@ def _window_pm(video):
     return pm
 
 
+class ShowPictureTest(unittest.TestCase):
+    """A comic page needs mpv's video output, and `show_picture` decides
+    whether it may have it.
+
+    The guard used to be `self._video is not None` -- the wrong question for
+    the one type that plays without taking the library away. A comic opened
+    from behind the now-playing bar was refused **silently**: the page sets
+    `route["_showing"]` regardless, which disarms its own self-repair, so the
+    reader drew its top bar, its page counter and its Next/Prev buttons, and
+    never a page.
+
+    That this went unnoticed is a fake-shaped hole, not an oversight of
+    testing: `tests/_shell_harness.py`'s stand-in is
+    ``def show_picture(self, path): self.pictures.append(path); return True``
+    -- it has no `_video` at all, so the refusal could not happen in any
+    shell test. The review question for a new fake, applied backwards.
+    """
+
+    def test_a_page_opens_with_nothing_playing(self):
+        pm = _window_pm(None)
+        self.assertTrue(pm.show_picture("/tmp/page.png"))
+        self.assertEqual(pm._player.loaded, ["/tmp/page.png"])
+        self.assertEqual(pm.stopped, [], "nothing was playing to stop")
+
+    def test_a_page_stops_the_music_and_takes_the_window(self):
+        """One mpv, one file: the page cannot share the window with a track,
+        so opening a comic stops the music [iw]. The refusal was neither --
+        it left the music playing AND showed no page."""
+        for label, video, showing in STATES:
+            if not showing or video is None:
+                continue      # the audio rows
+            with self.subTest(state=label):
+                pm = _window_pm(video)
+                self.assertTrue(
+                    pm.show_picture("/tmp/page.png"),
+                    "%s: the reader was refused the window" % label)
+                self.assertEqual(pm._player.loaded, ["/tmp/page.png"],
+                                 "%s: no page reached mpv" % label)
+                self.assertEqual(pm.stopped, [1],
+                                 "%s: the music kept playing under the page"
+                                 % label)
+
+    def test_a_video_still_keeps_the_window(self):
+        """The other direction, and it is not symmetry for its own sake: a
+        film owns the window, so the library is not on screen to reach a
+        comic from in the first place."""
+        for label, video, showing in STATES:
+            if showing:
+                continue
+            with self.subTest(state=label):
+                pm = _window_pm(video)
+                self.assertFalse(pm.show_picture("/tmp/page.png"),
+                                 "%s: a picture took the window from a "
+                                 "video" % label)
+                self.assertEqual(pm._player.loaded, [])
+                self.assertEqual(pm.stopped, [])
+
+
 class FullscreenPersistTest(unittest.TestCase):
     """Which settings key a persisted fullscreen toggle lands in.
 
