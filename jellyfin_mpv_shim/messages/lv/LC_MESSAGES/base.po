@@ -7,8 +7,9 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-29 08:25+0000\n"
-"Last-Translator: Lauris K <lauris-kairo@inbox.lv>\n"
+"PO-Revision-Date: 2026-09-07 08:34+0000\n"
+"Last-Translator: \"ℂ𝕠𝕠𝕠𝕝 (𝕘𝕚𝕥𝕙𝕦𝕓.𝕔𝕠𝕞/ℂ𝕠𝕠𝕠𝕝)\" "
+"<translate.jellyfin.org@coool.id.lv>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
 "Language: lv\n"
@@ -4291,10 +4292,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Lietotājvārds:"
+msgstr "Pārsaukt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
@@ -4526,7 +4525,7 @@ msgstr ""
 # seeded from jellyfin-web: TypeOptionPluralSeries
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "TV Shows"
-msgstr "TV šovi"
+msgstr "TV raidījumi"
 
 # seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
