@@ -37,6 +37,7 @@ if __name__ == "__main__":
 
 import sys
 import types
+from unittest import mock
 import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
@@ -331,3 +332,187 @@ class FullscreenPersistTest(unittest.TestCase):
                 else:
                     self.assertTrue(video_key, "%s" % label)
                     self.assertFalse(browser_key, "%s" % label)
+
+
+class BrowseFullscreenAppliesTest(unittest.TestCase):
+    """The OFF direction of `browser_fullscreen`, which never ran during music.
+
+    `_apply_browse_fullscreen` reads::
+
+        if settings.browser_fullscreen or settings.headless:
+            self._player.fs = True
+        elif not self._video:
+            self._player.fs = False
+
+    so ticking the box while a track played went fullscreen and unticking it
+    did nothing -- the `elif` is the third site of this rule, and the audit
+    that fixed the other two did not reach it because it lives one call below
+    the method that was fixed.
+
+    The `elif` was defensible when it was written: `set_fullscreen` persisted
+    a music-time toggle as the VIDEO preference, so deferring to "the
+    fullscreen the video session chose" was coherent. Fixing that (the
+    sibling repair on this branch) is what made this one stale -- during
+    music `browser_fullscreen` is now both what a toggle writes and what
+    should be applied.
+    """
+
+    def _pm_for(self, video):
+        pm = _window_pm(video)
+        pm._player.fs = True          # start fullscreen, so OFF is observable
+        return pm
+
+    def test_unticking_applies_wherever_the_library_is_showing(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        for label, video, showing in STATES:
+            if not showing:
+                continue
+            with self.subTest(state=label):
+                pm = self._pm_for(video)
+                with mock.patch.object(settings, "browser_fullscreen", False), \
+                        mock.patch.object(settings, "headless", False):
+                    pm._apply_browse_fullscreen()
+                self.assertFalse(
+                    pm._player.fs,
+                    "%s: the library is on screen and browser_fullscreen is "
+                    "off, but the window stayed fullscreen" % label)
+
+    def test_ticking_applies_wherever_the_library_is_showing(self):
+        """The direction that already worked. Kept because it is the half a
+        repair of the other one could break, and because a test that only
+        asserts the broken direction cannot tell a fix from a regression."""
+        from jellyfin_mpv_shim.conf import settings
+
+        for label, video, showing in STATES:
+            if not showing:
+                continue
+            with self.subTest(state=label):
+                pm = _window_pm(video)
+                pm._player.fs = False
+                with mock.patch.object(settings, "browser_fullscreen", True), \
+                        mock.patch.object(settings, "headless", False):
+                    pm._apply_browse_fullscreen()
+                self.assertTrue(pm._player.fs, "%s: did not go fullscreen"
+                                % label)
+
+    def test_a_video_on_screen_is_left_alone(self):
+        """The reason the guard exists at all: a film owns the window and
+        `settings.fullscreen` is what governs it."""
+        from jellyfin_mpv_shim.conf import settings
+
+        for label, video, showing in STATES:
+            if showing:
+                continue
+            with self.subTest(state=label):
+                pm = self._pm_for(video)
+                with mock.patch.object(settings, "browser_fullscreen", False), \
+                        mock.patch.object(settings, "headless", False):
+                    pm._apply_browse_fullscreen()
+                self.assertTrue(
+                    pm._player.fs,
+                    "%s: browsing's fullscreen preference was applied to a "
+                    "video that owns the window" % label)
+
+
+class BrowseBackgroundRepaintTest(unittest.TestCase):
+    """A live theme change has to repaint mpv's background during music too.
+
+    The colour behind the browser is an mpv *property*; nothing in the scene
+    paints the whole window. `refresh_browse_bg` gated on
+    `_showing_browse_bg`, which means "we issued a stop and the window is
+    painted with nothing loaded" -- and that is never true during music,
+    because a track is loaded. But the window is still painted by
+    `background-color` (a picture-less audio file, and these are global vo
+    options that survive the file change -- `set_browse_window` says so), so
+    the flag is being read as "is the browse background visible" when it
+    answers something narrower.
+    """
+
+    def _pm_for(self, video, showing_bg):
+        pm = _window_pm(video)
+        pm._showing_browse_bg = showing_bg
+        pm._player.background_color = "#000000"
+        return pm
+
+    def test_the_background_repaints_wherever_the_library_is_showing(self):
+        from jellyfin_mpv_shim import player_window
+
+        for label, video, showing in STATES:
+            if not showing:
+                continue
+            with self.subTest(state=label):
+                # False, because that is the state music is actually in: a
+                # track is loaded, so nothing ever set this flag.
+                pm = self._pm_for(video, showing_bg=(video is None))
+                with mock.patch.object(player_window, "BROWSE_BG_HEX",
+                                       "#abcdef"):
+                    pm.refresh_browse_bg()
+                self.assertEqual(
+                    pm._player.background_color, "#abcdef",
+                    "%s: the library is on screen showing the old theme's "
+                    "background" % label)
+
+    def test_a_video_keeps_mpvs_own_background(self):
+        """The half that must not change: during playback the background is
+        what letterbox bars are painted with, and `browse_yield` deliberately
+        puts mpv's own colour back there."""
+        from jellyfin_mpv_shim import player_window
+
+        for label, video, showing in STATES:
+            if showing:
+                continue
+            with self.subTest(state=label):
+                pm = self._pm_for(video, showing_bg=False)
+                with mock.patch.object(player_window, "BROWSE_BG_HEX",
+                                       "#abcdef"):
+                    pm.refresh_browse_bg()
+                self.assertEqual(
+                    pm._player.background_color, "#000000",
+                    "%s: the browse background was painted behind a video"
+                    % label)
+
+
+class SettingsMenuStaysShutTest(unittest.TestCase):
+    """The OSD menu must not open while the library is on screen.
+
+    `toggle_settings_menu`'s own comment states the rule -- the OSD menu
+    "lands *under* the mpvtk overlay bitmaps and steals the arrow keys from
+    the browser, so it must not open here even when the HUD declines
+    (browsing, idle, no video)" -- and then gates on `_video is not None`,
+    which is true during music.
+
+    Reachable today despite `browse_block_keys`: the key is only one of the
+    two callers. `menu_action` comes from a **remote**, which no key block
+    touches, so a cog press on a phone while a track plays opens a menu
+    under the library and takes its arrows.
+    """
+
+    def _pm_for(self, video):
+        pm = _pm(video)
+        pm._osc_style_resolved = "mpvtk"
+        pm.do_not_handle_pause = False
+        pm.opened = []
+        pm.on_hud_menu = lambda: pm.opened.append(1)
+        return pm
+
+    def test_it_stays_shut_wherever_the_library_is_showing(self):
+        for label, video, showing in STATES:
+            if not showing:
+                continue
+            with self.subTest(state=label):
+                pm = self._pm_for(video)
+                pm.toggle_settings_menu()
+                self.assertEqual(
+                    pm.opened, [],
+                    "%s: the HUD menu opened over the library" % label)
+
+    def test_it_still_opens_over_a_video(self):
+        for label, video, showing in STATES:
+            if showing:
+                continue
+            with self.subTest(state=label):
+                pm = self._pm_for(video)
+                pm.toggle_settings_menu()
+                self.assertEqual(pm.opened, [1],
+                                 "%s: the gear menu did not open" % label)

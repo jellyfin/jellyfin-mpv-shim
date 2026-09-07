@@ -338,9 +338,12 @@ class WindowMixin:
         off — and ``browser_fullscreen`` is about the library, which headless
         does not even have.
 
-        The `elif` is what keeps audio out of it: music leaves `_video` set
-        and keeps the library on screen, and the fullscreen the *video*
-        session chose outranks this one.
+        `_library_showing()`, not `not self._video`: music keeps `_video` set
+        and keeps the library up, so the OFF direction never ran while a
+        track played -- ticking the box went fullscreen and unticking it did
+        nothing. The old spelling was coherent when `set_fullscreen`
+        persisted a music-time toggle as the VIDEO preference; fixing that
+        is what made it stale.
 
         Called on every browse transition and, since #729, whenever the
         setting itself is written — one decision in one place, because two
@@ -348,7 +351,7 @@ class WindowMixin:
         """
         if settings.browser_fullscreen or settings.headless:
             self._player.fs = True
-        elif not self._video:
+        elif self._library_showing():
             self._player.fs = False
 
     @synchronous("_lock")
@@ -372,9 +375,9 @@ class WindowMixin:
         # **Only while the library actually owns the window.** The gateway's
         # `_act` defers through `run_action`, so a write made while the
         # player lock was held by a playback start lands AFTER that start --
-        # and `_apply_browse_fullscreen`'s `_video` guard protects only the
-        # OFF direction, so `browser_fullscreen` would have taken a playing
-        # video fullscreen against the user's choice.
+        # and `_apply_browse_fullscreen` guards only the OFF direction, so
+        # `browser_fullscreen` would have taken a playing video fullscreen
+        # against the user's choice.
         #
         # `_library_showing()`, never `_video is None`: music keeps `_video`
         # set and keeps the library up, and that is the case this whole
@@ -793,10 +796,19 @@ class WindowMixin:
         showing around it. Only meaningful while the browse window is up; a
         no-op otherwise, and never fatal, because a theme change must not be
         able to take the player down with it.
+
+        `_showing_browse_bg` alone was the wrong gate. It means "we issued a
+        stop and the window is painted with nothing loaded", which is never
+        true during music -- a track is loaded -- yet the window is still
+        painted by `background-color`, because these are global vo options
+        that survive the file change (see set_browse_window). So a theme
+        changed while music played left the old colour on screen until the
+        music stopped.
         """
         try:
-            if self._player is not None and getattr(
-                    self, "_showing_browse_bg", False):
+            if self._player is not None and (
+                    getattr(self, "_showing_browse_bg", False)
+                    or self._library_showing()):
                 self._player.background_color = BROWSE_BG_HEX
         except Exception:
             wlog.debug("could not repaint the browse background",

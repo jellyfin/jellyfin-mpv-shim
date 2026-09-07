@@ -1516,7 +1516,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # bitmaps and steals the arrow keys from the browser, so it
             # must not open here even when the HUD declines (browsing,
             # idle, no video).
-            if self._video is not None and self.on_hud_menu is not None:
+            if self._video_on_screen() and self.on_hud_menu is not None:
                 try:
                     self.on_hud_menu()
                 except Exception:
@@ -4942,6 +4942,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         reason.
         """
         return self._video is None or self._current_is_audio()
+
+    def _video_on_screen(self):
+        """The complement of :meth:`_library_showing`, by name.
+
+        Both meanings were spelled `self._video`, so no reader could tell
+        which one a site meant without deriving it -- and three sites got it
+        wrong that way. Derived from the other, never a second answer to the
+        same question.
+        """
+        return not self._library_showing()
 
     def _library_has_input(self):
         """The *library* owns input — not merely the renderer.
