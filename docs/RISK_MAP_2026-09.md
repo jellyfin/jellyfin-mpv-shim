@@ -71,10 +71,17 @@ it.
 | R7 | `reset_picture_view` grew a `_video is None and not _loading` guard (`player_window.py:591`) | `set_picture_view` has none and reaches the player through the same deferring `_act` | **verified — open (F15)** |
 | R8 | `apply_browser_fullscreen`'s docstring warns `set_fullscreen` also records `fullscreen_disable`, "a *user intent* flag" | `player_window.py:401` writes it ABOVE `if not persist: return`, so `update_check.py:258`'s app-initiated un-fullscreen latches it | **verified** |
 | R9 | mpv-config discipline (`hwdec_pinned_by_config`) applied at four sites in `mpv_options.py` | missed at the fifth, ~500 lines away, under `mpv_ext` + `mpv_ext_no_ovr` | **reported** |
+| R10 | the same function resolves `phud_wake_key()` at `renderer.lua:5911` to decide whether to drop the wake binding | and hardcodes `'ENTER'` on the next two lines (`:5914` `remove_key_binding('mpvtk_summon_ENTER')`, `:5915` `add_forced_key_binding('ENTER', 'mpvtk_skip_enter', …)`) — so the Skip button binds ENTER even when `ui_select_key` has moved | **verified** |
+| R11 | `player.py:1518` — the OSD menu "must not open here even when the HUD declines (browsing, idle, no video)" | the gate below it is `self._video is not None`, which is TRUE during music while the library is on screen. Whether the HUD gear menu should appear over a track is a product judgement, not yet a defect | **verified as written; needs a read** |
 
 **Two rules in this repo already enumerate their own sites** and are the model
 for repairing the rest: `tools/audit_stale_captures.py` (via
 `tests/test_no_stale_captures.py`) and `tests/test_source_invariants.py`.
+
+**R10 was found by writing the predicate down, not by reading the file.** It sits
+one screen from R3, in a function that resolves the very setting it then
+hardcodes, and four surveys plus a full session of manual work had walked past
+it. That is the argument for the instrument rather than more attention.
 
 Three lints fall straight out of the table: every `kb_*`/`ui_select_key` value
 against every literal key string; every `_video is None` test against
@@ -91,7 +98,10 @@ Ranked by the metric in §1.
 
 Scores on all four difficulty sources. `_init_mpv` resets 14 fields (plus 4
 constructions); **75 constructor-bound names are not re-set, and nothing states
-which of them are handle-scope.** Recreation therefore decides field by field,
+which of them are handle-scope.** (Re-counted a day later during the machinery
+design: 90 assignments in `__init__`, 18 re-set in `_init_mpv`, so **76**. The
+number drifted by one inside a day, which is the argument for a check rather
+than a figure in prose.) Recreation therefore decides field by field,
 from memory.
 
 - Genuinely unenrolled: `_swept` / `_swept_ptr` (the key sweep of mpv #1 used
