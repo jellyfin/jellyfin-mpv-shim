@@ -301,7 +301,37 @@ renderer's own lifecycle is correct across the equivalent message sequence in
 `tests/lua/`, including from an auto-hidden HUD. `_release_page_grabs` drops a
 key claim and the pan model and touches neither.
 
-**The remaining suspect is the picture path and its deferral.** `show_picture`
+**Reproduced, in part** (`tests/lua/`, 2026-09-07). Izzie's ordering was
+photo x3 -> video -> video, and repetition is the point rather than the
+photo/video mix. The `mpvtk-hud` handler early-returns when the mode already
+matches:
+
+    if want == state.phud.mode then return end
+
+Summoning the HUD unbinds the wake key -- correct, it is already up. The next
+item's `set_hud(True)` then hits that early return, so `state.phud.shown` stays
+true for an item that is gone and **nothing re-binds summon**. Measured: after
+the second video the wake binding does not exist and mouse moves produce no HUD
+event at all, because the renderer believes it is already showing.
+
+**What is NOT explained**: in the harness this self-heals as soon as the
+auto-hide timer fires (wake comes back, the HUD hides normally), so the
+reproduction is "no controls for the length of the auto-hide delay", not the
+permanent death reported. Either something stops that timer firing in the real
+app (`hud_autohide`, `hud_hide_secs`, or `phud_busy` re-arming forever -- it
+holds the bar up while the pointer rests on it, and unconditionally in the
+`paused` mode) or there is a further step. `phud_bind_summon` also declines to
+bind at all while `state.kb_saved` is set (mpv's console holding the keys),
+which would be permanent -- unverified.
+
+**A fix needs a decision, not just a patch**: the renderer cannot tell "a new
+item started" from "a setting changed", because `hud.engage()` is both -- its
+docstring says re-engaging is the ONLY thing that carries a changed setting
+through. Returning to idle on every engage would hide the HUD when someone
+changes a setting mid-film. So the item change has to come from the Python
+side, which knows it.
+
+**The other suspect, still open, is the picture path and its deferral.** `show_picture`
 / `clear_picture` reach the player through `run_action`, which defers whenever
 the player lock is busy -- and it is busy for the whole of a playback start.
 `clear_picture` guards on `self._video is not None` **with no `_loading`
