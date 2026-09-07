@@ -85,6 +85,15 @@ Every element takes `tip="…"` — a renderer-drawn tooltip after a
 layout feedback for the next build (header offsets above virtualized
 lists, overflow decisions).
 
+**Only a drawable is in that scene, so only a drawable can be measured.**
+A bare `Row`/`Column`/`Box` emits no scene node at all, whatever `id` you
+gave it, and `node_rect` then returns `None` — which reads as "no answer
+yet" and sends the caller down its first-frame fallback *on every frame*,
+silently and forever. To measure a container, give it a background and
+`alpha=0`: it draws nothing and emits a `rect` with your id. The epub
+reader sized its page bitmap from the fallback for its whole life this
+way, which was right until anything else shared the window.
+
 Inputs: `TextBox` (editing, paste, selection, `mask=True` for
 passwords; `on_change`/`on_submit`), `Dropdown` (readonly picker,
 `on_select`), `Slider` (`on_change`, throttled while dragging;
