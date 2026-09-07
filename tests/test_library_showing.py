@@ -597,6 +597,84 @@ class OneAudioRuleTest(unittest.TestCase):
                     % (item, "video" if expected else "audio"))
 
 
+class TheCursorNeverHidesOverTheLibraryTest(unittest.TestCase):
+    """[iw] "Cursor hiding should never happen when the main UI is visible,
+    only the mpvtk HUD."
+
+    That is the visible edge of a worse state, and the whole of the reported
+    bug. `set_hud(True)` is a MODE CHANGE: `ui_suspend()` drops the mouse
+    section, and the renderer withholds `allow-hide-cursor` from that section
+    exactly so the pointer stays alive over a UI
+    (docs/mpv-backends.md). So a HUD engaged while the library is on screen
+
+      * hides the cursor -- the tell,
+      * auto-hides after `hud_hide_secs`, and `phud_hide` calls
+        `ui_suspend`, which takes the LIBRARY off screen with it,
+      * and brings it back on motion, because `mouse-pos` is observed
+        directly and needs no section.
+
+    Every symptom reported for the video -> music playlist advance, from one
+    state. Reproduction: a playlist of one video then one song, skip to the
+    next track, stop moving the mouse.
+
+    Enforced in `HudController.engage` rather than at the four call sites
+    that already guard it, so a guard read a beat before `_browsing` flips
+    cannot get past it.
+    """
+
+    def _browser(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))), "tests"))
+        from _shell_harness import FakeSource, HudController, StubHudApp
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        app = StubHudApp()
+        b.set_app(app)
+        return b, app
+
+    def test_an_engage_while_browsing_is_refused(self):
+        b, app = self._browser()
+        b._browsing = True
+        b.hud.state = {"stopped": False, "is_audio": False, "id": "v1"}
+        app.calls.clear()
+        b.hud.engage()
+        self.assertNotIn(
+            ("hud", True), app.calls,
+            "the HUD was engaged over the library: the cursor now hides, and "
+            "the auto-hide takes the library with it")
+
+    def test_playback_still_engages_it(self):
+        """The control. A refusal that also refused the real case would take
+        the player controls away entirely."""
+        b, app = self._browser()
+        b._browsing = False
+        b.hud.state = {"stopped": False, "is_audio": False, "id": "v1"}
+        app.calls.clear()
+        b.hud.engage()
+        self.assertIn(("hud", True), app.calls,
+                      "a video got no HUD at all")
+
+    def test_the_reported_sequence_leaves_browse_asserted(self):
+        """Video, then the queue advances to a track: whatever order the
+        pushes arrive in, the renderer must not be left in HUD mode while
+        the library is what is drawn."""
+        b, app = self._browser()
+        b._browsing = True
+        b.on_playstate({"stopped": False, "is_audio": False, "id": "v1"})
+        b.on_playstate({"stopped": False, "is_audio": True, "id": "a1"})
+        self.assertTrue(b._browsing, "the library is not on screen")
+        # A late video push from the timeline thread, built before the
+        # advance -- the shape that would re-engage behind the library.
+        b.on_playstate({"stopped": False, "is_audio": False, "id": "v1"})
+        if b._browsing:
+            self.assertNotEqual(
+                ("hud", True), app.calls[-1],
+                "a late push left the renderer in HUD mode with the library "
+                "on screen")
+
+
 class LaunchingAsAudioTest(unittest.TestCase):
     """The FOURTH copy of "is this audio", and the one a type list cannot fix.
 

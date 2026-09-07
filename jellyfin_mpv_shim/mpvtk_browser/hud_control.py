@@ -18,7 +18,8 @@ log = logging.getLogger("mpvtk_browser.hud_control")
 class HudController:
     """Owns the playback HUD's state and handles its events."""
 
-    def __init__(self, get_app, get_controller, invalidate, ctl, start_ticker):
+    def __init__(self, get_app, get_controller, invalidate, ctl, start_ticker,
+                 is_browsing=None):
         #: The live renderer handle. A callable rather than a value: the
         #: browser swaps it when mpv is re-created (``set_app``).
         self._get_app = get_app
@@ -29,6 +30,9 @@ class HudController:
         self._ctl = ctl
         #: Start the 1s clock ticker the bar shares with the music bar.
         self._start_ticker = start_ticker
+        #: "Is the library on screen right now", read live. The ONE place
+        #: the HUD invariant is enforced -- see :meth:`engage`.
+        self._is_browsing = is_browsing
         self.reset()
         self.state = None
 
@@ -79,7 +83,30 @@ class HudController:
 
         Idempotent, and that matters -- re-engaging is the ONLY thing that
         carries a changed setting to the renderer, so those apply without a
-        restart. Full list: see docs/browser-shell.md section 14."""
+        restart. Full list: see docs/browser-shell.md section 14.
+
+        **Never while the library is on screen.** [iw] "Cursor hiding should
+        never happen when the main UI is visible, only the mpvtk HUD" -- and
+        that is the visible edge of a worse state. `set_hud(True)` is a MODE
+        CHANGE: `ui_suspend()` drops the mouse section, and the renderer
+        withholds `allow-hide-cursor` from that section precisely to keep the
+        pointer alive over a UI (docs/mpv-backends.md). So a HUD engaged over
+        the library hides the cursor, auto-hides after `hud_hide_secs` --
+        `phud_hide` calls `ui_suspend`, which takes the LIBRARY off screen --
+        and brings it back on motion, because `mouse-pos` is observed
+        directly and does not need the section.
+
+        Every call site already guards on `not self._browsing`; this is the
+        same rule in one place rather than four, so a guard evaluated a beat
+        before the flag flips cannot get past it. It can only ever REFUSE an
+        engage, never cause one."""
+        if self._is_browsing is not None:
+            try:
+                if self._is_browsing():
+                    log.debug("refusing a HUD engage while browsing")
+                    return
+            except Exception:
+                pass
         opts = None
         get = getattr(self.controller, "hud_key_opts", None)
         if get is not None:

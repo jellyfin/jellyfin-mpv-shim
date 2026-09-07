@@ -241,7 +241,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             get_controller=lambda: self.controller,
             invalidate=lambda: self.invalidate(),
             ctl=lambda fn: self._ctl(fn),
-            start_ticker=lambda: self._start_np_ticker())
+            start_ticker=lambda: self._start_np_ticker(),
+            is_browsing=lambda: self._browsing)
         # Cast/idle screen state (see cast.py). Present whether or not
         # headless is set — without it, this is what a DisplayContent from a
         # phone renders.
