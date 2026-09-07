@@ -1031,13 +1031,30 @@ class LibrarySource:
                               media_types="Book")()
 
         def next_up_row():
-            nextup = api.get_next(
-                limit=20, fields=LIST_FIELDS,
-                enable_image_types="Primary,Thumb,Backdrop",
+            # The endpoint directly, not the apiclient's `get_next`: that
+            # helper has no parameter for `EnableResumable`, and the server
+            # DEFAULTS IT TO TRUE (TvShowsController.GetNextUp), so a part-
+            # watched episode appeared in Continue Watching and again in Next
+            # Up. jellyfin-web's home section sends false for exactly this
+            # (components/homesections/sections/nextUp.ts).
+            #
+            # Only this row. `get_next_up(series_id)` is "what plays after
+            # this one", where the episode you are part-way through IS the
+            # answer.
+            #
+            # `EnableRewatching` is not sent: the server already defaults it
+            # to false, and web drives it from a user setting we do not have.
+            nextup = api.shows("/NextUp", {
+                "UserId": "{UserId}",
+                "Limit": 20,
+                "Fields": LIST_FIELDS,
+                "EnableImageTypes": "Primary,Thumb,Backdrop",
                 # Every other home query caps this; Next Up was the one that
                 # did not, so a series with twenty backdrops sent twenty tags
                 # per card for the one the tile draws.
-                image_type_limit=1) or {}
+                "ImageTypeLimit": 1,
+                "EnableResumable": False,
+            }) or {}
             return (_("Next Up"), nextup.get("Items", []), None, None)
 
         def live_tv_row():

@@ -241,7 +241,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             get_controller=lambda: self.controller,
             invalidate=lambda: self.invalidate(),
             ctl=lambda fn: self._ctl(fn),
-            start_ticker=lambda: self._start_np_ticker())
+            start_ticker=lambda: self._start_np_ticker(),
+            is_browsing=lambda: self._browsing)
         # Cast/idle screen state (see cast.py). Present whether or not
         # headless is set — without it, this is what a DisplayContent from a
         # phone renders.
@@ -1735,12 +1736,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         clamp. And the picture's zoom and pan are global mpv options, so
         the film plays at whatever the last comic page was set to.
         """
-        claim = getattr(self.app, "claim_keys", None)
-        if claim is not None:
-            try:
-                claim(())
-            except Exception:
-                log.debug("could not drop the key claim", exc_info=True)
+        self._drop_key_claims()
         self._set_picture_pan(None)
         # The window is being handed over, so whatever picture was in it is
         # not on screen any more. The page checks this on its way back in;
@@ -1754,6 +1750,20 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 self.controller.reset_picture_view()
             except Exception:
                 log.debug("could not reset the picture view", exc_info=True)
+
+    def _drop_key_claims(self):
+        """Give every claimed key back to mpv.
+
+        Its own method because `_yield` calls it TWICE, and the second call
+        is the point: see the note there.
+        """
+        claim = getattr(self.app, "claim_keys", None)
+        if claim is None:
+            return
+        try:
+            claim(())
+        except Exception:
+            log.debug("could not drop the key claim", exc_info=True)
 
     def _retire_page(self, route):
         """Tell the page we just stopped drawing that it is off screen.
@@ -1816,6 +1826,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         page = self._page_for(route) if self._browsing else None
         keys = tuple(getattr(page, "claimed_keys", ()) or ())
         keys += self._shell_claimed_keys()
+        # Re-read immediately before the call, not only at the top: the two
+        # reads above are separated by page lookups and a settings read, and
+        # the flag can flip in between. `_yield` re-asserts the release after
+        # it finishes, which is what actually closes the race; this just
+        # keeps the common case from reaching it.
+        if not self._browsing:
+            keys = ()
         try:
             claim(keys)
         except Exception:
@@ -2208,10 +2225,28 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         """Re-assert window ownership on a FRESH renderer (which starts
         active): browse takes the window back; a video in flight
         re-enters attached-but-idle HUD mode; otherwise get fully out
-        of the way (lua OSC / minimized)."""
+        of the way (lua OSC / minimized).
+
+        `hud.state` alone is not "a video is in flight". It is cleared only
+        by a `stopped` push, and a queue advance does not always make one --
+        the player suppresses the incidental stopped pushes a load produces
+        -- so after a film it holds that film's playstate for the whole of
+        the track that followed, and mpv being re-created under a playing
+        track put the renderer into HUD mode over the library, auto-hide and
+        all.
+
+        Asked here rather than fixed by clearing `hud.state` when a track
+        starts, which is what the first attempt did: a start is not atomic
+        from this side, so late audio pushes (the now-playing ticker sends
+        one a second) arrive *after* `_start(audio=False)` has yielded the
+        window, and a destructive write on that path tore the HUD down off
+        the video that had just begun -- no player controls at all. A read
+        cannot race anything.
+        """
         if self._browsing:
             self._set_renderer_active(True)
-        elif self.hud.available() and self.hud.state is not None:
+        elif (self.hud.available() and self._now_playing is None
+              and self.hud.state is not None):
             try:
                 self.hud.engage()
             except Exception:
@@ -2270,13 +2305,34 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._release_page_grabs()
         self._tell_controller("on_browse_leave")
         if self.hud.available():
-            # keep the renderer attached: blank scene + summon bindings
+            # keep the renderer attached: blank scene + summon bindings.
+            #
+            # `reset=True` because this is a HANDOFF: a new stream is taking
+            # the window, so whatever the HUD was showing belonged to the one
+            # that just ended. Without it a restart -- changing an audio or
+            # subtitle track on a transcode re-creates it -- left the bar
+            # marked shown for a stream that was gone, with summon unbound.
             try:
-                self.hud.engage()
+                self.hud.engage(reset=True)
             except Exception:
                 log.debug("set_hud failed", exc_info=True)
         else:
             self._set_renderer_active(False)
+        # **Again, at the end.** `_claim_page_keys` reads `_browsing` and
+        # then calls `claim()`, and a playback update on a foreign thread
+        # flips that flag between the two -- so a frame already in flight
+        # when the yield began can land its claim AFTER the release above.
+        # A claimed key gets a FORCED binding, which outranks the player's
+        # own, so a stale SPACE claim is `kb_pause` dead for the rest of the
+        # session against a video, with music long since stopped. The
+        # comment in `_claim_page_keys` records that exact symptom from
+        # before; answering "no keys" there narrows the window but cannot
+        # close it, because the read and the call are not atomic.
+        #
+        # Making the release the LAST write closes it without a lock: a
+        # racing frame either lands before this and is overwritten, or after
+        # it and finds `_browsing` already false.
+        self._drop_key_claims()
         self.invalidate()  # empty scene clears overlays off the video
 
     def _start(self, audio, title=""):

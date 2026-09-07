@@ -749,11 +749,17 @@ class TestATransitionSurvivesARaisingController(unittest.TestCase):
         b._browsing = True
         engaged = []
         b.hud.available = lambda: True
-        b.hud.engage = lambda: engaged.append(True)
+        # `**kw`, and the reset asserted below: a yield is a HANDOFF, so it
+        # engages with reset=True. A stub pinned to the old zero-argument
+        # signature swallowed a TypeError into `_yield`'s except and read as
+        # "the engage was skipped" -- which is this test's real failure mode,
+        # so it would have hidden the thing it exists to catch.
+        b.hud.engage = lambda **kw: engaged.append(kw.get("reset", False))
         b._yield()
         self.assertFalse(b._browsing, "the yield was abandoned")
         self.assertEqual(engaged, [True],
-                         "the HUD engage behind the callback was skipped")
+                         "the HUD engage behind the callback was skipped, or "
+                         "did not reset the bar left by the previous stream")
 
     def test_enter_browse_still_reactivates_the_renderer(self):
         b = self._browser()

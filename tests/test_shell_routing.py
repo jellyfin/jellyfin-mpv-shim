@@ -961,6 +961,44 @@ class TestLatentFixes(unittest.TestCase):
         h["set-sync-move"]["click"]()
         self.assertEqual(moved, ["/new/path"])
 
+    def _sync_row(self, current="/old"):
+        cfg = FakeConfig()
+        cfg.schema["sync_path"] = "str"
+        cfg.values["sync_path"] = current
+        self.b._config_obj = cfg
+        row = self.b._setting_row(cfg, cfg.settings_schema(),
+                                  cfg.get_settings(), "sync_path")
+        _n, h = layout(row, 1280, 720)
+        return h
+
+    def test_clearing_the_field_and_pressing_move_means_the_default(self):
+        """Reported: setting the folder to "" says it moved and does not.
+
+        `get("path") or val` cannot tell "not edited" from "cleared", so an
+        empty field fell back to the CURRENT path -- `relocate` then found
+        old == new, returned success, and the status line claimed a move
+        that never happened. ENTER never had the bug, because it passes the
+        field straight through; only the button was dead.
+        """
+        moved = []
+        self.b._move_downloads = lambda p: moved.append(p)
+        h = self._sync_row()
+        h["set-sync_path"]["change"]("")      # the user clears the box
+        h["set-sync-move"]["click"]()
+        self.assertEqual(
+            moved, [""],
+            "clearing the field and pressing Move sent the old path back, "
+            "so nothing moved and the UI said it had")
+
+    def test_an_untouched_field_still_moves_what_is_shown(self):
+        """The control, and the reason this is not `get("path", val)`: with
+        no edit at all the button must still act on the visible value."""
+        moved = []
+        self.b._move_downloads = lambda p: moved.append(p)
+        h = self._sync_row(current="/old")
+        h["set-sync-move"]["click"]()
+        self.assertEqual(moved, ["/old"])
+
     def test_an_update_notice_shows_while_offline(self):
         """The offline banner is persistent, so checking it first meant an
         update was never surfaced offline."""

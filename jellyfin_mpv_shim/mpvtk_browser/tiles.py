@@ -13,6 +13,7 @@ import logging
 
 
 from ..i18n import _, _p
+from ..utils import launches_as_audio
 from ..mpvtk.widgets import Menu
 from . import components
 from .repository import PLAYABLE_TYPES, PLAYLIST_SUPPORTED_TYPES
@@ -231,7 +232,11 @@ class TilesMixin:
                 # pause_stills=False for the same reason Play All has it: the
                 # gesture means "run it", and a queue that opens on a photo
                 # would otherwise sit paused on frame one.
-                self._actions.play_list(ids, server, 0, pause_stills=False)
+                # Same rule, second site: a music library's Play All sent
+                # no `audio` at all, so it defaulted to video.
+                self._actions.play_list(
+                    ids, server, 0, pause_stills=False,
+                    audio=launches_as_audio(item, ctype))
             else:
                 self.set_status(_("There is nothing here to play."))
 
@@ -623,7 +628,20 @@ class TilesMixin:
         self.run_async(work, done, ep, on_error=failed)
 
     def _resolve_play_ids(self, item, server, parent_id=None):
-        """The item ids "Play"/"Add to play queue" should act on.
+        """Ids only, for callers that queue without deciding a mode."""
+        return [i.get("Id") for i in
+                self._resolve_play_items(item, server, parent_id)
+                if i.get("Id")]
+
+    def _resolve_play_items(self, item, server, parent_id=None):
+        """The item DTOs "Play"/"Add to play queue" should act on.
+
+        **DTOs, not ids, because the container lies.** A playlist's own
+        `MediaType` is computed by the server from its contents, and a
+        playlist can arrive looking like video while holding music [iw] --
+        so the only reliable answer to "is this launch audio" is the first
+        thing actually being queued. It is also the right answer for a
+        MIXED playlist, where what starts is what decides.
 
         A music container (album/artist/playlist/series) is not itself a
         playable item — queueing or playing its own id does nothing, which
@@ -638,28 +656,24 @@ class TilesMixin:
             return []
         try:
             if t == "MusicAlbum":
-                return [i.get("Id")
-                        for i in self.source.get_album_tracks(server, iid)]
+                return list(self.source.get_album_tracks(server, iid))
             if t == "MusicArtist":
-                return [i.get("Id")
-                        for i in self.source.get_artist_songs(server, iid)]
+                return list(self.source.get_artist_songs(server, iid))
             if t == "Playlist":
-                return [i.get("Id") for i in
+                return [i for i in
                         self.source.get_playlist_items(server, iid)
                         if i.get("Type") in PLAYLIST_SUPPORTED_TYPES]
             if t == "MusicGenre":
-                return [i.get("Id") for i in self.source.get_genre_songs(
-                    server, parent_id, iid)]
+                return list(self.source.get_genre_songs(
+                    server, parent_id, iid))
             if t == "Season":
-                return [i.get("Id") for i in
-                        self._season_queue(item, server)]
+                return list(self._season_queue(item, server))
             if t == "Series":
-                return [i.get("Id") for i in
-                        self.source.get_series_queue(server, iid)]
+                return list(self.source.get_series_queue(server, iid))
         except Exception:
             log.warning("could not resolve %s for playback", t, exc_info=True)
             return []
-        return [iid]
+        return [item]
 
     def _season_queue(self, item, server):
         """A season's episodes, in order. Runs off the loop thread.
@@ -733,15 +747,28 @@ class TilesMixin:
         # A container: resolve it to its items and play those, rather than
         # navigating (a "Play" that browses instead is just a lie).
         ep = self._epoch
-        audio = t in ("MusicAlbum", "MusicArtist", "MusicGenre")
+        # Decided from what is about to be QUEUED, not from a type list and
+        # not from the container's own label. A music playlist is in no such
+        # list, and its `MediaType` can say video while it holds music [iw]
+        # -- so it launched down the video branch, which clears `_browsing`,
+        # yields the window and puts the renderer in HUD mode. The visible
+        # half was a HUD flash before the music started; the damaging half
+        # was that moving the pointer off the window then auto-hid the HUD,
+        # and `phud_hide` calls `ui_suspend` -- blanking the whole library.
+        #
+        # The first entry, because that is what will be on screen: a MIXED
+        # playlist starting on a film is a video launch, and the same
+        # playlist started on a song is not.
         parent = self.route.get("parent_id")
 
         def work():
-            return self._resolve_play_ids(item, server, parent)
+            return self._resolve_play_items(item, server, parent)
 
-        def done(ids):
-            if ids:
-                self._play_list(ids, server, 0, audio=audio)
+        def done(items):
+            if items:
+                ids = [i.get("Id") for i in items if i.get("Id")]
+                self._play_list(ids, server, 0,
+                                audio=launches_as_audio(item, first=items[0]))
             else:
                 self._open_item(item)
         self.run_async(work, done, ep)

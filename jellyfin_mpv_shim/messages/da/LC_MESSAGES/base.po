@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-30 22:19-0400\n"
+"POT-Creation-Date: 2026-09-07 17:35-0400\n"
 "PO-Revision-Date: 2026-08-29 13:34+0000\n"
 "Last-Translator: Lau <waulau@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
@@ -508,6 +508,11 @@ msgid "Night Mode (Auto Volume Adj)"
 msgstr "Nat tilstand (Automatisk lydstyrke justering)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/auth.py
+msgid "Locked"
+msgstr "Låst"
+
+#: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
 msgstr "Indlæsning fejlede. Tjek tilslutningen."
 
@@ -756,10 +761,6 @@ msgid "Could not connect. Please check your details."
 msgstr "Det var ikke muligt at tilslutte. Kontroller venligst dine detaljer."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-msgid "Locked"
-msgstr "Låst"
-
-#: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
 msgstr "Tilslutter sig til din server…"
@@ -834,6 +835,10 @@ msgstr "Set"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Favorite"
 msgstr "Favorit"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+msgid "Web"
+msgstr ""
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1411,12 +1416,8 @@ msgid "Jellyfin UI"
 msgstr "Jellyfin brugerflade"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "MPV UI with thumbnails"
-msgstr "MPV brugerflade med miniaturebilleder"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "MPV built-in default"
-msgstr "Indbygget standard fra MPV"
+msgid "MPV UI"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
@@ -1751,8 +1752,24 @@ msgid "Window Buttons in the Top Bar"
 msgstr "Vindue knapper i top-baren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Window Buttons in the Top Bar"
+msgid "Keep Window Buttons in Full Screen"
+msgstr "Vindue knapper i top-baren"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide the Desktop Title Bar"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
 msgstr "Størrelse for afspiller betjening"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Enable thumbnail previews"
+msgid "Enable Trickplay Thumbnails"
+msgstr "Aktivér forhåndsvisning af miniaturer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
@@ -1783,6 +1800,10 @@ msgstr "Coverstørrelse"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
 msgstr "Fuldbredde baggrunde"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "12-Hour Clock"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
@@ -1826,12 +1847,23 @@ msgid "Fullscreen Library Browser"
 msgstr "Maksimeret biblioteksbrowser"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Block Player Keybinds While Browsing"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
 msgstr "Brug altid piletasterne til afspiller betjeningen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
 msgstr "Tast som aktiverer afspiller betjeningen"
+
+# seeded from jellyfin-web: SelectAll
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Select All"
+msgid "Select Key"
+msgstr "Vælg alle"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
@@ -1844,6 +1876,12 @@ msgstr "Når afspiller betjeningen gemmes"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
 msgstr "Gem afspiller betjeningen efter (sekunder)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "When the Player Controls Hide"
+msgid "Shrink the Player Controls on a Narrow Window"
+msgstr "Når afspiller betjeningen gemmes"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
@@ -1938,6 +1976,21 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Stops MPV's own shortcuts -- picture adjustment, screenshots, subtitle and "
+"audio switching -- from acting while you are in the library, where there is "
+"no video for them to act on. Turn it off to use your own MPV key bindings "
+"there."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Activates whatever is highlighted, in the library and on the player "
+"controls. An mpv key name; changing it hands Enter back to MPV. The game "
+"controller's Confirm button and a phone's Select follow it."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Leave these blank unless downloads are waking your disks too often. Set both "
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
@@ -1954,9 +2007,14 @@ msgstr ""
 "har set endnu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Off gives MPV's own mouse behaviour instead: drag the video to move the "
+#| "window, and right click to pause. Double click is full screen either way."
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
-"window, and right click to pause. Double click is full screen either way."
+"window, and the right button does whatever your MPV config gives it. Double "
+"click is full screen either way."
 msgstr ""
 "Fra vil gøre at MPV's egen musse adfærd bruges i stedet: ryk vinduet ved at "
 "trække videoen, pause når der højreklikkes. Dobbeltklik vil være fuldskærm "
@@ -2095,6 +2153,30 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Full screen has no title bar anywhere and nothing to move or maximize, so "
+"the buttons are normally hidden there. Turn this on to keep a way out of "
+"full screen that is not a keyboard shortcut."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Asks the desktop for no title bar on the player window, so the top bar above "
+"is the only one. Pairs with the setting above: on \"Only when the window has "
+"no title bar\" the buttons appear as soon as this is on. Leave both off "
+"unless you want them, since a window with neither can be awkward to move on "
+"some desktops."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Shows a preview frame while you drag the seek bar. Works with every player "
+"control style, including your own OSC script if it supports thumbfast. The "
+"images are fetched from the server per video, which costs disk space and "
+"memory -- tens of MB for an episode, a few hundred for a long film."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Seek previews are normally fetched a few minutes at a time around where you "
 "are seeking, so scrubbing somewhere new waits briefly. Turn this on to load "
 "them all up front instead: nothing ever waits, but a long film can cost "
@@ -2198,6 +2280,13 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Show times of day as \"8:30 PM\" rather than \"20:30\" — the Live TV guide "
+"and its air times, and the \"Ends at\" labels on a detail page and the "
+"player controls."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
@@ -2212,6 +2301,13 @@ msgstr ""
 msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Narrowing the window shrinks the controls until the smallest button reaches "
+"the accessibility minimum, instead of dropping buttons sooner. Off keeps the "
+"older, larger floor."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3701,6 +3797,7 @@ msgid "More Like This"
 msgstr "Mere som dette"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
 msgstr ""
 
@@ -4807,6 +4904,22 @@ msgstr ""
 msgid "There is nothing here to queue."
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
+#, python-brace-format
+msgctxt "12-hour clock"
+msgid "{time} {period}"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
+msgctxt "12-hour clock"
+msgid "AM"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
+msgctxt "12-hour clock"
+msgid "PM"
+msgstr ""
+
 # seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4967,13 +5080,32 @@ msgid "Enable SVP"
 msgstr "Aktivér SVP"
 
 #: jellyfin_mpv_shim/sync/manager.py
+msgid "The downloads are already in that folder."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py
+msgid ""
+"That folder is inside the current download folder. Choose one outside it."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
+msgid "Can't read that folder. Check the path and its permissions."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
+msgid ""
+"That folder isn't empty. Choose an empty folder — the download folder is "
+"managed by this app and anything else in it can be moved or removed."
 msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py
@@ -4982,6 +5114,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
+msgid ""
+"There isn't enough space on that drive to move the downloads. Free some "
+"space and try again — nothing was moved."
 msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py
@@ -5183,6 +5321,12 @@ msgstr "Videoafspilningsprofil"
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "Vælg shaderprofil"
+
+#~ msgid "MPV UI with thumbnails"
+#~ msgstr "MPV brugerflade med miniaturebilleder"
+
+#~ msgid "MPV built-in default"
+#~ msgstr "Indbygget standard fra MPV"
 
 #, fuzzy
 #~| msgid "Quit and Mark Unwatched"

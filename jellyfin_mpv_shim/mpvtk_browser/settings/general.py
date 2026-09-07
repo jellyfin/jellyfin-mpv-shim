@@ -246,9 +246,19 @@ class GeneralTabMixin:
                 # Moves what is in the field. It used to pass None, whose
                 # only effect was a status line telling you to press Enter
                 # — a button that could never do its own job.
+                #
+                # **Presence, not truthiness.** `get("path") or val` cannot
+                # tell "not edited" from "cleared", and an empty field is a
+                # real request: move back to the default folder. So clearing
+                # the box and pressing Move sent the CURRENT path back in,
+                # `relocate` found old == new and returned success, and the
+                # status line said "Download folder moved" having moved
+                # nothing. ENTER never had the bug -- it passes the field
+                # straight through -- which is why only the button was dead.
                 Button(_("Move"), id="set-sync-move",
                        on_click=lambda: self._move_downloads(
-                           self._sync_path.get("path") or val)),
+                           self._sync_path["path"]
+                           if "path" in self._sync_path else val)),
             ], gap=8, align="center")
         else:
             # on_commit as well as on_submit: ENTER is not the only way people

@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from .books import AUDIOBOOK_TYPE
 from .i18n import _
 from .media import segment_labels
-from .utils import none_fallback, synchronous
+from .utils import item_is_audio, none_fallback, synchronous
 
 log = logging.getLogger("player")
 
@@ -181,8 +181,10 @@ class ReportingMixin:
             skip = self._hud_skip
             cb({
                 "stopped": False,
-                "is_audio": (item.get("MediaType") == "Audio"
-                             or item.get("Type") == "Audio"),
+                # The rule, not a copy of it: the browser routes browse
+                # vs HUD mode on this flag, so a second answer here would
+                # hand the window away on the states it disagreed about.
+                "is_audio": item_is_audio(item),
                 # A book, not a song. The now-playing bar grows two things
                 # for one -- skip-back-10 / skip-forward-30, and chapter
                 # ticks on the scrubber -- because an audiobook is listened

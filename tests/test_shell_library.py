@@ -2091,6 +2091,40 @@ class TestMenuQueueAndPlay(unittest.TestCase):
         self.b._menu_play({"Id": "a1", "Type": "MusicAlbum"}, "srv1")
         self.assertEqual(played, [["t1", "t2"]], "navigated instead of playing")
 
+    def test_a_mislabelled_music_playlist_still_launches_as_audio(self):
+        """A playlist can arrive "looking like a video going into the
+        software" and only turn out to be music [iw], because the server
+        derives `Playlist.MediaType` from the contents and the two can
+        disagree by the time we see the DTO.
+
+        So the launch reads the first entry it is about to QUEUE. A wrong
+        answer here is not cosmetic: `audio=False` clears `_browsing` and
+        yields the window, the renderer enters HUD mode, and moving the
+        pointer off the window auto-hides it -- `phud_hide` calls
+        `ui_suspend`, which blanks the library that is on screen.
+        """
+        self.b._browsing = True
+        self.b._menu_play({"Id": "PL1", "Type": "Playlist",
+                           "MediaType": "Video"}, "srv1")
+        self.assertTrue(
+            self.b._browsing,
+            "the container's label won over the track about to play, so the "
+            "window was yielded and the library can be blanked")
+
+    def test_a_playlist_of_films_still_launches_as_video(self):
+        """The control. Deciding from the first entry has to be able to say
+        no, or every playlist keeps the library up and no film gets the
+        window."""
+        self.src.get_playlist_items = lambda srv, pid: [
+            {"Id": "f1", "Name": "Film", "Type": "Movie",
+             "MediaType": "Video"}]
+        self.b._browsing = True
+        self.b._menu_play({"Id": "PL1", "Type": "Playlist",
+                           "MediaType": "Audio"}, "srv1")
+        self.assertFalse(self.b._browsing,
+                         "a playlist of films kept the library up instead of "
+                         "handing the window to the video")
+
     def test_an_unresolvable_container_falls_back_to_opening_it(self):
         self.src.get_album_tracks = lambda srv, aid: []
         self.b._menu_play({"Id": "a1", "Type": "MusicAlbum"}, "srv1")

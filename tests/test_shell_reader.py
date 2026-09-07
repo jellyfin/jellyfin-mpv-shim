@@ -123,6 +123,89 @@ class ReaderHarness(unittest.TestCase):
         return browser._page_for(browser.route)
 
 
+class TestTheAreaIsMeasured(ReaderHarness):
+    """The reader sizes its page bitmap to "the hole the bars left", by
+    measuring `AREA_ID` from the last pushed scene -- and that measurement
+    has never once succeeded.
+
+    **A plain Row or Column emits no scene node**, whatever `id` it carries;
+    only drawables (a Box with a background, an Image) keep an id. So
+    `node_rect("rd-area")` answered None on every frame and the fallback --
+    `window_height - TOP_BAR_H - BOTTOM_BAR_H` -- was the only path that ever
+    ran. That is right whenever the reader owns the whole window, which is
+    why nobody noticed, and too tall by exactly the now-playing bar when a
+    track is playing: the oversized bitmap is centred in its row and spills
+    over the reader's own top AND bottom bars.
+
+    The fixture is the other half of the story. `FakeApp.rects` starts empty
+    and every test left it that way, so the fake reproduced the bug's answer
+    (None) rather than the app's -- the measurement path was unreachable in
+    the suite for the same reason it was inert in production.
+    """
+
+    #: Enough of a track for the shell to draw the bar.
+    NOW_PLAYING = {"stopped": False, "is_audio": True, "id": "a1",
+                   "title": "Something", "artist": "Someone",
+                   "position": 10.0, "duration": 300.0}
+
+    SIZE = (1280, 800)
+
+    def _frame(self, browser):
+        """Render, then feed what layout produced back to the fake app --
+        which is what the real one does from the last pushed scene. Without
+        this the fake answers None forever and the reader never measures."""
+        nodes, _handlers = build_scene(browser, self.SIZE)
+        browser.app.rects = {n["id"]: n for n in nodes if n.get("id")}
+        return nodes
+
+    @staticmethod
+    def _by_id(nodes, node_id):
+        return next((n for n in nodes if n.get("id") == node_id), None)
+
+    def test_the_area_node_reaches_the_scene(self):
+        b = self.open_reader()
+        nodes = self._frame(b)
+        self.assertIsNotNone(
+            self._by_id(nodes, "rd-area"),
+            "the node the reader measures is not in the scene, so "
+            "`node_rect` answers None and the fallback runs on every frame")
+
+    def test_the_page_fits_the_hole_the_bars_left(self):
+        """The invariant, and it needs no bar heights: whatever the shell
+        put on screen, the page bitmap fits inside the area measured for
+        it."""
+        b = self.open_reader()
+        b._now_playing = dict(self.NOW_PLAYING)
+        self._frame(b)          # measure
+        nodes = self._frame(b)  # ...and bake to it
+        area = self._by_id(nodes, "rd-area")
+        page = self._by_id(nodes, "rd-page")
+        self.assertIsNotNone(area, "no area to fit into")
+        self.assertIsNotNone(page, "the page bitmap did not render")
+        self.assertGreaterEqual(
+            round(page["y"]), round(area["y"]),
+            "the page overflows the top of its area, covering the "
+            "reader's own top bar")
+        self.assertLessEqual(
+            round(page["y"] + page["h"]), round(area["y"] + area["h"]),
+            "the page overflows the bottom of its area, covering the "
+            "reader's controls and the now-playing bar")
+
+    def test_the_page_still_fills_the_window_without_a_bar(self):
+        """The control: the fallback was right for this case all along, and
+        a fix that shrinks the page whether or not anything is playing would
+        waste half the screen."""
+        b = self.open_reader()
+        b._now_playing = None
+        self._frame(b)
+        nodes = self._frame(b)
+        page = self._by_id(nodes, "rd-page")
+        self.assertIsNotNone(page)
+        self.assertGreater(
+            page["h"], self.SIZE[1] * 0.75,
+            "the page shrank on a window it has entirely to itself")
+
+
 class TestOpening(ReaderHarness):
     def test_a_downloaded_book_opens_and_draws_a_page(self):
         browser = self.open_reader()

@@ -11,14 +11,29 @@ see docs/browser-shell.md section 14.
 """
 
 import logging
+import sys
 
 log = logging.getLogger("mpvtk_browser.hud_control")
+
+
+def _caller(depth=2):
+    """``module.function:line`` of whatever asked for a transition.
+
+    Cheap: these happen a handful of times per session, not per frame.
+    """
+    try:
+        frame = sys._getframe(depth)
+        return "%s.%s:%d" % (frame.f_globals.get("__name__", "?"),
+                             frame.f_code.co_name, frame.f_lineno)
+    except Exception:
+        return "?"
 
 
 class HudController:
     """Owns the playback HUD's state and handles its events."""
 
-    def __init__(self, get_app, get_controller, invalidate, ctl, start_ticker):
+    def __init__(self, get_app, get_controller, invalidate, ctl, start_ticker,
+                 is_browsing=None):
         #: The live renderer handle. A callable rather than a value: the
         #: browser swaps it when mpv is re-created (``set_app``).
         self._get_app = get_app
@@ -29,6 +44,9 @@ class HudController:
         self._ctl = ctl
         #: Start the 1s clock ticker the bar shares with the music bar.
         self._start_ticker = start_ticker
+        #: "Is the library on screen right now", read live. The ONE place
+        #: the HUD invariant is enforced -- see :meth:`engage`.
+        self._is_browsing = is_browsing
         self.reset()
         self.state = None
 
@@ -73,13 +91,58 @@ class HudController:
                 and c is not None and getattr(c, "use_hud", None) is not None
                 and c.use_hud())
 
-    def engage(self):
+    def engage(self, reset=False):
         """``set_hud(True)`` with everything the renderer owns attached: the
         keyboard policy, the auto-hide delay and mode, the glyph shadow.
 
         Idempotent, and that matters -- re-engaging is the ONLY thing that
         carries a changed setting to the renderer, so those apply without a
-        restart. Full list: see docs/browser-shell.md section 14."""
+        restart. Full list: see docs/browser-shell.md section 14.
+
+        **Never while the library is on screen.** [iw] "Cursor hiding should
+        never happen when the main UI is visible, only the mpvtk HUD" -- and
+        that is the visible edge of a worse state. `set_hud(True)` is a MODE
+        CHANGE: `ui_suspend()` drops the mouse section, and the renderer
+        withholds `allow-hide-cursor` from that section precisely to keep the
+        pointer alive over a UI (docs/mpv-backends.md). So a HUD engaged over
+        the library hides the cursor, auto-hides after `hud_hide_secs` --
+        `phud_hide` calls `ui_suspend`, which takes the LIBRARY off screen --
+        and brings it back on motion, because `mouse-pos` is observed
+        directly and does not need the section.
+
+        Every call site already guards on `not self._browsing`; this is the
+        same rule in one place rather than four, so a guard evaluated a beat
+        before the flag flips cannot get past it. It can only ever REFUSE an
+        engage, never cause one.
+
+        ``reset`` is for a HANDOFF -- a new stream taking the window. The
+        renderer early-returns from `mpvtk-hud yes` when it is already in
+        HUD mode, so a restart (changing an audio or subtitle track on a
+        transcode deletes and re-creates it) re-established nothing: if the
+        bar was still up from the gear menu the user changed the track in,
+        `phud.shown` stayed true for a stream that had ended, summon was
+        never re-bound, and moving the mouse did nothing because the
+        renderer believed it was already showing. Measured in tests/lua/:
+        the wake binding is gone after the second engage and a False/True
+        cycle restores it.
+
+        Only a handoff resets. The other callers are re-sends -- a settings
+        change, a SyncPlay join, a fresh renderer -- and hiding a bar
+        somebody is using would be its own bug."""
+        if self._is_browsing is not None:
+            try:
+                if self._is_browsing():
+                    # WHICH caller is the finding. Every known call site
+                    # tests `not self._browsing` first, so a refusal means
+                    # one of them raced the flag or there is a fifth -- and
+                    # it fires reliably on a video -> music playlist advance
+                    # [iw], so it is not rare. Same reasoning, and the same
+                    # helper shape, as player_window._caller.
+                    log.debug("refusing a HUD engage while browsing <- %s",
+                              _caller())
+                    return
+            except Exception:
+                pass
         opts = None
         get = getattr(self.controller, "hud_key_opts", None)
         if get is not None:
@@ -87,6 +150,16 @@ class HudController:
                 opts = get()
             except Exception:
                 opts = None
+        if reset:
+            # Unconditional, not `if self.shown`: this mirror can be stale
+            # (the renderer owns the real answer) and the cycle is free when
+            # the HUD is not up -- `mpvtk-hud no` early-returns when the mode
+            # already matches.
+            try:
+                self.app.set_hud(False)
+            except Exception:
+                log.debug("could not reset the HUD", exc_info=True)
+            self.shown = False
         self.app.set_hud(True, opts)
 
     # -- scrubbing ---------------------------------------------------------

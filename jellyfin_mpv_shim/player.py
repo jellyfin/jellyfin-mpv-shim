@@ -29,7 +29,8 @@ from typing import TYPE_CHECKING, Optional
 from . import conffile
 import threading
 
-from .utils import same_origin, synchronous, Timer, get_resource
+from .utils import (same_origin, synchronous, Timer, get_resource,
+                    item_is_audio)
 from .media import segment_labels
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
@@ -506,7 +507,7 @@ def _item_is_audio(video):
     mpv's track list, so it answers before a byte has been demuxed.
     """
     item = getattr(video, "item", None) or {} if video is not None else {}
-    return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
+    return item_is_audio(item)
 
 
 def _rank_stream(prev_source, prev_index, streams, stream_type):
@@ -1516,7 +1517,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # bitmaps and steals the arrow keys from the browser, so it
             # must not open here even when the HUD declines (browsing,
             # idle, no video).
-            if self._video is not None and self.on_hud_menu is not None:
+            if self._video_on_screen() and self.on_hud_menu is not None:
                 try:
                     self.on_hud_menu()
                 except Exception:
@@ -2192,6 +2193,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._last_ui_seek_time = time.time()
         self.seek(target, absolute=True)
 
+    def _apply_resume_offset(self, offset):
+        """Seek to the saved position on a fresh start.
+
+        **Marked as one of ours**, which is the whole reason this is a method:
+        `_on_seeking` treats any forward seek while `is_in_intro` as the
+        user asking to skip (`skip_intro_on_seek`), and a resume INTO an
+        intro is a forward seek. So quitting mid-intro and resuming skipped
+        the intro on open with no input at all. The exemption already exists
+        for seeks the UI makes; the resume simply never claimed it, and
+        keeping the claim next to the seek is what stops the two drifting.
+        """
+        self.last_seek = offset
+        self._last_ui_seek_time = time.time()
+        self._player.playback_time = offset
+
     def timeline_handle(self):
         if self.timeline_trigger:
             self.timeline_trigger.set()
@@ -2289,10 +2305,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 # button (scene button while summoned, standalone
                 # overlay while idle) instead of the seek-to-skip OSD
                 # text prompt; _hud_skip carries the live segment.
-                hud_skip_button = (
-                    getattr(self, "_osc_style_resolved", None) == "mpvtk"
-                    and self.mpvtk_active
-                )
+                # Two questions, and one boolean used to answer both.
+                # "Is there a HUD at all" decides whether the OSD-text
+                # prompt is the fallback; "is the renderer attached right
+                # now" does not, and conflating them put "Seek to Skip" on
+                # screen while CASTING -- where the renderer is detached,
+                # and where there is no local keyboard to seek with anyway.
+                # The segment is still tracked, so the playstate carries
+                # `skip_label` for whatever is driving.
+                have_hud = (
+                    getattr(self, "_osc_style_resolved", None) == "mpvtk")
 
                 if intro is not None:
                     action = conf.segment_action(intro.type)
@@ -2318,7 +2340,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                             segment_labels(intro.type)[1], 3000, 1)
                         self._last_intro_msg_time = time.time()
 
-                    if hud_skip_button:
+                    if have_hud:
                         self._hud_skip = (
                             intro if should_prompt and not should_skip
                             else None
@@ -2326,6 +2348,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     elif (
                         not self.is_in_intro
                         and should_prompt
+                        # The message is "Seek to Skip X", and seeking only
+                        # skips when `skip_intro_on_seek` is on -- which is
+                        # OFF by default. Without this it told every
+                        # classic-OSC user to make a gesture that does
+                        # nothing, for the whole of every intro.
+                        and settings.skip_intro_on_seek
                         and time.time() - self._last_intro_msg_time > 3
                     ):
                         self._player.show_text(
@@ -3002,8 +3030,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             win_utils.raise_mpv()
 
         if offset is not None and offset > 0:
-            self.last_seek = offset
-            self._player.playback_time = offset
+            self._apply_resume_offset(offset)
 
         if not no_initial_timeline:
             self.send_timeline_initial()
@@ -4942,6 +4969,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         reason.
         """
         return self._video is None or self._current_is_audio()
+
+    def _video_on_screen(self):
+        """The complement of :meth:`_library_showing`, by name.
+
+        Both meanings were spelled `self._video`, so no reader could tell
+        which one a site meant without deriving it -- and three sites got it
+        wrong that way. Derived from the other, never a second answer to the
+        same question.
+        """
+        return not self._library_showing()
 
     def _library_has_input(self):
         """The *library* owns input — not merely the renderer.

@@ -530,10 +530,20 @@ class RelocateTest(TmpTest):
         self.assertEqual(m.db.get("keep")["status"], STATUS_COMPLETE)
 
     def test_noop_when_path_unchanged(self):
+        """Success, but it must SAY it did nothing.
+
+        The caller shows ``message or "Download folder moved"``, so an empty
+        string here claimed a move that never happened -- which is how a
+        dead Move button read as a working one: clearing the field sent the
+        current path back in, this branch answered, and the status line
+        reported a move. Asserting the message rather than its absence is
+        the difference.
+        """
         m = make_manager(self.tmp, self.addCleanup)
         ok, msg = m.relocate(self.tmp)
         self.assertTrue(ok)
-        self.assertEqual(msg, "")
+        self.assertTrue(msg, "a no-op reported itself as a completed move")
+        self.assertIn("already", msg.lower())
 
     def test_refuse_while_download_active(self):
         m = make_manager(self.tmp, self.addCleanup)

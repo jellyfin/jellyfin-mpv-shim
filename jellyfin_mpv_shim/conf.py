@@ -665,7 +665,7 @@ class Settings(SettingsBase):
     # because it is a preference about how somebody reads comics, not
     # about one comic -- a reader who wants whole pages wants them for
     # every book, and picking it again per volume is the annoyance.
-    comic_fit: str = "width"
+    comic_fit: str = "page"
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.

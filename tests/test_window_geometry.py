@@ -125,6 +125,52 @@ class SyncOnPlaybackTest(_GeometryTest):
         pm._sync_window_geometry()   # must not raise on the load path
 
 
+class SyncOnPictureTest(_GeometryTest):
+    """A comic page is a load too, and it was the one load that skipped this.
+
+    `_sync_window_geometry` had exactly one caller -- `_play_media`. But
+    `show_picture` also hands mpv a file, which is a VO reconfig, and X11
+    re-applies the geometry option on reconfig. So the window jumped back to
+    whatever was armed the last time something PLAYED, and the mechanism that
+    makes that re-apply a no-op never ran for a picture.
+
+    Reported from the outside as: resize the window by dragging it, then open
+    a comic, and it jumps [iw]. That is the precondition -- a WM drag moves
+    the window without touching mpv's geometry option, so live size and armed
+    value diverge, which is the only state in which the re-apply is visible.
+    """
+
+    def _picture_pm(self, **kw):
+        pm = self._pm(**kw)
+        pm._mpv_alive = True
+        pm._video = None
+        pm._showing_browse_bg = True
+        pm._suspend_shaders_for_still = lambda: None
+        pm._player.command = lambda *a, **k: None
+        return pm
+
+    def test_showing_a_picture_re_arms_to_the_live_size(self):
+        pm = self._picture_pm(armed="1280x720", w=1600, h=900)
+        self.assertTrue(pm.show_picture("/tmp/page.png"))
+        self.assertEqual(
+            pm._geometry_armed, "1600x900",
+            "opening a picture left the geometry armed at the size something "
+            "else was playing at, so the VO reconfig snaps the window back")
+
+    def test_an_unchanged_size_is_still_not_rewritten(self):
+        """The same restraint as the playback path: a redundant write is a
+        resize command, and un-maximizes on Windows and X11."""
+        pm = self._picture_pm(armed="1280x720", w=1280, h=720)
+        self.assertTrue(pm.show_picture("/tmp/page.png"))
+        self.assertEqual(pm._player.geometry_writes, [])
+
+    def test_a_maximized_window_is_left_alone_for_a_picture_too(self):
+        pm = self._picture_pm(armed="1280x720", w=1600, h=900,
+                              maximized=True)
+        self.assertTrue(pm.show_picture("/tmp/page.png"))
+        self.assertEqual(pm._player.geometry_writes, [])
+
+
 class MinimizeOrderTest(_GeometryTest):
     """Releasing force_window destroys the window; the re-arm rides after."""
 

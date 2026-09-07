@@ -21,8 +21,8 @@ import logging
 
 from ...books import fraction_of, ticks_for_fraction
 from ...i18n import _
-from ...mpvtk.widgets import (Button, Column, Dropdown, ImageMap, Menu,
-                              Row, Spacer, Text)
+from ...mpvtk.widgets import (Box, Button, Column, Dropdown, ImageMap,
+                              Menu, Row, Spacer, Text)
 from .. import theme
 from ..components import chrome
 from .base import Page
@@ -570,9 +570,10 @@ class ReaderPage(Page):
             message = _("The download failed.")
         else:
             message = _("Getting the book…")
-        return Column([Spacer(), Text(message, size="large",
-                                      color=theme.SUBTLE_FG, align="center"),
-                       Spacer()], id=self.AREA_ID, flex=1, align="center")
+        return Box([Spacer(), Text(message, size="large",
+                                   color=theme.SUBTLE_FG, align="center"),
+                    Spacer()], id=self.AREA_ID, flex=1, align="center",
+                   bg="000000", alpha=0)
 
     def _sync_style(self, doc):
         """Adopt the settings if they have moved since the last frame.
@@ -599,8 +600,8 @@ class ReaderPage(Page):
         entry = self._bitmap(doc, raster(page_w, page_h), (page_w, page_h),
                              self.palette_name())
         if entry is None:
-            return Column([Spacer(), chrome.busy(), Spacer()],
-                          id=self.AREA_ID, flex=1)
+            return Box([Spacer(), chrome.busy(), Spacer()],
+                       id=self.AREA_ID, flex=1, bg="000000", alpha=0)
         # An ImageMap rather than an Image under transparent boxes: regions
         # are the toolkit's answer for "this bitmap is clickable in places"
         # (GUIDE §6). A click on the right-hand side turns forward, on the
@@ -618,10 +619,17 @@ class ReaderPage(Page):
              "h": lh, "zone": True, "on_click": lambda: self._turn(1),
              "on_context": self._open_menu},
         ]
-        return Row([ImageMap(entry["src"], entry["iw"], entry["ih"],
+        # A `Box` with a fully transparent background, not a `Row`, and the
+        # difference is the whole of this: **a plain container emits no
+        # scene node**, whatever id it carries -- only drawables (a Box with
+        # a bg, an Image) keep one. So `node_rect(AREA_ID)` answered None on
+        # every frame and `_area_height`'s fallback was the only path that
+        # ever ran. `alpha=0` draws nothing and measures.
+        return Box([ImageMap(entry["src"], entry["iw"], entry["ih"],
                              id=self.PAGE_ID, regions=regions, w=lw, h=lh,
                              v=entry.get("v", 0))],
-                   id=self.AREA_ID, flex=1, justify="center", align="center")
+                   direction="row", id=self.AREA_ID, flex=1,
+                   justify="center", align="center", bg="000000", alpha=0)
 
     def _bitmap(self, doc, physical, logical, palette_name):
         """The current page's bitmap entry, composited on the pool.

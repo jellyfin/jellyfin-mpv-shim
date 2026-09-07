@@ -151,6 +151,12 @@ then dropped in the same commit).
 | F29 | `player.py` load gate / `_on_cache_pause` | Field report, below. |
 | F35 | `renderer.lua` `phud_skip_bind` | Binds literal `'ENTER'` for the Skip button whatever `hud_wake_key` says, so a moved wake key leaves ENTER accepting a skip. Found while doing #717 and deliberately left: it is a `hud_wake_key` bug, and it wants a decision about whether the idle Skip offer follows the wake key or `ui_select_key`. |
 | F36 | `media.py` `get_playback_url` | Asking for a track pins `MediaSources[0]`, so a multi-version item loses the unplayable retry. Accepted for 3.0.0; below. |
+| F37 | `renderer.lua` `keyclaim.block_take` | `browse_block_keys` swallows `q`/`f`/`p` in the library, defeating the player's STANDING fullscreen claim. Two claim mechanisms; below. |
+| F38 | `player_window.py` picture path | **Unverified.** The playback HUD stops appearing after several photo/video handoffs. Needs evidence; below. |
+| F39 | `player_window.py` `clear_picture` / `set_browse_window` | The window jump moved from opening a comic to LEAVING one. Cosmetic, and the open half is fixed. |
+| F40 | `player_window.py` `_apply_browse_fullscreen` | Reported edge case: the browse preference does not leave fullscreen when `fullscreen` is unset. Not yet reproduced. |
+| F41 | `mpvtk_browser/app.py` `_yield` | **Diagnosed and closed.** A yield overtaken by `enter_browse` engaged the HUD over the library. Below, kept for the shape. |
+| F42 | `settings/general.py` `_sync_path` | The dict holding the typed download folder is created once and never cleared, so a value can outlive the field that produced it. Below. |
 
 ### F29 — sleeping NAS, not reproduced
 
@@ -233,3 +239,200 @@ That is a real change to the negotiation order and wants its own round.
 right and points at a worse fix — restoring the server's choice would take the
 remembered tracks with it. The server sorts by width; the shim sorts by
 playability; they disagree exactly where this bites.
+
+### F37 — the key block defeats the player's own claims
+
+**Deferred past 3.0.0 by decision** [iw]: "ALT+F4 or settings can escape
+fullscreen." It is a change to the input arbiter — the surface with the worst
+regression record here (three in 48 hours, `tests/e2e/test_input_routing.py`)
+— and the ask is a convenience, not a repair of something that used to work
+for a user.
+
+**What happens.** `browse_block_keys` (default on, #730) installs a forced
+`any_unicode` binding that swallows every printable key while the library is
+up, so `q`, `f` and `p` do nothing there. A forced binding that returns does
+not hand the key back, so "not handled" means "gone".
+
+**Why `f` is the interesting one.** `_bind_mpv_handlers` sets a **standing**
+claim — `self._key_claims["fullscreen"] = {keysweep.FULLSCREEN}` — with a
+comment explaining that recording "the user asked for fullscreen" is always
+wanted. That claim is installed as an mpv input section, and the block's
+`any_unicode` binding shadows it. `block_take` does consult a claim set, but
+it is `state.keys`, the **renderer's** set (what a page claimed through
+`claim_keys`), not the player's.
+
+So this is not a missing entry in a list. It is two claim mechanisms that do
+not know about each other, and the block honours one of them.
+
+**What a fix has to answer.** How a blocked key reaches the player's claim
+section, given that the forced binding cannot pass a key through. The
+existing machinery is on the Python side: `_swept_keys()` already maps key →
+(semantic, arg), and `_on_claimed_key` already carries out fullscreen, pause
+and seek through the operations that know about SyncPlay and about
+remembering the choice. So the plausible shape is the renderer routing a
+blocked-but-claimed key to that dispatcher rather than swallowing it — but
+that is a new channel through the arbiter, and it wants a real-mpv matrix
+run, not a unit test.
+
+**And the ESC half, now confirmed twice** [iw]: in the comic reader and the
+epub reader there is "no keyboard only way to kill the focus ring without ESC
+which also exits the reader". ESC should drop the ring first and only page back
+on a second press. It belongs here rather than in its own entry because it is
+the same decision -- what the library's keyboard policy is -- and splitting it
+would produce two guards where the repair is one rule. The claim-swallowing
+half of that report IS fixed (`keyclaim.nav_names` in `keyclaim.take`); this is
+what is left.
+
+**Also wanted in the same pass** [iw]: `p` while music is playing, and a
+check that none of it breaks text entry. `m` and SPACE already work during
+music (they are claimed and routed), which is the behaviour the rest should
+match. The focus-ring half of the same report is fixed — see
+`keyclaim.nav_names` in `keyclaim.take`.
+
+### F38 — the HUD stops appearing after photo/video handoffs
+
+**Reported, not reproduced.** "Photo -> video -> photo ... this kills the HUD
+after a few video skips, not sure why." Several handoffs in, the playback HUD
+no longer summons.
+
+**Ruled out, by driving them:** the browser's `on_playstate` is correct across
+every photo/video alternation tried (photo, photo->video, photo->video->photo,
+four alternations, five video advances, and each with a `stopped` push in the
+middle) -- `hud.state` stays set and `set_hud(True)` keeps being sent. The
+renderer's own lifecycle is correct across the equivalent message sequence in
+`tests/lua/`, including from an auto-hidden HUD. `_release_page_grabs` drops a
+key claim and the pan model and touches neither.
+
+**Reproduced, in part** (`tests/lua/`, 2026-09-07). Izzie's ordering was
+photo x3 -> video -> video, and repetition is the point rather than the
+photo/video mix. The `mpvtk-hud` handler early-returns when the mode already
+matches:
+
+    if want == state.phud.mode then return end
+
+Summoning the HUD unbinds the wake key -- correct, it is already up. The next
+item's `set_hud(True)` then hits that early return, so `state.phud.shown` stays
+true for an item that is gone and **nothing re-binds summon**. Measured: after
+the second video the wake binding does not exist and mouse moves produce no HUD
+event at all, because the renderer believes it is already showing.
+
+**FIXED**, once a second report gave the trigger: changing an audio or
+subtitle track during a transcode deletes and re-creates it, so the loading
+screen comes up and `LoadFeedback.clear()` hands off through `_yield()` --
+which engages while the renderer is ALREADY in HUD mode, hits the early
+return, and re-establishes nothing. The bar the user changed the track in was
+still up, so `phud.shown` stayed true for a stream that had ended.
+Intermittent because it depends on the bar still being up when the handoff
+lands; the auto-hide firing first re-binds summon and it recovers on its own,
+which is why the first reproduction looked self-healing.
+
+The decision the fix needed: the renderer cannot tell "a new stream started"
+from "a setting changed" -- `hud.engage()` is both -- but the PYTHON side can.
+`_yield()` is a handoff by definition, so it now engages with `reset=True`,
+which cycles `set_hud(False)`/`set_hud(True)` and returns the HUD to a clean
+idle. Every other caller is a re-send (settings, SyncPlay, a fresh renderer)
+and must NOT hide a bar somebody is using; that is the control test.
+
+**The other suspect, still open, is the picture path and its deferral.** `show_picture`
+/ `clear_picture` reach the player through `run_action`, which defers whenever
+the player lock is busy -- and it is busy for the whole of a playback start.
+`clear_picture` guards on `self._video is not None` **with no `_loading`
+half**, where its sibling `reset_picture_view` guards on `self._video is None
+and not self._loading`. `_video` is not assigned until the duration wait
+succeeds, so a deferred `clear_picture` landing mid-start passes its guard and
+calls `set_browse_window(True)`. That is F15's asymmetry with a symptom
+attached, and it is the first evidence for it -- but it is a hypothesis, and
+the last two fixes made from a hypothesis in this area both had to be redone.
+
+**Before acting, ask for** `log.txt` from the affected run, grabbed *before*
+relaunching (it is rewritten on every start). `wlog` logs every
+`set_browse_window` with its caller, which is exactly the line that would
+settle this.
+
+### F39 — the comic window jump moved rather than went away
+
+`f583dc7f` gave `show_picture` the `_sync_window_geometry` call that every
+other load already had, and the reported jump on **opening** a comic is gone.
+The hand pass then found it on **leaving** one instead.
+
+Not diagnosed. The shape to check first: the reader borrows `keepaspect`, so
+the window can change size while a page is up; `set_browse_window(True)` on
+the way out turns it off and re-arms nothing, so the geometry armed before the
+comic is what the VO reconfig re-applies. Whether that is a jump or a restore
+is a product question as much as a bug.
+
+Cosmetic, one window resize, and the half that draws over the page is fixed.
+
+### F40 — browse fullscreen and the playback setting
+
+Reported: "fullscreen library browser does not exit fullscreen when regular
+fullscreen setting is not set." Not reproduced -- `_apply_browse_fullscreen`
+reads `browser_fullscreen or headless` for the ON direction and
+`_library_showing()` for the OFF one, and `settings.fullscreen` is not in
+either. So either the path is a different one (`set_fullscreen`, or the
+live-apply in `apply_browser_fullscreen`) or the report is about a state
+neither of us has pinned down. Wants a reproduction before a fix.
+
+### F41 — a HUD engage while the library is on screen, caller unknown
+
+**The symptom is fixed and the cause is not found.** `HudController.engage`
+refuses while `_browsing` (659bb8c7), which closes the reported bug: a video
+-> music playlist advance left the renderer in HUD mode with the library
+drawn, so the cursor hid, the library vanished after `hud_hide_secs`
+(`phud_hide` calls `ui_suspend`) and came back on motion (`mouse-pos` is
+observed and needs no input section).
+
+**The caller, named by the log on its first use:**
+
+    Player is busy; deferring UI action to the action thread
+    window: browse=on <- gateway.playback.on_browse_enter:23
+    refusing a HUD engage while browsing <- app._yield:2294
+
+`_yield` clears `_browsing` **first** and engages **last**, and the work in
+between is not atomic. `_tell_controller("on_browse_leave")` reaches the
+gateway, `run_action` defers because the player lock is held for the whole
+of a playback start, and the next queue item -- the song -- runs
+`enter_browse()` inside that window. The engage that follows is **stale by
+the time it runs**: one call spanning a re-entry, not a fifth caller and not
+a flag read early, which is why every call-site guard looked correct and why
+neither harness reproduced it from a message sequence.
+
+Pinned by `TheCursorNeverHidesOverTheLibraryTest`, which re-enters browse
+from the leave callback -- exactly where the log shows it happening -- and
+fails without the guard.
+
+**Why the repair stays in `engage()`** rather than becoming a second check
+inside `_yield`: the stale-engage shape belongs to any caller whose work can
+span a re-entry, and `_yield` is simply the one that does. One authority, at
+the point that can see the current answer. It can only ever refuse an
+engage, never cause one.
+
+The lesson worth keeping is about the instrument, not the bug: three
+reproduction attempts from message sequences failed, and a one-line
+`_caller()` on the refusal named it the first time it fired. Same reasoning
+as `player_window._caller` -- "which caller it was IS the finding".
+
+### F42 — the download-folder field remembers across pages
+
+`_sync_path` is created once (`app.py`, `self._sync_path = {}`) and written
+by the folder TextBox's `on_change`. **Nothing ever clears it.** So a path
+typed once, on any visit to Settings, stays in that dict for the life of the
+browser -- and the Move button reads it in preference to the value the field
+is showing.
+
+Found while fixing the reported "moving to an empty folder is a no-op",
+which was the sibling bug in the same expression (`get("path") or val`
+could not tell "not edited" from "cleared"). That half is fixed and tested;
+this half is not, and it is the risk map's
+"`_sync_path` is Tier 1 and destructive -- Move relocates the store to a
+path the visible field is not showing".
+
+**Why it is not fixed here**: the obvious repair -- seed the dict from the
+current setting when the row is built -- runs on every repaint and would
+clobber an edit in progress, which is the standing footgun of this shell
+(docs/browser-shell.md: a screen is rebuilt from scratch on every repaint).
+The right fix is to clear it when the settings route is entered or retired,
+and that wants a look at `_retire_page` rather than a line in a builder.
+
+Reachable, but it needs a typed-then-abandoned edit followed by a Move on a
+later visit, and the destination is still confirmed for the empty case.

@@ -39,6 +39,61 @@ class Timer(object):
         return (datetime.now() - self.started).total_seconds()
 
 
+
+#: Containers that hold audio but carry no MediaType of their own.
+#: A music PLAYLIST is deliberately absent: it *does* carry one, computed by
+#: the server from its contents (PlaylistManager.cs sets MediaType.Audio or
+#: .Video), so `item_is_audio` already answers for it -- and a hardcoded list
+#: is what got this wrong.
+_AUDIO_CONTAINERS = ("MusicAlbum", "MusicArtist", "MusicGenre")
+
+
+def launches_as_audio(item, collection_type=None, first=None):
+    """Whether starting ``item`` should keep the library on screen with the
+    now-playing bar, instead of handing the window to a video.
+
+    The browser picks browse mode or HUD mode from this, and HUD mode's
+    auto-hide calls ``ui_suspend`` -- so a wrong answer does not misplace a
+    bar, it **blanks the library** the moment the pointer leaves.
+
+    ``first`` is the entry that will actually start, and **it wins outright**
+    when the caller has it. A container's own label is a summary and can be
+    wrong: a playlist can arrive looking like video while holding music [iw],
+    because the server derives `Playlist.MediaType` from the contents and the
+    two can disagree by the time the DTO reaches us. It is also the only
+    answer that is right for a MIXED playlist, where what is queued first is
+    what ends up on screen.
+
+    Without it: the item's own MediaType, then the containers that carry
+    none, then the library it came from. All three are guesses, and the
+    playstate that follows corrects them -- this only decides whether the
+    user sees a flash first.
+    """
+    item = item or {}
+    if first is not None:
+        return item_is_audio(first)
+    if item_is_audio(item):
+        return True
+    if item.get("Type") in _AUDIO_CONTAINERS:
+        return True
+    return (collection_type or item.get("CollectionType")) == "music"
+
+
+def item_is_audio(item):
+    """Whether a Jellyfin item is audio, from its metadata alone.
+
+    **The server is not consistent about which field carries it**, so both
+    are checked -- and a site testing only `Type` gets an *audiobook* wrong
+    (`Type="AudioBook"`, `MediaType="Audio"`), which is how one of these
+    launched down the video branch and handed the window away.
+
+    Here rather than in `player`: the browser asks it at launch time and
+    importing `player` builds an mpv.
+    """
+    item = item or {}
+    return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
+
+
 def synchronous(tlockname: str):
     """
     A decorator to place an instance based lock around a method.
