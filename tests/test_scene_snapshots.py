@@ -7,7 +7,18 @@ check, and a decomposition can preserve all of them while quietly moving a
 row, dropping a badge or re-ordering a column.
 
 Because ``layout()`` produces the exact node list pushed to the renderer, a
-matching snapshot means matching pixels.
+matching snapshot means matching pixels **of the scene layer**.
+
+**It says nothing about the composite, and that is where this suite's visual
+defects have actually been.** What a user sees is the scene's bitmaps drawn
+*over* mpv's video output, and the VO is not in the node list at all — a comic
+page is rendered by mpv, so a snapshot of the reader shows the bars and not
+the page. Every cross-feature visual break found in the 2026-09 sweep was of
+that shape: a theme gradient and Custom OSC's backdrop were each a correct
+scene node, the page underneath was a correct VO frame, and only the
+composition was wrong. `MpvtkApp.screenshot` (``screenshot-to-file … window``)
+is what captures both layers together; `tools/shoot_browser.py` drives it, and
+nothing asserts on the result.
 
 **When one of these fails during a refactor**, that is the tool working. Read
 the diff; if the change is intended, regenerate:
