@@ -462,12 +462,40 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
         Was an `assertIn('== "mpvtk"')` against `update()`'s SOURCE, which
         passes for any arrangement of that string -- including the one this
         pair of tests exists to tell apart."""
-        self.assertIsNone(
-            self._hud_skip_after_update(osc_style="none",
-                                        segment_intro="ask"))
+        from jellyfin_mpv_shim.conf import settings
+
+        with mock.patch.object(settings, "skip_intro_on_seek", True):
+            self.assertIsNone(
+                self._hud_skip_after_update(osc_style="none",
+                                            segment_intro="ask"))
         self.assertTrue(self._prompts(),
                         "no HUD and no OSD prompt either: the segment is "
                         "unskippable")
+
+    def test_the_osd_prompt_is_silent_when_seeking_would_not_skip(self):
+        """The message is "Seek to Skip X" and `skip_intro_on_seek` is OFF by
+        default, so on a classic OSC it told the user to make a gesture that
+        does nothing -- for the whole of every intro, every episode.
+
+        Reported: "Seek to skip doesn't seem to actually work via keyboard,
+        but I have 'Skip intro on seek' turned off so the prompt shouldn't
+        appear."
+        """
+        from jellyfin_mpv_shim.conf import settings
+
+        with mock.patch.object(settings, "skip_intro_on_seek", False):
+            self._hud_skip_after_update(osc_style="none", segment_intro="ask")
+        self.assertEqual([], self._prompts(),
+                         "the prompt named a gesture that is switched off")
+
+    def test_the_osd_prompt_returns_when_the_gesture_works(self):
+        """The control -- and the half a blanket suppression would break."""
+        from jellyfin_mpv_shim.conf import settings
+
+        with mock.patch.object(settings, "skip_intro_on_seek", True):
+            self._hud_skip_after_update(osc_style="none", segment_intro="ask")
+        self.assertTrue(self._prompts(),
+                        "seeking skips, but nothing said so")
 
     def test_the_hud_suppresses_the_osd_prompt(self):
         self.assertIsNotNone(
@@ -816,6 +844,73 @@ class TestNoPlayerControls(unittest.TestCase):
 
     def test_the_setting_is_gone_rather_than_migrated(self):
         self.assertFalse(hasattr(settings, "enable_osc"))
+
+
+class ResumingIntoAnIntroDoesNotSkipItTest(unittest.TestCase):
+    """Reported: "If the video is quit and resumed while inside an intro, it
+    skips it on open without user input."
+
+    `_on_seeking` reads any forward seek made while `is_in_intro` as the user
+    asking to skip -- that is what `skip_intro_on_seek` is. The resume seek on
+    a fresh start is a forward seek, and it never claimed the exemption that
+    the UI's own seeks have, so the segment was skipped before the user had
+    touched anything.
+
+    A method rather than two statements at the call site: the claim and the
+    seek have to stay together, and a name is what stops the next edit
+    separating them.
+    """
+
+    def _pm(self):
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._player = _Player()
+        pm.do_not_handle_pause = False
+        pm.is_in_intro = True
+        pm.playback_time_before_seek = None
+        pm.last_seek = None
+        pm._last_ui_seek_time = 0.0
+        pm.skips = []
+        pm.skip_intro = lambda: pm.skips.append(1)
+        pm.syncplay = type("S", (), {"is_enabled": staticmethod(
+            lambda: False)})()
+        return pm
+
+    def _seek_round_trip(self, pm, before, after):
+        """mpv reports a seek as `seeking` true then false."""
+        pm._player.playback_time = before
+        pm._on_seeking("seeking", True)
+        pm._player.playback_time = after
+        pm._on_seeking("seeking", False)
+
+    def test_a_resume_into_an_intro_leaves_it_alone(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        pm = self._pm()
+        with mock.patch.object(settings, "skip_intro_on_seek", True):
+            pm._apply_resume_offset(30.0)
+            self._seek_round_trip(pm, 0.0, 30.0)
+        self.assertEqual(pm._player.playback_time, 30.0,
+                         "the resume did not seek at all")
+        self.assertEqual(pm.skips, [],
+                         "resuming inside an intro skipped it with no input")
+
+    def test_a_real_forward_seek_still_skips(self):
+        """The control. The feature is the whole point of the setting, and a
+        fix that exempted every seek would switch it off."""
+        from jellyfin_mpv_shim.conf import settings
+
+        pm = self._pm()
+        with mock.patch.object(settings, "skip_intro_on_seek", True):
+            self._seek_round_trip(pm, 10.0, 40.0)
+        self.assertEqual(pm.skips, [1], "a user forward seek did not skip")
+
+    def test_the_setting_still_governs(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        pm = self._pm()
+        with mock.patch.object(settings, "skip_intro_on_seek", False):
+            self._seek_round_trip(pm, 10.0, 40.0)
+        self.assertEqual(pm.skips, [])
 
 
 class TestMediaSegmentTypes(unittest.TestCase):
