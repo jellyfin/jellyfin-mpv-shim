@@ -27,6 +27,18 @@ render_log = logging.getLogger("mpvtk.render")
 
 _RENDERER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "renderer.lua")
 
+
+class _Unknown:
+    """"We do not know what the renderer holds" -- distinct from every value
+    a caller can push, which is why it is not None: `set_picture_pan(None)`
+    is a real request ("stop panning") and has to be sendable."""
+
+    def __repr__(self):
+        return "UNKNOWN"
+
+
+UNKNOWN = _Unknown()
+
 _SPAWN_OPTS = {
     "idle": "yes",
     "force_window": "yes",
@@ -948,12 +960,30 @@ class MpvtkApp:
         close and a tray reopen they would answer "already pushed" about a
         claim that no longer exists — and a reader would come back with
         LEFT/RIGHT walking the focus ring and SPACE toggling mpv's pause.
+
+        **`UNKNOWN`, not empty, and only that is the difference between the
+        two directions.** The renderer drops those things when it goes
+        INACTIVE. On the way back IN it drops nothing -- `mpvtk-active yes`
+        never calls `keyclaim.set({})` -- so recording "we have pushed the
+        empty set" is a claim about the renderer that is false. The next
+        genuine release then compares equal and is skipped, and the keys
+        stay force-bound with nothing driving them.
+
+        Reported: play music (which claims 9/0/m/SPACE so the key block
+        cannot swallow them), STOP it, then start a video -- SPACE and m are
+        dead for the video while `p`, which is never claimed, still works.
+        Stopping is what routes through `enter_browse` -> `set_active(True)`;
+        going straight from music to a video releases correctly, because the
+        cache still held the real value.
+
+        A sentinel rather than leaving the cache alone: after a renderer
+        restart it is stale either way, and "unknown" costs one extra push.
         """
         # Under the same lock the two pushes use, so a claim or a pan model
         # already in flight cannot store itself over the forgetting.
         with self._pan_lock:
-            self._claimed_keys = ()
-            self._picture_pan = None
+            self._claimed_keys = UNKNOWN
+            self._picture_pan = UNKNOWN
         self.backend.command(
             "script-message", "mpvtk-active", "yes" if active else "no"
         )
