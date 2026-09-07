@@ -192,3 +192,84 @@ class LibraryHasInputTest(unittest.TestCase):
                     self._has_input(video, False),
                     "%s: the renderer does not hold input, so the library "
                     "does not either" % label)
+
+
+class _FakeWindow:
+    """Enough mpv for `show_picture`, recording what it was told."""
+
+    def __init__(self):
+        self.loaded = []
+        self.keepaspect = False
+        self.osd_width, self.osd_height = 1280, 720
+        self.window_maximized = False
+        self.fullscreen = False
+        self.image_display_duration = 1
+        self.keep_open = False
+        self.fs = False
+
+    def command(self, *args):
+        if args and args[0] == "loadfile":
+            self.loaded.append(args[1])
+
+
+def _window_pm(video):
+    import threading
+
+    pm = _pm(video)
+    # `__new__` skips `__init__`, so the RLock the @synchronous methods take
+    # does not exist yet. A real one, not a stub: re-entrancy across these
+    # methods is load-bearing (show_picture calls stop, which is synchronous).
+    pm._lock = threading.RLock()
+    pm._player = _FakeWindow()
+    pm._mpv_alive = True
+    pm._loading = False
+    pm._geometry_armed = "1280x720"
+    pm._showing_browse_bg = True
+    pm._suspend_shaders_for_still = lambda: None
+    pm.stopped = []
+    pm.stop = lambda *a, **k: pm.stopped.append(1)
+    return pm
+
+
+class FullscreenPersistTest(unittest.TestCase):
+    """Which settings key a persisted fullscreen toggle lands in.
+
+    `set_fullscreen`'s docstring states the rule -- "browsing writes
+    browser_fullscreen, playback writes fullscreen. They're separate settings
+    precisely because people want different answers for the two" -- and the
+    line below it asked `_video is not None`. So a toggle made while music
+    played was stored as the VIDEO preference, which silently armed or
+    disarmed auto-fullscreen for the next film.
+    """
+
+    def _persist(self, video, enabled):
+        from jellyfin_mpv_shim.conf import settings
+
+        pm = _window_pm(video)
+        before = (settings.fullscreen, settings.browser_fullscreen,
+                  settings.save)
+        settings.save = lambda *a, **k: None
+        settings.fullscreen = settings.browser_fullscreen = not enabled
+
+        def restore():
+            (settings.fullscreen, settings.browser_fullscreen,
+             settings.save) = before
+        self.addCleanup(restore)
+        pm.set_fullscreen(enabled, persist=True)
+        return settings.fullscreen, settings.browser_fullscreen
+
+    def test_the_key_follows_what_is_on_screen(self):
+        for label, video, showing in STATES:
+            with self.subTest(state=label):
+                video_key, browser_key = self._persist(video, True)
+                if showing:
+                    self.assertTrue(browser_key,
+                                    "%s: the library's own preference was "
+                                    "not recorded" % label)
+                    self.assertFalse(
+                        video_key,
+                        "%s: this wrote the VIDEO setting, so the next film "
+                        "goes fullscreen unasked (or stops doing so)" % label)
+                else:
+                    self.assertTrue(video_key, "%s" % label)
+                    self.assertFalse(browser_key, "%s" % label)

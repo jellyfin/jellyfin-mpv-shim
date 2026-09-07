@@ -395,7 +395,12 @@ class WindowMixin:
         self.fullscreen_disable = not enabled
         if not persist:
             return
-        key = "fullscreen" if self._video is not None else "browser_fullscreen"
+        # `_library_showing()`, not `_video is not None`: music keeps
+        # `_video` set and keeps the library up, so a toggle made while a
+        # track played was persisted as the VIDEO preference -- which also
+        # arms auto-fullscreen for the next film, or turns it off, without
+        # the user touching a video setting.
+        key = "browser_fullscreen" if self._library_showing() else "fullscreen"
         if getattr(settings, key) == enabled:
             return
         setattr(settings, key, enabled)
