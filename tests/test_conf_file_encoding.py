@@ -109,6 +109,46 @@ class ConfigFileEncodingTest(unittest.TestCase):
                         "caller can tell the user rather than silently "
                         "running on defaults")
 
+    def test_a_config_we_could_not_read_is_never_written_over(self):
+        """**A failed load makes the session read-only.**
+
+        Refusing to crash is only half the repair. The app then runs on
+        defaults, and the very next `save()` -- window geometry on a clean
+        exit, `remember_window_size` defaults True -- would `os.replace`
+        those defaults over the file. Measured before this guard: a 70-byte
+        hand-edited conf.json became 5,858 bytes of defaults, the user's
+        `sync_path` gone, with only a `log.error` in a log.txt the next
+        launch truncates.
+
+        That is worse than the crash: an unlaunchable app keeps your
+        settings, and there is no `conf.json.bak` here the way there is for
+        `cred.json` and `catalog.db`.
+
+        Both failure modes, because the rule is about the LOAD failing and
+        not about encoding -- the corrupt-JSON half predates the decode half
+        and had the same consequence.
+        """
+        cases = (("undecodable", "cp1252",
+                  json.dumps({"sync_path": NON_ASCII_PATH},
+                             ensure_ascii=False)),
+                 ("corrupt json", "utf-8", '{"sync_path": "D:/x", '))
+        for label, encoding, body in cases:
+            with self.subTest(config=label):
+                path = os.path.join(self.tmp, "c-%s.json" % encoding)
+                with open(path, "w", encoding=encoding) as fh:
+                    fh.write(body)
+                original = open(path, "rb").read()
+
+                settings = Settings()
+                self.assertFalse(settings.load(path))
+                settings.window_width = 1280       # as a clean exit does
+                settings.save()
+
+                self.assertEqual(
+                    open(path, "rb").read(), original,
+                    "%s: the config was overwritten with defaults, so every "
+                    "setting the user had is gone" % label)
+
     def test_a_utf8_value_survives_a_non_utf8_locale(self):
         """In a subprocess, because the locale's codec is fixed at startup and
         this machine's is UTF-8 -- in process the bug is unreachable and the
