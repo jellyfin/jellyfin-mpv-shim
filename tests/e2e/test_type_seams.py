@@ -321,9 +321,16 @@ class TypeSeamMatrixTest(_e2e.E2ETestCase):
         """A decision, pinned as one: **speed is deliberately NOT reset
         between items.**
 
-        Nothing writes `speed` outside `set_speed` and one syncplay branch,
-        and it is not a construction option, so it holds for the life of the
-        mpv process and a fresh mpv starts at 1.0. That reads exactly like
+        `speed` is not a construction option and no start path resets it
+        (`_play_media`'s `set_speed(1)` is inside the SyncPlay branch), so it
+        holds for the life of the mpv process and a fresh mpv starts at 1.0.
+
+        **This asserts the queue does not reset it; it does not assert that
+        nothing else writes it.** `gateway/hud.py:set_speed` writes the
+        property directly rather than through `PlayerManager.set_speed`, and
+        nothing resets it afterwards -- so the HUD's speed control is a
+        session-wide change with no owner, reachable only from a film's gear
+        menu and not from the library, a photo or the now-playing bar. That reads exactly like
         one of the leaks this module exists to catch -- a global set for one
         item and never put back -- which is why it is written down here
         rather than left for the next person to "fix": a viewer who slows an
