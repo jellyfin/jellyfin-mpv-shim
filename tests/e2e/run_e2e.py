@@ -76,6 +76,10 @@ CONTRACT = [
     # (ChildCount is 0 for a collection read off disk while the listing has
     # every member), plus the three edit endpoints nothing else calls.
     "tests.e2e.test_collections",
+    # A music playlist reports MediaType "Audio" and a video one reports
+    # "Video" -- the one fact the launch rule rests on, and one the fast
+    # suite can only assume, because it builds the DTO it then reads.
+    "tests.e2e.test_music_playlist",
     "tests.e2e.test_items_endpoint",
     # The server-truth backing for batch 4 -- CanDelete absent unless
     # asked, TranscodeReasons in the TranscodingUrl, StartItemId

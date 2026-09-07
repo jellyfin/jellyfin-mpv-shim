@@ -597,6 +597,96 @@ class OneAudioRuleTest(unittest.TestCase):
                     % (item, "video" if expected else "audio"))
 
 
+class LaunchingAsAudioTest(unittest.TestCase):
+    """The FOURTH copy of "is this audio", and the one a type list cannot fix.
+
+    Reported: playing a music playlist and moving the pointer off the window
+    blanked the entire library, with "the flash of it loading the HUD before
+    it starts playing" as the tell -- and only for playlists, not plain music
+    and not audiobooks.
+
+    `tiles.py` decided with ``t in ("MusicAlbum", "MusicArtist",
+    "MusicGenre")``. A music PLAYLIST is in no such list, so it launched down
+    the video branch: `_start(audio=False)` clears `_browsing` and yields the
+    window, the renderer enters HUD mode, and `phud_hide` -- which fires when
+    the pointer leaves -- calls `ui_suspend`. The library is what gets
+    suspended, because the library is what is on screen.
+
+    The item knew all along. `Playlist.MediaType` is `PlaylistMediaType`,
+    which `PlaylistManager` computes from the contents (Audio or Video), so
+    the server had already answered the question the list was guessing at.
+    """
+
+    def test_a_music_playlist_launches_as_audio(self):
+        from jellyfin_mpv_shim.utils import launches_as_audio
+
+        self.assertTrue(launches_as_audio(
+            {"Type": "Playlist", "MediaType": "Audio", "Name": "Mix"}))
+
+    def test_a_video_playlist_does_not(self):
+        """The control, and the reason this is not "playlists are audio":
+        the same type carries either answer."""
+        from jellyfin_mpv_shim.utils import launches_as_audio
+
+        self.assertFalse(launches_as_audio(
+            {"Type": "Playlist", "MediaType": "Video", "Name": "Films"}))
+
+    def test_the_music_containers_still_do(self):
+        from jellyfin_mpv_shim.utils import launches_as_audio
+
+        for t in ("MusicAlbum", "MusicArtist", "MusicGenre"):
+            with self.subTest(type=t):
+                self.assertTrue(launches_as_audio({"Type": t}))
+
+    def test_an_audio_item_and_an_audiobook_do(self):
+        from jellyfin_mpv_shim.utils import launches_as_audio
+
+        self.assertTrue(launches_as_audio({"Type": "Audio"}))
+        self.assertTrue(launches_as_audio({"Type": "AudioBook",
+                                           "MediaType": "Audio"}))
+
+    def test_a_music_library_play_all_does(self):
+        """The second site: a music library's Play All sent no `audio` at
+        all. `CollectionType` is what it has to go on."""
+        from jellyfin_mpv_shim.utils import launches_as_audio
+
+        self.assertTrue(launches_as_audio({"Type": "CollectionFolder"},
+                                          "music"))
+        self.assertTrue(launches_as_audio(
+            {"Type": "CollectionFolder", "CollectionType": "music"}))
+
+    def test_video_and_photos_are_untouched(self):
+        from jellyfin_mpv_shim.utils import launches_as_audio
+
+        for item in ({"Type": "Movie", "MediaType": "Video"},
+                     {"Type": "Episode", "MediaType": "Video"},
+                     {"Type": "Photo", "MediaType": "Photo"},
+                     {"Type": "BoxSet"},
+                     {"Type": "CollectionFolder", "CollectionType": "movies"},
+                     {}):
+            with self.subTest(item=item):
+                self.assertFalse(launches_as_audio(item))
+
+    def test_the_first_queued_entry_outranks_the_container(self):
+        """Izzie: a playlist can arrive "looking like a video going into the
+        software" and only turn out to be music later. So the container's own
+        label cannot be trusted, and the entry that will actually start is
+        the answer -- which is also the right answer for a MIXED playlist."""
+        from jellyfin_mpv_shim.utils import launches_as_audio
+
+        lying = {"Type": "Playlist", "MediaType": "Video", "Name": "Mix"}
+        song = {"Type": "Audio", "MediaType": "Audio"}
+        film = {"Type": "Movie", "MediaType": "Video"}
+        self.assertTrue(
+            launches_as_audio(lying, first=song),
+            "a playlist mislabelled as video still launched as video, so it "
+            "yields the window and the auto-hide blanks the library")
+        self.assertFalse(
+            launches_as_audio({"Type": "Playlist", "MediaType": "Audio"},
+                              first=film),
+            "a mixed playlist starting on a film kept the library up")
+
+
 class HudStateDoesNotOutliveItsVideoTest(unittest.TestCase):
     """A song after a film must not leave the film's HUD state behind.
 
