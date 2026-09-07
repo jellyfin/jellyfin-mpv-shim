@@ -267,3 +267,72 @@ Not assessed: the Lua side's own state (`renderer.lua`, `mouse.lua`,
 state; a real Wayland compositor, real HiDPI, a real tray, macOS, a real
 gamepad, a 12.0 server, a permission-restricted account. **No timing was
 measured** — every race window in §3.2 is argued from code, not observed.
+
+---
+
+## 7. Pre-3.0.0 triage: gated by reachability
+
+**Scoping rule (Izzie, 2026-09-06): before v3.0.0, prioritise stability of
+functionality that is NOT gated behind a config-file edit or an advanced
+setting.**
+
+Applied by measurement, not judgement. A setting is reachable if it appears in
+`config.TAB_SECTIONS`; advanced if its group is in `config.ADVANCED_GROUPS`
+(`{"Advanced", "Download Tuning"}`). Read off the live tables, not the source.
+
+### Tier 1 — reachable with no settings change at all
+
+| finding | how a user reaches it |
+|---|---|
+| `_sync_path` drives a download-store move from a stale mirror | Settings → Downloads → Move. **Destructive, and the visible field disagrees with what happens.** |
+| `ThumbnailStore._gone` caches 401/403 as permanent absence | sign out, switch server, or any fetch in flight across `set_auth` |
+| R7 / F15 — `set_picture_view` has no `_video`/`_loading` guard | open a comic, let a remote start playback, scroll the page |
+| R11 — HUD gear menu gated on `_video is not None` | play music, press the menu key (needs a product read first) |
+
+### Tier 2 — one non-advanced setting, on the normal Settings screens
+
+| finding | setting (tab / group) |
+|---|---|
+| `fullscreen_disable` written above its own `persist` gate | `fullscreen` — general / **Window** |
+| stale `window_maximized` is write-gated and read-ungated | `remember_window_size` — general / **Window** |
+| `auto.py:267` tombstones on an English prose prefix | `auto_download_keep_days` — browse / **Downloads** |
+| `sync/manager.py:1649` — `auto.tick()` without `stopping=` | auto-download on, then a folder relocate |
+| `prefer_downloaded` makes transcode settings inert | both non-advanced: browse / **Downloads**, playback / **Playback** |
+
+### Tier 3 — config-file edit only; **defer past 3.0.0**
+
+None of these appear in `TAB_SECTIONS` at all, so reaching them means hand-editing
+`conf.json`:
+
+- `headless` → the kiosk-boots-to-black cell (`ui.py:353`). Not in the settings
+  form and not in the tray menu.
+- `kb_*`, `ui_select_key` → **R1, R2, R3, R10** — every frozen-key finding.
+- `mpv_ext`, `mpv_ext_no_ovr` → R9's `hwdec` pin.
+
+**The consequence worth stating plainly: this demotes the cheapest and most
+satisfying instrument.** The key-literal lint covers R1–R3 and R10 — four of
+eleven rows, and the one that found a new site by itself — and *every one of
+them needs a config-file edit to reach*. By this rule it is post-3.0.0 work. It
+should still be built, because R10 proves the class is live and growing; it
+should not be built first.
+
+**One platform exception.** `conf.py:413` is
+`mpv_ext: bool = sys.platform.startswith("darwin")` — **the external backend is
+the default on macOS.** So `mpv.TIMEOUT` (jsonipc-only, lowered 120s→5s and
+never restored, from a call site that also runs on minimize) is Tier 1 on
+macOS and Tier 3 everywhere else. Any triage that reads `mpv_ext` as "advanced"
+without the platform qualifier gets this backwards for every Mac user.
+
+### What this means for the machinery
+
+- `tools/audit_act_targets.py` stays first among the lints: it covers R7 and R8
+  (Tier 1 and Tier 2) and its Rule B reach-throughs are in `gateway/hud.py`,
+  which no setting gates.
+- The four declared entries on `tools/audit_owned_state.py` (`_sync_path`,
+  `ThumbnailStore._gone`, `mpv.TIMEOUT`, `_login["pass"]`) are the cheapest
+  Tier-1 coverage available — a bookkeeping extension to a tool that exists,
+  not new machinery.
+- `test_config_cells.py` drops: its verified cell is `headless`-gated, i.e.
+  Tier 3.
+- The `_MpvHandle` capsule is unaffected — mpv re-creation is reached by
+  minimise on 0.40 and by idle-quit everywhere, neither of which is a setting.
