@@ -25,6 +25,21 @@ without reading this file.
 The list below is the risk register for feature interactions, not a sample.
 Add a row when a feature starts sharing the window with another one.
 
+**This instrument is sharp enough to produce confident false alarms, so verify
+the STATE before trusting the verdict.** A reviewer reading the first run
+reported two release-blocking defects, measured from pixels, and both were
+this file rather than the app: `jf-light` "half-applied, headings at 1.14:1"
+was a mid-session theme change, which moves the scene palette and not mpv's
+window background (the app applies a theme at startup, where
+`set_browse_bg` reaches the window before it is set up); and "the reader shows
+bars and no page" was music started while a page was already displayed, which
+loads audio over the page, followed by a navigate to the route already
+current, which does not re-open. A wrongly built state photographs as a
+convincing bug. Treat a finding here the way you would treat a negative
+control: confirm the state was what the shot claims before believing the
+verdict. **For theme shots specifically, set `settings.theme` before the
+session starts** -- a mid-session switch cannot move the surround.
+
 **A shot only proves a composite when BOTH layers are visibly present.**
 Measured on the first good run: with the backdrop correctly suppressed and the
 reader's own bars not on screen, `comic-plain`, `comic-theme-wmc` and
@@ -169,14 +184,34 @@ class CompositeShotsTest(_e2e.E2ETestCase):
         time.sleep(settle)
 
     def _theme(self, name):
-        from jellyfin_mpv_shim.mpvtk_browser import theme
-        theme.apply(name)
-        theme.apply_to_toolkit()
-        self.app.push_theme()
+        """Through the browser's own `_apply_theme`, not `theme.apply`.
+
+        `theme.apply` moves the palette the SCENE draws with; it does not
+        move the window background, which is mpv's `background-color` and
+        reaches it via `set_browse_bg` (`app.py:_apply_theme`). Calling only
+        the first put the light theme's dark ink on the dark theme's paper
+        and produced a shot a reviewer measured at 1.14:1 contrast -- a
+        convincing "the shipped theme is unusable" finding that was entirely
+        this harness applying a theme in a way the app never does.
+        """
+        self.browser._apply_theme(name)
+        # **The mpv window background does NOT follow a mid-session theme
+        # change**, and this deliberately does not force it to. `_apply_theme`
+        # updates `BROWSE_BG_HEX`, but only `set_browse_window(True)` writes
+        # it to mpv -- and calling that here takes the window back from a
+        # displayed page (three comic shots came back showing the library)
+        # and blanks the scene on a live browse screen. So: the SURROUND
+        # colour in these shots is whatever the session started with, and is
+        # not evidence about the theme. The scene palette IS the theme's and
+        # is what these shots are for.
         self._repaint()
 
     def _show_page(self):
-        """The comic ROUTE, not `show_picture` directly.
+        """Home, then the comic ROUTE -- not `show_picture` directly.
+
+        Home first because navigating to the route already current does not
+        re-open the archive, so a second variant photographed whatever the
+        first left behind.
 
         The shortcut cost this file its first run: calling `show_picture`
         puts a page on the VO without ever setting `route["_showing"]` or
@@ -184,6 +219,8 @@ class CompositeShotsTest(_e2e.E2ETestCase):
         comic shots came back byte-identical. A composite needs both layers,
         which means the browser has to actually be on the screen.
         """
+        self.browser.navigate({"kind": "home", "server": _e2e.SOURCE_UUID})
+        time.sleep(0.6)
         self.browser.navigate({"kind": "comic", "server": _e2e.SOURCE_UUID,
                                "item_id": self.comic["Id"],
                                "title": self.comic.get("Name", "")})
@@ -215,32 +252,35 @@ class CompositeShotsTest(_e2e.E2ETestCase):
                         "titles, artwork not lost against the background, "
                         "nothing overlapping." % name)
 
-        # 2. A comic page, plain. The control for everything below it.
-        self._theme("default")
-        self._show_page()
-        self._shoot("comic-plain",
-                    "A comic page (portrait, panelled, cream) fills the "
-                    "window height with black bars left and right. Reader "
-                    "bars may sit at top and bottom. NOTHING may cover the "
-                    "page itself.")
+        # 2-3. A comic page under each feature that draws a background.
+        #      Theme (or OSC) first, page second: the state has to exist
+        #      before the page is opened, or re-applying it tears the page
+        #      down again.
+        for theme_name, shot, intent in (
+                ("default", "comic-plain",
+                 "A comic page fills the window height with black bars left "
+                 "and right, and the reader's own top/bottom bars are "
+                 "visible. NOTHING may cover the page itself."),
+                ("jf-wmc", "comic-theme-wmc",
+                 "The same page under the Windows Media Centre theme, which "
+                 "draws a blue gradient background. The reader's bars should "
+                 "pick up the theme; the PAGE must not be tinted or "
+                 "covered by the gradient."),
+        ):
+            self._theme(theme_name)
+            self._show_page()
+            self._shoot(shot, intent)
 
-        # 3. The two features that were painting over it.
-        self._theme("jf-wmc")
-        self._shoot("comic-theme-wmc",
-                    "The same page under the Windows Media Centre theme, "
-                    "which draws a blue gradient background. The gradient "
-                    "must NOT be drawn over the page — if the page is "
-                    "tinted blue or replaced by a gradient, that is the bug.")
         self._theme("default")
-
         was = settings.osc_style
         settings.osc_style = "custom"
         self.addCleanup(setattr, settings, "osc_style", was)
-        self._repaint()
+        self._show_page()
         self._shoot("comic-osc-custom",
                     "The same page with Custom OSC selected, which makes the "
-                    "library paint an opaque backdrop. That backdrop must "
-                    "NOT cover the page.")
+                    "library paint an opaque backdrop. The reader's bars "
+                    "should be visible and that backdrop must NOT cover the "
+                    "page.")
         settings.osc_style = was
         self._repaint()
 
@@ -254,8 +294,17 @@ class CompositeShotsTest(_e2e.E2ETestCase):
                 tracks = found
                 break
         if tracks:
+            # **The user's order: music first, then open the comic.** Doing
+            # it the other way round -- page up, then start a track -- makes
+            # mpv load the audio OVER the page and leaves the reader on a
+            # route it will not re-open, which photographs as bars with no
+            # page. That is this harness, not the app.
+            self.browser.navigate({"kind": "home",
+                                   "server": _e2e.SOURCE_UUID})
+            self._repaint(0.8)
             media = _e2e.build_media(self.session, [tracks[0]["Id"]])
             self.pm.play(media.video, is_initial_play=True)
+            time.sleep(1.0)
             self._show_page()
             self._shoot("comic-with-music",
                         "A comic page with a track playing. The page must be "
