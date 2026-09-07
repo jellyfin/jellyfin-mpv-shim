@@ -70,6 +70,45 @@ class ConfigFileEncodingTest(unittest.TestCase):
             "every setting in it was silently ignored")
         self.assertEqual(s.sync_path, NON_ASCII_PATH)
 
+    def test_a_file_we_cannot_decode_is_refused_not_raised(self):
+        """**The direction this file was missing.** Every case above asks
+        whether a readable config is read correctly. None asked what happens
+        to one that is not valid UTF-8 at all.
+
+        It matters more than the others because of WHERE it lands. The read
+        is the first thing `main` does (`mpv_shim.py:133`) and logging is not
+        configured until `:160`, so an exception escapes before there is a
+        `log.txt` to record it -- and the Windows build is PyInstaller `-w`,
+        with no console. The user double-clicks and nothing happens, with
+        nothing to send anybody.
+
+        Only upgraders who hand-edited can reach it: `json.dump` defaults to
+        `ensure_ascii=True`, so a file this app wrote is pure ASCII and
+        decodes under any codec. Notepad's "ANSI" and "Unicode" do not, and
+        before `READ_ENCODING` existed they were read with the locale codec
+        and worked -- so this is a regression, not a new limitation.
+        """
+        body = json.dumps({"sync_path": "D:/Filme/\u00dcbersicht"},
+                          ensure_ascii=False)
+        for label, encoding in (("Notepad ANSI", "cp1252"),
+                                ("Notepad Unicode", "utf-16")):
+            with self.subTest(saved_as=label):
+                path = os.path.join(self.tmp, "conf-%s.json" % encoding)
+                with open(path, "w", encoding=encoding) as fh:
+                    fh.write(body)
+                try:
+                    ok = Settings().load(path)
+                except Exception as exc:      # noqa: BLE001 - the point
+                    self.fail(
+                        "a config saved as %s raised %s out of load(), which "
+                        "happens before logging is configured -- no log.txt, "
+                        "and on Windows no console either: %s"
+                        % (label, type(exc).__name__, exc))
+                self.assertFalse(
+                    ok, "an undecodable config must report failure, so the "
+                        "caller can tell the user rather than silently "
+                        "running on defaults")
+
     def test_a_utf8_value_survives_a_non_utf8_locale(self):
         """In a subprocess, because the locale's codec is fixed at startup and
         this machine's is UTF-8 -- in process the bug is unreachable and the

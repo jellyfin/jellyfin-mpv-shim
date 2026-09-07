@@ -931,6 +931,23 @@ class Settings(SettingsBase):
         # POSIX renames over an open file happily, which is why this stood.
         try:
             raw = None if created else fh.read()
+        except (UnicodeDecodeError, OSError) as e:
+            # **A config we cannot DECODE is a corrupt config, not a crash.**
+            # This read is the first thing `main` does (`mpv_shim.py:133`)
+            # and logging is not configured until :160, so an exception here
+            # escapes before there is a `log.txt` to put it in -- and the
+            # Windows build is PyInstaller `-w`, with no console either. The
+            # user double-clicks and nothing happens, with nothing to send.
+            #
+            # Reachable only by UPGRADERS who hand-edited: we write with
+            # `json.dump`'s default `ensure_ascii=True`, so a file this app
+            # produced is pure ASCII and decodes under any codec. A file
+            # Notepad saved as ANSI or Unicode with a non-ASCII value in it
+            # (a `sync_path` under `D:/Filme/Übersicht`) does not, and before
+            # `READ_ENCODING` was introduced it was read with the locale
+            # codec and worked. Measured, both directions.
+            log.error("Could not read settings from json: %s" % e)
+            return False
         finally:
             fh.close()
         if created:
