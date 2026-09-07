@@ -284,6 +284,74 @@ class TypeSeamMatrixTest(_e2e.E2ETestCase):
             "screen behind the now-playing bar, so this is the window the "
             "user is looking at")
 
+    def test_repeat_one_does_not_survive_a_video_whose_load_fails(self):
+        """The half `loop-file`'s ordering fix was actually about.
+
+        `9d2d35f1` moved the write to before mpv is handed the file
+        precisely because it used to sit at the very END of `_play_media`,
+        past the `if not loaded: return` that a failed start takes. So the
+        item that inherited repeat-one was not the one that played -- it was
+        the one that DIDN'T. Nothing asserted that behaviourally;
+        `tests/test_playstate_payload.py` pins it as statement order in the
+        source, which cannot see whether mpv ended up looping.
+
+        A zero-byte file is the cleanest failing start in the library: there
+        is nothing to decode, so the load fails outright rather than
+        aborting partway.
+        """
+        self.addCleanup(self.pm.set_repeat, "none")
+        broken = self.session.find(name="Zero-byte file")
+        if not broken:
+            self.skipTest("no zero-byte fixture to fail a start with")
+
+        self._play("music")
+        self.pm.set_repeat("one")
+        self.assertTrue(self._loops(), "repeat-one never reached mpv")
+
+        video = _e2e.build_media(self.session, [broken["Id"]]).video
+        self.pm.play(video, is_initial_play=True)
+        self.assertFalse(
+            self._loops(),
+            "a video whose load FAILED kept the track's repeat-one. The "
+            "write is back at the end of _play_media, past the `if not "
+            "loaded: return` -- so the file that inherits the loop is the "
+            "one that never played, and the next real video inherits it too")
+
+    def test_playback_speed_is_per_session_and_not_per_item(self):
+        """A decision, pinned as one: **speed is deliberately NOT reset
+        between items.**
+
+        Nothing writes `speed` outside `set_speed` and one syncplay branch,
+        and it is not a construction option, so it holds for the life of the
+        mpv process and a fresh mpv starts at 1.0. That reads exactly like
+        one of the leaks this module exists to catch -- a global set for one
+        item and never put back -- which is why it is written down here
+        rather than left for the next person to "fix": a viewer who slows an
+        episode down means the next episode too, and re-reading the setting
+        per item would fight them every time the queue advanced [iw].
+
+        So this is a change detector on purpose. If speed ever does start
+        resetting per item, that is a decision worth making deliberately,
+        and this test is the place it gets argued.
+        """
+        was = self.pm.get_speed()
+        self.addCleanup(self.pm.set_speed, was)
+        self.assertEqual(float(was), 1.0,
+                         "the session did not start at normal speed, so a "
+                         "carry-over below would prove nothing")
+
+        self._play("video")
+        self.pm.set_speed(1.5)
+        self.assertAlmostEqual(float(self.pm.get_speed()), 1.5, places=3,
+                               msg="set_speed never reached mpv")
+
+        self._play("music")
+        self.assertAlmostEqual(
+            float(self.pm.get_speed()), 1.5, places=3,
+            msg="the speed the viewer chose was reset by the next item. That "
+                "is a behaviour change, not a bug fix: speed is per session "
+                "here, so the queue advancing must not fight the choice")
+
     def test_the_matrix(self):
         """Every ordered pair, plus each type from the browser as the
         control row -- if a type is already wrong with no predecessor, the
