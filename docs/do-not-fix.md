@@ -155,6 +155,7 @@ then dropped in the same commit).
 | F38 | `player_window.py` picture path | **Unverified.** The playback HUD stops appearing after several photo/video handoffs. Needs evidence; below. |
 | F39 | `player_window.py` `clear_picture` / `set_browse_window` | The window jump moved from opening a comic to LEAVING one. Cosmetic, and the open half is fixed. |
 | F40 | `player_window.py` `_apply_browse_fullscreen` | Reported edge case: the browse preference does not leave fullscreen when `fullscreen` is unset. Not yet reproduced. |
+| F41 | `mpvtk_browser/app.py` HUD engage | Something engages the HUD while `_browsing`, reliably, on a video->music playlist advance. The invariant is enforced; the caller is unidentified. Below. |
 
 ### F29 — sleeping NAS, not reproduced
 
@@ -370,3 +371,35 @@ reads `browser_fullscreen or headless` for the ON direction and
 either. So either the path is a different one (`set_fullscreen`, or the
 live-apply in `apply_browser_fullscreen`) or the report is about a state
 neither of us has pinned down. Wants a reproduction before a fix.
+
+### F41 — a HUD engage while the library is on screen, caller unknown
+
+**The symptom is fixed and the cause is not found.** `HudController.engage`
+refuses while `_browsing` (659bb8c7), which closes the reported bug: a video
+-> music playlist advance left the renderer in HUD mode with the library
+drawn, so the cursor hid, the library vanished after `hud_hide_secs`
+(`phud_hide` calls `ui_suspend`) and came back on motion (`mouse-pos` is
+observed and needs no input section).
+
+**But the refusal fires**, and Izzie's log has it landing right after the
+transition to music:
+
+    [DEBUG] mpvtk_browser.hud_control: refusing a HUD engage while browsing
+
+So this is not a rare interleaving -- it is reliable on that path. Every
+known call site (`_yield`, the playstate handler, `reassert_window_state`,
+the SyncPlay config re-send) tests `not self._browsing` **before** calling,
+and `_yield` sets the flag False first, so none of them should be able to
+reach it with the flag True. Either one races the flag from another thread,
+or there is a fifth caller.
+
+Not reproducible in either harness: the browser sends `set_active(True)` on
+the advance in every ordering driven, and the renderer clears HUD mode on
+receipt in all three states (HUD idle, shown, auto-hidden first).
+
+**The refusal now logs its caller** (`module.function:line`), so the next
+occurrence names it. That is the whole of the follow-up: reproduce with
+debug logging on, read the arrow, and fix the site rather than the symptom.
+Enforcing the invariant was chosen over diagnosing because
+transition-by-transition reasoning missed this three times; the guard can
+only ever refuse an engage, never cause one.

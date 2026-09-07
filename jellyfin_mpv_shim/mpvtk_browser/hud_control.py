@@ -11,8 +11,22 @@ see docs/browser-shell.md section 14.
 """
 
 import logging
+import sys
 
 log = logging.getLogger("mpvtk_browser.hud_control")
+
+
+def _caller(depth=2):
+    """``module.function:line`` of whatever asked for a transition.
+
+    Cheap: these happen a handful of times per session, not per frame.
+    """
+    try:
+        frame = sys._getframe(depth)
+        return "%s.%s:%d" % (frame.f_globals.get("__name__", "?"),
+                             frame.f_code.co_name, frame.f_lineno)
+    except Exception:
+        return "?"
 
 
 class HudController:
@@ -103,7 +117,14 @@ class HudController:
         if self._is_browsing is not None:
             try:
                 if self._is_browsing():
-                    log.debug("refusing a HUD engage while browsing")
+                    # WHICH caller is the finding. Every known call site
+                    # tests `not self._browsing` first, so a refusal means
+                    # one of them raced the flag or there is a fifth -- and
+                    # it fires reliably on a video -> music playlist advance
+                    # [iw], so it is not rare. Same reasoning, and the same
+                    # helper shape, as player_window._caller.
+                    log.debug("refusing a HUD engage while browsing <- %s",
+                              _caller())
                     return
             except Exception:
                 pass
