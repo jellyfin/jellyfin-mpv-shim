@@ -507,6 +507,15 @@ class WindowMixin:
             # image_display_duration (1s) and then idles.
             self._player.image_display_duration = "inf"
             self._player.keep_open = True
+            # **Re-arm at the live size before the load.** A picture is a VO
+            # reconfig like any other file, and X11 re-applies the geometry
+            # option on one -- so without this the window snaps back to
+            # whatever was armed when something last PLAYED. `_play_media`
+            # has always done this; `show_picture` was the one load that did
+            # not, and a comic opened after the window was dragged to a new
+            # size jumped [iw]. Same call, same reason: see
+            # _sync_window_geometry for why arming beats clearing.
+            self._sync_window_geometry()
             self._player.command("loadfile", path, "replace")
             self._showing_browse_bg = False
         except _mpv_errors:

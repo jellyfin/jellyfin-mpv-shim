@@ -316,6 +316,13 @@ class TestPaging(ComicHarness):
     def test_a_page_entered_backwards_starts_at_its_bottom(self):
         """Paging back and landing at the top means scrolling down to see
         what you went back for, on every page you walk back through."""
+        # Fit-width explicitly: this test is about how a page TALLER
+        # than the window behaves, and it used to get that from the
+        # `comic_fit` default. The default is now "page", and a test
+        # that reads a default is a test of the default.
+        from jellyfin_mpv_shim.conf import settings
+
+        settings.comic_fit = "width"
         browser = self.open_comic()
         build_scene(browser)
         page = self.page(browser)
@@ -359,7 +366,28 @@ class TestPaging(ComicHarness):
 
 
 class TestPlacement(ComicHarness):
+    def test_the_default_opens_a_whole_page(self):
+        """The shipped default is Fit Page.
+
+        It was Fit Width, and on most window sizes that opens a comic zoomed
+        into the top of the page with the rest below the fold, which is not
+        what opening a book should look like [iw]. Pinned because it is a
+        decision: the four tests below that need fit-width now say so, and
+        this is the one that says what a reader who has chosen nothing gets.
+        """
+        from jellyfin_mpv_shim.conf import settings
+
+        self.assertEqual(settings.comic_fit, "page",
+                         "the shipped default changed without this test "
+                         "being part of the decision")
+        browser = self.open_comic()
+        build_scene(browser)
+        self.assertEqual(self.page(browser).mode(), "page")
+
     def test_the_first_page_is_fitted_to_the_width(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        settings.comic_fit = "width"      # the mode this test is about
         browser = self.open_comic()
         build_scene(browser)
         view = browser.controller.picture_views[-1]
@@ -369,6 +397,13 @@ class TestPlacement(ComicHarness):
         self.assertGreater(view["zoom"], 0.0)
 
     def test_fit_page_is_smaller_than_fit_width(self):
+        # Fit-width explicitly: this test is about how a page TALLER
+        # than the window behaves, and it used to get that from the
+        # `comic_fit` default. The default is now "page", and a test
+        # that reads a default is a test of the default.
+        from jellyfin_mpv_shim.conf import settings
+
+        settings.comic_fit = "width"
         browser = self.open_comic()
         build_scene(browser)
         page = self.page(browser)
@@ -430,6 +465,13 @@ class TestPlacement(ComicHarness):
     def test_resizing_the_window_replaces_the_page(self):
         """The window is what the zoom is measured against, so a resize
         moves it — and the page is only redrawn when something asks."""
+        # Fit-width explicitly: this test is about how a page TALLER
+        # than the window behaves, and it used to get that from the
+        # `comic_fit` default. The default is now "page", and a test
+        # that reads a default is a test of the default.
+        from jellyfin_mpv_shim.conf import settings
+
+        settings.comic_fit = "width"
         browser = self.open_comic()
         build_scene(browser, size=(1280, 720))
         before = browser.controller.picture_views[-1]["zoom"]
@@ -487,6 +529,13 @@ class TestGestures(ComicHarness):
         """mpv's pan is measured in the scaled picture (measured — see
         tests/test_picture_view.py). Handing over the window's size instead
         makes every drag wrong by whatever the zoom is."""
+        # Fit-width explicitly: this test is about how a page TALLER
+        # than the window behaves, and it used to get that from the
+        # `comic_fit` default. The default is now "page", and a test
+        # that reads a default is a test of the default.
+        from jellyfin_mpv_shim.conf import settings
+
+        settings.comic_fit = "width"
         browser = self.open_comic()
         page = self.page(browser)
         page._place()
