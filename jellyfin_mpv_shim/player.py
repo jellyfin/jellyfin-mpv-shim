@@ -755,6 +755,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # outlives a queue advance -- a badly-flagged season is one answer,
         # not one per episode -- and nothing else.
         self._deinterlace_override = None
+        #: The gear menu's Aspect Ratio force, with the same three
+        #: states and the same lifetime as the deinterlace one above:
+        #: None means "however the file is flagged".
+        self._aspect_override = None
         # {mpv property: value} for every property any preset-driven setting
         # can write, as the FRESH mpv had them -- so the restore hands back
         # mpv's defaults plus the user's own mpv.conf, and nothing else.
@@ -2850,6 +2854,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except Exception:
             log.debug("could not apply the deinterlace setting",
                       exc_info=True)
+        # The aspect force, written for every item exactly like the
+        # deinterlace one above -- and, like it, SURVIVING a queue advance:
+        # a badly flagged season is one answer, not one per episode. Without
+        # a per-item write the override is a global nobody owns, and forcing
+        # 4:3 on one film left every later film, photo and comic page at 4:3
+        # with no control reachable to undo it.
+        try:
+            self._player.video_aspect_override = (
+                self._aspect_override if self._aspect_override is not None
+                else -1.0)
+        except Exception:
+            log.debug("could not apply the aspect override", exc_info=True)
         self._apply_render_presets()
         # How long mpv holds a still. BEFORE play(), not after the load
         # succeeds: this is what mpv reports as the file's `duration`, so
@@ -3436,6 +3452,49 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         self._deinterlace_override = bool(on)
         self.reapply_deinterlace()
+
+    @synchronous("_lock")
+    def set_aspect(self, value):
+        """Force an aspect ratio for this session -- the gear menu's Aspect
+        Ratio row. ``value`` is mpv's string form ("16:9"), or None to hand
+        the decision back to the file.
+
+        ``@synchronous`` and stored, for the same two reasons as
+        ``set_deinterlace``: ``run_action``'s deferred path holds no lock, and
+        a value written straight at mpv is a global with no owner -- which is
+        what this was.
+        """
+        self._aspect_override = value
+        try:
+            self._player.video_aspect_override = (
+                value if value is not None else -1.0)
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+
+    def clear_aspect_override(self):
+        """Drop the aspect force. Called on the way back to the library and
+        on minimize -- the same two doors as
+        :meth:`clear_deinterlace_override`.
+
+        **Unlike that one, this DOES write mpv.** Its sibling can leave the
+        property alone because `_play_media` rewrites it for every item and
+        there is no picture to correct once playback is over. An aspect
+        override outlives playback onto surfaces `_play_media` never runs
+        for: a photo, and a comic page, which `show_picture` loads directly.
+        Leaving it set is how a 4:3 force reached a comic.
+        """
+        self._aspect_override = None
+        try:
+            self._player.video_aspect_override = -1.0
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        except Exception:
+            log.debug("could not clear the aspect override", exc_info=True)
+
+    def aspect_forced(self):
+        """Whether a session force is in effect, for the gear row's way back
+        -- the same question `deinterlace_forced` answers."""
+        return self._aspect_override is not None
 
     def deinterlace_forced(self):
         """Whether a session force is in effect, i.e. whether the setting is

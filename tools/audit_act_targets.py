@@ -93,12 +93,6 @@ DECLARED = {
         "halves at once, and it is a player change rather than a gateway "
         "one."
     ),
-    "hud.py:set_aspect:A:video_aspect_override": (
-        "No `PlayerManager.set_aspect` in this tree to route through. One "
-        "exists on the `enrich-e2e-tests` branch, where giving the aspect "
-        "override an owner is the single production change; that commit is "
-        "the repair for this row and it is not merged."
-    ),
     "hud.py:toggle_mute:A:mute": (
         "`PlayerManager.set_mute` EXISTS (player.py) and this does not call "
         "it. Read-modify-write on the handle, so it also decides the new "
@@ -120,8 +114,12 @@ DECLARED = {
         "both."
     ),
     "hud.py:get_aspect:B:video_aspect_override": (
-        "Paired with the `set_aspect` write above -- one accessor answers "
-        "both."
+        "The write half went through `PlayerManager.set_aspect`; this did "
+        "not follow it, because the two ask different questions. The "
+        "manager stores the FORCE, and the gear row ticks whatever mpv is "
+        "showing -- which with no force is the file's own aspect, or the "
+        "user's mpv.conf. `aspect_forced()` answers the manager's question "
+        "and is not what this row draws."
     ),
     "hud.py:chapters:B:chapter_list": (
         "Reads mpv's chapter list to draw the chapter row. Read-only, and "

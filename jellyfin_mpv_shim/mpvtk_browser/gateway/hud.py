@@ -89,7 +89,10 @@ class HudMixin(GatewayCore):
             return 1.0
 
     def set_speed(self, speed):
-        self._act(lambda pm: setattr(pm._player, "speed", float(speed)))
+        # Through the manager's own setter, not a bare attribute write: it is
+        # the one that takes the player lock. Speed itself is per SESSION by
+        # design (tests/e2e/test_type_seams.py), so it is not cleared below.
+        self._act(lambda pm: pm.set_speed(float(speed)))
 
     def get_aspect(self):
         """Current video-aspect-override (-1.0 = auto/unknown)."""
@@ -102,8 +105,7 @@ class HudMixin(GatewayCore):
     def set_aspect(self, value):
         """``value`` is mpv's string form ("-1", "16:9", …) — the
         property parses ratio strings on both backends."""
-        self._act(lambda pm: setattr(
-            pm._player, "video_aspect_override", value))
+        self._act(lambda pm: pm.set_aspect(value))
 
     def toggle_stats(self):
         """Toggle mpv's stats overlay (the gear menu's Playback Data).

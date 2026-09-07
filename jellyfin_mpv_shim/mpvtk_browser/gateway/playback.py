@@ -32,6 +32,7 @@ class PlaybackMixin(GatewayCore):
         # per episode -- so returning to the library is one of the two
         # places it ends. The other is on_minimize; see there.
         playerManager.clear_deinterlace_override()
+        playerManager.clear_aspect_override()
 
     def apply_browser_fullscreen(self):
         """Push a just-written ``browser_fullscreen`` at the window (#729).
@@ -59,6 +60,7 @@ class PlaybackMixin(GatewayCore):
         # only goes away when the window is closed -- it renders the
         # library -- which makes this the last moment anything is watching.
         playerManager.clear_deinterlace_override()
+        playerManager.clear_aspect_override()
         playerManager.enable_osc(playerManager.osc_enabled)
         playerManager.set_browse_window(False)
 
