@@ -550,7 +550,11 @@ class SyncManager:
         else:
             new_root = os.path.join(confdir(APP_NAME), "offline")
         if old_root and os.path.abspath(old_root) == new_root:
-            return True, ""
+            # Truthfully, rather than as a successful move. The caller shows
+            # `message or "Download folder moved"`, so an empty string here
+            # claimed a move that never happened -- which is exactly how a
+            # dead Move button read as a working one.
+            return True, _("The downloads are already in that folder.")
         with self._active_lock:
             if self._active_item is not None:
                 return False, _("Can't change the download folder while a "

@@ -156,6 +156,7 @@ then dropped in the same commit).
 | F39 | `player_window.py` `clear_picture` / `set_browse_window` | The window jump moved from opening a comic to LEAVING one. Cosmetic, and the open half is fixed. |
 | F40 | `player_window.py` `_apply_browse_fullscreen` | Reported edge case: the browse preference does not leave fullscreen when `fullscreen` is unset. Not yet reproduced. |
 | F41 | `mpvtk_browser/app.py` `_yield` | **Diagnosed and closed.** A yield overtaken by `enter_browse` engaged the HUD over the library. Below, kept for the shape. |
+| F42 | `settings/general.py` `_sync_path` | The dict holding the typed download folder is created once and never cleared, so a value can outlive the field that produced it. Below. |
 
 ### F29 — sleeping NAS, not reproduced
 
@@ -410,3 +411,28 @@ The lesson worth keeping is about the instrument, not the bug: three
 reproduction attempts from message sequences failed, and a one-line
 `_caller()` on the refusal named it the first time it fired. Same reasoning
 as `player_window._caller` -- "which caller it was IS the finding".
+
+### F42 — the download-folder field remembers across pages
+
+`_sync_path` is created once (`app.py`, `self._sync_path = {}`) and written
+by the folder TextBox's `on_change`. **Nothing ever clears it.** So a path
+typed once, on any visit to Settings, stays in that dict for the life of the
+browser -- and the Move button reads it in preference to the value the field
+is showing.
+
+Found while fixing the reported "moving to an empty folder is a no-op",
+which was the sibling bug in the same expression (`get("path") or val`
+could not tell "not edited" from "cleared"). That half is fixed and tested;
+this half is not, and it is the risk map's
+"`_sync_path` is Tier 1 and destructive -- Move relocates the store to a
+path the visible field is not showing".
+
+**Why it is not fixed here**: the obvious repair -- seed the dict from the
+current setting when the row is built -- runs on every repaint and would
+clobber an edit in progress, which is the standing footgun of this shell
+(docs/browser-shell.md: a screen is rebuilt from scratch on every repaint).
+The right fix is to clear it when the settings route is entered or retired,
+and that wants a look at `_retire_page` rather than a line in a builder.
+
+Reachable, but it needs a typed-then-abandoned edit followed by a Move on a
+later visit, and the destination is still confirmed for the empty case.
