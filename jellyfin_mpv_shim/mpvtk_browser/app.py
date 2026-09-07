@@ -2511,6 +2511,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             return
         if state.get("is_audio"):
             self._now_playing = state
+            # The film's HUD state does not survive into the track. Only a
+            # `stopped` push cleared it, and a queue advance does not always
+            # make one -- the player suppresses the incidental stopped
+            # pushes a load produces. `reassert_window_state` reads
+            # `hud.state is not None` as "a video is in flight", so a stale
+            # one puts the renderer back into HUD mode -- with its auto-hide
+            # armed and the library as the scene it hides -- the moment mpv
+            # is re-created under a playing track.
+            self.hud.state = None
+            self.hud.shown = False
+            self.hud.menu = None
             if not self._browsing:
                 self.enter_browse()   # audio: stay in browse, show the bar
             else:

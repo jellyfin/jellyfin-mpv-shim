@@ -29,7 +29,8 @@ from typing import TYPE_CHECKING, Optional
 from . import conffile
 import threading
 
-from .utils import same_origin, synchronous, Timer, get_resource
+from .utils import (same_origin, synchronous, Timer, get_resource,
+                    item_is_audio)
 from .media import segment_labels
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
@@ -506,7 +507,7 @@ def _item_is_audio(video):
     mpv's track list, so it answers before a byte has been demuxed.
     """
     item = getattr(video, "item", None) or {} if video is not None else {}
-    return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
+    return item_is_audio(item)
 
 
 def _rank_stream(prev_source, prev_index, streams, stream_type):

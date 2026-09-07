@@ -39,6 +39,22 @@ class Timer(object):
         return (datetime.now() - self.started).total_seconds()
 
 
+
+def item_is_audio(item):
+    """Whether a Jellyfin item is audio, from its metadata alone.
+
+    **The server is not consistent about which field carries it**, so both
+    are checked -- and a site testing only `Type` gets an *audiobook* wrong
+    (`Type="AudioBook"`, `MediaType="Audio"`), which is how one of these
+    launched down the video branch and handed the window away.
+
+    Here rather than in `player`: the browser asks it at launch time and
+    importing `player` builds an mpv.
+    """
+    item = item or {}
+    return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
+
+
 def synchronous(tlockname: str):
     """
     A decorator to place an instance based lock around a method.

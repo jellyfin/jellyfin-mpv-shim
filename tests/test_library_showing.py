@@ -35,6 +35,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
 
+import os
 import sys
 import types
 from unittest import mock
@@ -516,3 +517,131 @@ class SettingsMenuStaysShutTest(unittest.TestCase):
                 pm.toggle_settings_menu()
                 self.assertEqual(pm.opened, [1],
                                  "%s: the gear menu did not open" % label)
+
+
+class OneAudioRuleTest(unittest.TestCase):
+    """"Is this item audio?" is asked at three sites, and two had their own copy.
+
+    `_item_is_audio` is the rule -- ``MediaType == "Audio" or Type ==
+    "Audio"`` -- and the server is not consistent about which field carries
+    it, which is why the predicate accepts either and why STATES above models
+    both. The copies:
+
+    * `player_reporting.push_playstate` inlined the rule verbatim. Not a bug
+      by itself, but it is a second authority, and the two would diverge the
+      first time either moved.
+    * `ItemActions.play` implemented **half** of it -- ``Type == "Audio"``
+      only -- so an item carrying `MediaType` and any other `Type` launched
+      down the VIDEO branch: `_start(audio=False)` clears `_browsing` and
+      hands the window over. An **audiobook** is exactly that shape
+      (`Type="AudioBook"`, `MediaType="Audio"`).
+
+    What makes this worth a lint's worth of care rather than two edits: the
+    browser decides between browse and HUD mode on this answer, and a
+    playstate that says "not audio" while the library is up takes the
+    `_yield()` branch -- which puts the renderer in HUD mode with its
+    auto-hide armed and the library as the scene it hides.
+    """
+
+    def test_the_playstate_flag_agrees_with_the_predicate(self):
+        """The reported flag is what the browser routes on, so it is the one
+        that has to match -- not the expression that computes it."""
+        from jellyfin_mpv_shim.player import _item_is_audio
+        from jellyfin_mpv_shim.utils import item_is_audio
+
+        for label, video, _showing in STATES:
+            with self.subTest(state=label):
+                item = getattr(video, "item", None) or {}
+                self.assertEqual(
+                    item_is_audio(item), _item_is_audio(video),
+                    "%s: the item-level and video-level answers differ"
+                    % label)
+
+    def test_an_audiobook_launches_as_audio(self):
+        """The half-rule's actual victim, named because `Type` alone reads
+        as complete until you meet one."""
+        from jellyfin_mpv_shim.utils import item_is_audio
+
+        self.assertTrue(item_is_audio({"Type": "AudioBook",
+                                       "MediaType": "Audio"}))
+        self.assertTrue(item_is_audio({"MediaType": "Audio"}))
+        self.assertTrue(item_is_audio({"Type": "Audio"}))
+        self.assertFalse(item_is_audio({"Type": "Movie",
+                                        "MediaType": "Video"}))
+        self.assertFalse(item_is_audio({}))
+        self.assertFalse(item_is_audio(None))
+
+    def test_the_launch_path_uses_it(self):
+        """Driven rather than read: asserting that `play` *calls* a helper
+        would pass just as well if it passed the wrong item to it."""
+        from jellyfin_mpv_shim.mpvtk_browser.item_actions import ItemActions
+
+        for item, expected in (
+            ({"Type": "Audio", "Name": "Song"}, True),
+            ({"Type": "AudioBook", "MediaType": "Audio", "Name": "Book"},
+             True),
+            ({"MediaType": "Audio", "Name": "Untyped"}, True),
+            ({"Type": "Movie", "MediaType": "Video", "Name": "Film"}, False),
+        ):
+            with self.subTest(item=item.get("Name")):
+                launched = []
+                actions = ItemActions(
+                    services=types.SimpleNamespace(controller=None,
+                                                   source=None),
+                    run=None, dialogs=None,
+                    on_launch=lambda audio, title: launched.append(audio))
+                actions.play(item, server="srv")
+                self.assertEqual(
+                    [expected], launched,
+                    "%r launched down the %s branch"
+                    % (item, "video" if expected else "audio"))
+
+
+class HudStateDoesNotOutliveItsVideoTest(unittest.TestCase):
+    """A song after a film must not leave the film's HUD state behind.
+
+    `hud.state` is cleared on a `stopped` push, and a queue advance does not
+    always produce one -- the player suppresses the incidental stopped pushes
+    a load makes. So advancing from a video straight into a track left the
+    HUD holding the film's playstate for the whole song, and
+    `reassert_window_state` reads exactly that (`hud.state is not None`) as
+    "a video is in flight, re-enter HUD mode" -- which it does the moment mpv
+    is re-created under a playing track.
+    """
+
+    def _browser(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))), "tests"))
+        from _shell_harness import FakeSource, HudController, StubHudApp
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        app = StubHudApp()
+        b.set_app(app)
+        b._browsing = True
+        return b, app
+
+    VIDEO = {"stopped": False, "is_audio": False, "id": "v1"}
+    SONG = {"stopped": False, "is_audio": True, "id": "a1"}
+
+    def test_a_song_after_a_video_clears_the_hud_state(self):
+        b, _app = self._browser()
+        b.on_playstate(self.VIDEO)
+        self.assertIsNotNone(b.hud.state, "the video did not arm the HUD, so "
+                                          "this test proves nothing")
+        b.on_playstate(self.SONG)
+        self.assertIsNone(
+            b.hud.state,
+            "the film's playstate outlived it, so a renderer re-create "
+            "during the song re-enters HUD mode over the library")
+
+    def test_the_renderer_stays_in_browse_across_the_advance(self):
+        b, app = self._browser()
+        b.on_playstate(self.VIDEO)
+        b.on_playstate(self.SONG)
+        self.assertTrue(b._browsing)
+        b.reassert_window_state()
+        self.assertEqual(
+            ("active", True), app.calls[-1],
+            "a re-assert during music put the renderer back into HUD mode")

@@ -36,6 +36,7 @@ import logging
 import random
 
 from ..i18n import _
+from ..utils import item_is_audio
 
 log = logging.getLogger("mpvtk_browser.item_actions")
 
@@ -140,7 +141,10 @@ class ItemActions:
         """Yield/keep-browse and start a single ``item``. Episodes queue the
         rest of the season so autoplay-next chains them (like the Tk
         browser)."""
-        self._on_launch(audio=item.get("Type") == "Audio",
+        # `item_is_audio`, not `Type == "Audio"`: that half of the rule
+        # calls an AUDIOBOOK a video (Type="AudioBook", MediaType="Audio"),
+        # and the video branch clears `_browsing` and hands the window over.
+        self._on_launch(audio=item_is_audio(item),
                         title=item.get("Name") or "")
         if self.services.controller is None:
             return
