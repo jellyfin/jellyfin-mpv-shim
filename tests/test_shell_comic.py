@@ -138,6 +138,102 @@ class ComicHarness(unittest.TestCase):
         return browser._page_for(browser.route)
 
 
+class TestTheVoIsNotPaintedOver(ComicHarness):
+    """A comic page is rendered by **mpv's VO**, and the browser's own page
+    background is a **bitmap** -- which composites ABOVE the VO. So anything
+    that forces a full-window backdrop paints over the comic.
+
+    Two features force one, for unrelated reasons, and neither knew about the
+    reader:
+
+    * a theme with `window_gradient` (the Windows Media Centre theme draws
+      one, `jf-wmc.json`);
+    * "Custom OSC" mode, where `_wants_opaque_backdrop()` paints an opaque
+      box to hide the idle screen that OSC draws over the VO background --
+      "no colour we give mpv can hide it. Ours is a bitmap, which composites
+      above OSD, and is the only thing that can."
+
+    Both have to stand down while a page is on the VO, and the observable is
+    the shape of the tree: `build()` returns the bare page when it wants no
+    backdrop and wraps it in a `Stack` when it does.
+    """
+
+    SIZE = (1280, 720)
+
+    def _backdrop(self, browser):
+        """The backdrop widget `build()` put behind the page, or None."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Box, Gradient, Stack
+
+        tree = browser.build(self.SIZE)
+        if isinstance(tree, Stack) and tree.children:
+            first = tree.children[0]
+            if isinstance(first, (Gradient, Box)):
+                return type(first).__name__
+        return None
+
+    def _with_gradient(self):
+        """The real Windows Media Centre theme, by name, rather than a
+        hand-built gradient: it is the one that reported this, and a theme
+        that stopped carrying a gradient should retire this test rather than
+        have it keep passing against a fixture."""
+        from jellyfin_mpv_shim.mpvtk_browser import theme
+
+        applied = theme.apply("jf-wmc")
+        self.addCleanup(theme.apply, "default")
+        self.assertTrue(applied.get("window_gradient"),
+                        "jf-wmc no longer carries a window gradient")
+
+    def _with_custom_osc(self):
+        from unittest import mock
+
+        patcher = mock.patch(
+            "jellyfin_mpv_shim.mpv_options.resolve_osc_style",
+            return_value="custom")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_the_backdrop_is_drawn_when_nothing_is_on_the_vo(self):
+        """The premise, once per feature. Without it either assertion below
+        would pass on a build that never drew a backdrop at all -- which is
+        not hypothetical: written with the Custom OSC mock returning "mpv"
+        instead of "custom", this file reported a pass for a backdrop that
+        was never staged."""
+        for label, arm, want in (("gradient theme", self._with_gradient,
+                                  "Gradient"),
+                                 ("custom osc", self._with_custom_osc, "Box")):
+            with self.subTest(feature=label):
+                browser = self.open_comic()
+                # A route with nothing on the VO -- NOT the comic route with
+                # `_showing` popped, which the page sets again on its next
+                # build, so the premise would stage the very state it is
+                # supposed to be the control for.
+                browser.navigate({"kind": "home", "server": "srv1"})
+                arm()
+                self.assertEqual(
+                    self._backdrop(browser), want,
+                    "%s drew no backdrop, so its absence over a comic would "
+                    "prove nothing" % label)
+
+    def test_a_gradient_theme_stands_down_for_a_comic_page(self):
+        browser = self.open_comic()
+        browser.route["_showing"] = True
+        self._with_gradient()
+        self.assertIsNone(
+            self._backdrop(browser),
+            "the theme's window gradient is painted over the comic: the page "
+            "is on mpv's VO and this is a bitmap, which composites above it")
+
+    def test_custom_osc_stands_down_for_a_comic_page(self):
+        browser = self.open_comic()
+        browser.route["_showing"] = True
+        self._with_custom_osc()
+        self.assertIsNone(
+            self._backdrop(browser),
+            "Custom OSC's opaque backdrop is painted over the comic. It is "
+            "there to hide the OSC's idle screen, which cannot appear while "
+            "the VO is showing a page")
+
+
 class TestOpening(ComicHarness):
     def test_a_downloaded_comic_opens_on_its_first_page(self):
         browser = self.open_comic()

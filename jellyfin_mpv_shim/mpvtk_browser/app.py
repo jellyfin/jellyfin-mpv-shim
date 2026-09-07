@@ -2883,6 +2883,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # what shows before the first scene lands -- so this paints over it
         # rather than replacing it. Bottom of the Stack, so every bit of
         # chrome still draws on top.
+        # **Nothing while a page is on the VO.** A comic is rendered by mpv
+        # itself, and everything below is a BITMAP -- which composites above
+        # the video output, not behind it -- so a backdrop here paints over
+        # the page instead of behind it. Neither feature that wants one knows
+        # about the reader: a theme's gradient (jf-wmc draws one) and Custom
+        # OSC's opaque box, whose whole job is hiding an idle screen that
+        # cannot be on display while the VO is showing something.
+        if self.route.get("_showing"):
+            return page
         stops = theme.window_gradient()
         if stops:
             back = Gradient(stops=stops, axis="y", w=w, h=h)
