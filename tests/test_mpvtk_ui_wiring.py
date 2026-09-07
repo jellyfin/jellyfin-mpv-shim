@@ -748,6 +748,44 @@ class TestLoginActions(AuthHarness):
         b._do_login()
         self.assertNotIn("hunter2", b._login_error or "")
 
+    def test_adding_a_server_lands_on_it(self):
+        """`set_source` with no uuid asks `_pick_server`, whose fallback is
+        `get_last_server()`. Right for a reconnect; wrong for a login, which
+        IS a request to look at the server just added -- so adding one from
+        the server manager dropped you back on the previous server's home
+        and read as the login having done nothing."""
+        from tests._shell_harness import FakeSource
+
+        class TwoServers(FakeSource):
+            def servers(self):
+                return [{"uuid": "srv1", "name": "Old"},
+                        {"uuid": "srv2", "name": "New"}]
+
+        b = self._browser(add_server=lambda *a: True,
+                          rebuild_source=lambda: TwoServers(),
+                          get_last_server=lambda: "srv1")
+        b.show_login()
+        b._login.update({"server": "http://new", "user": "u", "pass": "p"})
+        b._do_login()
+        self.assertEqual("srv2", b.server,
+                         "the login landed on the server that was already "
+                         "there")
+
+    def test_re_authenticating_an_existing_server_keeps_the_place(self):
+        """The half a "just pick the last one in the list" fix would break.
+        A login can re-authenticate a server already present -- `force_unique`
+        deliberately reuses its uuid -- and there nothing was added, so the
+        remembered choice must still win."""
+        from tests._shell_harness import FakeSource
+
+        b = self._browser(add_server=lambda *a: True,
+                          rebuild_source=lambda: FakeSource(),
+                          get_last_server=lambda: "srv1")
+        b.show_login()
+        b._login.update({"server": "http://s", "user": "u", "pass": "p"})
+        b._do_login()
+        self.assertEqual("srv1", b.server)
+
     def test_login_credentials_reach_the_controller_intact(self):
         seen = []
         b = self._browser(

@@ -38,8 +38,16 @@ class _Player:
     fullscreen = False
     demuxer_cache_state = None
 
-    def show_text(self, *a, **kw):
+    def __init__(self):
+        #: Recorded, not swallowed. A stand-in that drops what it is handed
+        #: makes the OSD-prompt branch unreachable while reporting a pass --
+        #: which is what left "does the seek-to-skip prompt appear" checked
+        #: by an `assertIn` against update()'s SOURCE.
+        self.texts = []
+
+    def show_text(self, text, *a, **kw):
         """An automatic skip announces itself on the OSD."""
+        self.texts.append(text)
 
 
 class _EmptyQueue:
@@ -428,8 +436,13 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
         pm.should_send_timeline = False
         return pm
 
-    def _hud_skip_after_update(self, in_group=False, ready=False, **flags):
+    def _hud_skip_after_update(self, in_group=False, ready=False,
+                               osc_style=None, mpvtk_active=None, **flags):
         pm = self._pm(in_group=in_group, ready=ready)
+        if osc_style is not None:
+            pm._osc_style_resolved = osc_style
+        if mpvtk_active is not None:
+            pm.mpvtk_active = mpvtk_active
         self._last_pm = pm
         patches = [mock.patch.object(settings, k, v)
                    for k, v in flags.items()]
@@ -438,6 +451,48 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
             self.addCleanup(p.stop)
         PlayerManager.update(pm)
         return pm._hud_skip
+
+    def _prompts(self):
+        return [t for t in self._last_pm._player.texts if "Skip" in t]
+
+    def test_the_skip_prompt_falls_back_to_the_osd_without_a_hud(self):
+        """The HUD's Skip button is the mpvtk surface for "ask" mode; with
+        no HUD the OSD "Seek to Skip" prompt is the one left.
+
+        Was an `assertIn('== "mpvtk"')` against `update()`'s SOURCE, which
+        passes for any arrangement of that string -- including the one this
+        pair of tests exists to tell apart."""
+        self.assertIsNone(
+            self._hud_skip_after_update(osc_style="none",
+                                        segment_intro="ask"))
+        self.assertTrue(self._prompts(),
+                        "no HUD and no OSD prompt either: the segment is "
+                        "unskippable")
+
+    def test_the_hud_suppresses_the_osd_prompt(self):
+        self.assertIsNotNone(
+            self._hud_skip_after_update(osc_style="mpvtk",
+                                        segment_intro="ask"))
+        self.assertEqual([], self._prompts(),
+                         "both surfaces offered the same skip")
+
+    def test_casting_gets_neither_a_detached_renderer_nor_the_osd(self):
+        """Reported: "seek to skip" shows when casting.
+
+        `mpvtk_active` is false while the renderer is detached -- which is
+        what casting is -- and it was ANDed into the same flag that decides
+        whether the OSD text is the fallback. Those are two questions: there
+        IS a HUD, it is simply not attached this moment, and a cast target
+        has no local keyboard to seek with. The segment is still tracked, so
+        the playstate carries `skip_label` for whatever is driving.
+        """
+        self.assertIsNotNone(
+            self._hud_skip_after_update(osc_style="mpvtk",
+                                        mpvtk_active=False,
+                                        segment_intro="ask"),
+            "the segment was not tracked, so nothing can offer the skip")
+        self.assertEqual([], self._prompts(),
+                         "the OSD prompt appeared on a cast target")
 
     def test_a_group_is_offered_the_button_instead_of_being_skipped(self):
         """SyncPlay used to turn segment handling off entirely -- no auto
@@ -758,15 +813,6 @@ class TestNoPlayerControls(unittest.TestCase):
                                self._pm("mpvtk")):
             self.assertTrue(gw.use_hud())
 
-    def test_the_skip_prompt_falls_back_to_the_osd(self):
-        """The HUD's Skip button is the mpvtk surface for "ask" mode. With
-        no HUD the OSD "Seek to Skip" prompt is the one left, and it is
-        already what any non-mpvtk style gets -- so this is a check that
-        the branch keys off the style rather than off having a browser."""
-        import inspect
-
-        src = inspect.getsource(PlayerManager.update)
-        self.assertIn('== "mpvtk"', src)
 
     def test_the_setting_is_gone_rather_than_migrated(self):
         self.assertFalse(hasattr(settings, "enable_osc"))

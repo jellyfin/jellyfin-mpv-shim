@@ -70,11 +70,13 @@ class FakeApi:
         # /Latest answers with a bare list, not an Items envelope.
         return list(self.latest_items)
 
-    def get_next(self, limit=1, fields=None, enable_image_types=None,
-                 image_type_limit=None):
-        self._enter("get_next", {"fields": fields,
-                                 "enable_image_types": enable_image_types,
-                                 "image_type_limit": image_type_limit})
+    # Deliberately NO get_next, for the same reason as get_resume_items
+    # above: the apiclient helper has no EnableResumable parameter, and the
+    # server defaults it to TRUE -- so a fake answering it made the row look
+    # correct while part-watched episodes appeared in two places. Production
+    # reaches the endpoint directly.
+    def shows(self, handler, params=None):
+        self._enter("Shows" + handler, params)
         return {"Items": [{"Id": "n", "Name": "NextUp"}]}
 
 
@@ -326,35 +328,51 @@ class LeanFieldsTest(HomeRowsHarness):
     def test_image_tags_are_capped_to_one_per_type(self):
         """Without this every backdrop tag comes back, often five to ten.
 
-        Scoped to the queries we build ourselves. Next Up goes through the
-        apiclient's get_next helper, whose signature has no image_type_limit
-        parameter — capping it there would mean bypassing the helper for a
-        single-row saving, which is not worth the extra surface.
+        Scoped to the queries we build ourselves — which Next Up now is
+        too, so it is no longer excluded here. It asks in the endpoint's own
+        spelling (`ImageTypeLimit`) rather than the helper's.
         """
         api = FakeApi()
         self._source(api).get_home_rows("srv", libraries=LIBS)
         checked = 0
         for name, params in zip(api.calls, api.params):
-            if name != "get_next" and params.get("enable_image_types"):
+            if params.get("enable_image_types"):
                 self.assertEqual(params.get("image_type_limit"), 1)
+                checked += 1
+            elif params.get("EnableImageTypes"):
+                self.assertEqual(params.get("ImageTypeLimit"), 1)
                 checked += 1
         self.assertGreater(checked, 0, "the assertion matched nothing")
 
-    def test_next_up_asks_for_the_lean_fields_too(self):
+    def _nextup_params(self):
         api = FakeApi()
         self._source(api).get_home_rows("srv", libraries=LIBS)
-        nextup = [p for name, p in zip(api.calls, api.params)
-                  if name == "get_next"][0]
-        self.assertEqual(nextup.get("fields"), LIST_FIELDS)
+        rows = [p for name, p in zip(api.calls, api.params)
+                if name == "Shows/NextUp"]
+        self.assertEqual(1, len(rows), "Next Up was not fetched exactly once")
+        return rows[0]
+
+    def test_next_up_asks_for_the_lean_fields_too(self):
+        self.assertEqual(self._nextup_params().get("Fields"), LIST_FIELDS)
 
     def test_next_up_caps_image_tags_like_every_other_home_query(self):
         """It was the one that did not, so a series with twenty backdrops
         sent twenty tags per card for the one the tile draws."""
-        api = FakeApi()
-        self._source(api).get_home_rows("srv", libraries=LIBS)
-        nextup = [p for name, p in zip(api.calls, api.params)
-                  if name == "get_next"][0]
-        self.assertEqual(nextup.get("image_type_limit"), 1)
+        self.assertEqual(self._nextup_params().get("ImageTypeLimit"), 1)
+
+    def test_next_up_excludes_what_continue_watching_already_shows(self):
+        """`EnableResumable` DEFAULTS TO TRUE on the server
+        (TvShowsController.GetNextUp), so a part-watched episode appeared in
+        Continue Watching and again in Next Up. jellyfin-web's home section
+        sends false for exactly this.
+
+        False and not absent: absent is the server's true.
+        """
+        params = self._nextup_params()
+        self.assertIn("EnableResumable", params,
+                      "the parameter is absent, which the server reads as "
+                      "the default -- true")
+        self.assertIs(params["EnableResumable"], False)
 
 
 if __name__ == "__main__":

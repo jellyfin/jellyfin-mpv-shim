@@ -340,6 +340,7 @@ class AuthMixin:
                         "cancelled": False}
         self.invalidate()
         ep = self._epoch
+        before = self._known_server_uuids()
 
         def on_code(code):
             qc = route.get("_qc")
@@ -359,7 +360,7 @@ class AuthMixin:
             route.pop("_qc", None)
             if ok:
                 self._login_error = None
-                self._after_login()
+                self._after_login(before)
             else:
                 self._login_error = _("Quick Connect was not approved.")
         self.run_async(work, done, ep)
@@ -378,6 +379,7 @@ class AuthMixin:
         self._login_error = _("Connecting…")
         self.invalidate()
         ep = self._epoch
+        before = self._known_server_uuids()
 
         def work():
             return self.controller.add_server(
@@ -386,21 +388,52 @@ class AuthMixin:
         def done(ok):
             if ok:
                 self._login_error = None
-                self._after_login()
+                self._after_login(before)
             else:
                 self._login_error = _(
                     "Could not connect. Please check your details.")
         self.run_async(work, done, ep)
 
-    def _after_login(self):
+    def _known_server_uuids(self):
+        """The servers the current source has, before a login adds one."""
+        try:
+            return {s.get("uuid") for s in (self.source.servers() or [])}
+        except Exception:
+            return set()
+
+    def _after_login(self, before=None):
+        """Land on the server that was just added, not the last one browsed.
+
+        `set_source` with no uuid asks `_pick_server`, whose fallback is
+        `get_last_server()` -- right for a reconnect and wrong here, because
+        adding a server IS a request to look at it. Adding one from the
+        server manager dropped you back on the previous server's home, which
+        reads as the login having done nothing.
+
+        Identified by difference rather than by plumbing a uuid back through
+        `add_server` -> `clientManager.login` -> `_finalize_login`: a login
+        can also re-authenticate a server already in the list (and
+        `force_unique` deliberately reuses its uuid), and there the honest
+        answer is "nothing new", which is exactly what an empty difference
+        says. `before=None` keeps the old behaviour for any caller that did
+        not sample it.
+        """
         source = None
         if self.controller is not None:
             try:
                 source = self.controller.rebuild_source()
             except Exception:
                 log.warning("rebuild_source failed", exc_info=True)
-        if source is not None:
-            self.set_source(source)
+        if source is None:
+            return
+        added = None
+        if before is not None:
+            try:
+                added = next((s.get("uuid") for s in (source.servers() or [])
+                              if s.get("uuid") not in before), None)
+            except Exception:
+                log.debug("could not identify the new server", exc_info=True)
+        self.set_source(source, server_uuid=added)
 
     # -------------------------------------------------------------- locked
 

@@ -2290,10 +2290,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 # button (scene button while summoned, standalone
                 # overlay while idle) instead of the seek-to-skip OSD
                 # text prompt; _hud_skip carries the live segment.
-                hud_skip_button = (
-                    getattr(self, "_osc_style_resolved", None) == "mpvtk"
-                    and self.mpvtk_active
-                )
+                # Two questions, and one boolean used to answer both.
+                # "Is there a HUD at all" decides whether the OSD-text
+                # prompt is the fallback; "is the renderer attached right
+                # now" does not, and conflating them put "Seek to Skip" on
+                # screen while CASTING -- where the renderer is detached,
+                # and where there is no local keyboard to seek with anyway.
+                # The segment is still tracked, so the playstate carries
+                # `skip_label` for whatever is driving.
+                have_hud = (
+                    getattr(self, "_osc_style_resolved", None) == "mpvtk")
 
                 if intro is not None:
                     action = conf.segment_action(intro.type)
@@ -2319,7 +2325,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                             segment_labels(intro.type)[1], 3000, 1)
                         self._last_intro_msg_time = time.time()
 
-                    if hud_skip_button:
+                    if have_hud:
                         self._hud_skip = (
                             intro if should_prompt and not should_skip
                             else None
