@@ -625,16 +625,65 @@ class HudStateDoesNotOutliveItsVideoTest(unittest.TestCase):
     VIDEO = {"stopped": False, "is_audio": False, "id": "v1"}
     SONG = {"stopped": False, "is_audio": True, "id": "a1"}
 
-    def test_a_song_after_a_video_clears_the_hud_state(self):
-        b, _app = self._browser()
+    def test_a_renderer_recreate_during_music_stays_in_browse(self):
+        """The property, not the mechanism.
+
+        The first version of this asserted `hud.state is None` after the
+        advance -- the mechanism -- and the fix that satisfied it wrote
+        destructively from a path that races a video start. What actually
+        matters is what a fresh renderer is told, so that is what is
+        asserted, and any way of getting it right passes.
+        """
+        b, app = self._browser()
         b.on_playstate(self.VIDEO)
         self.assertIsNotNone(b.hud.state, "the video did not arm the HUD, so "
                                           "this test proves nothing")
         b.on_playstate(self.SONG)
-        self.assertIsNone(
-            b.hud.state,
-            "the film's playstate outlived it, so a renderer re-create "
-            "during the song re-enters HUD mode over the library")
+        # Minimized, which is where this actually bites: browsing takes the
+        # first branch of reassert_window_state and never reaches the one
+        # under test. A first draft asserted from the browsing state and so
+        # could not fail -- the mutation that dropped the guard passed it.
+        b.minimize()
+        app.calls.clear()
+        b.reassert_window_state()
+        self.assertEqual(
+            ("active", False), app.calls[-1],
+            "mpv re-created under a playing track re-entered HUD mode from "
+            "the film that preceded it")
+
+    def test_the_video_after_the_song_gets_its_hud_back(self):
+        """The return leg, which the forward fix must not cost.
+
+        Reported after the first fix landed: "when I go back in the playlist
+        back to the video, the HUD stays dismissed and I have no player
+        controls at all." Not reproduced here -- at this layer the round trip
+        is correct -- so this pins the layer rather than claiming the bug.
+        """
+        b, app = self._browser()
+        b.on_playstate(self.VIDEO)
+        b.on_playstate(self.SONG)
+        b.on_playstate(self.VIDEO)
+        self.assertIsNotNone(b.hud.state,
+                             "the returning video armed no HUD state, so "
+                             "nothing can draw the bar")
+        self.assertFalse(b._browsing, "the window was not yielded to video")
+        self.assertIn(("hud", True), app.calls[-3:],
+                      "the renderer was never put back into HUD mode")
+
+    def test_a_ticker_push_does_not_wipe_a_video_start(self):
+        """The clearing above runs on the TRANSITION, not on every audio
+        push. The now-playing ticker sends one a second, and a start is not
+        atomic -- `_start(audio=False)` clears `_browsing` and raises the
+        loading screen while late audio pushes can still land."""
+        b, _app = self._browser()
+        b.on_playstate(self.VIDEO)
+        b.on_playstate(self.SONG)
+        b.on_playstate(self.VIDEO)
+        state = b.hud.state
+        b.on_playstate(dict(self.SONG))     # a late push, built pre-advance
+        self.assertIs(b.hud.state, state,
+                      "a late audio push wiped the HUD state of the video "
+                      "that had already started -- no player controls")
 
     def test_the_renderer_stays_in_browse_across_the_advance(self):
         b, app = self._browser()

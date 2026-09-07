@@ -2208,10 +2208,28 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         """Re-assert window ownership on a FRESH renderer (which starts
         active): browse takes the window back; a video in flight
         re-enters attached-but-idle HUD mode; otherwise get fully out
-        of the way (lua OSC / minimized)."""
+        of the way (lua OSC / minimized).
+
+        `hud.state` alone is not "a video is in flight". It is cleared only
+        by a `stopped` push, and a queue advance does not always make one --
+        the player suppresses the incidental stopped pushes a load produces
+        -- so after a film it holds that film's playstate for the whole of
+        the track that followed, and mpv being re-created under a playing
+        track put the renderer into HUD mode over the library, auto-hide and
+        all.
+
+        Asked here rather than fixed by clearing `hud.state` when a track
+        starts, which is what the first attempt did: a start is not atomic
+        from this side, so late audio pushes (the now-playing ticker sends
+        one a second) arrive *after* `_start(audio=False)` has yielded the
+        window, and a destructive write on that path tore the HUD down off
+        the video that had just begun -- no player controls at all. A read
+        cannot race anything.
+        """
         if self._browsing:
             self._set_renderer_active(True)
-        elif self.hud.available() and self.hud.state is not None:
+        elif (self.hud.available() and self._now_playing is None
+              and self.hud.state is not None):
             try:
                 self.hud.engage()
             except Exception:
@@ -2511,17 +2529,6 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             return
         if state.get("is_audio"):
             self._now_playing = state
-            # The film's HUD state does not survive into the track. Only a
-            # `stopped` push cleared it, and a queue advance does not always
-            # make one -- the player suppresses the incidental stopped
-            # pushes a load produces. `reassert_window_state` reads
-            # `hud.state is not None` as "a video is in flight", so a stale
-            # one puts the renderer back into HUD mode -- with its auto-hide
-            # armed and the library as the scene it hides -- the moment mpv
-            # is re-created under a playing track.
-            self.hud.state = None
-            self.hud.shown = False
-            self.hud.menu = None
             if not self._browsing:
                 self.enter_browse()   # audio: stay in browse, show the bar
             else:
