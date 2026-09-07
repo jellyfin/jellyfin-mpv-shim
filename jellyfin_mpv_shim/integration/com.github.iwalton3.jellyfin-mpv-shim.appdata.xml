@@ -5,22 +5,17 @@
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0</project_license>
   <name>Jellyfin MPV Shim</name>
-  <summary>Cast-only client for Jellyfin Media Server</summary>
+  <summary>MPV-Based Jellyfin Client with Offline Sync</summary>
   <developer id="com.github.iwalton3">
     <name>Izzie Walton</name>
   </developer>
 
   <description>
     <p>
-        Jellyfin MPV Shim is a client for the Jellyfin media server which plays media in the
-        MPV media player. The application runs in the background and opens MPV only
-        when media is cast to the player. The player supports most file formats, allowing you
-        to prevent needless transcoding of your media files on the server. The player also has
-        advanced features, such as bulk subtitle updates and launching commands on events.
-    </p>
-    <p>
-        Please read the detailed instructions on GitHub for more details, including usage
-        instructions and configuration details.
+        Jellyfin MPV Shim is a fully featured Jellyfin client built on top of MPV with support
+        for offline sync, media browsing, background casting, syncplay, music, live TV, books, and photos.
+        It does not depend on or use a webview and doesn't mess with MPV's video output pipeline, allowing
+        for HDR and tone mapping support.
     </p>
   </description>
 
@@ -38,39 +33,39 @@
 
   <screenshots>
     <screenshot type="default">
-      <caption>The library browser, running inside MPV</caption>
+      <caption>The MPV-based library browser</caption>
       <image type="source" width="1134" height="810">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-home.png</image>
     </screenshot>
     <screenshot>
-      <caption>The playback controls</caption>
+      <caption>Media playback</caption>
       <image type="source" width="1134" height="807">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-player.png</image>
     </screenshot>
     <screenshot>
-      <caption>Music, with the now-playing bar over the library</caption>
+      <caption>Music playback</caption>
       <image type="source" width="1137" height="810">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-music.png</image>
     </screenshot>
     <screenshot>
-      <caption>A movie detail page</caption>
+      <caption>Movie details</caption>
       <image type="source" width="1133" height="809">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-movie.png</image>
     </screenshot>
     <screenshot>
-      <caption>Browsing a TV library</caption>
+      <caption>TV library</caption>
       <image type="source" width="1137" height="806">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-shows.png</image>
     </screenshot>
     <screenshot>
-      <caption>The Live TV guide</caption>
+      <caption>Live TV guide</caption>
       <image type="source" width="1135" height="807">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-guide.png</image>
     </screenshot>
     <screenshot>
-      <caption>The built-in comic book reader</caption>
+      <caption>Comic book support</caption>
       <image type="source" width="1137" height="811">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-comics.png</image>
     </screenshot>
     <screenshot>
-      <caption>Audiobook playback, with chapters</caption>
+      <caption>Audiobook playback</caption>
       <image type="source" width="1135" height="807">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-audiobook.png</image>
     </screenshot>
     <screenshot>
-      <caption>The built-in epub reader</caption>
+      <caption>Epub reader</caption>
       <image type="source" width="1135" height="810">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-epub.png</image>
     </screenshot>
   </screenshots>
@@ -87,25 +82,22 @@
     <release version="3.0.0" date="2026-09-07">
       <description>
         <p>
-          A full library browser inside MPV, offline sync, and Jellyfin v12 support.
-          Jellyfin v12 requires MPV Shim v3 unless legacy authentication is enabled
-          on the server. Tested against Jellyfin 10.11 and 12.
+          Adds a Jellyfin library browser and improved video controls built on top of MPV
+          without any webviews, including offline sync and easy user switching.
         </p>
         <p>Changes:</p>
         <ul>
-          <li>Browse and search the whole library inside MPV: playlists, collections, detail pages, favorites, genres and Live TV, with per-library views, sorting, filtering and themes</li>
-          <li>Offline sync for movies, shows, playlists, music and books, with automatic downloads of new episodes, progress sync, skip intro, trickplay and artwork</li>
-          <li>Improved player UI: audio and subtitle switching (including external subtitles and transcodes), a standalone skip intro button, chapters, next/previous episode, volume, trickplay and media info</li>
-          <li>Classic MPV OSC and custom OSCs (uosc, modernz) are still supported, and keyboard shortcuts are only claimed when needed</li>
-          <li>Music, browsable by song, album, artist, album artist and genre, with playlist creation and editing</li>
-          <li>Books: audiobooks with chapters and resume, plus built-in epub and comic (CBZ/CBT) readers</li>
-          <li>Live TV with channels, guide and recording</li>
-          <li>Quick Connect support, and fast switching between servers and users with an optional PIN</li>
-          <li>Full keyboard, Jellyfin cast navigation and gamepad support</li>
-          <li>Video: Dolby Vision, per-library and per-series shader packs, audio passthrough and exclusive mode, night-mode normalization, optional hardware decoding, secondary subtitles</li>
-          <li>A new searchable settings screen covering most of the client</li>
+          <li>Browse and search the whole library inside MPV, including music, comics, and books.</li>
+          <li>Offline sync with automatic downloads</li>
+          <li>Full Jellyfin player controls built on top of MPV</li>
+          <li>Classic MPV controls can be used if desired, customization remains a priority</li>
+          <li>Live TV including channels, guide, and recording</li>
+          <li>Quick connect and easy server/user switching</li>
+          <li>Navigate using keyboard, gamepad, or cast controls</li>
+          <li>Includes presets for shaders, audio passthrough, and volume normalization</li>
+          <li>Most settings are now managable without editing files</li>
           <li>HiDPI support, client-side decorations, and proper Wayland support</li>
-          <li>SyncPlay no longer stalls on seek, and groups can be joined from the home screen</li>
+          <li>Syncplay can be joined from homescreen and doesn't stall unexpectedly</li>
         </ul>
       </description>
     </release>
