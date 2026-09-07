@@ -4688,7 +4688,15 @@ function keyclaim.take(key)
     -- control it landed on. A remote has no TAB, so that made the bar's
     -- buttons unreachable by remote entirely. The claim resumes as soon as
     -- the ring is dismissed (any mouse press drops it).
-    if state.nav_mode and state.nav then
+    --
+    -- **Only the keys the ring itself uses.** The reason above is entirely
+    -- about the arrows, and refusing a claim is not a fallback: under
+    -- `browse_block_keys` the block swallows what `take` declines, so a ring
+    -- also killed SPACE -- the shim's pause -- for as long as it was up, and
+    -- a ring is dropped by a MOUSE press, which is not where a keyboard user
+    -- is. Pausing music from the keyboard therefore stopped working the
+    -- moment the arrows were touched, with nothing on screen to say so.
+    if state.nav_mode and state.nav and keyclaim.nav_names[key] then
         return false
     end
     send({ t = 'key', key = key })

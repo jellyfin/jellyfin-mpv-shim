@@ -3549,6 +3549,38 @@ ok(fake.log.keybinds["mpvtk_nav_j"] ~= nil, "j did not become the nav binding")
 ok(fake.log.keybinds["mpvtk_nav_k"] == nil, "the previous select key was left bound")
 fake.send("mpvtk-keys", fake.token({ keys = {} }))
 
+-- A FOCUS RING must not silently eat every claim.
+--
+-- `keyclaim.take` refused all claims while a ring was up, for a reason that
+-- is only about the arrows: without it DOWN moves the ring into the reader's
+-- own bottom bar and RIGHT then turns the page instead of stepping to the
+-- next button. SPACE is not an arrow, and refusing a claim on it does not
+-- fall back to anything -- under `browse_block_keys` a refused claim is
+-- SWALLOWED, so raising the ring killed pause for music with no way back
+-- from the keyboard (only a mouse press drops a ring).
+--
+-- DOWN is claimed only AFTER the ring is up, deliberately: claiming it first
+-- means the claim answers the very press meant to raise the ring, and the
+-- test then proves nothing about either half.
+fake.send("mpvtk-keys", fake.token({ keys = { "SPACE" } }))
+scene({ tile("ring1", 0, 0), tile("ring2", 0, 100) })
+fake.key("mpvtk_nav_DOWN")            -- raise the ring
+fake.reset_events()
+fake.key("mpvtk_key_SPACE")
+local held = last_event("key")
+eq(held and held.key, "SPACE",
+   "a focus ring swallowed a claim on a key it does not use")
+
+-- ...and the half the refusal exists for is unchanged: a claim on a key the
+-- ring DOES use still loses to it, or the ring can never leave the control
+-- it landed on.
+fake.send("mpvtk-keys", fake.token({ keys = { "SPACE", "DOWN" } }))
+fake.reset_events()
+fake.key("mpvtk_nav_DOWN")
+ok(last_event("key") == nil,
+   "a claim on DOWN outranked the focus ring, so the ring cannot move")
+fake.send("mpvtk-keys", fake.token({ keys = {} }))
+
 -- It survives the playback round trip, because `bind_nav_keys` runs again
 -- on every resume and would otherwise put ENTER back.
 fake.send("mpvtk-active", "no")
