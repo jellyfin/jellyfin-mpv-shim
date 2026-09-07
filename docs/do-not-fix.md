@@ -151,6 +151,7 @@ then dropped in the same commit).
 | F29 | `player.py` load gate / `_on_cache_pause` | Field report, below. |
 | F35 | `renderer.lua` `phud_skip_bind` | Binds literal `'ENTER'` for the Skip button whatever `hud_wake_key` says, so a moved wake key leaves ENTER accepting a skip. Found while doing #717 and deliberately left: it is a `hud_wake_key` bug, and it wants a decision about whether the idle Skip offer follows the wake key or `ui_select_key`. |
 | F36 | `media.py` `get_playback_url` | Asking for a track pins `MediaSources[0]`, so a multi-version item loses the unplayable retry. Accepted for 3.0.0; below. |
+| F37 | `renderer.lua` `keyclaim.block_take` | `browse_block_keys` swallows `q`/`f`/`p` in the library, defeating the player's STANDING fullscreen claim. Two claim mechanisms; below. |
 
 ### F29 — sleeping NAS, not reproduced
 
@@ -233,3 +234,43 @@ That is a real change to the negotiation order and wants its own round.
 right and points at a worse fix — restoring the server's choice would take the
 remembered tracks with it. The server sorts by width; the shim sorts by
 playability; they disagree exactly where this bites.
+
+### F37 — the key block defeats the player's own claims
+
+**Deferred past 3.0.0 by decision** [iw]: "ALT+F4 or settings can escape
+fullscreen." It is a change to the input arbiter — the surface with the worst
+regression record here (three in 48 hours, `tests/e2e/test_input_routing.py`)
+— and the ask is a convenience, not a repair of something that used to work
+for a user.
+
+**What happens.** `browse_block_keys` (default on, #730) installs a forced
+`any_unicode` binding that swallows every printable key while the library is
+up, so `q`, `f` and `p` do nothing there. A forced binding that returns does
+not hand the key back, so "not handled" means "gone".
+
+**Why `f` is the interesting one.** `_bind_mpv_handlers` sets a **standing**
+claim — `self._key_claims["fullscreen"] = {keysweep.FULLSCREEN}` — with a
+comment explaining that recording "the user asked for fullscreen" is always
+wanted. That claim is installed as an mpv input section, and the block's
+`any_unicode` binding shadows it. `block_take` does consult a claim set, but
+it is `state.keys`, the **renderer's** set (what a page claimed through
+`claim_keys`), not the player's.
+
+So this is not a missing entry in a list. It is two claim mechanisms that do
+not know about each other, and the block honours one of them.
+
+**What a fix has to answer.** How a blocked key reaches the player's claim
+section, given that the forced binding cannot pass a key through. The
+existing machinery is on the Python side: `_swept_keys()` already maps key →
+(semantic, arg), and `_on_claimed_key` already carries out fullscreen, pause
+and seek through the operations that know about SyncPlay and about
+remembering the choice. So the plausible shape is the renderer routing a
+blocked-but-claimed key to that dispatcher rather than swallowing it — but
+that is a new channel through the arbiter, and it wants a real-mpv matrix
+run, not a unit test.
+
+**Also wanted in the same pass** [iw]: `p` while music is playing, and a
+check that none of it breaks text entry. `m` and SPACE already work during
+music (they are claimed and routed), which is the behaviour the rest should
+match. The focus-ring half of the same report is fixed — see
+`keyclaim.nav_names` in `keyclaim.take`.
