@@ -1080,5 +1080,156 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                           msg="the wake key stopped taking keyboard control")
 
 
+@h.require_real_mpv
+class RealConsoleLoanTest(h.TmpDirTest):
+    """The keyboard loan, driven by mpv's ACTUAL console.
+
+    `docs/E2E_PLAN.md` records this as attempted and blocked: "The property
+    cannot be injected from Python... The real console is not loaded"
+    (`mpvtk.app._SPAWN_OPTS` sets `load_scripts: "no"`, so pressing `` ` ``
+    does nothing). Both halves are now answered -- spawn the handle with
+    scripts enabled and open the console with `script-binding console/enable`
+    rather than a keypress, and `user-data/mpv/console/open` becomes True for
+    real. The plan asked for exactly this ("drive mpv's actual console, which
+    tests the real precedence rather than a simulated signal") and said the
+    handle change should be deliberate rather than a flag on the shared
+    helper -- so this class builds its own, the way
+    `ClassicOscReleasesTheMouseTest` does for the same kind of reason.
+
+    `test_the_console_gives_back_the_hud_it_left_with` above still writes the
+    property directly. It is not replaced: it asserts the REPLAY logic and
+    runs on every leg, and this one needs a console-bearing mpv.
+    """
+
+    @staticmethod
+    def _console_handle():
+        """`_SPAWN_OPTS` with scripts on. `config: no` stays -- the user's
+        own scripts must not join the test -- and mpv's console is a builtin,
+        so it arrives anyway."""
+        from jellyfin_mpv_shim.mpvtk.app import _SPAWN_OPTS
+
+        opts = dict(_SPAWN_OPTS)
+        opts["load_scripts"] = "yes"
+        opts["geometry"] = "1280x720"
+        if h.BACKEND == "jsonipc":
+            import python_mpv_jsonipc
+            return python_mpv_jsonipc.MPV(start_mpv=True, **opts), True
+        import mpv as libmpv
+        return libmpv.MPV(**{k.replace("_", "-"): v
+                             for k, v in opts.items()}), False
+
+    def setUp(self):
+        super().setUp()
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+        from jellyfin_mpv_shim.mpvtk.rawimage import MemoryStore, cache_dir
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore
+
+        self.handle, ext = self._console_handle()
+        self.app = MpvtkApp.attach(self.handle, ext=ext)
+        strips = (StripStore(mem_store=MemoryStore()) if self.app.in_process
+                  else StripStore(cache_dir=cache_dir("mpvtk-console-")))
+        self.ctl = FakeController()
+        self.browser = MpvtkBrowser(self.app, _make_source(), strips=strips,
+                                    controller=self.ctl)
+        self._thread = threading.Thread(
+            target=lambda: self.app.run(self.browser.build), daemon=True)
+        self._thread.start()
+        self.assertTrue(self.app.ready.wait(15), "renderer never came up")
+        self.addCleanup(self._teardown)
+
+    def _teardown(self):
+        try:
+            self.app.quit()
+            self._thread.join(timeout=5)
+        finally:
+            try:
+                self.browser.shutdown()
+            except Exception:
+                pass
+            try:
+                self.handle.terminate()
+            except Exception:
+                pass
+
+    def _wait(self, cond, timeout=6, msg=""):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if cond():
+                return True
+            time.sleep(0.15)
+        self.fail(msg or "condition never became true")
+
+    def _console(self, open_):
+        self.handle.command("script-binding",
+                            "console/enable" if open_ else "console/disable")
+        time.sleep(0.5)
+
+    def _claims(self, key):
+        """``{section: priority}`` for everything binding ``key``. A negative
+        priority is mpv's own word for "the owning section is not active"
+        (`mp_input_get_bindings`)."""
+        rows = self.handle.input_bindings or ()
+        return {r.get("section") or "": int(r.get("priority", -1))
+                for r in rows if (r.get("key") or "").upper() == key.upper()}
+
+    def _summon(self):
+        clip = h.make_test_clip(os.path.join(self.tmp, "clip.mp4"),
+                                duration=30)
+        self.handle.command("loadfile", clip)
+        self.browser.on_playstate(dict(VIDEO_STATE))
+        self._wait(lambda: (self.app.debug_state() or {}).get("phud_mode"),
+                   msg="never entered HUD-idle")
+        deadline = time.time() + 6
+        while time.time() < deadline and not self.browser.hud.shown:
+            self.handle.command("keypress", "LEFT")
+            time.sleep(0.2)
+        self.assertTrue(self.browser.hud.shown, "the HUD never came up")
+
+    def test_the_real_console_opens_and_the_renderer_sees_it(self):
+        """The premise, and the thing the plan could not get to: with the
+        console genuinely open the renderer's own contract property is set,
+        so every assertion below is about a real loan."""
+        self._console(True)
+        self.addCleanup(self._console, False)
+        self._wait(
+            lambda: self.handle.user_data["mpv"]["console"]["open"] is True,
+            msg="mpv's console did not open, so there is no loan to test")
+
+    @unittest.expectedFailure
+    def test_the_console_gets_esc_as_well(self):
+        """**A known, unfixed leak, pinned so the fix is noticed.**
+
+        The renderer hands mpv's console the groups it needs and takes them
+        back on close, but `phud_summon` binds ESC (and F12) with a bare
+        `mp.add_forced_key_binding` instead of going through the loan-aware
+        helper that records an intent -- the wake key immediately above it in
+        the same function is guarded and these two are not. So a summoned HUD
+        keeps ESC while the console has the keyboard, and pressing it in a
+        half-typed command dismisses the bar instead of reaching the console.
+
+        Asserted from `input-bindings`, which is the resolved set: a
+        non-negative priority for one of ours means we are still holding the
+        key. Marked `expectedFailure` in the idiom this repo already uses for
+        a measured-but-unfixed defect (`AbortReportedPositionTest`), so it
+        turns into a hard failure the moment somebody routes those two
+        through the helper.
+        """
+        # **The console FIRST.** Summoning before it opens lets the loan
+        # snapshot capture ESC and release it correctly -- measured, that
+        # order passes, which is why this test said "unexpected success"
+        # when it was written that way round. The leak is a HUD summoned
+        # while the console already has the keyboard: `phud_summon`'s bare
+        # `add_forced_key_binding` takes ESC out from under it.
+        self._console(True)
+        self.addCleanup(self._console, False)
+        self._summon()
+        ours = [s for s, p in self._claims("ESC").items()
+                if s.startswith("mpvtk") and p >= 0]
+        self.assertEqual(
+            ours, [],
+            "ESC is still ours while the console has the keyboard: %r" % ours)
+
+
 if __name__ == "__main__":
     unittest.main()
