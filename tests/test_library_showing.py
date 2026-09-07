@@ -700,6 +700,77 @@ class TheCursorNeverHidesOverTheLibraryTest(unittest.TestCase):
             ("active", True), app.calls[-1],
             "the renderer was not left asserted for browse")
 
+    def test_a_frame_racing_the_yield_cannot_keep_space(self):
+        """Izzie's hypothesis, and `_claim_page_keys` records the same
+        symptom from before: "SPACE stopped pausing the video for the rest
+        of the session".
+
+        Music playing with the library up claims SPACE (the key block
+        swallows it otherwise, and a forced binding that returns does not
+        hand it back, so `kb_pause` would never see it). Starting a video
+        yields, and the yield drops the claim. But `_claim_page_keys` reads
+        `_browsing` and then calls `claim()`, and a playback update on a
+        foreign thread flips the flag between the two -- so a frame already
+        in flight can land its claim AFTER the release.
+
+        A claimed key gets a FORCED binding, which outranks the player's own
+        `space`. So the stale claim is not a missing feature, it is pause
+        dead against every video for the rest of the session, with the music
+        that justified the claim long since stopped.
+
+        The release is the last write of the yield now, so a racing frame
+        either lands before it and is overwritten, or after it and finds the
+        flag already false.
+        """
+        b, app = self._browser()
+        b._browsing = True
+        b._now_playing = {"stopped": False, "is_audio": True, "id": "a1"}
+        b.hud.state = {"stopped": False, "is_audio": False, "id": "v1"}
+
+        claims = []
+        b.app.claim_keys = lambda keys=(): claims.append(tuple(keys))
+
+        real_tell = b._tell_controller
+
+        def racing(name):
+            real_tell(name)
+            if name == "on_browse_leave":
+                # What a frame that began while music was up DOES when it
+                # lands mid-yield: applies the set it computed back then.
+                #
+                # Driven as the effect rather than by calling
+                # `_claim_page_keys` here -- that reads the flag afresh, sees
+                # it already false, and answers "no keys", so the test would
+                # pass on the late re-check alone and never touch the release
+                # it is named for. (It did: the mutation that removed the
+                # release left it green.)
+                b.app.claim_keys(("9", "0", "m", "SPACE"))
+
+        b._tell_controller = racing
+        b._yield()
+
+        self.assertTrue(claims, "nothing claimed or released at all")
+        self.assertEqual(
+            (), claims[-1],
+            "the yield ended with keys still claimed: a forced SPACE "
+            "binding outranks kb_pause, so the video cannot be paused")
+
+    def test_music_still_claims_space_while_browsing(self):
+        """The control. The claim exists because the key block swallows
+        SPACE, so releasing it unconditionally would kill pause for MUSIC
+        instead -- the bug this claim was added to fix."""
+        from jellyfin_mpv_shim.conf import settings
+
+        b, _app = self._browser()
+        b._browsing = True
+        b._now_playing = {"stopped": False, "is_audio": True, "id": "a1"}
+        claims = []
+        b.app.claim_keys = lambda keys=(): claims.append(tuple(keys))
+        with mock.patch.object(settings, "browse_block_keys", True):
+            b._claim_page_keys(dict(b.route))
+        self.assertTrue(claims and "SPACE" in claims[-1],
+                        "music lost its pause key")
+
     def test_a_handoff_returns_the_hud_to_idle(self):
         """Reported: changing an audio or subtitle track during a transcode
         sometimes yields "to a dead HUD where moving the mouse does not bring
