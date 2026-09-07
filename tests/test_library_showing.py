@@ -656,6 +656,50 @@ class TheCursorNeverHidesOverTheLibraryTest(unittest.TestCase):
         self.assertIn(("hud", True), app.calls,
                       "a video got no HUD at all")
 
+    def test_a_yield_overtaken_by_enter_browse_does_not_engage(self):
+        """The actual interleaving, from Izzie's log:
+
+            Player is busy; deferring UI action to the action thread
+            window: browse=on <- gateway.playback.on_browse_enter:23
+            refusing a HUD engage while browsing <- app._yield:2294
+
+        `_yield` clears `_browsing` FIRST and engages LAST, and the work in
+        between is not atomic: `_tell_controller("on_browse_leave")` reaches
+        the gateway, `run_action` defers because the player lock is held for
+        the whole of a start, and the next queue item -- a song -- brings the
+        library back inside that window. The engage that follows is stale by
+        the time it runs.
+
+        Not a fifth caller and not a flag read early: one call spanning a
+        re-entry. Modelled by re-entering browse from the leave callback,
+        which is exactly where the log shows it happening.
+        """
+        b, app = self._browser()
+        b._browsing = True
+        b.hud.state = {"stopped": False, "is_audio": False, "id": "v1"}
+
+        real_tell = b._tell_controller
+
+        def overtaking(name):
+            real_tell(name)
+            if name == "on_browse_leave":
+                b.enter_browse()      # the song arrives mid-yield
+
+        b._tell_controller = overtaking
+        app.calls.clear()
+        b._yield()
+
+        self.assertTrue(b._browsing,
+                        "the library did not come back, so this models the "
+                        "wrong thing")
+        self.assertNotIn(
+            ("hud", True), app.calls,
+            "the yield's trailing engage landed after browse had been "
+            "re-entered, leaving HUD mode over the library")
+        self.assertEqual(
+            ("active", True), app.calls[-1],
+            "the renderer was not left asserted for browse")
+
     def test_the_reported_sequence_leaves_browse_asserted(self):
         """Video, then the queue advances to a track: whatever order the
         pushes arrive in, the renderer must not be left in HUD mode while

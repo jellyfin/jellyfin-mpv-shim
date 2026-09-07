@@ -155,7 +155,7 @@ then dropped in the same commit).
 | F38 | `player_window.py` picture path | **Unverified.** The playback HUD stops appearing after several photo/video handoffs. Needs evidence; below. |
 | F39 | `player_window.py` `clear_picture` / `set_browse_window` | The window jump moved from opening a comic to LEAVING one. Cosmetic, and the open half is fixed. |
 | F40 | `player_window.py` `_apply_browse_fullscreen` | Reported edge case: the browse preference does not leave fullscreen when `fullscreen` is unset. Not yet reproduced. |
-| F41 | `mpvtk_browser/app.py` HUD engage | Something engages the HUD while `_browsing`, reliably, on a video->music playlist advance. The invariant is enforced; the caller is unidentified. Below. |
+| F41 | `mpvtk_browser/app.py` `_yield` | **Diagnosed and closed.** A yield overtaken by `enter_browse` engaged the HUD over the library. Below, kept for the shape. |
 
 ### F29 — sleeping NAS, not reproduced
 
@@ -381,25 +381,32 @@ drawn, so the cursor hid, the library vanished after `hud_hide_secs`
 (`phud_hide` calls `ui_suspend`) and came back on motion (`mouse-pos` is
 observed and needs no input section).
 
-**But the refusal fires**, and Izzie's log has it landing right after the
-transition to music:
+**The caller, named by the log on its first use:**
 
-    [DEBUG] mpvtk_browser.hud_control: refusing a HUD engage while browsing
+    Player is busy; deferring UI action to the action thread
+    window: browse=on <- gateway.playback.on_browse_enter:23
+    refusing a HUD engage while browsing <- app._yield:2294
 
-So this is not a rare interleaving -- it is reliable on that path. Every
-known call site (`_yield`, the playstate handler, `reassert_window_state`,
-the SyncPlay config re-send) tests `not self._browsing` **before** calling,
-and `_yield` sets the flag False first, so none of them should be able to
-reach it with the flag True. Either one races the flag from another thread,
-or there is a fifth caller.
+`_yield` clears `_browsing` **first** and engages **last**, and the work in
+between is not atomic. `_tell_controller("on_browse_leave")` reaches the
+gateway, `run_action` defers because the player lock is held for the whole
+of a playback start, and the next queue item -- the song -- runs
+`enter_browse()` inside that window. The engage that follows is **stale by
+the time it runs**: one call spanning a re-entry, not a fifth caller and not
+a flag read early, which is why every call-site guard looked correct and why
+neither harness reproduced it from a message sequence.
 
-Not reproducible in either harness: the browser sends `set_active(True)` on
-the advance in every ordering driven, and the renderer clears HUD mode on
-receipt in all three states (HUD idle, shown, auto-hidden first).
+Pinned by `TheCursorNeverHidesOverTheLibraryTest`, which re-enters browse
+from the leave callback -- exactly where the log shows it happening -- and
+fails without the guard.
 
-**The refusal now logs its caller** (`module.function:line`), so the next
-occurrence names it. That is the whole of the follow-up: reproduce with
-debug logging on, read the arrow, and fix the site rather than the symptom.
-Enforcing the invariant was chosen over diagnosing because
-transition-by-transition reasoning missed this three times; the guard can
-only ever refuse an engage, never cause one.
+**Why the repair stays in `engage()`** rather than becoming a second check
+inside `_yield`: the stale-engage shape belongs to any caller whose work can
+span a re-entry, and `_yield` is simply the one that does. One authority, at
+the point that can see the current answer. It can only ever refuse an
+engage, never cause one.
+
+The lesson worth keeping is about the instrument, not the bug: three
+reproduction attempts from message sequences failed, and a one-line
+`_caller()` on the refusal named it the first time it fired. Same reasoning
+as `player_window._caller` -- "which caller it was IS the finding".
