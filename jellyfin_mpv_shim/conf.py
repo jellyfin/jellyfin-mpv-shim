@@ -931,6 +931,24 @@ class Settings(SettingsBase):
         # POSIX renames over an open file happily, which is why this stood.
         try:
             raw = None if created else fh.read()
+        except (UnicodeDecodeError, OSError) as e:
+            # **A config we cannot DECODE is a corrupt config, not a crash.**
+            # This read is the first thing `main` does (`mpv_shim.py:133`)
+            # and logging is not configured until :160, so an exception here
+            # escapes before there is a `log.txt` to put it in -- and the
+            # Windows build is PyInstaller `-w`, with no console either. The
+            # user double-clicks and nothing happens, with nothing to send.
+            #
+            # Reachable only by UPGRADERS who hand-edited: we write with
+            # `json.dump`'s default `ensure_ascii=True`, so a file this app
+            # produced is pure ASCII and decodes under any codec. A file
+            # Notepad saved as ANSI or Unicode with a non-ASCII value in it
+            # (a `sync_path` under `D:/Filme/Übersicht`) does not, and before
+            # `READ_ENCODING` was introduced it was read with the locale
+            # codec and worked. Measured, both directions.
+            log.error("Could not read settings from json: %s" % e)
+            self.__dict__["_unreadable"] = True
+            return False
         finally:
             fh.close()
         if created:
@@ -976,6 +994,7 @@ class Settings(SettingsBase):
                     self.save()
             except Exception as e:
                 log.error("Error loading settings from json: %s" % e)
+                self.__dict__["_unreadable"] = True
                 return False
 
         return True
@@ -983,6 +1002,25 @@ class Settings(SettingsBase):
     def save(self):
         if config_path is None:
             raise FileNotFoundError("Config path not set.")
+
+        # **Never write over a config we could not READ.** Returning False
+        # from `load` leaves the app running on defaults, and the very next
+        # save -- window geometry on a clean exit, `remember_window_size`
+        # defaults True -- would `os.replace` those defaults over the user's
+        # file. Measured: a 70-byte hand-edited conf.json became 5,858 bytes
+        # of defaults, with their `sync_path` gone and only a `log.error` in
+        # a log.txt that the next launch truncates.
+        #
+        # That is a worse failure than the crash this guard's sibling was
+        # added to prevent: an unlaunchable app keeps your settings, and
+        # there is no `conf.json.bak` here the way there is for `cred.json`
+        # and `catalog.db`. So a failed load makes this session read-only,
+        # and the user's file waits intact for them to fix the encoding.
+        if self.__dict__.get("_unreadable"):
+            log.error("Refusing to save: the config file could not be read, "
+                      "and writing defaults over it would discard settings "
+                      "this session never saw.")
+            return
 
         # Write-temp-then-rename under a lock: concurrent savers can't
         # interleave, and a crash mid-write leaves the old file intact

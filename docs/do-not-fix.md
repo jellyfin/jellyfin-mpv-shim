@@ -150,6 +150,7 @@ then dropped in the same commit).
 | F26 | `cast.py` | Cast parks the last composite. |
 | F29 | `player.py` load gate / `_on_cache_pause` | Field report, below. |
 | F35 | `renderer.lua` `phud_skip_bind` | Binds literal `'ENTER'` for the Skip button whatever `hud_wake_key` says, so a moved wake key leaves ENTER accepting a skip. Found while doing #717 and deliberately left: it is a `hud_wake_key` bug, and it wants a decision about whether the idle Skip offer follows the wake key or `ui_select_key`. |
+| F36 | `media.py` `get_playback_url` | Asking for a track pins `MediaSources[0]`, so a multi-version item loses the unplayable retry. Accepted for 3.0.0; below. |
 
 ### F29 — sleeping NAS, not reproduced
 
@@ -182,3 +183,53 @@ user has nothing on screen telling them the NAS is still spinning up.
 **Before acting, ask for** the shim's `log.txt` from the affected run — grabbed
 *before* relaunching, it is rewritten on every start — and mpv's own log, plus
 whether `direct_paths` is on (SMB and a NAS implies it).
+
+### F36 — the source pin collapses a multi-version item
+
+**Accepted for 3.0.0.** Pinned by `MultiVersionSourcePinTest` in
+`tests/test_track_negotiation.py`, which asserts the current behaviour
+*including where it fails* — so a fix cannot land silently, and the tests are
+expected to fail when one does.
+
+**What happens.** PlaybackInfo silently ignores `AudioStreamIndex` unless
+`MediaSourceId` is sent with it, so `get_playback_url` derives one whenever a
+real (non-negative) index is being asked for. `remember_audio_track` defaults
+on, so from the second item in a queue onward almost every play carries one.
+The derived id is `source_for_track_rules()`, i.e. `item["MediaSources"][0]`,
+and the server then answers with **that source alone** — measured on the QA
+server: `Pilot` has three versions, and PlaybackInfo returns three sources
+without an id and one with it.
+
+Two things downstream are then unreachable: `get_best_media_source`'s
+preference for the highest-bitrate source that will *direct play*, and the
+`if url is None and len(playback_info["MediaSources"]) > 1` retry — so an
+unplayable primary now fails outright instead of falling back.
+
+**Why it is accepted rather than fixed.** `MediaSources[0]` is not arbitrary.
+Jellyfin sorts the list (`SortMediaSources`, in
+`Emby.Server.Implementations/Library/MediaSourceManager.cs`) by: the queried
+item's own source first — the comment there says "so it stays the default that
+gets played" — then `VideoFile` over other video types, then non-3D, then
+**descending video width**. So [0] is the version the user clicked, else the
+highest-resolution one. The shim direct-plays most formats where bandwidth is
+not the constraint, and the alternative — dropping the pin — loses the
+remembered audio and subtitle track on *every* episode advance, which is the
+more visible regression by a wide margin.
+
+The residual risk is narrow and real: a library holding a 4K version the client
+cannot play alongside a 1080p one it can. The sort is by resolution, not by
+playability, so the pin picks exactly the version most likely to need
+transcoding, and the fallback that existed for that case is gone.
+
+**The fix, when it is time.** Derive the id only when the item has a single
+`MediaSource` — nothing to choose between and nothing to fall back to, so the
+pin costs nothing there. The multi-version case then needs the source resolved
+*before* the negotiation (from the item DTO, weighed the way
+`get_best_media_source` weighs it) and that source pinned, rather than [0].
+That is a real change to the negotiation order and wants its own round.
+
+**Note for whoever picks this up:** the review that found it framed this as
+"the pin takes the source choice away from the server", which is not quite
+right and points at a worse fix — restoring the server's choice would take the
+remembered tracks with it. The server sorts by width; the shim sorts by
+playability; they disagree exactly where this bites.

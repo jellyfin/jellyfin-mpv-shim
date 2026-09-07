@@ -354,5 +354,161 @@ class TheSourcePinIsOnlyForARealIndexTest(unittest.TestCase):
         self.assertEqual(asked["srcid"], "src1")
 
 
+#: A second version of the same episode: same streams, lower resolution, and
+#: -- the part that matters -- it can only be transcoded.
+VERSION_2 = {"Id": "src2", "MediaStreams": [dict(s) for s in STREAMS],
+             "SupportsDirectPlay": False, "SupportsDirectStream": False,
+             "SupportsTranscoding": True,
+             "TranscodingUrl": "/videos/1/v2.m3u8?AudioStreamIndex=1",
+             "DefaultAudioStreamIndex": 1, "RunTimeTicks": 1}
+
+
+class _MultiVersionRecorder(_Recorder):
+    """PlaybackInfo the way the server answers an item with several versions.
+
+    Measured on the QA server (`Pilot`, three versions): asking with no
+    MediaSourceId returns **all three**; asking with one returns **that one**.
+    The single-source `_Recorder` above cannot express that difference, and
+    that is precisely why the pin below went unnoticed for a release -- with
+    one version in the fixture, pinning it and leaving the choice open answer
+    identically, so every test here passed either way.
+    """
+
+    def __init__(self, sources):
+        self.sources = sources
+        self.asked = []
+
+    def get_play_info(self, item_id, profile, aid, sid, media_source_id=None):
+        self.asked.append({"aid": aid, "sid": sid, "srcid": media_source_id})
+        if media_source_id is None:
+            return {"MediaSources": [dict(s) for s in self.sources]}
+        return {"MediaSources": [dict(s) for s in self.sources
+                                 if s["Id"] == media_source_id]}
+
+
+def _multi_version_video(sources):
+    from jellyfin_mpv_shim.media import Video
+
+    item = {"Type": "Episode", "Name": "Ep",
+            "MediaSources": [dict(s) for s in sources], "RunTimeTicks": 1}
+    api = _MultiVersionRecorder(sources)
+    api.item = item
+    client = NS(
+        config=NS(data={"auth.server": SERVER, "auth.token": "t",
+                        "auth.server-id": "sid"}),
+        http=NS(_get_authenication_header=lambda: 'MediaBrowser Token="t"'),
+        jellyfin=api,
+    )
+    parent = NS(client=client, is_local=True, item=item)
+    v = Video("ep1", parent)
+    v.item = item
+    v.explicit_tracks = False
+    v.aid = v.sid = None
+    v.track_memory = None
+    return v, api
+
+
+class MultiVersionSourcePinTest(unittest.TestCase):
+    """What the source pin costs an item that has several versions.
+
+    **Accepted for 3.0.0, not a fix waiting to happen** -- see
+    `docs/do-not-fix.md` F36. Asking for a track pins `MediaSources[0]`, and
+    the server then answers with that source alone. Jellyfin's own
+    `SortMediaSources` puts the queried item's source first and otherwise
+    sorts by **descending video width**
+    (`Emby.Server.Implementations/Library/MediaSourceManager.cs`), so [0] is
+    the version you clicked, else the highest-resolution one. That is a
+    reasonable default and the shim direct-plays most formats, which is why
+    this is accepted rather than fixed before the release.
+
+    What it costs is the two fallbacks below, and both only bite when the
+    highest-resolution version is the one this client cannot play -- which is
+    the exact setup people keep dual versions for. Weighed against losing the
+    remembered audio/subtitle track on every episode advance, which is what
+    dropping the pin would cost, and the pin wins.
+
+    So these tests assert the **current** behaviour, including where it fails.
+    If a fix lands they are expected to fail: read F36, then update them.
+    """
+
+    #: The previous episode, shaped so _rank_stream matches on language.
+    PREV = {"MediaStreams": [dict(s) for s in STREAMS]}
+
+    def _play(self, video):
+        from jellyfin_mpv_shim.conf import settings
+        with mock.patch.object(settings, "always_transcode", False):
+            return video.get_playback_url()
+
+    def test_a_remembered_track_pins_the_first_version(self):
+        """The accepted cost, stated plainly."""
+        from jellyfin_mpv_shim.conf import settings
+
+        v, api = _multi_version_video([_source(), VERSION_2])
+        pm = _pm(memory=(self.PREV, 2, None))
+        with mock.patch.object(settings, "language_config", None), \
+                mock.patch.object(settings, "remember_audio_track", True), \
+                mock.patch.object(settings, "remember_subtitle_track", False), \
+                mock.patch.object(settings, "always_transcode", False):
+            pm.play(v)
+        self.assertEqual(api.asked[0]["srcid"], "src1")
+        self.assertEqual(
+            len(v.playback_info["MediaSources"]), 1,
+            "the server was asked for one version and answered with one, so "
+            "get_best_media_source has nothing left to choose between")
+
+    def test_the_remembered_track_is_what_the_pin_buys(self):
+        """And the reason it is kept: the server ignores AudioStreamIndex
+        without a MediaSourceId, so without the pin the advance plays the
+        server's default while the HUD claims the remembered track."""
+        from jellyfin_mpv_shim.conf import settings
+
+        v, api = _multi_version_video([_source(), VERSION_2])
+        pm = _pm(memory=(self.PREV, 2, None))
+        with mock.patch.object(settings, "language_config", None), \
+                mock.patch.object(settings, "remember_audio_track", True), \
+                mock.patch.object(settings, "remember_subtitle_track", False), \
+                mock.patch.object(settings, "always_transcode", False):
+            pm.play(v)
+        self.assertEqual(api.asked[0]["aid"], 2)
+        self.assertIsNotNone(api.asked[0]["srcid"],
+                             "an index with no source to index into is one "
+                             "the server drops")
+
+    def test_the_unplayable_retry_still_covers_an_unpinned_play(self):
+        """The control, and the thing being traded away. With no track asked
+        for, every version is on offer and the `len(MediaSources) > 1` retry
+        in get_playback_url can walk to a playable one."""
+        from jellyfin_mpv_shim.conf import settings
+
+        dead = _source(SupportsTranscoding=False, TranscodingUrl=None)
+        v, api = _multi_version_video([dead, VERSION_2])
+        with mock.patch.object(settings, "language_config", None):
+            url = self._play(v)
+        self.assertIsNone(api.asked[0]["srcid"])
+        self.assertIsNotNone(
+            url, "the retry did not reach the second version")
+        self.assertEqual(v.media_source["Id"], "src2")
+
+    def test_a_pinned_play_has_no_retry_left(self):
+        """The same item, the same dead first version, one remembered track --
+        and the retry is now unreachable, because the list it walks has one
+        entry. This is the failure F36 describes; it is asserted so that a fix
+        cannot land silently.
+        """
+        from jellyfin_mpv_shim.conf import settings
+
+        dead = _source(SupportsTranscoding=False, TranscodingUrl=None)
+        v, api = _multi_version_video([dead, VERSION_2])
+        v.aid = 2                       # what the memory would have set
+        with mock.patch.object(settings, "language_config", None):
+            url = self._play(v)
+        self.assertEqual(api.asked[0]["srcid"], "src1")
+        self.assertIsNone(
+            url,
+            "the retry reached a playable version -- which is the wanted "
+            "behaviour, so F36 has been fixed and this test should now "
+            "assert it rather than the failure")
+
+
 if __name__ == "__main__":
     unittest.main()
