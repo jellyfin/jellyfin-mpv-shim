@@ -963,8 +963,13 @@ class Video(object):
         # ordinary play, where srcid is None.
         #
         # Only when we are actually asking for a track. With no aid/sid there
-        # is nothing to pin and the server should keep choosing the source
-        # itself, which is what multi-version items rely on.
+        # is nothing to pin and the server keeps choosing the source itself.
+        #
+        # But `remember_audio_track` defaults on, so from the second item in a
+        # queue onward there usually IS one -- and the pin then collapses a
+        # multi-version item to MediaSources[0], costing the unplayable retry
+        # below. Accepted, with the reasoning and the fix: docs/do-not-fix.md
+        # F36. Pinned by MultiVersionSourcePinTest.
         srcid = self.srcid
         # Only for an index that actually INDEXES INTO a source. `sid = -1` is
         # "no subtitles", which is source-independent -- and the remembered
