@@ -213,6 +213,77 @@ class TypeSeamMatrixTest(_e2e.E2ETestCase):
             "repeat-one did not come back for the next track, so the film "
             "turned the setting off for good")
 
+    @staticmethod
+    def _rgb(colour):
+        """The RGB triplet of an mpv colour.
+
+        **mpv does not answer in the alphabet it accepts**, the same trap as
+        `loop-file` below and `image_display_duration` above: the shim writes
+        `#141414` and mpv reads it back as `#ff141414`, alpha first. Comparing
+        the string it was given fails against correct behaviour.
+        """
+        text = str(colour).lstrip("#").lower()
+        return text[-6:]
+
+    def _bg(self):
+        """`background` and `background-color`, as mpv answers them."""
+        return (str(self.pm._player.background),
+                self._rgb(self.pm._player.background_color))
+
+    def test_a_film_gets_mpvs_background_back_and_music_keeps_the_browse_one(
+            self):
+        """`background` / `background-color`, the browse -> video seam with
+        the longest reach.
+
+        The browser paints its own window rather than decoding a file to hold
+        it open, so `set_browse_window` parks `background` at "color" and
+        `background-color` at the theme's `#141414`. Nobody put them back:
+        **every letterboxed film played after the browser had been on screen
+        got #141414 bars instead of black, for the rest of the mpv process's
+        life** (`dde0f2a1`). `background` is harmless under opaque video --
+        it is `border-background`, which defaults to reading the same colour,
+        that carries it to the bars.
+
+        Asserted here and not in the matrix above because the restore belongs
+        to `browse_yield`, which `play()` does not call; the gateway's
+        `on_browse_leave` does. So the handoff is driven explicitly.
+
+        **And music must NOT get it back.** Audio never yields the window --
+        `MpvtkBrowser.on_playstate` calls `enter_browse()` for audio and
+        `_yield()` only for video, because the library stays on screen behind
+        the now-playing bar -- so a track legitimately keeps the UI-matching
+        background. A test that asserted "black after any playback" would be
+        asserting a bug into place. Nothing else in tests/ reads these two
+        properties off a real mpv at all; the existing assertion is that
+        browse SETS them, against a fake.
+        """
+        from jellyfin_mpv_shim.player_window import (
+            BROWSE_BG_HEX, MPV_DEFAULT_BACKGROUND, MPV_DEFAULT_BACKGROUND_HEX)
+
+        self.assertEqual(
+            self._bg(), ("color", self._rgb(BROWSE_BG_HEX)),
+            "the browse window did not park the background, so nothing is "
+            "staged to leak into the film")
+
+        # The handoff, as `gateway.playback.on_browse_leave` runs it.
+        self.pm.browse_yield()
+        self._play("video")
+        self.assertEqual(
+            self._bg(),
+            (MPV_DEFAULT_BACKGROUND, self._rgb(MPV_DEFAULT_BACKGROUND_HEX)),
+            "the film inherited the browser's window background: every "
+            "letterboxed film gets %s bars instead of black, and it lasts "
+            "the rest of the mpv process's life" % BROWSE_BG_HEX)
+
+        # Music: no yield, by design, so the browse colour stays.
+        self.pm.set_browse_window(True)
+        self._play("music")
+        self.assertEqual(
+            self._bg(), ("color", self._rgb(BROWSE_BG_HEX)),
+            "music lost the browse background -- the library is still on "
+            "screen behind the now-playing bar, so this is the window the "
+            "user is looking at")
+
     def test_the_matrix(self):
         """Every ordered pair, plus each type from the browser as the
         control row -- if a type is already wrong with no predecessor, the
