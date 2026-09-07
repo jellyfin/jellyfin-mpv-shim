@@ -164,11 +164,100 @@ class SyncOnPictureTest(_GeometryTest):
         self.assertTrue(pm.show_picture("/tmp/page.png"))
         self.assertEqual(pm._player.geometry_writes, [])
 
+    def test_a_fullscreen_window_is_left_alone_for_a_picture_too(self):
+        pm = self._picture_pm(armed="1280x720", w=1600, h=900,
+                              fullscreen=True)
+        self.assertTrue(pm.show_picture("/tmp/page.png"))
+        self.assertEqual(pm._player.geometry_writes, [])
+
+    def test_turning_pages_does_not_walk_the_window(self):
+        """Every page turn is another `show_picture`, so the sync now runs
+        per page. Three turns at a steady size must write nothing at all --
+        if the re-arm ever disagreed with what it just wrote, the window
+        would creep a little on every page.
+        """
+        pm = self._picture_pm(armed="1600x900", w=1600, h=900)
+        for _ in range(3):
+            self.assertTrue(pm.show_picture("/tmp/page.png"))
+        self.assertEqual(pm._player.geometry_writes, [])
+        self.assertEqual(pm._geometry_armed, "1600x900")
+
     def test_a_maximized_window_is_left_alone_for_a_picture_too(self):
         pm = self._picture_pm(armed="1280x720", w=1600, h=900,
                               maximized=True)
         self.assertTrue(pm.show_picture("/tmp/page.png"))
         self.assertEqual(pm._player.geometry_writes, [])
+
+
+class SaveAcrossLaunchesTest(_GeometryTest):
+    """`_save_window_geometry`, which every other test in this file stubs
+    out and none of them exercises.
+
+    It runs on the shutdown path and is the only thing that carries a window
+    size across launches, so a defect here is invisible until the NEXT run --
+    the worst place for one, and the reason it is worth pinning rather than
+    trusting.
+    """
+
+    def _settings(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        saved = (settings.remember_window_size, settings.window_width,
+                 settings.window_height, settings.window_maximized,
+                 settings.save)
+        settings.save = lambda *a, **k: None
+
+        def restore():
+            (settings.remember_window_size, settings.window_width,
+             settings.window_height, settings.window_maximized,
+             settings.save) = saved
+        self.addCleanup(restore)
+        return settings
+
+    def test_the_size_is_remembered(self):
+        settings = self._settings()
+        settings.remember_window_size = True
+        settings.window_width, settings.window_height = 0, 0
+        pm = self._pm(w=1600, h=900)
+        pm._save_window_geometry()
+        self.assertEqual((settings.window_width, settings.window_height),
+                         (1600, 900))
+        self.assertFalse(settings.window_maximized)
+
+    def test_the_setting_is_honoured(self):
+        settings = self._settings()
+        settings.remember_window_size = False
+        settings.window_width, settings.window_height = 111, 222
+        pm = self._pm(w=1600, h=900)
+        pm._save_window_geometry()
+        self.assertEqual((settings.window_width, settings.window_height),
+                         (111, 222),
+                         "the size was stored for someone who asked us not to")
+
+    def test_a_maximized_window_stores_the_flag_not_the_big_size(self):
+        """Storing the maximized size would make un-maximizing on the next
+        launch restore to something nearly full screen -- the window would
+        never come back to the size the user actually chose."""
+        settings = self._settings()
+        settings.remember_window_size = True
+        settings.window_width, settings.window_height = 900, 600
+        pm = self._pm(w=2560, h=1400, maximized=True)
+        pm._save_window_geometry()
+        self.assertEqual((settings.window_width, settings.window_height),
+                         (900, 600),
+                         "the maximized size overwrote the floating one")
+        self.assertTrue(settings.window_maximized)
+
+    def test_a_torn_down_window_does_not_store_nonsense(self):
+        """osd-width reads 0 while the window is going away, and this runs
+        on exactly that path."""
+        settings = self._settings()
+        settings.remember_window_size = True
+        settings.window_width, settings.window_height = 1280, 720
+        pm = self._pm(w=0, h=0)
+        pm._save_window_geometry()
+        self.assertEqual((settings.window_width, settings.window_height),
+                         (1280, 720))
 
 
 class MinimizeOrderTest(_GeometryTest):
