@@ -316,22 +316,22 @@ true for an item that is gone and **nothing re-binds summon**. Measured: after
 the second video the wake binding does not exist and mouse moves produce no HUD
 event at all, because the renderer believes it is already showing.
 
-**What is NOT explained**: in the harness this self-heals as soon as the
-auto-hide timer fires (wake comes back, the HUD hides normally), so the
-reproduction is "no controls for the length of the auto-hide delay", not the
-permanent death reported. Either something stops that timer firing in the real
-app (`hud_autohide`, `hud_hide_secs`, or `phud_busy` re-arming forever -- it
-holds the bar up while the pointer rests on it, and unconditionally in the
-`paused` mode) or there is a further step. `phud_bind_summon` also declines to
-bind at all while `state.kb_saved` is set (mpv's console holding the keys),
-which would be permanent -- unverified.
+**FIXED**, once a second report gave the trigger: changing an audio or
+subtitle track during a transcode deletes and re-creates it, so the loading
+screen comes up and `LoadFeedback.clear()` hands off through `_yield()` --
+which engages while the renderer is ALREADY in HUD mode, hits the early
+return, and re-establishes nothing. The bar the user changed the track in was
+still up, so `phud.shown` stayed true for a stream that had ended.
+Intermittent because it depends on the bar still being up when the handoff
+lands; the auto-hide firing first re-binds summon and it recovers on its own,
+which is why the first reproduction looked self-healing.
 
-**A fix needs a decision, not just a patch**: the renderer cannot tell "a new
-item started" from "a setting changed", because `hud.engage()` is both -- its
-docstring says re-engaging is the ONLY thing that carries a changed setting
-through. Returning to idle on every engage would hide the HUD when someone
-changes a setting mid-film. So the item change has to come from the Python
-side, which knows it.
+The decision the fix needed: the renderer cannot tell "a new stream started"
+from "a setting changed" -- `hud.engage()` is both -- but the PYTHON side can.
+`_yield()` is a handoff by definition, so it now engages with `reset=True`,
+which cycles `set_hud(False)`/`set_hud(True)` and returns the HUD to a clean
+idle. Every other caller is a re-send (settings, SyncPlay, a fresh renderer)
+and must NOT hide a bar somebody is using; that is the control test.
 
 **The other suspect, still open, is the picture path and its deferral.** `show_picture`
 / `clear_picture` reach the player through `run_action`, which defers whenever

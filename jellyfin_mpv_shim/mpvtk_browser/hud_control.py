@@ -91,7 +91,7 @@ class HudController:
                 and c is not None and getattr(c, "use_hud", None) is not None
                 and c.use_hud())
 
-    def engage(self):
+    def engage(self, reset=False):
         """``set_hud(True)`` with everything the renderer owns attached: the
         keyboard policy, the auto-hide delay and mode, the glyph shadow.
 
@@ -113,7 +113,22 @@ class HudController:
         Every call site already guards on `not self._browsing`; this is the
         same rule in one place rather than four, so a guard evaluated a beat
         before the flag flips cannot get past it. It can only ever REFUSE an
-        engage, never cause one."""
+        engage, never cause one.
+
+        ``reset`` is for a HANDOFF -- a new stream taking the window. The
+        renderer early-returns from `mpvtk-hud yes` when it is already in
+        HUD mode, so a restart (changing an audio or subtitle track on a
+        transcode deletes and re-creates it) re-established nothing: if the
+        bar was still up from the gear menu the user changed the track in,
+        `phud.shown` stayed true for a stream that had ended, summon was
+        never re-bound, and moving the mouse did nothing because the
+        renderer believed it was already showing. Measured in tests/lua/:
+        the wake binding is gone after the second engage and a False/True
+        cycle restores it.
+
+        Only a handoff resets. The other callers are re-sends -- a settings
+        change, a SyncPlay join, a fresh renderer -- and hiding a bar
+        somebody is using would be its own bug."""
         if self._is_browsing is not None:
             try:
                 if self._is_browsing():
@@ -135,6 +150,16 @@ class HudController:
                 opts = get()
             except Exception:
                 opts = None
+        if reset:
+            # Unconditional, not `if self.shown`: this mirror can be stale
+            # (the renderer owns the real answer) and the cycle is free when
+            # the HUD is not up -- `mpvtk-hud no` early-returns when the mode
+            # already matches.
+            try:
+                self.app.set_hud(False)
+            except Exception:
+                log.debug("could not reset the HUD", exc_info=True)
+            self.shown = False
         self.app.set_hud(True, opts)
 
     # -- scrubbing ---------------------------------------------------------

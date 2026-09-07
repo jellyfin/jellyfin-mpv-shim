@@ -2289,9 +2289,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._release_page_grabs()
         self._tell_controller("on_browse_leave")
         if self.hud.available():
-            # keep the renderer attached: blank scene + summon bindings
+            # keep the renderer attached: blank scene + summon bindings.
+            #
+            # `reset=True` because this is a HANDOFF: a new stream is taking
+            # the window, so whatever the HUD was showing belonged to the one
+            # that just ended. Without it a restart -- changing an audio or
+            # subtitle track on a transcode re-creates it -- left the bar
+            # marked shown for a stream that was gone, with summon unbound.
             try:
-                self.hud.engage()
+                self.hud.engage(reset=True)
             except Exception:
                 log.debug("set_hud failed", exc_info=True)
         else:

@@ -700,6 +700,54 @@ class TheCursorNeverHidesOverTheLibraryTest(unittest.TestCase):
             ("active", True), app.calls[-1],
             "the renderer was not left asserted for browse")
 
+    def test_a_handoff_returns_the_hud_to_idle(self):
+        """Reported: changing an audio or subtitle track during a transcode
+        sometimes yields "to a dead HUD where moving the mouse does not bring
+        the player back", intermittently.
+
+        A track change on a transcode deletes and re-creates it, so the
+        loading screen comes up and `LoadFeedback.clear()` hands off through
+        `_yield()`. The renderer early-returns from `mpvtk-hud yes` when it
+        is ALREADY in HUD mode -- which it is, playback never left it -- so
+        nothing was re-established. If the bar was still up (the gear menu
+        the track was changed in), `phud.shown` stayed true for a stream that
+        had ended and summon was never re-bound: the mouse does nothing,
+        because the renderer believes it is already showing.
+
+        Intermittent because it depends on the bar still being up when the
+        handoff lands; if the auto-hide fired first, `phud_hide` re-binds
+        summon and it recovers on its own.
+
+        Measured in tests/lua/: after the second engage the wake binding is
+        gone, and a False/True cycle restores it.
+        """
+        b, app = self._browser()
+        b._browsing = False          # playing; the window is already ours
+        b.hud.state = {"stopped": False, "is_audio": False, "id": "v1"}
+        b.hud.shown = True           # the bar the user changed the track in
+        app.calls.clear()
+        b._yield()
+        self.assertEqual(
+            [("hud", False), ("hud", True)],
+            [c for c in app.calls if c[0] == "hud"],
+            "the handoff re-sent the engage without resetting, so the "
+            "renderer kept a shown flag from the stream that ended")
+        self.assertFalse(b.hud.shown)
+
+    def test_a_re_send_does_not_hide_a_bar_in_use(self):
+        """The control. Only a handoff resets: the other callers are
+        re-sends -- a settings change, a SyncPlay join, a fresh renderer --
+        and hiding a bar somebody is using would be its own bug."""
+        b, app = self._browser()
+        b._browsing = False
+        b.hud.state = {"stopped": False, "is_audio": False, "id": "v1"}
+        b.hud.shown = True
+        app.calls.clear()
+        b.hud.engage()
+        self.assertNotIn(("hud", False), app.calls,
+                         "a settings re-push hid the HUD")
+        self.assertTrue(b.hud.shown)
+
     def test_the_reported_sequence_leaves_browse_asserted(self):
         """Video, then the queue advances to a track: whatever order the
         pushes arrive in, the renderer must not be left in HUD mode while
