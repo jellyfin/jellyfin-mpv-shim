@@ -152,6 +152,9 @@ then dropped in the same commit).
 | F35 | `renderer.lua` `phud_skip_bind` | Binds literal `'ENTER'` for the Skip button whatever `hud_wake_key` says, so a moved wake key leaves ENTER accepting a skip. Found while doing #717 and deliberately left: it is a `hud_wake_key` bug, and it wants a decision about whether the idle Skip offer follows the wake key or `ui_select_key`. |
 | F36 | `media.py` `get_playback_url` | Asking for a track pins `MediaSources[0]`, so a multi-version item loses the unplayable retry. Accepted for 3.0.0; below. |
 | F37 | `renderer.lua` `keyclaim.block_take` | `browse_block_keys` swallows `q`/`f`/`p` in the library, defeating the player's STANDING fullscreen claim. Two claim mechanisms; below. |
+| F38 | `player_window.py` picture path | **Unverified.** The playback HUD stops appearing after several photo/video handoffs. Needs evidence; below. |
+| F39 | `player_window.py` `clear_picture` / `set_browse_window` | The window jump moved from opening a comic to LEAVING one. Cosmetic, and the open half is fixed. |
+| F40 | `player_window.py` `_apply_browse_fullscreen` | Reported edge case: the browse preference does not leave fullscreen when `fullscreen` is unset. Not yet reproduced. |
 
 ### F29 — sleeping NAS, not reproduced
 
@@ -269,8 +272,71 @@ blocked-but-claimed key to that dispatcher rather than swallowing it — but
 that is a new channel through the arbiter, and it wants a real-mpv matrix
 run, not a unit test.
 
+**And the ESC half, now confirmed twice** [iw]: in the comic reader and the
+epub reader there is "no keyboard only way to kill the focus ring without ESC
+which also exits the reader". ESC should drop the ring first and only page back
+on a second press. It belongs here rather than in its own entry because it is
+the same decision -- what the library's keyboard policy is -- and splitting it
+would produce two guards where the repair is one rule. The claim-swallowing
+half of that report IS fixed (`keyclaim.nav_names` in `keyclaim.take`); this is
+what is left.
+
 **Also wanted in the same pass** [iw]: `p` while music is playing, and a
 check that none of it breaks text entry. `m` and SPACE already work during
 music (they are claimed and routed), which is the behaviour the rest should
 match. The focus-ring half of the same report is fixed — see
 `keyclaim.nav_names` in `keyclaim.take`.
+
+### F38 — the HUD stops appearing after photo/video handoffs
+
+**Reported, not reproduced.** "Photo -> video -> photo ... this kills the HUD
+after a few video skips, not sure why." Several handoffs in, the playback HUD
+no longer summons.
+
+**Ruled out, by driving them:** the browser's `on_playstate` is correct across
+every photo/video alternation tried (photo, photo->video, photo->video->photo,
+four alternations, five video advances, and each with a `stopped` push in the
+middle) -- `hud.state` stays set and `set_hud(True)` keeps being sent. The
+renderer's own lifecycle is correct across the equivalent message sequence in
+`tests/lua/`, including from an auto-hidden HUD. `_release_page_grabs` drops a
+key claim and the pan model and touches neither.
+
+**The remaining suspect is the picture path and its deferral.** `show_picture`
+/ `clear_picture` reach the player through `run_action`, which defers whenever
+the player lock is busy -- and it is busy for the whole of a playback start.
+`clear_picture` guards on `self._video is not None` **with no `_loading`
+half**, where its sibling `reset_picture_view` guards on `self._video is None
+and not self._loading`. `_video` is not assigned until the duration wait
+succeeds, so a deferred `clear_picture` landing mid-start passes its guard and
+calls `set_browse_window(True)`. That is F15's asymmetry with a symptom
+attached, and it is the first evidence for it -- but it is a hypothesis, and
+the last two fixes made from a hypothesis in this area both had to be redone.
+
+**Before acting, ask for** `log.txt` from the affected run, grabbed *before*
+relaunching (it is rewritten on every start). `wlog` logs every
+`set_browse_window` with its caller, which is exactly the line that would
+settle this.
+
+### F39 — the comic window jump moved rather than went away
+
+`f583dc7f` gave `show_picture` the `_sync_window_geometry` call that every
+other load already had, and the reported jump on **opening** a comic is gone.
+The hand pass then found it on **leaving** one instead.
+
+Not diagnosed. The shape to check first: the reader borrows `keepaspect`, so
+the window can change size while a page is up; `set_browse_window(True)` on
+the way out turns it off and re-arms nothing, so the geometry armed before the
+comic is what the VO reconfig re-applies. Whether that is a jump or a restore
+is a product question as much as a bug.
+
+Cosmetic, one window resize, and the half that draws over the page is fixed.
+
+### F40 — browse fullscreen and the playback setting
+
+Reported: "fullscreen library browser does not exit fullscreen when regular
+fullscreen setting is not set." Not reproduced -- `_apply_browse_fullscreen`
+reads `browser_fullscreen or headless` for the ON direction and
+`_library_showing()` for the OFF one, and `settings.fullscreen` is not in
+either. So either the path is a different one (`set_fullscreen`, or the
+live-apply in `apply_browser_fullscreen`) or the report is about a state
+neither of us has pinned down. Wants a reproduction before a fix.
