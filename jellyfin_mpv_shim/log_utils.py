@@ -140,11 +140,29 @@ def configure_log_file(destination: str, level: str = "info"):
     root_logger.addHandler(handler)
 
 
+#: Loggers the in-app viewer must not see, because DRAWING the viewer is
+#: what produces them.
+#:
+#: `mpvtk.render` is the per-frame timing line. The Logs tab polls the ring
+#: and re-renders when the content changed -- so a render line lands in the
+#: ring, the next poll sees a change, re-renders, and logs another one. The
+#: "only when something changed" guard cannot help: the render IS the
+#: change. With debug logging on (i.e. exactly when someone is reading the
+#: log) that never goes idle, one render and one line per poll, forever.
+#:
+#: Excluded from the RING only. The file handler still records them, so
+#: `log.txt` is unchanged and the timings stay available to whoever asked
+#: for debug logging in the first place.
+RING_EXCLUDED = ("mpvtk.render",)
+
+
 class RingLogHandler(logging.Handler):
     """Keeps the last N formatted log lines in memory for in-app log views.
 
     The browser runs in *this* process and reads the ring directly, so the
-    log viewer needs no IPC and no separate copy of the buffer."""
+    log viewer needs no IPC and no separate copy of the buffer -- which is
+    also why it needs `RING_EXCLUDED`: a viewer reading its own output is a
+    feedback loop, and nothing else in the process has that problem."""
 
     def __init__(self, capacity=2000):
         super().__init__()
@@ -152,6 +170,8 @@ class RingLogHandler(logging.Handler):
 
     def emit(self, record):
         try:
+            if record.name in RING_EXCLUDED:
+                return
             self.lines.append(self.format(record))
         except Exception:
             pass

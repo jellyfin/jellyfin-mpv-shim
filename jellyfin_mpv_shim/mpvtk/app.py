@@ -20,6 +20,10 @@ from .layout import layout, set_metrics
 from .metrics import extend_metrics, measure_font
 
 log = logging.getLogger("mpvtk")
+#: Per-frame render timing. Its OWN logger so the in-app log viewer can
+#: exclude it by name (log_utils.RING_EXCLUDED): drawing the Logs tab emits
+#: one of these, which the tab would then see as new content and redraw for.
+render_log = logging.getLogger("mpvtk.render")
 
 _RENDERER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "renderer.lua")
 
@@ -674,8 +678,10 @@ class MpvtkApp:
         t3 = time.perf_counter()
         # Per-frame timing: useful while the renderer was being built, pure
         # noise in a normal log now. Debug-level so it can still be turned
-        # on when something is actually slow.
-        log.debug(
+        # on when something is actually slow -- and on `render_log`, which
+        # the in-app viewer excludes, because drawing the Logs tab is what
+        # emits this line.
+        render_log.debug(
             "render: build %.1fms, layout %.1fms, push %.1fms (%d nodes)",
             (t1 - t0) * 1000,
             (t2 - t1) * 1000,
