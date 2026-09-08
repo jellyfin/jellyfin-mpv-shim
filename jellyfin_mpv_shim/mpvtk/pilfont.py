@@ -103,9 +103,21 @@ _CANDIDATES = {
         "NotoSansHebrew-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansHebrew-Regular.ttf",
     ],
+    # `mangal.ttf` alone was a Windows entry that is not on Windows:
+    # **Mangal became an optional feature in Windows 10** ("Hindi
+    # Supplemental Fonts"), so on a stock install this list resolved
+    # nothing, fell through to the Latin backstop and drew Hindi as boxes
+    # with Arial. `Nirmala.ttf` (Nirmala UI) ships by default and covers
+    # the script completely -- measured 2026-09-08, 12/12 codepoints.
+    # Mangal stays behind it for the hosts that do have it.
+    #
+    # Found by `TestTheHostsOwnInventory`, which asks the host what it has
+    # rather than trusting this list -- every Devanagari assertion here was
+    # about `script_of` and none could see it.
     "devanagari": [
         "NotoSansDevanagari-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+        "Nirmala.ttf",
         "mangal.ttf",
     ],
     "thai": [

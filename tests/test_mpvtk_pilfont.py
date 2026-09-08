@@ -16,6 +16,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
 
+import os
 import unittest
 
 from jellyfin_mpv_shim.mpvtk import pilfont
@@ -1214,6 +1215,97 @@ class TestFallbackAcrossSymbolSets(unittest.TestCase):
                     os.path.basename(str(first)),
                     "%r was moved off the symbol chain's own first answer"
                     % ch)
+
+class TestTheHostsOwnInventory(unittest.TestCase):
+    """If this machine HAS a face for a script, the shim must find it.
+
+    Every other test here asks whether the candidate lists behave correctly.
+    This one asks whether they are *complete*, by looking at what is actually
+    installed rather than at what the file claims -- which is the only way a
+    missing entry can be caught, and it is the gap Codex named: there is an
+    owner for `pilfont.py` and none for "the shipped artifact, with its real
+    font inventory, renders a multilingual corpus".
+
+    It found `mangal.ttf` -- the sole Windows entry for Devanagari -- to be
+    **absent from Windows 10**, where Mangal became an optional feature, while
+    `Nirmala.ttf` ships by default and covers the script completely. Hindi drew
+    as boxes with Arial and nothing in the suite could tell, because every
+    Devanagari assertion was about `script_of`.
+
+    Deliberately host-driven and answer-free: it hardcodes no font name, so it
+    reports what *this* machine can do and cannot go stale into a lie.
+    """
+
+    #: Script -> a string that script must be able to draw. Short, because
+    #: each codepoint is a render on every face until one covers them all.
+    SAMPLES = {"cjk": "莲花电视剧", "arabic": "مسلسل", "hebrew": "שלום",
+               "devanagari": "हिन्दी", "thai": "ไทย", "symbol": "★✓",
+               "latin": "Añb"}
+
+    #: Where a system keeps fonts. A missing directory is skipped, so this
+    #: costs nothing on a platform it does not describe.
+    FONT_DIRS = (
+        "/usr/share/fonts", "/usr/local/share/fonts",
+        os.path.expanduser("~/.fonts"),
+        os.path.expanduser("~/.local/share/fonts"),
+        r"C:\Windows\Fonts",
+        os.path.join(os.environ.get("LOCALAPPDATA", ""),
+                     "Microsoft", "Windows", "Fonts"),
+        "/System/Library/Fonts", "/Library/Fonts",
+        "/System/Library/Fonts/Supplemental",
+    )
+
+    @classmethod
+    def _installed(cls):
+        if getattr(cls, "_cache", None) is not None:
+            return cls._cache
+        found = []
+        for directory in cls.FONT_DIRS:
+            if not directory or not os.path.isdir(directory):
+                continue
+            for root, _dirs, files in os.walk(directory):
+                for name in files:
+                    if name.lower().endswith((".ttf", ".otf", ".ttc", ".otc")):
+                        found.append(os.path.join(root, name))
+        cls._cache = found
+        return found
+
+    def _covers(self, face, text):
+        ref = face.getmask("\U000FFFFF", mode="L")
+        for ch in text:
+            mask = face.getmask(ch, mode="L")
+            if (mask.size, bytes(mask)) == (ref.size, bytes(ref)):
+                return False
+        return True
+
+    def test_every_script_this_host_can_draw_is_drawn(self):
+        from PIL import ImageFont
+
+        installed = self._installed()
+        if len(installed) < 5:
+            self.skipTest("no system font directory found here")
+
+        self.addCleanup(pilfont.clear_cache)
+        gaps = []
+        for script, sample in sorted(self.SAMPLES.items()):
+            pilfont.clear_cache()
+            chosen = pilfont.font_for(sample, 24)
+            if self._covers(chosen, sample):
+                continue                    # the shim found a face: fine
+            # The shim cannot draw it. Is that this host's fault or ours?
+            for path in installed:
+                try:
+                    face = ImageFont.truetype(path, 24)
+                except (OSError, IOError, ValueError):
+                    continue
+                if self._covers(face, sample):
+                    gaps.append((script, sample, os.path.basename(path)))
+                    break
+        self.assertEqual(
+            [], gaps,
+            "this host has a face for these scripts and pilfont did not "
+            "find it -- add it to _CANDIDATES: %s"
+            % "; ".join("%s (%r) is covered by %s" % g for g in gaps))
 
 class TestEmojiTable(unittest.TestCase):
     """The classifier half of F31, and the regression it must not cause.
