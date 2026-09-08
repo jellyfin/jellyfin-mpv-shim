@@ -277,13 +277,16 @@ colour name into a new global while the real one silently kept its old value.
 
 ## Optional dependencies are load-bearing
 
-Project policy (CONTRIBUTING.md): **everything beyond the four required deps must
+Project policy (CONTRIBUTING.md): **everything beyond the five required deps must
 degrade gracefully** when its package is missing or broken. `mpv_shim.py:main` and
 `player.py` both demonstrate the pattern — `try: import optional_thing` inside a guard,
 then a feature flag or a fallback.
 
-Required: `python-mpv`, `python-mpv-jsonipc`, `jellyfin-apiclient-python`, `requests`.
-Everything else (GUI, mirror, Discord, Windows niceties) is an `extras_require` group.
+Required: `python-mpv`, `python-mpv-jsonipc`, `jellyfin-apiclient-python`,
+`requests`, and **`pillow`** -- not optional since the in-player browser replaced
+the Tk one, because every tile, the playback HUD and the cast screen are
+rasterized with it and logging in at all goes through that browser
+(`pyproject.toml:18-29`). Everything else (GUI, mirror, Discord, Windows niceties) is an `extras_require` group.
 New features touching outside dependencies follow the same `try/except ImportError` +
 fallback pattern; don't add a hard import.
 

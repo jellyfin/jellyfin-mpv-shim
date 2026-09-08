@@ -1048,11 +1048,18 @@ class DialogsMixin:
     def _on_clipboard_error(self, op, need):
         """Neither MPV's clipboard nor a desktop helper could be used.
 
-        MPV only gained an X11 clipboard backend in 0.41 (its
-        --clipboard-backends default is win32,mac,wayland,vo), so on an
-        older MPV under X11 copy and paste do nothing at all. Silence
-        reads as the text field being broken; say what to install.
-        The renderer raises this at most once per session."""
+        MPV only gained an X11 clipboard backend in 0.41, so on an older
+        MPV under X11 copy and paste do nothing at all. Silence reads as
+        the text field being broken; say what to install.
+        The renderer raises this at most once per session.
+
+        The default backend list is win32,mac,wayland,**x11**,vo -- this
+        said the x11 entry was absent until it was read from mpv's source.
+        The advice below is still stale for a different reason: on Wayland
+        `--clipboard-xwayland` defaults to no, so a NEWER mpv does not help
+        either, and the flatpak is already on master. Fixing the string is
+        #739's work, not this comment's -- it is translated, so it moves
+        with the .pot."""
         if op == "copy":
             text = _("Copying to the clipboard is not available.")
         else:
