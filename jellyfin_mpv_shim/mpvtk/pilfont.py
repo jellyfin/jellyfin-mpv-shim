@@ -695,12 +695,21 @@ def _run_face(fnt, script, text=None):
     it was before any of this existed.
 
     **Single-run only.** The multi-run paths use :func:`_same_size`, which
-    resolves a real face per script unconditionally. For a stamped font the
-    two agree exactly (the stamp came from the same `font()` call the
-    lookup would make), and for an unstamped one they must not: "leave the
-    caller's face alone" is right for a string that face can draw and
-    disastrous for the mixed string this whole path exists to handle,
-    where it puts the tofu straight back.
+    resolves a real face per script unconditionally. For an unstamped font the
+    two must not agree: "leave the caller's face alone" is right for a string
+    that face can draw and disastrous for the mixed string this whole path
+    exists to handle, where it puts the tofu straight back.
+
+    For a stamped font the two agree **as long as the caller resolved the face
+    for the text it goes on to draw** -- every caller here does, and the ones
+    that ellipsize or wrap draw a subset plus a Latin "…", which is its own
+    run. That is the contract now, not an identity: since `font()` picks by
+    coverage, the same (script, size, weight) can legitimately answer with two
+    different faces, so a face resolved for one string and reused for another
+    the first face cannot draw would be returned unchanged. No guard is added
+    for it, because a guard here would be a second place deciding what
+    `font()` already decides -- if a caller ever needs that, it should pass
+    the text it draws.
     """
     stamped = getattr(fnt, "_jms_script", None)
     if stamped is None or stamped == script:
