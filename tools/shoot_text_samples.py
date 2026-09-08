@@ -38,9 +38,13 @@ preload()
 from jellyfin_mpv_shim.mpvtk import pilfont  # noqa: E402
 
 #: ``(group, label, text)`` or ``(group, label, text, expected)``.
-#: ``expected`` names the rows where boxes are a **documented trade** rather
-#: than a defect, so a reader is not sent chasing one. Ordered so the plain
-#: cases come first and the ones that have actually broken come last.
+#: ``expected`` explains rows whose boxes a reader should not chase, and it
+#: must say which of two things it is: a **documented trade** (cite it, with
+#: "GUIDE ..." or "BY DESIGN") or a **known gap** (start it "KNOWN GAP"). The
+#: distinction is the whole value -- one means stop looking, the other means
+#: this is a bug with a ticket's worth of work behind it. A test holds the
+#: convention. Ordered so the plain cases come first and the ones that have
+#: actually broken come last.
 SAMPLES = [
     ("Latin and neighbours", "ASCII", "Blade Runner 2049"),
     ("Latin and neighbours", "accents", "Amélie · Señor · Křižík · Æther"),
@@ -74,6 +78,39 @@ SAMPLES = [
 
     ("Other scripts", "Thai", "ภาพยนตร์ไทย"),
     ("Other scripts", "Devanagari", "हिन्दी फ़िल्म"),
+
+    # `script_of_char` has buckets for latin/hebrew/arabic/devanagari/thai/
+    # cjk and nothing else, so everything here answers "latin" and is drawn
+    # by the Latin face -- which mostly does not have it. Measured on a box
+    # with the full Noto set INSTALLED: the faces are present and
+    # unreachable. Georgian and Armenian are in the group because DejaVu
+    # happens to cover them, which is what makes the rest of the group a
+    # gap rather than a platform limit.
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Bengali", "বাংলা চলচ্চিত্র",
+     "KNOWN GAP: no bucket, so this resolves \"latin\". Noto has the face "
+     "and nothing can reach it. Needs a range in script_of_char plus a "
+     "candidate list -- not a missing font."),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Tamil", "தமிழ் திரைப்படம்"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Telugu", "తెలుగు సినిమా"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Gurmukhi", "ਪੰਜਾਬੀ ਫ਼ਿਲਮ"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Kannada", "ಕನ್ನಡ ಚಲನಚಿತ್ರ"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Sinhala", "සිංහල චිත්‍රපටය"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Ethiopic", "አማርኛ ፊልም"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Khmer", "ខ្មែរ ភាពយន្ត"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Myanmar", "မြန်မာ ဇာတ်ကား"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Georgian (DejaVu has it)", "ქართული ფილმი"),
+    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+     "Armenian (DejaVu has it)", "Հայերեն ֆիլմ"),
 
     ("Symbols and emoji", "symbol face", "★ 8.1 · ✓ · ▶ · ♪ · ⏸ · ⏭"),
     ("Symbols and emoji", "colour emoji", "🎬 🍿 ⭐ 🎵 📺"),
@@ -210,12 +247,16 @@ def build(size=26, width=1500):
                 else:
                     line = (line + " " + w).strip()
             lines.append(line)
-            put(330, y + int(size * 1.05), "boxes here are expected -- "
-                + lines[0], note_size - 1, (200, 170, 110))
+            gap = expected.startswith("KNOWN GAP")
+            # Red for a gap, amber for a trade: a reader must be able to
+            # tell "stop looking" from "this one is real" at a glance.
+            colour = (235, 120, 120) if gap else (200, 170, 110)
+            lead = "" if gap else "boxes here are expected -- "
+            put(330, y + int(size * 1.05), lead + lines[0], note_size - 1,
+                colour)
             for extra in lines[1:]:
                 y += 15
-                put(330, y + int(size * 1.05), extra, note_size - 1,
-                    (200, 170, 110))
+                put(330, y + int(size * 1.05), extra, note_size - 1, colour)
         y += row_h
 
     return img

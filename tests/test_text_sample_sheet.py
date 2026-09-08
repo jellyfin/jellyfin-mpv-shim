@@ -79,19 +79,32 @@ class SampleSheetTest(unittest.TestCase):
                 any(pilfont.script_of_char(ord(c)) == "cjk" for c in text),
                 "%r has no CJK left to be outranked" % row[1])
 
-    def test_the_expected_boxes_notes_point_at_something_real(self):
-        """A row marked "boxes here are expected" is telling the reader not
-        to investigate, so it has to be true. Each one must cite where the
-        trade is written down."""
+    def test_every_explained_row_says_which_kind_of_expected_it_is(self):
+        """A row that tells the reader not to chase its boxes must say
+        **why not**, and the two reasons are not interchangeable.
+
+        A *documented trade* means stop looking, and has to cite where the
+        decision is written down. A *known gap* means the opposite -- it is
+        a real defect with work behind it -- and the sheet draws it red
+        rather than amber. A note that said neither would read as "fine"
+        for something that is not.
+        """
         tool = self._tool()
         marked = [r for r in tool.SAMPLES if len(r) > 3]
         self.assertTrue(marked, "no rows carry an explanation any more")
         for row in marked:
             note = row[3]
+            trade = "GUIDE" in note or "BY DESIGN" in note
+            gap = note.startswith("KNOWN GAP")
             self.assertTrue(
-                "GUIDE" in note or "BY DESIGN" in note,
-                "%r explains its boxes without citing the decision: %r"
+                trade or gap,
+                "%r explains its boxes as neither a cited trade nor a "
+                "KNOWN GAP, so a reader cannot tell whether to care: %r"
                 % (row[1], note))
+            self.assertFalse(
+                trade and gap,
+                "%r claims to be both a settled trade and a known gap"
+                % row[1])
 
 
 if __name__ == "__main__":
