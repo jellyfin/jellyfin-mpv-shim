@@ -466,6 +466,65 @@ def _strike_order(size):
             + [s for s in reversed(_STRIKES) if s < size])
 
 
+#: Where a Flatpak's *host* fonts are bind-mounted. **This is the whole of
+#: why the sandbox needs special handling**: Pillow does not use fontconfig
+#: -- it searches a fixed list of directories -- so inside a Flatpak it sees
+#: only the runtime's own ``/usr/share/fonts``, and the user's fonts are
+#: over here instead.
+#:
+#: Measured 2026-09-08 against the shipped 3.0.0 Flatpak: the
+#: ``org.freedesktop.Platform`` 25.08 runtime carries **95 font files and no
+#: CJK, Thai or Indic face at all** (DejaVu, Liberation, FreeSans, Adwaita,
+#: Caladea, Carlito, Cantarell, plus NotoColorEmoji), while the host's 4243
+#: fonts -- including ``NotoSansCJK-Regular.ttc``, verified to draw 莲 --
+#: were sitting in here unreachable. Every Flatpak user with a Chinese,
+#: Japanese, Korean, Thai or Hindi library saw a screen of boxes.
+_HOST_FONT_DIRS = ("/run/host/fonts", "/run/host/local-fonts",
+                   "/run/host/user-fonts")
+
+#: ``basename.lower() -> path`` over :data:`_HOST_FONT_DIRS`, or ``{}``.
+#: Built at most once, and only when a candidate has already failed to load
+#: by its own name, so a host that is not a Flatpak never walks anything.
+_host_index = None
+
+
+def _host_fonts():
+    global _host_index
+    if _host_index is None:
+        _host_index = {}
+        for directory in _HOST_FONT_DIRS:
+            if not os.path.isdir(directory):
+                continue
+            for root, _dirs, files in os.walk(directory):
+                for filename in files:
+                    if filename.lower().endswith((".ttf", ".otf", ".ttc",
+                                                  ".otc")):
+                        # First wins, so the earlier directory in the tuple
+                        # takes precedence over a later duplicate.
+                        _host_index.setdefault(filename.lower(),
+                                               os.path.join(root, filename))
+    return _host_index
+
+
+def _resolutions(name):
+    """The paths to try for one candidate: its own name, then the same
+    **basename** under the host's font tree.
+
+    A generator because the second half must not be reached on a normal
+    host: `_load` only advances it when the name has already failed at
+    every size, so the walk in :func:`_host_fonts` is paid by a Flatpak and
+    by nobody else.
+
+    The basename is what carries over, for absolute candidates as much as
+    bare ones -- ``/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc``
+    does not exist inside the sandbox, and the file it names does.
+    """
+    yield name
+    alt = _host_fonts().get(os.path.basename(name).lower())
+    if alt and alt != name:
+        yield alt
+
+
 def _load(names, size, strikes=False):
     """``(font, name, native)``. ``native`` is the size it actually opened
     at, which is ``size`` for every scalable face and the strike for a
@@ -480,11 +539,13 @@ def _load(names, size, strikes=False):
     from PIL import ImageFont
 
     for name in names:
-        for want in [size] + (_strike_order(size) if strikes else []):
-            try:
-                return ImageFont.truetype(name, want), name, want
-            except (OSError, IOError):
-                continue
+        for candidate in _resolutions(name):
+            for want in [size] + (_strike_order(size) if strikes else []):
+                try:
+                    return (ImageFont.truetype(candidate, want), candidate,
+                            want)
+                except (OSError, IOError):
+                    continue
     return None, None, size
 
 
@@ -958,6 +1019,9 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
 
 
 def clear_cache():
+    global _host_index
+
+    _host_index = None
     _cache.clear()
     _chains.clear()
     _coverage.clear()

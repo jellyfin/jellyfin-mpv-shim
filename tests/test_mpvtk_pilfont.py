@@ -1248,6 +1248,12 @@ class TestTheHostsOwnInventory(unittest.TestCase):
         "/usr/share/fonts", "/usr/local/share/fonts",
         os.path.expanduser("~/.fonts"),
         os.path.expanduser("~/.local/share/fonts"),
+        # Flatpak: the runtime's own /usr/share/fonts is a 95-file set with
+        # no CJK, Thai or Indic face in it, and the HOST's fonts are
+        # bind-mounted here instead. Pillow does not use fontconfig, so
+        # these are exactly the directories it cannot see -- which is why
+        # they belong in a test about what this host can do.
+        "/run/host/fonts", "/run/host/local-fonts", "/run/host/user-fonts",
         r"C:\Windows\Fonts",
         os.path.join(os.environ.get("LOCALAPPDATA", ""),
                      "Microsoft", "Windows", "Fonts"),
@@ -1306,6 +1312,98 @@ class TestTheHostsOwnInventory(unittest.TestCase):
             "this host has a face for these scripts and pilfont did not "
             "find it -- add it to _CANDIDATES: %s"
             % "; ".join("%s (%r) is covered by %s" % g for g in gaps))
+
+class TestHostFontsInsideAFlatpak(unittest.TestCase):
+    """Pillow does not use fontconfig, so a Flatpak sees the runtime's fonts
+    and not the user's.
+
+    Measured against the shipped 3.0.0 Flatpak: the runtime carries 95 font
+    files and **no CJK, Thai or Indic face at all**, while the host's were
+    bind-mounted at `/run/host/fonts` where Pillow never looks. Chinese,
+    Japanese, Korean, Thai and Hindi libraries were a screen of boxes, and
+    the font that would have drawn them was on the disk the whole time.
+
+    Both halves are tested here without needing a sandbox: that a candidate
+    resolves by **basename** under the host tree, and that a host which is
+    not a Flatpak never walks anything.
+    """
+
+    def _real_font(self):
+        from PIL import ImageFont
+
+        for name in pilfont._CANDIDATES["latin"]:
+            try:
+                return ImageFont.truetype(name, 20).path
+            except (OSError, IOError):
+                continue
+        self.skipTest("no Latin face installed to stand in for a host font")
+
+    def _fake_host(self, real, as_name):
+        """A directory shaped like `/run/host/fonts`, holding ``real``
+        under ``as_name`` in a nested subdirectory -- nested because the
+        host's tree is (`opentype/noto/...`) and a flat scan would pass
+        while the real thing failed."""
+        import shutil
+        import tempfile
+
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        nested = os.path.join(root, "opentype", "noto")
+        os.makedirs(nested)
+        shutil.copyfile(real, os.path.join(nested, as_name))
+        self.addCleanup(setattr, pilfont, "_HOST_FONT_DIRS",
+                        pilfont._HOST_FONT_DIRS)
+        self.addCleanup(pilfont.clear_cache)
+        pilfont._HOST_FONT_DIRS = (root,)
+        pilfont.clear_cache()
+        return root
+
+    def test_a_candidate_resolves_by_basename_under_the_host_tree(self):
+        """The candidate names a path that does not exist here -- exactly
+        what `/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc` is
+        inside the sandbox -- and the file it names is on the host."""
+        real = self._real_font()
+        self._fake_host(real, "JmsHostOnly-Regular.ttf")
+
+        saved = list(pilfont._CANDIDATES["cjk"])
+        savedb = list(pilfont._BOLD["cjk"])
+        self.addCleanup(pilfont._CANDIDATES.__setitem__, "cjk", saved)
+        self.addCleanup(pilfont._BOLD.__setitem__, "cjk", savedb)
+        pilfont._CANDIDATES["cjk"] = [
+            "/nonexistent/runtime/tree/JmsHostOnly-Regular.ttf"]
+        pilfont._BOLD["cjk"] = []
+        pilfont.clear_cache()
+
+        got = pilfont.font("cjk", 20)
+        self.assertIsNotNone(getattr(got, "path", None),
+                             "fell back to Pillow's bitmap default")
+        self.assertEqual(os.path.basename(str(got.path)),
+                         "JmsHostOnly-Regular.ttf",
+                         "the host's copy was not found; got %s" % got.path)
+
+    def test_a_host_that_is_not_a_flatpak_never_walks_anything(self):
+        """The laziness is the whole reason this is free off-Flatpak: the
+        index is only consulted once a candidate has failed at every size,
+        so an ordinary resolution must not build it.
+        """
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        self.assertIsNone(pilfont._host_index, "cleared state is not clean")
+        pilfont.font_for("Blade Runner 2049", 20)
+        self.assertIsNone(
+            pilfont._host_index,
+            "resolving a Latin string walked the host font tree, which "
+            "every non-Flatpak host would then pay for")
+
+    def test_the_index_is_empty_rather_than_absent_when_there_is_no_host(self):
+        """`_host_fonts` must answer, not raise, when the directories are
+        not there -- it is on the path of every failed candidate."""
+        self.addCleanup(setattr, pilfont, "_HOST_FONT_DIRS",
+                        pilfont._HOST_FONT_DIRS)
+        self.addCleanup(pilfont.clear_cache)
+        pilfont._HOST_FONT_DIRS = ("/nonexistent/run/host/fonts",)
+        pilfont.clear_cache()
+        self.assertEqual({}, pilfont._host_fonts())
 
 class TestEmojiTable(unittest.TestCase):
     """The classifier half of F31, and the regression it must not cause.
