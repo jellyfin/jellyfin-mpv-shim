@@ -980,7 +980,86 @@ still → `msgothic.ttc`. A zh-Hant library gets Japanese shapes for the Han it
 shares, which is the one case left open and needs a language the server is never
 asked for.
 
-### 12.7 Where the Unicode data actually is
+### 12.7 A Flatpak sees the runtime's fonts, not the user's
+
+**Pillow does not use fontconfig.** It searches a fixed list of directories,
+which is the whole reason the sandbox needs anything said about it: inside a
+Flatpak that list finds the *runtime's* `/usr/share/fonts`, and the user's fonts
+are bind-mounted somewhere Pillow has never heard of.
+
+Measured 2026-09-08 against the shipped 3.0.0 Flatpak, on a host with the full
+Noto set installed:
+
+| | files | has CJK / Thai / Indic |
+|---|---|---|
+| runtime `/usr/share/fonts` (`org.freedesktop.Platform` 25.08) | 95 | **none of them** |
+| host, at `/run/host/fonts` | 4243 | all of them |
+
+So **Chinese, Japanese, Korean, Thai and Hindi libraries drew as a screen of
+boxes**, and `NotoSansCJK-Regular.ttc` — verified in the sandbox to draw 莲 —
+was on the disk the whole time. Absolute candidates made it worse rather than
+better: `/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc` names the
+runtime's tree inside the sandbox, so the entry that looks most specific is the
+one guaranteed to miss.
+
+`_load` therefore tries each candidate's **basename** under
+`_HOST_FONT_DIRS` (`/run/host/fonts`, `/run/host/local-fonts`,
+`/run/host/user-fonts`). Basename, because it has to carry over for an absolute
+candidate as much as a bare one. It is `_resolutions`' second yield, so the walk
+is only reached once a name has failed at every size — 2656 files in 3 ms, once
+per process, and never on a host that has no such directory.
+
+Two things worth knowing before touching it:
+
+- **The index being built is not the same as a directory being walked.** On
+  Windows the first Latin candidate (`DejaVuSans.ttf`) does not exist, so the
+  lookup *is* reached and the index is built empty: three `isdir` calls. A test
+  asserting "the index is None off-Flatpak" passes on Linux for an accidental
+  reason and fails on Windows for a correct one.
+- `/run/host/os-release` is the same trick from the other direction — it is the
+  only place a Flatpak can read the *host's* identity, which is what the
+  SteamOS detection in `docs/RELEASE_SHAPE_POST_3.0.0.md` §5.3 uses.
+
+### 12.8 One bucket per family of faces, not per script
+
+`script_of_char` buckets a codepoint, and the right granularity is **however
+many buckets the available faces justify** — not one per script and not one for
+everything.
+
+Seventeen scripts had no bucket at all until 2026-09-08, so every codepoint in
+them answered `"latin"`, took the Latin face and drew as boxes: Bengali,
+Gurmukhi, Gujarati, Oriya, Tamil, Telugu, Kannada, Malayalam, Sinhala, Lao,
+Tibetan, Myanmar, Georgian, Ethiopic, Cherokee, Khmer, Mongolian. Both platforms
+ship a face for every one of them. Georgian and Armenian were in exactly the
+same position and were invisible, because DejaVu happens to cover them — which
+is what made the whole set read as a platform limit instead of a bug.
+
+**The ten Indic scripts share one `"indic"` bucket, and that is only correct
+because of 12.6's coverage check.** They share no codepoints, so unlike CJK
+there is no regional-form problem: Noto ships a file per script, Windows ships
+`Nirmala.ttf` for all ten, and `font()` picks per run by what the run's
+codepoints actually draw as. Measured: from one list, Bengali resolves
+`NotoSansBengali`, Tamil `NotoSansTamil`, Telugu `NotoSansTelugu`; on Windows all
+ten resolve `Nirmala.ttf`.
+
+**Cost is one comparison**, because every added range lives inside
+U+0980..U+18AF and a single band test sits in front of `_BAND_SCRIPTS`. The
+scripts in it got *faster*: they used to traverse the whole chain to reach
+`"latin"` (147 ns measured) instead of returning at the gate. Thai and
+Devanagari sit inside that band, keep their own buckets and are answered
+*before* it — and a codepoint the table does not claim falls through rather than
+being taken, so the two orderings cannot silently swap. A test holds both ends.
+
+**Measure the font name on a host that has it.** `mangal.ttf` was Devanagari's
+only Windows entry for years and Mangal is not on Windows 10 — it became an
+optional feature — so Hindi drew in Arial. `NotoSansTibetan` does not exist
+either; Noto ships Serif only for that script. Both were caught by
+`TestTheHostsOwnInventory`, which walks the platform's font directories and
+fails when the host owns a face the shim did not find, naming the file. That
+test is the only thing here that can catch an *incomplete* list, because
+completeness cannot be checked against the file — only against a machine.
+
+### 12.9 Where the Unicode data actually is
 
 Debian's `unicode-data` package ships
 `/usr/share/unicode/emoji/emoji-data.txt` — the authoritative

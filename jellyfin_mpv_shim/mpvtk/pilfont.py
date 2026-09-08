@@ -147,7 +147,7 @@ _CANDIDATES = {
     # Flatpak runtime, which matters on a host with no Indic font at all.
     #
     # **One bucket for the ten Indic scripts, and the coverage check is why
-    # that works.** They share no codepoints, so unlike CJK there is no
+    # that works** (mpvtk/GUIDE.md section 12.8). They share no codepoints, so unlike CJK there is no
     # regional-form problem; Noto has a file per script and Windows has one
     # face for all of them, and `font()` picks per run by what the run's
     # codepoints actually draw as. Order here is preference only.
@@ -599,6 +599,8 @@ def _strike_order(size):
 #: -- it searches a fixed list of directories -- so inside a Flatpak it sees
 #: only the runtime's own ``/usr/share/fonts``, and the user's fonts are
 #: over here instead.
+#:
+#: Full account and the measured inventory: mpvtk/GUIDE.md section 12.7.
 #:
 #: Measured 2026-09-08 against the shipped 3.0.0 Flatpak: the
 #: ``org.freedesktop.Platform`` 25.08 runtime carries **95 font files and no
