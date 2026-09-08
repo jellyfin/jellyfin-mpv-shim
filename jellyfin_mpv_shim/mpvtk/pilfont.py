@@ -123,7 +123,106 @@ _CANDIDATES = {
     "thai": [
         "NotoSansThai-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
+        # Leelawadee UI is Windows' own Thai face; tahoma also has it and
+        # stays behind it. `FreeSerif` is the one the Flatpak runtime has.
+        "LeelawUI.ttf",
         "tahoma.ttf",
+        "FreeSerif.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+    ],
+    # Nine scripts that had **no bucket at all** until now: every codepoint
+    # in them answered "latin", got the Latin face and drew as boxes -- on
+    # Linux boxes with the whole Noto set installed and on a stock Windows
+    # 10, both of which ship a face for every one of them. Georgian and
+    # Armenian were in the same position and were invisible because DejaVu
+    # happens to cover them, which is what made this look like nothing.
+    #
+    # Every name below was **measured on the host that has it**, never
+    # guessed -- `mangal.ttf` above is what guessing costs. Windows 10
+    # inventory, measured 2026-09-08: `Nirmala.ttf` covers all ten Indic
+    # scripts by itself, `LeelawUI.ttf` covers Lao and Khmer (and Thai),
+    # `mmrtext.ttf` Myanmar, `himalaya.ttf` Tibetan, `ebrima.ttf` Ethiopic,
+    # `gadugi.ttf` Cherokee, `monbaiti.ttf` Mongolian, `sylfaen.ttf` and
+    # Calibri Georgian. `FreeSerif` is a broad Indic backstop and is in the
+    # Flatpak runtime, which matters on a host with no Indic font at all.
+    #
+    # **One bucket for the ten Indic scripts, and the coverage check is why
+    # that works.** They share no codepoints, so unlike CJK there is no
+    # regional-form problem; Noto has a file per script and Windows has one
+    # face for all of them, and `font()` picks per run by what the run's
+    # codepoints actually draw as. Order here is preference only.
+    "indic": [
+        "NotoSansBengali-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansBengali-Regular.ttf",
+        "NotoSansGurmukhi-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansGurmukhi-Regular.ttf",
+        "NotoSansGujarati-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansGujarati-Regular.ttf",
+        "NotoSansOriya-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansOriya-Regular.ttf",
+        "NotoSansTamil-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansTamil-Regular.ttf",
+        "NotoSansTelugu-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansTelugu-Regular.ttf",
+        "NotoSansKannada-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansKannada-Regular.ttf",
+        "NotoSansMalayalam-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Regular.ttf",
+        "NotoSansSinhala-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansSinhala-Regular.ttf",
+        # One face for all ten on Windows.
+        "Nirmala.ttf",
+        "FreeSerif.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+    ],
+    "lao": [
+        "NotoSansLao-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansLao-Regular.ttf",
+        "LeelawUI.ttf",
+        "DejaVuSans.ttf",
+    ],
+    # **Serif, not Sans**: Noto ships no `NotoSansTibetan`, and the guessed
+    # name was caught by `TestTheHostsOwnInventory` on the first run rather
+    # than by a bug report -- the same way `mangal.ttf` was.
+    "tibetan": [
+        "NotoSerifTibetan-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSerifTibetan-Regular.ttf",
+        "himalaya.ttf",
+    ],
+    "myanmar": [
+        "NotoSansMyanmar-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf",
+        "mmrtext.ttf",
+    ],
+    "georgian": [
+        "NotoSansGeorgian-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansGeorgian-Regular.ttf",
+        # DejaVu has Georgian, which is why this script never looked broken.
+        "DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "sylfaen.ttf",
+    ],
+    "ethiopic": [
+        "NotoSansEthiopic-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf",
+        "ebrima.ttf",
+        "FreeSerif.ttf",
+    ],
+    "cherokee": [
+        "NotoSansCherokee-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansCherokee-Regular.ttf",
+        "gadugi.ttf",
+        "FreeSans.ttf",
+    ],
+    "khmer": [
+        "NotoSansKhmer-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansKhmer-Regular.ttf",
+        "LeelawUI.ttf",
+    ],
+    "mongolian": [
+        "NotoSansMongolian-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMongolian-Regular.ttf",
+        "monbaiti.ttf",
     ],
     # Stars, ticks, arrows, media glyphs. Not a script anybody writes in, and
     # on Linux it resolves to the same DejaVu the Latin text does -- it earns
@@ -320,6 +419,14 @@ def script_of_char(cp):
         return "devanagari"
     if 0x0E00 <= cp <= 0x0E7F:
         return "thai"
+    # One comparison for the nine table-driven scripts. Deliberately after
+    # thai and devanagari, which are inside this band and have their own
+    # buckets, and deliberately falling through rather than returning when
+    # nothing matches.
+    if 0x0980 <= cp <= 0x18AF:
+        for lo, hi, script in _BAND_SCRIPTS:
+            if lo <= cp <= hi:
+                return script
     # Before the CJK catch-all, because most of this table is above it.
     if cp in _EMOJI_CPS:
         return "emoji"
@@ -390,6 +497,27 @@ def script_of(text):
     # redundant condition would read as load-bearing.
     return "symbol" if saw_symbol and not saw_word else "latin"
 
+
+#: ``(lo, hi, script)`` for the scripts that need nothing but a range and a
+#: candidate list. Reached through **one** comparison in
+#: :func:`script_of_char` -- every entry lives inside U+0980..U+18AF, so a
+#: single band test in front of this loop keeps the cost off Latin, CJK,
+#: emoji and symbols entirely.
+#:
+#: Thai (U+0E00..U+0E7F) and Devanagari (U+0900..U+097F) sit inside that
+#: band and are deliberately **not** here: they have their own buckets and
+#: are answered before the gate. A codepoint in the band that matches
+#: nothing here falls through to the rest of the chain rather than being
+#: claimed, so the two orderings cannot silently swap.
+_BAND_SCRIPTS = ((0x0980, 0x0DFF, "indic"),      # Bengali..Sinhala
+                 (0x0E80, 0x0EFF, "lao"),
+                 (0x0F00, 0x0FFF, "tibetan"),
+                 (0x1000, 0x109F, "myanmar"),
+                 (0x10A0, 0x10FF, "georgian"),
+                 (0x1200, 0x137F, "ethiopic"),
+                 (0x13A0, 0x13FF, "cherokee"),
+                 (0x1780, 0x17FF, "khmer"),
+                 (0x1800, 0x18AF, "mongolian"))
 
 #: Characters that join what is around them into one glyph and must never
 #: start a run of their own, because **shaping does not cross a run

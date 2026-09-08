@@ -21,6 +21,42 @@ import unittest
 
 from jellyfin_mpv_shim.mpvtk import pilfont
 
+#: One character per script bucket, and one string per bucket to draw.
+#:
+#: Shared because two tests need it and both used to key a dict inline --
+#: which meant adding a script to `_CANDIDATES` made one of them call
+#: ``getmask(None)`` and raise something unrelated to what it tests.
+#: `test_every_bucket_has_a_sample` turns that into a stated requirement.
+SCRIPT_SAMPLE = {
+    "latin": ("A", "Blade Runner 2049"),
+    "cjk": ("\u4e00", "\u83b2\u82b1\u7535\u89c6\u5267"),
+    "hebrew": ("\u05d0", "\u05e9\u05dc\u05d5\u05dd"),
+    "arabic": ("\u0645", "\u0645\u0633\u0644\u0633\u0644"),
+    "devanagari": ("\u0939", "\u0939\u093f\u0928\u094d\u0926\u0940"),
+    "thai": ("\u0e01", "\u0e44\u0e17\u0e22"),
+    "indic": ("\u0995", "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"),
+    "lao": ("\u0e81", "\u0ea5\u0eb2\u0ea7"),
+    "tibetan": ("\u0f40", "\u0f56\u0f7c\u0f51"),
+    "myanmar": ("\u1000", "\u1019\u103c\u1014\u103a"),
+    "georgian": ("\u10d0", "\u10e5\u10d0\u10e0\u10d7"),
+    "ethiopic": ("\u1200", "\u12a0\u1218\u122d\u129b"),
+    "cherokee": ("\u13a0", "\u13e3\u13b3\u13a9"),
+    "khmer": ("\u1780", "\u1781\u17d2\u1798\u17c2\u179a"),
+    "mongolian": ("\u1826", "\u182e\u1823\u1829\u182d"),
+    "symbol": ("\u2605", "\u2605\u2713"),
+    "emoji": ("\U0001f3ac", "\U0001f3ac"),
+}
+
+#: Characters used only to ask a face "can you draw ANYTHING?".
+#:
+#: One per bucket is not enough for `indic`, which nine Noto faces share and
+#: each of which covers exactly one of the scripts -- measured:
+#: `NotoSansGurmukhi` draws Gurmukhi and none of the other eight. So the
+#: alphabet is per *script*, not per bucket.
+PROBE_ALPHABET = (
+    "".join(ch for ch, _text in SCRIPT_SAMPLE.values())
+    + "\u0995\u0a15\u0a95\u0b15\u0b95\u0c15\u0c95\u0d15\u0d9a")
+
 
 class TestScriptOf(unittest.TestCase):
     def test_ascii_is_latin(self):
@@ -1039,20 +1075,21 @@ class TestCjkCoverage(unittest.TestCase):
                 # look like notdef. Drawn from the samples the face's own
                 # script list exists for, so a face with a blank notdef is
                 # still held to a real answer.
-                has = {"latin": "A", "cjk": "\u4e00", "hebrew": "\u05d0",
-                       "arabic": "\u0645", "devanagari": "\u0939",
-                       "thai": "\u0e01", "symbol": "\u2605",
-                       "emoji": "\U0001f3ac"}.get(script)
+                has = SCRIPT_SAMPLE[script][0]
                 mask = face.getmask(has, mode="L")
                 if (mask.size, bytes(mask)) != (masks[0].size, first):
                     checked += 1
                     continue
                 # Not every candidate carries its list's script -- the
                 # Latin backstops on the CJK list are there for the tofu
-                # case. Only a face that covers NOTHING is a broken probe.
+                # case, and `NotoSansGurmukhi` on the `indic` list covers
+                # Gurmukhi and none of the other nine (measured), so a
+                # single per-BUCKET character cannot be the control for a
+                # bucket several faces share. Only a face that covers
+                # nothing at all is a broken probe.
                 self.assertTrue(
                     any(bytes(face.getmask(ch, mode="L")) != first
-                        for ch in "A\u4e00\u05d0\u0645\u2605"),
+                        for ch in PROBE_ALPHABET),
                     "%s renders every probe character exactly as it renders "
                     "notdef, so the check cannot answer for it" % name)
                 checked += 1
@@ -1238,9 +1275,13 @@ class TestTheHostsOwnInventory(unittest.TestCase):
 
     #: Script -> a string that script must be able to draw. Short, because
     #: each codepoint is a render on every face until one covers them all.
-    SAMPLES = {"cjk": "莲花电视剧", "arabic": "مسلسل", "hebrew": "שלום",
-               "devanagari": "हिन्दी", "thai": "ไทย", "symbol": "★✓",
-               "latin": "Añb"}
+    #: Every bucket, so a script added without a face on a host that HAS
+    #: one fails here rather than in a bug report. Straight from
+    #: `SCRIPT_SAMPLE`, minus emoji -- `script_of` never answers "emoji"
+    #: (a colour face's metrics would be wrong for a whole line), so
+    #: `font_for` is the wrong question for it.
+    SAMPLES = {script: text for script, (_ch, text)
+               in SCRIPT_SAMPLE.items() if script != "emoji"}
 
     #: Where a system keeps fonts. A missing directory is skipped, so this
     #: costs nothing on a platform it does not describe.
@@ -1381,19 +1422,54 @@ class TestHostFontsInsideAFlatpak(unittest.TestCase):
                          "JmsHostOnly-Regular.ttf",
                          "the host's copy was not found; got %s" % got.path)
 
-    def test_a_host_that_is_not_a_flatpak_never_walks_anything(self):
-        """The laziness is the whole reason this is free off-Flatpak: the
-        index is only consulted once a candidate has failed at every size,
-        so an ordinary resolution must not build it.
+    def test_a_host_that_is_not_a_flatpak_walks_no_directory(self):
+        """Off-Flatpak this must cost nothing, and "nothing" is about
+        directories walked -- not about whether the index object exists.
+
+        The first version asserted `_host_index is None` after resolving a
+        Latin string, which passed on Linux for an accidental reason: the
+        first Latin candidate (`DejaVuSans.ttf`) loads there, so the
+        generator was never advanced. **On Windows it does not exist**, so
+        the lookup is reached and the index is built -- empty, because the
+        `/run/host` directories are not there. That is three `isdir` calls
+        once per process and is the correct behaviour; the assertion was
+        wrong, not the code.
         """
+        self.addCleanup(setattr, pilfont, "_HOST_FONT_DIRS",
+                        pilfont._HOST_FONT_DIRS)
         self.addCleanup(pilfont.clear_cache)
+        pilfont._HOST_FONT_DIRS = ("/nonexistent/run/host/fonts",)
         pilfont.clear_cache()
-        self.assertIsNone(pilfont._host_index, "cleared state is not clean")
         pilfont.font_for("Blade Runner 2049", 20)
+        self.assertFalse(
+            pilfont._host_fonts(),
+            "a host with no /run/host font directory indexed something")
+
+    def test_the_index_is_not_built_while_a_candidate_still_loads(self):
+        """The laziness itself, pinned platform-independently.
+
+        `_resolutions` is a generator whose second yield does the walking,
+        so a candidate that loads must leave it unreached. Asserted against
+        a first candidate that is known to load *here*, rather than against
+        whichever name happens to work on the author's machine.
+        """
+        real = self._real_font()
+        self._fake_host(real, "JmsHostOnly-Regular.ttf")
+
+        saved = list(pilfont._CANDIDATES["latin"])
+        savedb = list(pilfont._BOLD["latin"])
+        self.addCleanup(pilfont._CANDIDATES.__setitem__, "latin", saved)
+        self.addCleanup(pilfont._BOLD.__setitem__, "latin", savedb)
+        pilfont._CANDIDATES["latin"] = [real]      # an absolute path that IS here
+        pilfont._BOLD["latin"] = []
+        pilfont.clear_cache()
+
+        got = pilfont.font_for("Blade Runner 2049", 20)
+        self.assertEqual(str(getattr(got, "path", "")), real)
         self.assertIsNone(
             pilfont._host_index,
-            "resolving a Latin string walked the host font tree, which "
-            "every non-Flatpak host would then pay for")
+            "the host tree was indexed even though the first candidate "
+            "loaded, so every host would pay for the walk")
 
     def test_the_index_is_empty_rather_than_absent_when_there_is_no_host(self):
         """`_host_fonts` must answer, not raise, when the directories are
@@ -1404,6 +1480,72 @@ class TestHostFontsInsideAFlatpak(unittest.TestCase):
         pilfont._HOST_FONT_DIRS = ("/nonexistent/run/host/fonts",)
         pilfont.clear_cache()
         self.assertEqual({}, pilfont._host_fonts())
+
+class TestBucketBookkeeping(unittest.TestCase):
+    """The tables that have to stay in step with each other.
+
+    Both of these existed as implicit assumptions and both broke the moment
+    nine scripts were added: one test keyed a dict by script name and called
+    `getmask(None)` for anything new, and the other silently tested a subset.
+    """
+
+    def test_every_bucket_has_a_sample(self):
+        missing = sorted(set(pilfont._CANDIDATES) - set(SCRIPT_SAMPLE))
+        self.assertEqual(
+            [], missing,
+            "these buckets have no entry in SCRIPT_SAMPLE, so the coverage "
+            "and inventory tests silently skip them: %s" % missing)
+
+    def test_no_sample_is_for_a_bucket_that_does_not_exist(self):
+        extra = sorted(set(SCRIPT_SAMPLE) - set(pilfont._CANDIDATES))
+        self.assertEqual([], extra,
+                         "SCRIPT_SAMPLE names buckets that are gone: %s"
+                         % extra)
+
+    def test_every_sample_resolves_the_bucket_it_is_filed_under(self):
+        """A sample under the wrong key makes both tests assert about the
+        wrong script while still passing."""
+        for script, (ch, text) in sorted(SCRIPT_SAMPLE.items()):
+            if script == "emoji":
+                # `script_of` deliberately never answers emoji; the
+                # character still must.
+                self.assertEqual("emoji", pilfont.script_of_char(ord(ch)))
+                continue
+            self.assertEqual(script, pilfont.script_of_char(ord(ch)),
+                             "%r is not a %s character" % (ch, script))
+            self.assertEqual(script, pilfont.script_of(text),
+                             "%r does not resolve %s" % (text, script))
+
+    def test_every_band_script_is_a_bucket_with_candidates(self):
+        """A range in `_BAND_SCRIPTS` naming a bucket with no candidate list
+        resolves the Latin face and draws boxes -- which is the state all
+        nine of these scripts were in before they had ranges."""
+        for lo, hi, script in pilfont._BAND_SCRIPTS:
+            self.assertIn(script, pilfont._CANDIDATES,
+                          "band %04X-%04X names %r, which has no candidates"
+                          % (lo, hi, script))
+            self.assertTrue(pilfont._CANDIDATES[script],
+                            "%r has an empty candidate list" % script)
+
+    def test_the_band_gate_covers_every_band_range(self):
+        """The gate in `script_of_char` is a single hardcoded comparison in
+        front of the table. A range added outside it is unreachable, and
+        nothing else would say so.
+        """
+        for lo, hi, script in pilfont._BAND_SCRIPTS:
+            for cp in (lo, hi):
+                self.assertEqual(
+                    script, pilfont.script_of_char(cp),
+                    "U+%04X is in the %r range but the band gate does not "
+                    "reach it" % (cp, script))
+
+    def test_the_band_does_not_swallow_thai_or_devanagari(self):
+        """Both sit inside the band and are answered before it. If the gate
+        ever moved above them they would resolve the wrong bucket."""
+        for cp in (0x0E00, 0x0E7F):
+            self.assertEqual("thai", pilfont.script_of_char(cp))
+        for cp in (0x0900, 0x097F):
+            self.assertEqual("devanagari", pilfont.script_of_char(cp))
 
 class TestEmojiTable(unittest.TestCase):
     """The classifier half of F31, and the regression it must not cause.

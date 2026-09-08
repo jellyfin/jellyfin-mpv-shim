@@ -79,37 +79,36 @@ SAMPLES = [
     ("Other scripts", "Thai", "ภาพยนตร์ไทย"),
     ("Other scripts", "Devanagari", "हिन्दी फ़िल्म"),
 
-    # `script_of_char` has buckets for latin/hebrew/arabic/devanagari/thai/
-    # cjk and nothing else, so everything here answers "latin" and is drawn
-    # by the Latin face -- which mostly does not have it. Measured on a box
-    # with the full Noto set INSTALLED: the faces are present and
-    # unreachable. Georgian and Armenian are in the group because DejaVu
-    # happens to cover them, which is what makes the rest of the group a
-    # gap rather than a platform limit.
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
-     "Bengali", "বাংলা চলচ্চিত্র",
-     "KNOWN GAP: no bucket, so this resolves \"latin\". Noto has the face "
-     "and nothing can reach it. Needs a range in script_of_char plus a "
-     "candidate list -- not a missing font."),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    # These had no bucket in `script_of_char` at all, so every codepoint
+    # answered "latin", got the Latin face and drew as boxes -- on a box
+    # with the full Noto set installed and on a stock Windows 10, both of
+    # which ship a face for every one of them. Georgian and Armenian stay
+    # in the group because DejaVu happens to cover them, which is what made
+    # the rest look like a platform limit rather than a bug.
+    #
+    # Armenian still has no bucket and does not need one: nothing measured
+    # draws it that the Latin chain does not already reach.
+    ("Scripts that had no bucket until now",
+     "Bengali", "বাংলা চলচ্চিত্র"),
+    ("Scripts that had no bucket until now",
      "Tamil", "தமிழ் திரைப்படம்"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Telugu", "తెలుగు సినిమా"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Gurmukhi", "ਪੰਜਾਬੀ ਫ਼ਿਲਮ"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Kannada", "ಕನ್ನಡ ಚಲನಚಿತ್ರ"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Sinhala", "සිංහල චිත්‍රපටය"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Ethiopic", "አማርኛ ፊልም"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Khmer", "ខ្មែរ ភាពយន្ត"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Myanmar", "မြန်မာ ဇာတ်ကား"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Georgian (DejaVu has it)", "ქართული ფილმი"),
-    ("No bucket in script_of_char -- a KNOWN GAP, not a font problem",
+    ("Scripts that had no bucket until now",
      "Armenian (DejaVu has it)", "Հայերեն ֆիլմ"),
 
     ("Symbols and emoji", "symbol face", "★ 8.1 · ✓ · ▶ · ♪ · ⏸ · ⏭"),
