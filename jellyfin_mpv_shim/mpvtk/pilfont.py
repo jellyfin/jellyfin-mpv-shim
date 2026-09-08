@@ -39,6 +39,21 @@ _CANDIDATES = {
         "Arial.ttf",
         "arial.ttf",
     ],
+    # **Order here is preference, not correctness** -- `font()` rejects a
+    # candidate that cannot draw the run in hand, so nothing below depends on
+    # its position for a string to render. What it still decides is *regional
+    # glyph form*, and that is why the Japanese entries are deliberately NOT
+    # demoted: Han unification means one codepoint has different shapes in
+    # Japanese and Chinese typography, coverage cannot tell them apart, and
+    # the shim has no per-item language to ask. Promoting `msyh.ttc` would
+    # fix Simplified Chinese by giving every Japanese title Chinese shapes.
+    #
+    # Measured 2026-09-08 on a stock Windows 10 -- and it is the reason no
+    # ordering of this list was ever going to be right: `msgothic.ttc` has
+    # zh-Hant and ja and misses four of #736's eight codepoints; `msyh.ttc`
+    # and `simsun.ttc` have the Chinese and no Hangul at all; `malgun.ttf`
+    # has the Hangul and misses most Han. Four languages, one bucket, no
+    # single face. See mpvtk/GUIDE.md section 12.6.
     "cjk": [
         "NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -50,6 +65,13 @@ _CANDIDATES = {
         "msgothic.ttc",
         "meiryo.ttc",
         "YuGothM.ttc",
+        # Microsoft YaHei and JhengHei -- the Simplified and Traditional
+        # Chinese UI faces, shipped with Windows since Vista/7. Appended
+        # rather than promoted, for the reason above: with the coverage
+        # check they are what a Chinese title reaches once the Japanese
+        # faces decline it, which is a modern face instead of `simsun.ttc`.
+        "msyh.ttc",
+        "msjh.ttc",
         "simsun.ttc",
         "malgun.ttf",
     ],
@@ -149,8 +171,22 @@ _BOLD = {
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"],
 }
 
-_cache = {}          # (script, size, bold) -> ImageFont
+_cache = {}          # (script, size, bold) -> the face asked for with no text
+_chains = {}         # (script, size, bold) -> [(name, face), ...] opened so far
+# (font name, char) -> whether that face has a glyph. Unbounded on purpose:
+# the ceiling is the codepoints actually drawn times the faces asked, and a
+# bounded clear would re-pay 45 us per entry to save a few hundred KB.
+_coverage = {}
+_notdef = {}         # (font name, open size) -> that face's no-glyph renders
 _resolved = {}       # (script, bold) -> path/name that loaded, or None
+
+#: Codepoints Unicode guarantees will never be assigned, so what a face
+#: renders for one is that face's own "no glyph" mark. Three rather than
+#: one because a face that maps one anyway would make everything look
+#: covered; they are required to agree, which
+#: `tests/test_mpvtk_pilfont.py:TestCjkCoverage` holds against every
+#: candidate installed on the host.
+_NOTDEF_PROBES = ("\U000FFFFF", "\U0010FFFF", "\U000FFFFE")
 
 
 #: Blocks a text face is not expected to cover: arrows, media and geometric
@@ -406,44 +442,132 @@ def _load(names, size, strikes=False):
     return None, None, size
 
 
-def font_for(text, size, bold=False):
-    """A PIL font able to render ``text`` at ``size``. Falls back to the Latin
-    face (and finally Pillow's bitmap default) when nothing better is
-    installed."""
-    return font(script_of(text), size, bold)
+def _notdef_refs(fnt, name):
+    """What ``fnt`` renders for a codepoint that cannot exist.
+
+    Memoized per (name, open size) because the *bitmap* is size-dependent
+    even though the coverage verdict below is not: three renders cost 105 us
+    on Linux and 19 us on Windows (measured), which is worth paying once per
+    face rather than once per batch of characters.
+    """
+    key = (name, getattr(fnt, "size", None))
+    hit = _notdef.get(key)
+    if hit is None:
+        hit = []
+        for probe in _NOTDEF_PROBES:
+            mask = fnt.getmask(probe, mode="L")
+            hit.append((mask.size, bytes(mask)))
+        _notdef[key] = hit
+    return hit
 
 
-def font(script, size, bold=False):
+def _draws(fnt, name, ch):
+    """Whether ``fnt`` has a glyph for ``ch``, by rendering it and comparing
+    against that face's own no-glyph mark.
+
+    **A render comparison because Pillow exposes no cmap.** A
+    ``FreeTypeFont`` offers ``getmask``, ``getbbox``, ``getlength`` and
+    ``getname`` and nothing that maps a character to a glyph id, so the
+    alternative is a fontTools dependency for a check this cheap.
+
+    Measured 2026-09-08: 45 us per codepoint on Linux, 7.5 us on Windows,
+    paid once per (face, codepoint) for the session. **The verdict is the
+    same at 8px and at 96px on every face tried**, which is why the memo is
+    keyed by the face's name and shared across every size it is opened at.
+
+    Two faces measured here answer in ways that look wrong and are not.
+    ``simsun.ttc`` renders a *blank* no-glyph mark, and
+    ``NotoColorEmoji.ttf`` renders one identical to its space -- both are
+    harmless because the only glyphs that render blank are whitespace, and
+    :func:`_covers` skips it. Do not "fix" this by requiring the mark to be
+    non-blank; that assertion fails on a stock Debian box.
+    """
+    key = (name, ch)
+    hit = _coverage.get(key)
+    if hit is None:
+        try:
+            mask = fnt.getmask(ch, mode="L")
+            hit = (mask.size, bytes(mask)) not in _notdef_refs(fnt, name)
+        except (OSError, ValueError, AttributeError):
+            # Pillow's bitmap default, or a face that will not render this
+            # at all. "Covered" is the answer that keeps the behaviour
+            # there was before this check existed, which for an
+            # unanswerable face is the right one.
+            hit = True
+        _coverage[key] = hit
+    return hit
+
+
+def _covers(fnt, name, text, script):
+    """Whether ``fnt`` can draw the part of ``text`` that chose ``script``.
+
+    **Only that part, and that is the whole design of this check.** Asking
+    a face to cover the whole *string* would quietly overturn two decisions
+    this module made on measured evidence and wrote down:
+    ``NotoSansArabic-Regular.ttf`` is kept first for Arabic although it has
+    no ASCII at all (:data:`_CANDIDATES`, and the comment above it says
+    why), and the Hebrew list is ordered the opposite way round for
+    precisely the neutrals an RTL line cannot split off. Requiring only the
+    selecting script's codepoints leaves both answering exactly as they did,
+    while a Japanese face stops being handed a Simplified Chinese title
+    (#736).
+
+    Everything else in the string is somebody else's run: ``runs`` splits a
+    mixed title and each piece resolves its own face.
+    """
+    for ch in text or "":
+        if ch.isspace() or script_of_char(ord(ch)) != script:
+            continue
+        if not _draws(fnt, name, ch):
+            return False
+    return True
+
+
+def _opened(script, size, bold, index):
+    """``(name, face)`` at ``index`` in this script's candidate order, or
+    None past the end. Candidates are opened lazily and kept, so the common
+    case is still one ``ImageFont.truetype`` per (script, size, weight).
+
+    Measured 2026-09-08 on the Windows VM, where the walk is longest: a
+    Korean title reaches ``malgun.ttf`` on the fourth candidate for 1.81 ms
+    all in, once per chain.
+    """
     key = (script, size, bool(bold))
-    hit = _cache.get(key)
-    if hit is not None:
-        return hit
-    names = []
-    if bold:
-        names += _BOLD.get(script, [])
-    names += _CANDIDATES.get(script, [])
-    for other in _FALLBACK_SCRIPTS.get(script, ()):
-        names += _CANDIDATES.get(other, [])
-    if script != "latin":
-        # Better a Latin face than Pillow's 11px bitmap default.
+    state = _chains.get(key)
+    if state is None:
+        names = []
         if bold:
-            names += _BOLD["latin"]
-        names += _CANDIDATES["latin"]
-    fnt, name, native = _load(names, size, strikes=(script == "emoji"))
-    if fnt is None:
-        from PIL import ImageFont
+            names += _BOLD.get(script, [])
+        names += _CANDIDATES.get(script, [])
+        for other in _FALLBACK_SCRIPTS.get(script, ()):
+            names += _CANDIDATES.get(other, [])
+        if script != "latin":
+            # Better a Latin face than Pillow's 11px bitmap default. It will
+            # not satisfy `_covers` for a non-Latin run, which is correct:
+            # it is the tofu backstop, not a candidate.
+            if bold:
+                names += _BOLD["latin"]
+            names += _CANDIDATES["latin"]
+        state = {"names": names, "next": 0, "faces": []}
+        _chains[key] = state
+    while len(state["faces"]) <= index and state["next"] < len(state["names"]):
+        name = state["names"][state["next"]]
+        state["next"] += 1
+        fnt, got, native = _load([name], size, strikes=(script == "emoji"))
+        if fnt is not None:
+            _stamp(fnt, script, size, bold, native)
+            state["faces"].append((got, fnt))
+    if index < len(state["faces"]):
+        return state["faces"][index]
+    return None
 
-        fnt = ImageFont.load_default()
-        name, native = None, size
-    if _resolved.get((script, bool(bold))) != name:
-        _resolved[(script, bool(bold))] = name
-        if name is None and script != "latin":
-            log.info("no font found for script %r; text may not render", script)
-    # What it was asked for, so draw_text can ask for the same in another
-    # script. `size` is on FreeTypeFont already but the weight is not, and
-    # the bitmap default has neither. The script rides along too, so a face
-    # can be asked whether it is the right one for the run in hand -- see
-    # _run_face.
+
+def _stamp(fnt, script, size, bold, native):
+    """What it was asked for, so ``draw_text`` can ask for the same in
+    another script. ``size`` is on ``FreeTypeFont`` already but the weight is
+    not, and the bitmap default has neither. The script rides along too, so
+    a face can be asked whether it is the right one for the run in hand --
+    see :func:`_run_face`."""
     try:
         fnt._jms_size, fnt._jms_bold = size, bool(bold)
         fnt._jms_script = script
@@ -452,8 +576,62 @@ def font(script, size, bold=False):
         fnt._jms_native = native
     except AttributeError:         # a face that will not be annotated
         pass
-    _cache[key] = fnt
-    return fnt
+
+
+def font_for(text, size, bold=False):
+    """A PIL font able to render ``text`` at ``size``. Falls back to the Latin
+    face (and finally Pillow's bitmap default) when nothing better is
+    installed."""
+    return font(script_of(text), size, bold, text=text)
+
+
+def font(script, size, bold=False, text=None):
+    """A PIL face for ``script``, able to draw ``text`` if it is given.
+
+    **"The first candidate that opens" is not the same question as "the
+    first candidate that works", and the difference is #736.** A stock
+    Windows 10 resolves ``msgothic.ttc`` for every CJK string, and MS Gothic
+    is a *Japanese* face: measured, it is missing four of the eight
+    codepoints in that issue's own title, so half a Simplified Chinese
+    library drew as tofu. No ordering of :data:`_CANDIDATES` fixes that,
+    because no face on that host covers all four CJK languages -- msyh and
+    simsun have the Chinese and no Hangul, malgun has the Hangul and little
+    Han. So ``text`` decides, and the list only expresses preference.
+
+    Without ``text`` this answers exactly what it always did, from the same
+    one-lookup cache: the first candidate that opens. That is the answer for
+    a caller who wants a face's *metrics* rather than its glyphs
+    (`components/banner.py` reserving a line), and it is the fallback when
+    nothing in the chain covers the string -- tofu, but never a crash.
+    """
+    key = (script, size, bool(bold))
+    primary = _cache.get(key)
+    if primary is None:
+        entry = _opened(script, size, bold, 0)
+        if entry is None:
+            from PIL import ImageFont
+
+            fnt = ImageFont.load_default()
+            _stamp(fnt, script, size, bold, size)
+            entry = (None, fnt)
+        name, primary = entry
+        if _resolved.get((script, bool(bold))) != name:
+            _resolved[(script, bool(bold))] = name
+            if name is None and script != "latin":
+                log.info("no font found for script %r; text may not render",
+                         script)
+        _cache[key] = primary
+    if not text:
+        return primary
+    index = 0
+    while True:
+        entry = _opened(script, size, bold, index)
+        if entry is None:
+            return primary
+        name, fnt = entry
+        if name is None or _covers(fnt, name, text, script):
+            return fnt
+        index += 1
 
 
 def _scale_of(fnt):
@@ -494,7 +672,7 @@ def metrics(fnt):
     return int(round(ascent * scale)), int(round(descent * scale))
 
 
-def _same_size(fnt, script):
+def _same_size(fnt, script, text=None):
     """The face for ``script`` at the size and weight ``fnt`` was made with.
 
     Callers hold a font, not a (size, bold) pair -- they need its metrics for
@@ -504,10 +682,10 @@ def _same_size(fnt, script):
     nobody: the worst case is a bold run drawn regular.
     """
     return font(script, getattr(fnt, "_jms_size", getattr(fnt, "size", 12)),
-                getattr(fnt, "_jms_bold", False))
+                getattr(fnt, "_jms_bold", False), text=text)
 
 
-def _run_face(fnt, script):
+def _run_face(fnt, script, text=None):
     """The face to draw a run of ``script`` with, given the font a caller
     chose — possibly for a longer string this run was wrapped out of.
 
@@ -527,7 +705,7 @@ def _run_face(fnt, script):
     stamped = getattr(fnt, "_jms_script", None)
     if stamped is None or stamped == script:
         return fnt
-    return _same_size(fnt, script)
+    return _same_size(fnt, script, text)
 
 
 def _face_pickers(fnt, faces):
@@ -545,8 +723,8 @@ def _face_pickers(fnt, faces):
     """
     if faces is not None:
         return faces, faces
-    return ((lambda script: _run_face(fnt, script)),
-            (lambda script: _same_size(fnt, script)))
+    return ((lambda script, text=None: _run_face(fnt, script, text)),
+            (lambda script, text=None: _same_size(fnt, script, text)))
 
 
 def _split(text, fnt, faces):
@@ -562,9 +740,11 @@ def _split(text, fnt, faces):
     parts = runs(text)
     single, per_run = _face_pickers(fnt, faces)
     if has_rtl(text):
-        return parts, single(script_of(text)), per_run
+        # The whole line, so the face is chosen against every codepoint in
+        # it that belongs to the line's script -- see `_covers`.
+        return parts, single(script_of(text), text), per_run
     if len(parts) == 1 and parts[0][0] != "emoji":
-        return parts, single(parts[0][0]), per_run
+        return parts, single(parts[0][0], parts[0][1]), per_run
     return parts, None, per_run
 
 
@@ -576,7 +756,7 @@ def _measure(text, fnt, faces, measure):
         return measure(text, whole) * _scale_of(whole)
     total = 0.0
     for script, chunk in parts:
-        face = per_run(script)
+        face = per_run(script, chunk)
         total += measure(chunk, face) * _scale_of(face)
     return total
 
@@ -684,7 +864,7 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
         draw.text(xy, text, font=whole, fill=fill, anchor=anchor)
         return
 
-    fonts = [per_run(script) for script, _chunk in parts]
+    fonts = [per_run(script, chunk) for script, chunk in parts]
     scales = [_scale_of(f) for f in fonts]
     # Through `metrics`, or a 109px emoji strike would decide the baseline
     # for a 20px line and push the whole thing five lines down.
@@ -724,6 +904,9 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
 
 def clear_cache():
     _cache.clear()
+    _chains.clear()
+    _coverage.clear()
+    _notdef.clear()
     _resolved.clear()
 
 

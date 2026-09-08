@@ -119,7 +119,25 @@ class Measurer:
     def size_for(self, span_style):
         return max(8, int(round(self.style.font_px * span_style.scale)))
 
-    def _face(self, span_style, script):
+    def _face(self, span_style, script, text=None):
+        """``text`` is the run, when there is one, and it decides the face
+        for a non-Latin script: #736's rule, whose second site was this
+        module reaching `pilfont` through a script name alone.
+
+        **Not cached with ``text`` in play**, because the key cannot hold it
+        and a cache without it hands the next run whatever the first run
+        needed. `pilfont` memoizes the faces and the per-glyph coverage, so
+        the uncached path is a dict lookup rather than a font open. The
+        text-free calls -- the book's own base face, and the line-height
+        reservation in `_metrics` -- still hit this cache and pay nothing.
+        """
+        if text is not None:
+            from . import fonts
+
+            kind = "mono" if span_style.mono else self.style.font_kind
+            return fonts.face(kind, self.size_for(span_style),
+                              span_style.bold, span_style.italic, script,
+                              text=text)
         key = (span_style.key(), script)
         hit = self._fonts.get(key)
         if hit is None:
@@ -150,8 +168,8 @@ class Measurer:
         key = span_style.key()
         hit = self._resolvers.get(key)
         if hit is None:
-            def hit(script, _style=span_style):
-                return self._face(_style, script)
+            def hit(script, text=None, _style=span_style):
+                return self._face(_style, script, text)
             self._resolvers[key] = hit
         return hit
 

@@ -476,6 +476,129 @@ class TestPagination(unittest.TestCase):
         self.assertEqual(len(pages), 2)
 
 
+class TestCjkFaceCoverageInTheReader(unittest.TestCase):
+    """#736's second site: `epub/fonts.py` reaching pilfont by script name.
+
+    F32 routed the reader through pilfont so a minority script would get a
+    face that has it. It still asked by *script*, so the reader inherited
+    the library's bug one level down: on a host whose first CJK candidate is
+    a Japanese face, a Simplified Chinese book drew the characters that face
+    happens to share and tofu'd the rest.
+    """
+
+    TITLE = "莲花电视剧"
+
+    def _bitmap(self, font, text):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("L", (90, 60), 0)
+        ImageDraw.Draw(img).text((2, 2), text, font=font, fill=255)
+        return img.tobytes()
+
+    def _missing(self, font, text):
+        tofu = self._bitmap(font, "\U000FFFFF")
+        return [ch for ch in text if not ch.isspace()
+                and self._bitmap(font, ch) == tofu]
+
+    def _pin(self):
+        """Pin the cjk list to (a face that reproduces #736, one that does
+        not) and return the first of them."""
+        from PIL import ImageFont
+        from jellyfin_mpv_shim.epub import fonts
+        from jellyfin_mpv_shim.mpvtk import pilfont
+
+        def opens(name):
+            try:
+                return ImageFont.truetype(name, 21)
+            except (OSError, IOError):
+                return None
+
+        ja_only = None
+        for name in ("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
+                     "/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf",
+                     "/usr/share/fonts/truetype/takao-gothic/TakaoGothic.ttf",
+                     "msgothic.ttc", "YuGothM.ttc"):
+            face = opens(name)
+            if face is not None and self._missing(face, self.TITLE):
+                ja_only = name
+                break
+        full = None
+        for name in pilfont._CANDIDATES["cjk"]:
+            face = opens(name)
+            if face is not None and not self._missing(face, self.TITLE):
+                full = name
+                break
+        if ja_only is None or full is None:
+            self.skipTest("no face pair on this host reproduces #736")
+
+        saved = list(pilfont._CANDIDATES["cjk"])
+        savedb = list(pilfont._BOLD["cjk"])
+        self.addCleanup(pilfont._CANDIDATES.__setitem__, "cjk", saved)
+        self.addCleanup(pilfont._BOLD.__setitem__, "cjk", savedb)
+        self.addCleanup(fonts.clear_cache)
+        self.addCleanup(pilfont.clear_cache)
+        pilfont._CANDIDATES["cjk"] = [ja_only, full]
+        pilfont._BOLD["cjk"] = []
+        pilfont.clear_cache()
+        fonts.clear_cache()
+        return ja_only
+
+    def test_a_simplified_chinese_run_gets_a_face_that_can_draw_it(self):
+        from jellyfin_mpv_shim.epub import fonts
+
+        self._pin()
+        got = fonts.face("serif", 21, script="cjk", text=self.TITLE)
+        self.assertEqual([], self._missing(got, self.TITLE),
+                         "the reader's CJK face draws part of the run as "
+                         "tofu")
+
+    def test_a_run_does_not_inherit_the_face_the_base_script_cached(self):
+        """The step the unit test above cannot take on its own.
+
+        `fonts.face`'s cache is keyed ``(kind, size, bold, italic, script)``
+        with no text in it, and the *book's own* face is resolved first and
+        without text -- `Measurer.font` asks for it to set the base line.
+        So a lookup that consults that cache before it consults ``text``
+        answers every later run with whatever the base resolved to, and the
+        coverage check never runs. Measured: it did, and every test in this
+        file still passed.
+        """
+        from jellyfin_mpv_shim.epub import fonts
+
+        self._pin()
+        base = fonts.face("serif", 21, script="cjk")          # no text
+        run = fonts.face("serif", 21, script="cjk", text=self.TITLE)
+        self.assertEqual(
+            [], self._missing(run, self.TITLE),
+            "the run was handed the base script's cached face (%s)"
+            % ("the same object" if run is base else "a stale one"))
+
+    def test_the_page_draws_the_chinese_rather_than_repeating_one_box(self):
+        """F32's own detector, on #736's fixture: tofu is one shape
+        repeated, so two pages differing only in characters the pinned face
+        lacks composite identically when that face is the one drawing."""
+        from jellyfin_mpv_shim.epub.paint import render_page
+        from PIL import ImageFont
+
+        ja_only = self._pin()
+        gone = self._missing(ImageFont.truetype(ja_only, 21), self.TITLE)
+        if len(gone) < 2:
+            self.skipTest("need two characters the pinned face lacks")
+
+        def render(text):
+            blocks = blocks_of("<p>%s</p>" % text)
+            m = layout.Measurer(layout.ReaderStyle(font_px=21), "cjk")
+            pages = layout.paginate(blocks, 600, 400, m)
+            return render_page(pages[0], (680, 400), m.style, m,
+                               palette("light"), origin=(40, 30)).tobytes()
+
+        # assertTrue, not assertNotEqual: these are whole-page bitmaps and
+        # unittest prints both operands on failure.
+        self.assertTrue(
+            render(gone[0] * 3) != render(gone[1] * 3),
+            "changing the Chinese changed nothing on the page, so both "
+            "drew as identical .notdef boxes")
+
 class TestDocumentPosition(unittest.TestCase):
     """The offset-is-the-state property, against a real book."""
 

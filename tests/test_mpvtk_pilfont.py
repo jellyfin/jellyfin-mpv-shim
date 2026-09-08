@@ -773,6 +773,282 @@ class TestSymbolFace(unittest.TestCase):
                             self._bitmap(latin, "2001"))
 
 
+class TestCjkCoverage(unittest.TestCase):
+    """#736: a Simplified Chinese library drawn with a Japanese face.
+
+    The whole class asserts a *drawn glyph is not the face's own tofu*.
+    Every other CJK test in this file asserts a script name or that
+    something non-None came back, which is why none of them could fail
+    while the resolved face could not draw the string.
+
+    Measured 2026-09-08, and it is what makes ordering the list unfixable:
+    no single face on a stock Windows 10 covers all four CJK languages.
+    `msgothic.ttc` (what `_load` picks there today) has zh-Hant and ja and
+    misses 4 of the 8 codepoints in #736's own title; `simsun.ttc` and
+    `msyh.ttc` have the Chinese and no Hangul; `malgun.ttf` has the Hangul
+    and misses most Han. On Linux the same split is IPAGothic / VL Gothic /
+    Takao (ja, no zh-Hans) against NotoSansCJK (all four).
+    """
+
+    #: The title from the issue. Its two halves are the whole point: a
+    #: Japanese face draws 花第一季 and tofus 莲电视剧, which is the partial
+    #: garbling in the screenshot rather than a uniform row of boxes.
+    TITLE = "莲花 电视剧 第一季"
+
+    #: Faces measured to cover Japanese and *not* Simplified Chinese, in
+    #: the order they are worth trying. Not candidate-list entries -- they
+    #: are the fixture, standing in for the host in the issue.
+    JA_ONLY = ("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
+               "/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf",
+               "/usr/share/fonts/truetype/takao-gothic/TakaoGothic.ttf",
+               "msgothic.ttc", "YuGothM.ttc", "YuGothR.ttc")
+
+    def _bitmap(self, font, text):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("L", (80, 60), 0)
+        ImageDraw.Draw(img).text((2, 2), text, font=font, fill=255)
+        return img.tobytes()
+
+    def _tofu(self, font):
+        return self._bitmap(font, "\U000FFFFF")
+
+    def _missing(self, font, text):
+        tofu = self._tofu(font)
+        return [ch for ch in text if not ch.isspace()
+                and self._bitmap(font, ch) == tofu]
+
+    def _pin(self, names):
+        """Cut the cjk list down to ``names`` for one test."""
+        saved = list(pilfont._CANDIDATES["cjk"])
+        savedb = list(pilfont._BOLD["cjk"])
+        self.addCleanup(pilfont._CANDIDATES.__setitem__, "cjk", saved)
+        self.addCleanup(pilfont._BOLD.__setitem__, "cjk", savedb)
+        self.addCleanup(pilfont.clear_cache)
+        pilfont._CANDIDATES["cjk"] = list(names)
+        # A bold request would otherwise reach NotoSansCJK-Bold and answer
+        # correctly for a reason this test is not about.
+        pilfont._BOLD["cjk"] = []
+        pilfont.clear_cache()
+
+    def _fixture(self, needs=None):
+        """``(ja_only_name, full_name)`` -- a face that reproduces the
+        issue, and one that does not. Skips only where the host has no such
+        pair at all, which no box this runs on is."""
+        from PIL import ImageFont
+
+        def opens(name):
+            try:
+                return ImageFont.truetype(name, 24)
+            except (OSError, IOError):
+                return None
+
+        ja_only = None
+        for name in self.JA_ONLY:
+            face = opens(name)
+            if face is None:
+                continue
+            if self._missing(face, self.TITLE):
+                ja_only = name
+                break
+        full = None
+        for name in pilfont._CANDIDATES["cjk"]:
+            face = opens(name)
+            if face is None:
+                continue
+            if not self._missing(face, (needs or "") + self.TITLE):
+                full = name
+                break
+        if ja_only is None or full is None:
+            self.skipTest("no face pair on this host reproduces #736 "
+                          "(ja_only=%r, full=%r)" % (ja_only, full))
+        return ja_only, full
+
+    def test_a_simplified_chinese_title_is_not_drawn_by_a_japanese_face(self):
+        """#736 itself, through the face `strips._font`/`imageutil.pil_font`
+        hand to a baked caption."""
+        ja_only, full = self._fixture()
+        self._pin([ja_only, full])
+
+        font = pilfont.font_for(self.TITLE, 24)
+        self.assertEqual(
+            [], self._missing(font, self.TITLE),
+            "the caption face draws part of #736's title as tofu; it "
+            "resolved the first name that OPENS, not the first that WORKS")
+
+    def test_the_drawing_path_resolves_a_covering_face_too(self):
+        """`draw_text` re-resolves per run, so it is a second resolver and
+        not the one above -- and it is the one a tile caption goes through
+        (`strips.py:1344`)."""
+        from PIL import Image, ImageDraw
+
+        ja_only, full = self._fixture()
+        self._pin([ja_only, full])
+        font = pilfont.font_for(self.TITLE, 24)
+
+        def drawn(text):
+            img = Image.new("L", (80, 60), 0)
+            pilfont.draw_text(ImageDraw.Draw(img), (2, 2), text, font,
+                              fill=255)
+            return img.tobytes()
+
+        tofu = drawn("\U000FFFFF")
+        bad = [ch for ch in self.TITLE
+               if not ch.isspace() and drawn(ch) == tofu]
+        self.assertEqual([], bad,
+                         "draw_text drew %r as tofu" % "".join(bad))
+
+    def test_a_japanese_title_first_does_not_lock_the_face_for_a_chinese_one(
+            self):
+        """The step that a fix inside `_load` alone would not take.
+
+        `_cache` is keyed ``(script, size, bold)`` with no text in it, so
+        whichever title is drawn *first* in a session decides the face for
+        every later one. A mixed library resolves ja, caches the ja-only
+        face, and the Chinese titles below it are #736 again -- and the
+        session order is not something a one-shot test can see.
+        """
+        ja_only, full = self._fixture(needs="進撃の巨人")
+        self._pin([ja_only, full])
+
+        for step, title in enumerate(("進撃の巨人", self.TITLE,
+                                      "オリジナル", self.TITLE)):
+            font = pilfont.font_for(title, 24)
+            self.assertEqual(
+                [], self._missing(font, title),
+                "step %d (%r) drew tofu: the face cached for an earlier "
+                "title is still being handed to a later one" % (step, title))
+
+    def test_a_korean_title_is_not_drawn_by_a_chinese_face(self):
+        """The sibling the issue did not mention.
+
+        Hangul and Han share the one ``"cjk"`` bucket
+        (`pilfont.py:script_of_char`), and the faces that carry Chinese
+        mostly have no Hangul at all -- measured on `simsun.ttc`,
+        `msyh.ttc`, `msjh.ttc` and `DroidSansFallbackFull.ttf`. So
+        reordering the list for #736 moves the breakage rather than
+        removing it.
+        """
+        from PIL import ImageFont
+
+        korean = "오징어 게임"
+        han_only = full = None
+        for name in ("/usr/share/fonts/truetype/droid/"
+                     "DroidSansFallbackFull.ttf", "simsun.ttc", "msyh.ttc",
+                     "msjh.ttc") + tuple(pilfont._CANDIDATES["cjk"]):
+            try:
+                face = ImageFont.truetype(name, 24)
+            except (OSError, IOError):
+                continue
+            miss = self._missing(face, korean)
+            if miss and not self._missing(face, self.TITLE):
+                han_only = han_only or name
+            elif not miss:
+                full = full or name
+        if han_only is None or full is None:
+            self.skipTest("no Han-without-Hangul face pair on this host")
+        self._pin([han_only, full])
+
+        font = pilfont.font_for(korean, 24)
+        self.assertEqual([], self._missing(font, korean),
+                         "a Korean title resolved a Han-only face")
+
+    def test_the_arabic_face_is_still_chosen_for_a_line_with_ascii_in_it(self):
+        """Negative control for the deliberate decision at `pilfont.py:57`.
+
+        `NotoSansArabic-Regular.ttf` has the Arabic and **no ASCII**
+        (measured), and the list keeps it first knowingly: the face that
+        would draw the Latin word gives up three quarters of the
+        presentation forms. A coverage check that asked the whole *line* to
+        be covered would silently overturn that. It asks only for the
+        codepoints of the script that chose the list.
+        """
+        from PIL import ImageFont
+
+        try:
+            first = pilfont._CANDIDATES["arabic"][0]
+            face = ImageFont.truetype(first, 24)
+        except (OSError, IOError):
+            self.skipTest("the first Arabic candidate is not installed here")
+        if not self._missing(face, "S1"):
+            self.skipTest("%s covers ASCII here, so there is nothing to "
+                          "control for" % first)
+
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        got = pilfont.font_for("مسلسل (2013)", 24)
+        self.assertEqual(
+            [], self._missing(got, "مسلسل"),
+            "the Arabic line lost its Arabic face")
+        self.assertEqual(
+            getattr(got, "path", None), getattr(face, "path", None),
+            "the Arabic line was moved off %s, which is the face "
+            "pilfont.py:57-62 keeps first on purpose" % first)
+
+    def test_the_notdef_probes_agree_on_every_installed_candidate(self):
+        """What the coverage check rests on, asserted against whatever
+        faces this host actually has.
+
+        Two halves, and the second is the one that took a correction.
+        Three noncharacter codepoints must render the *same* thing as each
+        other, or "differs from notdef" names no single reference. And a
+        codepoint the face demonstrably HAS must come back covered, which
+        is the property the check is actually used for.
+
+        What is deliberately **not** asserted is that notdef differs from a
+        space. Measured 2026-09-08: `simsun.ttc` renders a blank notdef and
+        `NotoColorEmoji.ttf` renders notdef and space *identically* (both
+        empty at its 136px strike). That is harmless because the only
+        glyphs that render blank are whitespace and the check skips it --
+        but it is not the invariant, and asserting it fails on a stock
+        Debian box.
+        """
+        from PIL import ImageFont
+
+        probes = ("\U000FFFFF", "\U0010FFFF", "\U000FFFFE")
+        checked = 0
+        for script, names in pilfont._CANDIDATES.items():
+            for name in names:
+                for size in ([24] + list(pilfont._STRIKES)
+                             if script == "emoji" else [24]):
+                    try:
+                        face = ImageFont.truetype(name, size)
+                    except (OSError, IOError):
+                        continue
+                    break
+                else:
+                    continue
+                masks = [face.getmask(p, mode="L") for p in probes]
+                first = bytes(masks[0])
+                for probe, mask in zip(probes[1:], masks[1:]):
+                    self.assertEqual(
+                        (masks[0].size, first), (mask.size, bytes(mask)),
+                        "%s renders %r and %r differently, so neither is a "
+                        "reliable notdef reference" % (name, probes[0], probe))
+                # Positive control, per face: something it has must not
+                # look like notdef. Drawn from the samples the face's own
+                # script list exists for, so a face with a blank notdef is
+                # still held to a real answer.
+                has = {"latin": "A", "cjk": "\u4e00", "hebrew": "\u05d0",
+                       "arabic": "\u0645", "devanagari": "\u0939",
+                       "thai": "\u0e01", "symbol": "\u2605",
+                       "emoji": "\U0001f3ac"}.get(script)
+                mask = face.getmask(has, mode="L")
+                if (mask.size, bytes(mask)) != (masks[0].size, first):
+                    checked += 1
+                    continue
+                # Not every candidate carries its list's script -- the
+                # Latin backstops on the CJK list are there for the tofu
+                # case. Only a face that covers NOTHING is a broken probe.
+                self.assertTrue(
+                    any(bytes(face.getmask(ch, mode="L")) != first
+                        for ch in "A\u4e00\u05d0\u0645\u2605"),
+                    "%s renders every probe character exactly as it renders "
+                    "notdef, so the check cannot answer for it" % name)
+                checked += 1
+        self.assertGreater(checked, 3,
+                           "too few faces installed to be evidence")
+
 class TestEmojiTable(unittest.TestCase):
     """The classifier half of F31, and the regression it must not cause.
 

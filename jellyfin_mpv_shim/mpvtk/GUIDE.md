@@ -882,7 +882,81 @@ Arial's (19, 5) at 20px.
   lands on), NotoSansThai and NotoSansArabic all draw the letter A as `.notdef`,
   so "進撃の巨人 (2013)" came out with the year as four tofu boxes.
 
-### 12.6 Where the Unicode data actually is
+### 12.6 One CJK bucket, four languages, and no face that covers it
+
+`script_of_char` folds Han, kana and Hangul into the single script `"cjk"`,
+because there is no way to tell zh-Hans from zh-Hant from ja by codepoint —
+they share the Unified Han block, and the shim has no per-item language to ask
+the server for. One bucket is the right answer. **One face for the bucket is
+not**, and that was #736: a Simplified Chinese library drawn half in glyphs and
+half in tofu.
+
+Coverage measured 2026-09-08, per face, against the codepoints of each
+language's sample (#736's own title `莲花 电视剧 第一季` for zh-Hans):
+
+| face | host | zh-Hans | zh-Hant | ja | ko | ASCII |
+|---|---|---|---|---|---|---|
+| `NotoSansCJK-Regular.ttc` | Debian | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `DroidSansFallbackFull.ttf` | Debian | ✓ | ✓ | ✓ | ✗ | **✗** |
+| `fonts-japanese-gothic.ttf` (IPAGothic) | Debian | **✗ 4/8** | ✗ 嬛 | ✓ | ✗ | ✓ |
+| `VL-Gothic-Regular.ttf` | Debian | **✗ 4/8** | ✓ | ✓ | ✗ | ✓ |
+| `msgothic.ttc` (MS Gothic) | Windows 10 | **✗ 4/8** | ✓ | ✓ | ✗ | ✓ |
+| `YuGothM.ttc` / `YuGothR.ttc` | Windows 10 | **✗ 4/8** | ✓ | ✓ | ✗ | ✓ |
+| `msyh.ttc` (YaHei) / `msjh.ttc` (JhengHei) | Windows 10 | ✓ | ✓ | ✓ | ✗ | ✓ |
+| `simsun.ttc` | Windows 10 | ✓ | ✓ | ✓ | ✗ | ✓ |
+| `malgun.ttf` | Windows 10 | ✗ 4/8 | ✓ | ✗ 撃 | ✓ | ✓ |
+| `arial.ttf` / `segoeui.ttf` / `seguisym.ttf` | Windows 10 | ✗ | ✗ | ✗ | ✗ | ✓ |
+
+**Nothing on a stock Windows 10 covers all four.** The Chinese faces have no
+Hangul at all; the Korean face is missing most Han; the Japanese faces are
+missing a quarter of #736's own title. So no ordering of `_CANDIDATES["cjk"]`
+can be correct, and the fix cannot be a reordering — it has to be **per-run
+selection by coverage**, which is what `font(script, size, bold, text=...)`
+does. `_load` answers "the first name that opens"; that was never the same
+question as "the first name that works".
+
+**How coverage is measured, and why it is a render comparison.** Pillow exposes
+no cmap — `FreeTypeFont` has `getmask`, `getbbox`, `getlength` and `getname`,
+and nothing mapping a character to a glyph id — so `_draws` renders the
+character and compares it against what that same face renders for a codepoint
+Unicode guarantees will never be assigned. That is a real answer for **39–45 µs
+on Linux and 7.5 µs on Windows**, memoized per (face, codepoint) at ~20 ns, and
+it needs no new dependency. The verdict is **identical at 8 px and at 96 px** on
+every face tried, which is why the memo is keyed by the face's *name* and shared
+across sizes.
+
+Three results that look like the probe failing and are not:
+
+- `simsun.ttc` renders a **blank** no-glyph mark, and `NotoColorEmoji.ttf`
+  renders one **identical to its space**. Both are harmless, because the only
+  glyphs that render blank are whitespace and `_covers` skips it. Do not add an
+  assertion that the mark is non-blank or differs from a space — it is false on
+  a stock Debian box.
+- `DroidSansFallbackFull.ttf` covers three CJK languages and **has no ASCII at
+  all**, not even digits. It is a legitimate candidate anyway: a mixed title
+  splits into runs and the Latin run resolves its own face.
+- Several entries on this list cover none of it. The Latin chain is appended to
+  every script for the tofu-rather-than-crash backstop, and it correctly never
+  satisfies a CJK run.
+
+**Only the selecting script's codepoints are required.** Asking a face to cover
+the whole *string* would overturn 12.1's two measured decisions — Noto Arabic is
+kept first although it has no ASCII, and the Hebrew list is ordered backwards
+precisely for the neutrals. Requiring just the codepoints that chose the list
+leaves both exactly as they were.
+
+**What coverage still cannot decide is regional glyph form.** Han unification
+means one codepoint has different shapes in Japanese and Chinese typography, and
+`msyh.ttc` covers Japanese perfectly well — so promoting it to fix Simplified
+Chinese would give every Japanese title Chinese shapes. The Japanese entries
+therefore keep their position and the Chinese ones are *appended*: order in that
+list is now preference, and only correctness was taken away from it. On the
+Windows VM the result is zh-Hans → `msyh.ttc`, ko → `malgun.ttf`, ja and zh-Hant
+still → `msgothic.ttc`. A zh-Hant library gets Japanese shapes for the Han it
+shares, which is the one case left open and needs a language the server is never
+asked for.
+
+### 12.7 Where the Unicode data actually is
 
 Debian's `unicode-data` package ships
 `/usr/share/unicode/emoji/emoji-data.txt` — the authoritative
