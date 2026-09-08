@@ -806,6 +806,14 @@ have Arabic — 165/256, with `arab` shaping in both GSUB and GPOS — but only
 249/772 presentation forms, and Arabic is a script of presentation forms. That
 is the wrong three quarters to give up for the occasional Latin word.
 
+**RTL also outranks every other script in `script_of`, wherever it appears in
+the string.** That answer becomes the whole line's face, and "first non-Latin
+wins" gave "進撃の巨人 مسلسل" to a CJK face — which draws all five Arabic
+characters as boxes, unjoined and in logical order. The trade is already
+settled by the rule above: reordered text is a *wrong* line where tofu is only
+an ugly one, so the CJK is what degrades. A line with no RTL in it is
+unaffected, and two control tests pin that.
+
 When adding or reordering an RTL candidate, check ASCII coverage and the
 OpenType script tags, not just the letters.
 
@@ -862,6 +870,22 @@ A symbol only wins a whole string when there is nothing else in it. Segoe UI
 Symbol's Latin is not Arial's and it carries no Arabic or Hebrew at all, so one
 star choosing it would re-typeset whole paragraphs — and for an RTL line, which
 cannot be split at all, draw every word as a box.
+
+**A symbol the symbol faces lack falls to the emoji chain, and that is the
+only cross-script fallback edge in the file.** Measured 2026-09-08 on Debian:
+of the 1108 codepoints `_SYMBOL_RANGES` claims, **223 are drawn by nothing in
+the symbol chain or the Latin one behind it, and the emoji chain draws 219** —
+`Symbola` is on that list and is a symbol face in every respect except which
+bucket it sits in. The colour faces are not reachable this way and need not
+be: `_load` probes strikes only for the emoji script, so a CBDT face that opens
+at one fixed size is skipped here. #713's star still comes from the symbol
+chain's own first answer.
+
+Two edges were measured and **not** declared, which is the point of measuring:
+a `cjk` edge rescues 22 symbol codepoints and all 22 are already among the 219,
+and the 33 Latin codepoints nothing draws are the C0/C1 controls, which must not
+be rescued by anything. An entry in `_FALLBACK_SCRIPTS` that no run has needed
+pre-authorises a face for a case nobody has seen.
 
 Mixed lines cost a little vertical room: PIL's default vertical anchor is the
 *ascender* and two faces do not share one, so runs are drawn from a shared
