@@ -178,14 +178,17 @@ def build(size=26, width=1500):
     label_size = 15
     note_size = 13
     row_h = int(size * 2.4)
-    explained = sum(1 for r in SAMPLES if len(r) > 3)
+    # Budget exactly what the row loop adds for an explained row, or the
+    # last rows fall off the bottom of the canvas.
+    explained = sum(12 + max(0, (len(r[3]) // 74)) * 16
+                    for r in SAMPLES if len(r) > 3)
     head_h = 150
     groups = []
     for row in SAMPLES:
         if row[0] not in groups:
             groups.append(row[0])
     height = (head_h + len(SAMPLES) * row_h
-              + len(groups) * int(size * 1.9) + explained * 34 + 60)
+              + len(groups) * int(size * 1.9) + explained + 80)
 
     img = Image.new("RGB", (width, height), (24, 24, 28))
     draw = ImageDraw.Draw(img)
@@ -238,26 +241,31 @@ def build(size=26, width=1500):
             note = "%s: %s" % (type(exc).__name__, exc)
             put(330, y, "<raised>", size, (255, 90, 90))
         put(1080, y + 6, note[:58], note_size, (130, 170, 130))
-        if expected:
-            words, line, lines = expected.split(), "", []
-            for w in words:
-                if len(line) + len(w) + 1 > 74:
-                    lines.append(line)
-                    line = w
-                else:
-                    line = (line + " " + w).strip()
-            lines.append(line)
-            gap = expected.startswith("KNOWN GAP")
-            # Red for a gap, amber for a trade: a reader must be able to
-            # tell "stop looking" from "this one is real" at a glance.
-            colour = (235, 120, 120) if gap else (200, 170, 110)
-            lead = "" if gap else "boxes here are expected -- "
-            put(330, y + int(size * 1.05), lead + lines[0], note_size - 1,
-                colour)
-            for extra in lines[1:]:
-                y += 15
-                put(330, y + int(size * 1.05), extra, note_size - 1, colour)
-        y += row_h
+        if not expected:
+            y += row_h
+            continue
+        words, line, lines = expected.split(), "", []
+        for w in words:
+            if len(line) + len(w) + 1 > 74:
+                lines.append(line)
+                line = w
+            else:
+                line = (line + " " + w).strip()
+        lines.append(line)
+        gap = expected.startswith("KNOWN GAP")
+        # Red for a gap, amber for a trade: a reader must be able to tell
+        # "stop looking" from "this one is real" at a glance.
+        colour = (235, 120, 120) if gap else (200, 170, 110)
+        lead = "" if gap else "boxes here are expected -- "
+        # **Below the sample's descender, not beside it.** `draw_text`
+        # anchors "la", so the sample occupies roughly one full ascent plus
+        # descent from `y`; at `size * 1.05` the note landed on top of the
+        # Arabic it was explaining.
+        note_y = y + int(size * 1.55)
+        put(330, note_y, lead + lines[0], note_size - 1, colour)
+        for i, extra in enumerate(lines[1:], start=1):
+            put(330, note_y + i * 16, extra, note_size - 1, colour)
+        y += row_h + 12 + max(0, len(lines) - 1) * 16
 
     return img
 
