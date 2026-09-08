@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-02 16:00+0000\n"
-"Last-Translator: ern3stoGH <ern3sto@gmail.com>\n"
+"PO-Revision-Date: 2026-09-08 19:29+0000\n"
+"Last-Translator: Aarón <aaronbascon@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -291,10 +291,8 @@ msgstr "Cambiar el Perfil de Reproducción de Video"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "Salir y Marcar como No Visto"
+msgstr "Salir y Marcar como No reproducido"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -832,7 +830,7 @@ msgstr "Favoritos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "Web"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1352,7 +1350,7 @@ msgstr "BT.2390 ( referencia )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "BT.2446a"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
