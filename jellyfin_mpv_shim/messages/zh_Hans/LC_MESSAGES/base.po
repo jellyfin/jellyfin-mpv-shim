@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-01 11:27+0000\n"
+"PO-Revision-Date: 2026-09-08 03:19+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -825,7 +825,7 @@ msgstr "收藏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "网页"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Video"
@@ -1381,7 +1381,7 @@ msgstr "Jellyfin UI 样式"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "MPV UI"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
@@ -1714,24 +1714,20 @@ msgid "Window Buttons in the Top Bar"
 msgstr "顶部栏中的窗口按钮"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Window Buttons in the Top Bar"
 msgid "Keep Window Buttons in Full Screen"
-msgstr "顶部栏中的窗口按钮"
+msgstr "保持窗口按钮全屏显示"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "隐藏桌面标题栏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
 msgstr "播放器控制界面样式"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "启用缩略图预览"
+msgstr "启用进度条缩略图"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
@@ -1764,7 +1760,7 @@ msgstr "全幅背景图"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "12-Hour Clock"
-msgstr ""
+msgstr "12小时制"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
@@ -1808,7 +1804,7 @@ msgstr "媒体库全屏显示"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "浏览时锁定播放快捷键"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
@@ -1820,10 +1816,8 @@ msgstr "唤起播放控制快捷键"
 
 # seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Select All"
 msgid "Select Key"
-msgstr "全选"
+msgstr "选择键"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
@@ -1838,10 +1832,8 @@ msgid "Hide the Player Controls After (seconds)"
 msgstr "（秒数）后隐藏播放器控制按钮"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "When the Player Controls Hide"
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr "当播放器控制隐藏时"
+msgstr "在窄窗口中缩小播放控件"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
@@ -1937,6 +1929,9 @@ msgid ""
 "no video for them to act on. Turn it off to use your own MPV key bindings "
 "there."
 msgstr ""
+"此功能会阻止 MPV 自带的快捷键（例如画面调整、截图、字幕和音频切换）在您浏览视"
+"频库时生效，因为视频库中没有视频可供这些快捷键使用。关闭此功能即可在视频库中"
+"使用您自己的 MPV 快捷键绑定。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1944,6 +1939,8 @@ msgid ""
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
 msgstr ""
+"激活库中和播放器控件上高亮显示的任何内容。这是一个MPV键名；更改后按Enter键返"
+"回MPV。游戏控制器的“确认”按钮和手机的“选择”键也遵循这一规则。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1960,17 +1957,13 @@ msgid ""
 msgstr "剧集缩略图是您可能尚未观看的剧集的一个画面。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Off gives MPV's own mouse behaviour instead: drag the video to move the "
-#| "window, and right click to pause. Double click is full screen either way."
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and the right button does whatever your MPV config gives it. Double "
 "click is full screen either way."
 msgstr ""
-"关闭此选项后，MPV 将采用其自身的鼠标操作方式：拖动视频窗口移动视频，右键单击"
-"暂停。双击则可全屏显示。"
+"关闭此选项后，MPV 将采用其自身的鼠标行为：拖动视频即可移动窗口，右键则执行 "
+"MPV 配置中指定的功能。双击则可全屏显示。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2103,6 +2096,8 @@ msgid ""
 "the buttons are normally hidden there. Turn this on to keep a way out of "
 "full screen that is not a keyboard shortcut."
 msgstr ""
+"全屏模式下没有标题栏，也没有任何可以移动或最大化的元素，因此按钮通常会被隐藏"
+"起来。启用此功能可保留一种非键盘快捷键的退出全屏模式的方法。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2112,6 +2107,10 @@ msgid ""
 "unless you want them, since a window with neither can be awkward to move on "
 "some desktops."
 msgstr ""
+"要求桌面系统在播放器窗口上不显示标题栏，这样就只显示顶部的工具栏。此设置与上"
+"述“仅当窗口没有标题栏时”设置配合使用：启用此选项后，按钮会立即显示。除非您需"
+"要，否则请将这两个设置都关闭，因为在某些桌面系统上，没有标题栏的窗口移动起来"
+"可能不太方便。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2120,6 +2119,9 @@ msgid ""
 "images are fetched from the server per video, which costs disk space and "
 "memory -- tens of MB for an episode, a few hundred for a long film."
 msgstr ""
+"拖动进度条时显示预览帧。兼容所有播放器控制样式，包括您自己的 OSC 脚本（如果支"
+"持 Thumbfast）。图像会根据视频从服务器获取，这会占用磁盘空间和内存——一集视频"
+"占用几十 MB，一部长电影占用几百 MB。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2265,6 +2267,8 @@ msgid ""
 "and its air times, and the \"Ends at\" labels on a detail page and the "
 "player controls."
 msgstr ""
+"将一天中的时间显示为“晚上 8:30”而不是“20:30”——直播电视指南及其播出时间，以及"
+"详情页和播放器控件上的“结束于”标签。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2292,6 +2296,8 @@ msgid ""
 "the accessibility minimum, instead of dropping buttons sooner. Off keeps the "
 "older, larger floor."
 msgstr ""
+"缩小窗口会缩小控件，直到最小的按钮达到无障碍访问的最小尺寸，而不是提前缩小按"
+"钮。关闭此选项会保留原有的、较大的控件层级。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -4741,17 +4747,17 @@ msgstr "无可加入队列的媒体。"
 #, python-brace-format
 msgctxt "12-hour clock"
 msgid "{time} {period}"
-msgstr ""
+msgstr "{time} {period}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "AM"
-msgstr ""
+msgstr "上午"
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "PM"
-msgstr ""
+msgstr "下午"
 
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4907,10 +4913,8 @@ msgid "Enable SVP"
 msgstr "启用 SVP"
 
 #: jellyfin_mpv_shim/sync/manager.py
-#, fuzzy
-#| msgid "Move the downloads back to the default folder?"
 msgid "The downloads are already in that folder."
-msgstr "将下载内容移回默认文件夹？"
+msgstr "下载的文件已经在该文件夹中了。"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
@@ -4919,17 +4923,13 @@ msgid ""
 msgstr "下载任务进行中无法修改下载目录，请等待全部任务完成后重试。"
 
 #: jellyfin_mpv_shim/sync/manager.py
-#, fuzzy
-#| msgid "That folder already contains downloads. Choose an empty folder."
 msgid ""
 "That folder is inside the current download folder. Choose one outside it."
-msgstr "目标目录已存在缓存文件，请选择空文件夹。"
+msgstr "该文件夹位于当前下载文件夹内。请选择该文件夹之外的文件夹。"
 
 #: jellyfin_mpv_shim/sync/manager.py
-#, fuzzy
-#| msgid "Can't create that folder. Check the path and its permissions."
 msgid "Can't read that folder. Check the path and its permissions."
-msgstr "无法创建该目录，请检查路径与读写权限。"
+msgstr "无法读取该文件夹。请检查路径及其权限。"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
@@ -4940,6 +4940,8 @@ msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
+"该文件夹不是空的。请选择一个空文件夹——下载文件夹由本应用管理，其中的任何其他"
+"文件都可以移动或删除。"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
@@ -4953,7 +4955,7 @@ msgstr "存在正在收尾的下载任务，请等待完成后重试。"
 msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
-msgstr ""
+msgstr "该硬盘空间不足，无法移动下载的文件。请释放一些空间后重试——文件并未移动。"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
