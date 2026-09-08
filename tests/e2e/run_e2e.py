@@ -138,7 +138,32 @@ PER_BACKEND = [
     "tests.e2e.test_chapters",
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",
+    # Music, played for real. The one content type the suite never played:
+    # video, audiobooks, books, photos, comics and Live TV all had a leg and
+    # audio had none. Per backend because it is a real player, and because
+    # the seam it pins -- audio keeps `_video` set and keeps the library up
+    # -- is asked of the PLAYER, whose backend selection happens at import.
+    "tests.e2e.test_music_playback",
+    # The seam matrix: what one content type leaves set for the next. mpv
+    # is not re-created between queue items, so this is the axis every
+    # other playback module is the wrong shape to see -- they are each
+    # vertical, one type per class, by design.
+    "tests.e2e.test_type_seams",
     "tests.e2e.test_input_routing",
+    # The mouse half of the same question. `test_input_routing` presses real
+    # keys because declaring a binding and enabling its section are different
+    # calls; every other mouse test in the tree drives `app.debug(cmd=...)`,
+    # which calls the renderer's gesture handlers directly and so answers yes
+    # however the SECTIONS were left. Per backend for the same reason as the
+    # keyboard: which binding wins is mpv's section stack, and the two
+    # backends reach it by different paths.
+    "tests.e2e.test_mouse_routing",
+    # Composite shots: the renderer's bitmaps drawn OVER mpv's video output,
+    # which no other test can see -- the scene tests see one layer and the
+    # state harness sees the other. Skips unless JMS_E2E_SHOTS names a
+    # directory, so it costs a normal run nothing; registered here so the
+    # registry test can see it and so `--shots` has somewhere to live.
+    "tests.e2e.test_composite_shots",
     "tests.e2e.test_scroll_recovery",
     "tests.e2e.test_window_resize",
     # Client-side decorations: the controls have to reach the real

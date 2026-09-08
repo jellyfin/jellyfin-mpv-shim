@@ -1131,6 +1131,40 @@ These settings assist with debugging. You will often be asked to configure them 
 - `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
 - `write_logs` - Write logs to the config directory for debugging. Default: `false`
 
+## Interface Font Override (Environment Variable)
+
+`JELLYFIN_MPV_SHIM_UI_FONT` is an **environment variable**, not a config key.
+Set it to the full path of a font file and that font is tried *first* for every
+piece of text the client bakes into the picture — library tiles, the playback
+HUD, the cast screen, the built-in book reader.
+
+It exists for hosts where the automatic choice picks a face that cannot draw
+your language. The client picks the first installed font from a per-script list
+and does not check that the font actually covers the text, so a system whose
+fonts are laid out unusually can end up with boxes (tofu) instead of
+characters.
+
+**Known case: Simplified Chinese, Korean and Traditional Chinese on Windows.**
+The client finds MS Gothic — a *Japanese* font — before the Chinese and Korean
+ones, and MS Gothic can draw only part of those scripts, so some characters
+render and others become boxes. Until this is fixed properly, set:
+
+```
+JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\msyh.ttc      Simplified Chinese
+JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\msjh.ttc      Traditional Chinese
+JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\malgun.ttf    Korean
+```
+
+On Linux and macOS the automatic choice is normally right; if it is not, point
+this at any font file with the coverage you need (for example
+`/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc`).
+
+**What it costs.** The override goes in front of *every* font list, including
+the one used for emoji and symbols — so with it set, colour emoji and some
+symbols are drawn by whatever your chosen font has for them, which is usually
+nothing. It is a workaround for unreadable text, not a general appearance
+setting; unset it once the underlying problem is fixed.
+
 ## Other Configuration Options
 
 Other miscellaneous configuration options. You probably won't have to change these.

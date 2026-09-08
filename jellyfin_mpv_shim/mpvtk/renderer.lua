@@ -295,11 +295,22 @@ end
 -- ------------------------------------------------------------ clipboard
 --
 -- mpv's `clipboard/text` is the fast path, and on Windows and macOS the
--- only one needed. It is NOT universal on Linux: --clipboard-backends
--- defaults to win32,mac,wayland,vo and mpv only gained an *x11* backend
--- in 0.41, so on an X11 session under mpv 0.40 the property reads and
--- writes as "property unavailable". Copy silently did nothing and paste
--- inserted nothing, with no way for the user to tell why.
+-- only one needed. It is NOT universal on Linux, in two separate ways.
+--
+-- mpv only gained an *x11* backend in 0.41, so on an X11 session under
+-- mpv 0.40 the property reads and writes as "property unavailable".
+--
+-- And on WAYLAND, having x11 does not help: `--clipboard-xwayland`
+-- defaults to NO and clipboard-x11.c declines to init whenever
+-- WAYLAND_DISPLAY or WAYLAND_SOCKET is set. The default backend list is
+-- `win32,mac,wayland,x11,vo` -- x11 IS in it and enabled, which this
+-- comment denied until it was read from mpv's source, and that error is
+-- what made #739 look unexplained. The wayland backend needs the
+-- compositor to offer ext-data-control-v1; without it mpv falls back to
+-- the vo backend.
+--
+-- Either way copy silently did nothing and paste inserted nothing, with
+-- no way for the user to tell why.
 --
 -- Note mp.set_property does not raise on failure, it returns nil + err --
 -- so the original `pcall(mp.set_property, ...)` reported success either

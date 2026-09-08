@@ -38,10 +38,21 @@ def _commands():
 
 def _via_mpv(text, player):
     """mpv exposes a writable ``clipboard/text`` only where it has a backend
-    for the session. Its --clipboard-backends default is win32,mac,wayland,vo
-    and the *x11* backend only arrived in 0.41, so an X11 session under mpv
-    0.40 reads and writes it as "property unavailable" — and a failed write
-    does not always raise. Read it back rather than trusting the set."""
+    for the session, and there are two separate ways not to have one.
+
+    The *x11* backend only arrived in 0.41, so an X11 session under mpv 0.40
+    reads and writes the property as "property unavailable".
+
+    And having it is not enough on Wayland: ``--clipboard-xwayland`` defaults
+    to **no**, and clipboard-x11.c refuses to init when WAYLAND_DISPLAY or
+    WAYLAND_SOCKET is set. So the x11 backend being present and enabled says
+    nothing about an XWayland session. (The default list is
+    ``win32,mac,wayland,x11,vo`` — x11 IS in it and enabled; this said
+    ``win32,mac,wayland,vo`` until it was read from mpv's source, and that
+    error is what made #739 look unexplained.)
+
+    A failed write does not always raise, so read it back rather than
+    trusting the set."""
     if player is None:
         return False
     try:

@@ -64,9 +64,13 @@
                     "url": "https://github.com/mpv-player/mpv.git",
                     "//branch-note": "No `branch` key, on purpose. flatpak-builder VERIFIES that a named branch is at the pinned commit, so `branch: master` beside a commit out of master's history breaks the build on the next upstream push -- which for mpv is most days. Commit alone is the pin that holds. flatpak/README.md, and tools/check_flatpak_pins.py reports the pairing.",
                     "commit": "182fa6ca49f455cadb884858f386e2f00540aeb7",
+                    "//checker-floor-note": "`versions` is load-bearing, not decoration. The pin above is a master COMMIT and the checker can only order TAGS, so with no floor every run proposes v0.41.0 as an update -- which is a DOWNGRADE that would undo the #687 fix described above (it opened flathub/com.github.iwalton3.jellyfin-mpv-shim#78). Do not drop the checker to silence that: the point of keeping it is the notification when the next real mpv release lands, which is the moment to leave master. Raise the floor to the tag being left behind whenever the pin moves.",
                     "x-checker-data": {
                         "type": "git",
-                        "tag-pattern": "^v([\\d.]+)$"
+                        "tag-pattern": "^v([\\d.]+)$",
+                        "versions": {
+                            ">": "0.41.0"
+                        }
                     }
                 }
             ],

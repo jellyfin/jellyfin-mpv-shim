@@ -131,6 +131,25 @@ produce a finding a third time:
   the stale value in between. Adding a third "revoke before returning" beside
   the two that already exist would be the duplication this tree keeps paying
   for. See `docs/auth-headers.md`.
+- **#726 — the right button not dragging the window with the HUD up is
+  deliberate.** With `mouse_click_pauses` on and the HUD summoned, `on_rclick`
+  (`renderer.lua:3954-3993`) has no `begin-vo-dragging` branch, so a right-drag
+  over a summoned bar does nothing. Maintainer verdict: as designed [iw]. The
+  right button pauses in that modality, and a button cannot both pause on
+  release and start a drag on press without one of the two becoming
+  unpredictable. Dragging is the left button's job, which is exactly what
+  turning `mouse_click_pauses` off buys.
+
+  Recorded because it reads as a gap in a table — A6 in the mouse matrix of
+  `docs/POSTMORTEM_3.0.0.md` §3.3 — sitting next to A4, which **is** a defect.
+  Two adjacent empty cells, one deliberate and one not; do not close them
+  together.
+- **#727 item 1 — no window controls in full screen is deliberate.** In full
+  screen there is no title bar to replace and nothing to restore down to, so
+  the buttons would be furniture over the video. The escape hatch exists and is
+  a real setting: `window_controls_fullscreen` (`conf.py:280`, default
+  `false`, documented in `docs/configuration.md`). Anyone who wants them back
+  turns that on, which is why this is a default and not a limitation.
 - **Prefetching the library id on the detail page was considered and rejected.**
   It only helps items reached *through* a detail page — not Play All, not a
   queue advance, not a cast — so the play path needs the lookup as a fallback

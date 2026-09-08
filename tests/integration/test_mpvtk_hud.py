@@ -399,6 +399,86 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._wait(lambda: self._state().get("preview") is None,
                    msg="preview never cleared after cancel")
 
+    def test_a_real_drag_on_the_seek_bar_scrubs_and_commits_once(self):
+        """The same gesture as `test_scrub_commit_cancel_and_preview`, made
+        with the pointer instead of the arrow keys.
+
+        `state.slider_drag` -- the renderer's whole drag branch, and the
+        `pv_id` that carries the preview along with it -- had no test at
+        all: every scrub assertion in this file arrives through LEFT/ENTER,
+        and the toolkit's own drag coverage is a dropdown scrollbar. A media
+        player's most-used pointer gesture was reaching Python only from the
+        keyboard.
+
+        Through mpv's own input stack (`mouse` + `keydown`/`keyup`), not
+        `app.debug(cmd="down")`, which calls `on_mouse_down` directly and so
+        answers yes however the sections were left.
+        """
+        self._summon()
+        self._wait(lambda: self.app.node_rect("hud-seek") is not None,
+                   msg="seek bar never materialized")
+        bar = next((n for n in (self.app._nodes or [])
+                    if n.get("id") == "hud-seek"), None)
+        self.assertIsNotNone(bar, "the seek bar never reached the renderer")
+        y = int(bar["y"] + bar["h"] / 2)
+        x0 = int(bar["x"] + bar["w"] * 0.20)
+        x1 = int(bar["x"] + bar["w"] * 0.70)
+
+        self.handle.command("mouse", x0, y)
+        self._wait(lambda: self._state().get("hover") == "hud-seek",
+                   msg="the pointer never came to rest on the seek bar")
+        self.handle.command("keydown", "MBTN_LEFT")
+        self.handle.command("mouse", x1, y)
+        self._wait(lambda: self.browser.hud.scrub is not None,
+                   msg="dragging the seek bar never reached the browser")
+
+        # Mid-gesture: a scrub is a pending target, not a seek. Seeking per
+        # motion event would send one request per pixel dragged.
+        seeks = [c for c in self.ctl.calls
+                 if isinstance(c, tuple) and c[0] == "seek"]
+        self.assertEqual(seeks, [], "dragging must not seek mid-gesture")
+        self._wait(lambda: self._state().get("preview") is not None,
+                   msg="the preview never followed the drag")
+
+        # Wait for the scrub to FOLLOW the drag before releasing, rather
+        # than snapshotting whatever has arrived by now. The renderer pushes
+        # it to Python asynchronously: on the Windows VM's venv the release
+        # committed a correct 21.07s while this line had still only seen the
+        # press position of 5.87s, which failed the cross-check below and
+        # read as a seek to the wrong place. Waiting also makes the drag's
+        # propagation an assertion instead of an assumption.
+        self._wait(lambda: self.browser.hud.scrub is not None
+                   and abs(self.browser.hud.scrub - 0.70 * 30.0) < 4.0,
+                   msg="the scrub never followed the drag to the release "
+                       "point (got %r)" % (self.browser.hud.scrub,))
+        target = self.browser.hud.scrub
+        self.handle.command("keyup", "MBTN_LEFT")
+        self._wait(lambda: any(isinstance(c, tuple) and c[0] == "seek"
+                               for c in self.ctl.calls),
+                   msg="releasing the drag never seeked")
+        seeks = [c for c in self.ctl.calls
+                 if isinstance(c, tuple) and c[0] == "seek"]
+        self.assertEqual(len(seeks), 1, "a release must commit exactly once")
+        self.assertAlmostEqual(seeks[0][1], target, delta=2.0)
+        # Against the DERIVED position, not only against `target`: the clip
+        # is 30s and the release was at 70% of the bar, so a commit that
+        # honoured the press and ignored the motion would land near 6s and
+        # still agree with `hud.scrub`. Asserting the two against each other
+        # only says the browser and the renderer tell the same story.
+        self.assertAlmostEqual(seeks[0][1], 0.70 * 30.0, delta=4.0)
+        self.assertIsNone(self.browser.hud.scrub,
+                          "the scrub outlived the gesture that made it")
+
+        # Hand the pointer back. A test that presses a button owes the next
+        # one a clean input state: this one leaves the pointer parked on the
+        # seek bar of a playing video, and on Windows that was enough to
+        # cost `test_pickers_chapters_and_skip_button` its audio popup --
+        # measured, 17/17 without this test in the module and one failure
+        # with it, while the test itself passed either way. It runs first
+        # alphabetically, so it is the one that has to tidy up.
+        self.handle.command("keypress", "MOUSE_LEAVE")
+        time.sleep(0.2)
+
     def test_pickers_chapters_and_skip_button(self):
         self.ctl.menu_state = {
             "has_media": True,
@@ -998,6 +1078,157 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         # rather than trying to summon one that is already up.
         self._press_until("ENTER", lambda: self._state().get("phud_kbd"),
                           msg="the wake key stopped taking keyboard control")
+
+
+@h.require_real_mpv
+class RealConsoleLoanTest(h.TmpDirTest):
+    """The keyboard loan, driven by mpv's ACTUAL console.
+
+    `docs/E2E_PLAN.md` records this as attempted and blocked: "The property
+    cannot be injected from Python... The real console is not loaded"
+    (`mpvtk.app._SPAWN_OPTS` sets `load_scripts: "no"`, so pressing `` ` ``
+    does nothing). Both halves are now answered -- spawn the handle with
+    scripts enabled and open the console with `script-binding console/enable`
+    rather than a keypress, and `user-data/mpv/console/open` becomes True for
+    real. The plan asked for exactly this ("drive mpv's actual console, which
+    tests the real precedence rather than a simulated signal") and said the
+    handle change should be deliberate rather than a flag on the shared
+    helper -- so this class builds its own, the way
+    `ClassicOscReleasesTheMouseTest` does for the same kind of reason.
+
+    `test_the_console_gives_back_the_hud_it_left_with` above still writes the
+    property directly. It is not replaced: it asserts the REPLAY logic and
+    runs on every leg, and this one needs a console-bearing mpv.
+    """
+
+    @staticmethod
+    def _console_handle():
+        """`_SPAWN_OPTS` with scripts on. `config: no` stays -- the user's
+        own scripts must not join the test -- and mpv's console is a builtin,
+        so it arrives anyway."""
+        from jellyfin_mpv_shim.mpvtk.app import _SPAWN_OPTS
+
+        opts = dict(_SPAWN_OPTS)
+        opts["load_scripts"] = "yes"
+        opts["geometry"] = "1280x720"
+        if h.BACKEND == "jsonipc":
+            import python_mpv_jsonipc
+            return python_mpv_jsonipc.MPV(start_mpv=True, **opts), True
+        import mpv as libmpv
+        return libmpv.MPV(**{k.replace("_", "-"): v
+                             for k, v in opts.items()}), False
+
+    def setUp(self):
+        super().setUp()
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+        from jellyfin_mpv_shim.mpvtk.rawimage import MemoryStore, cache_dir
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore
+
+        self.handle, ext = self._console_handle()
+        self.app = MpvtkApp.attach(self.handle, ext=ext)
+        strips = (StripStore(mem_store=MemoryStore()) if self.app.in_process
+                  else StripStore(cache_dir=cache_dir("mpvtk-console-")))
+        self.ctl = FakeController()
+        self.browser = MpvtkBrowser(self.app, _make_source(), strips=strips,
+                                    controller=self.ctl)
+        self._thread = threading.Thread(
+            target=lambda: self.app.run(self.browser.build), daemon=True)
+        self._thread.start()
+        self.assertTrue(self.app.ready.wait(15), "renderer never came up")
+        self.addCleanup(self._teardown)
+
+    def _teardown(self):
+        try:
+            self.app.quit()
+            self._thread.join(timeout=5)
+        finally:
+            try:
+                self.browser.shutdown()
+            except Exception:
+                pass
+            try:
+                self.handle.terminate()
+            except Exception:
+                pass
+
+    def _wait(self, cond, timeout=6, msg=""):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if cond():
+                return True
+            time.sleep(0.15)
+        self.fail(msg or "condition never became true")
+
+    def _console(self, open_):
+        self.handle.command("script-binding",
+                            "console/enable" if open_ else "console/disable")
+        time.sleep(0.5)
+
+    def _claims(self, key):
+        """``{section: priority}`` for everything binding ``key``. A negative
+        priority is mpv's own word for "the owning section is not active"
+        (`mp_input_get_bindings`)."""
+        rows = self.handle.input_bindings or ()
+        return {r.get("section") or "": int(r.get("priority", -1))
+                for r in rows if (r.get("key") or "").upper() == key.upper()}
+
+    def _summon(self):
+        clip = h.make_test_clip(os.path.join(self.tmp, "clip.mp4"),
+                                duration=30)
+        self.handle.command("loadfile", clip)
+        self.browser.on_playstate(dict(VIDEO_STATE))
+        self._wait(lambda: (self.app.debug_state() or {}).get("phud_mode"),
+                   msg="never entered HUD-idle")
+        deadline = time.time() + 6
+        while time.time() < deadline and not self.browser.hud.shown:
+            self.handle.command("keypress", "LEFT")
+            time.sleep(0.2)
+        self.assertTrue(self.browser.hud.shown, "the HUD never came up")
+
+    def test_the_real_console_opens_and_the_renderer_sees_it(self):
+        """The premise, and the thing the plan could not get to: with the
+        console genuinely open the renderer's own contract property is set,
+        so every assertion below is about a real loan."""
+        self._console(True)
+        self.addCleanup(self._console, False)
+        self._wait(
+            lambda: self.handle.user_data["mpv"]["console"]["open"] is True,
+            msg="mpv's console did not open, so there is no loan to test")
+
+    @unittest.expectedFailure
+    def test_the_console_gets_esc_as_well(self):
+        """**A known, unfixed leak, pinned so the fix is noticed.**
+
+        The renderer hands mpv's console the groups it needs and takes them
+        back on close, but `phud_summon` binds ESC (and F12) with a bare
+        `mp.add_forced_key_binding` instead of going through the loan-aware
+        helper that records an intent -- the wake key immediately above it in
+        the same function is guarded and these two are not. So a summoned HUD
+        keeps ESC while the console has the keyboard, and pressing it in a
+        half-typed command dismisses the bar instead of reaching the console.
+
+        Asserted from `input-bindings`, which is the resolved set: a
+        non-negative priority for one of ours means we are still holding the
+        key. Marked `expectedFailure` in the idiom this repo already uses for
+        a measured-but-unfixed defect (`AbortReportedPositionTest`), so it
+        turns into a hard failure the moment somebody routes those two
+        through the helper.
+        """
+        # **The console FIRST.** Summoning before it opens lets the loan
+        # snapshot capture ESC and release it correctly -- measured, that
+        # order passes, which is why this test said "unexpected success"
+        # when it was written that way round. The leak is a HUD summoned
+        # while the console already has the keyboard: `phud_summon`'s bare
+        # `add_forced_key_binding` takes ESC out from under it.
+        self._console(True)
+        self.addCleanup(self._console, False)
+        self._summon()
+        ours = [s for s, p in self._claims("ESC").items()
+                if s.startswith("mpvtk") and p >= 0]
+        self.assertEqual(
+            ours, [],
+            "ESC is still ours while the console has the keyboard: %r" % ours)
 
 
 if __name__ == "__main__":

@@ -766,9 +766,17 @@ NOTES = {
     # and dragging with it are mutually exclusive.
     # NOT "right click to pause", which this said and which is no longer
     # true on the mpv we ship: upstream changed MBTN_RIGHT's default from
-    # `cycle pause` to `script-binding select/context-menu` at 0.41, and
-    # both pins are past that. Naming the effect would go stale again at
-    # the next such change, so it names where the answer comes from.
+    # `cycle pause` to `script-binding select/context-menu`.
+    #
+    # NOT "at 0.41", which this said until it was checked. That change is
+    # 65a1852ba3 (2026-06-02) and is MASTER-ONLY: v0.41.0 still binds
+    # `cycle pause`. What made it true for us is our OWN pin move,
+    # 16ad0bb4, which took the flatpak from v0.41.0 to master for an
+    # unrelated HDR fix (#687) -- so this is not upstream drift we failed
+    # to track. renderer.lua's phud_bind_summon leans on the old default
+    # and was left behind; see docs/RELEASE_SHAPE_POST_3.0.0.md section 1.
+    # Naming the effect would go stale again at the next such change, so
+    # it names where the answer comes from.
     "mouse_click_pauses": _("Off gives MPV's own mouse behaviour instead: "
                             "drag the video to move the window, and the "
                             "right button does whatever your MPV config "

@@ -280,9 +280,12 @@ ok(last_event("commit") == nil, "ESC reverts rather than committing")
 
 -- ========================================================= clipboard
 
--- mpv's clipboard/text is not universal: --clipboard-backends defaults to
--- win32,mac,wayland,vo and the x11 backend only arrived in 0.41, so an
--- X11 session under mpv 0.40 answers "property unavailable" both ways.
+-- mpv's clipboard/text is not universal: the x11 backend only arrived in
+-- 0.41, so an X11 session under mpv 0.40 answers "property unavailable"
+-- both ways. (The default list is win32,mac,wayland,x11,vo -- x11 IS in
+-- it. This said otherwise, in a TEST, which is why nothing caught the
+-- same error at the three production sites. See renderer.lua's clip_tools
+-- for why x11 still does not save a Wayland session.)
 -- Copy and paste were pcall'd, and mp.set_property signals failure by
 -- RETURNING nil rather than raising -- so both silently did nothing.
 

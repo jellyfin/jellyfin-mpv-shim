@@ -179,6 +179,61 @@ class DeinterlacePerItemTest(_Base):
                 self.assertEqual(self.pm._player.deinterlace, "no",
                                  "%s left the force set" % door)
 
+    def test_returning_to_the_library_puts_the_stats_overlay_away(self):
+        """The Playback Data overlay's half of the same door.
+
+        `on_browse_enter` clears two things for the same reason and in the
+        same breath -- the deinterlace force above, and this. Only the first
+        had a test; nothing in tests/ touched `clear_stats` or
+        `_stats_shown` outside the fake.
+
+        It leaks the same way and is worse to look at: the overlay is ASS
+        OSD, so it draws OVER the in-window browser and lingers there for
+        the rest of the session (`ea460f22`).
+
+        **Asserted on the flag, and the flag is the authority**, not a
+        convenience: there is no mpv property for it -- `toggle_stats` runs
+        `script-binding stats/display-stats-toggle`, which mpv answers with
+        pixels and nothing else -- so `_stats_shown` is the only thing that
+        knows, and a mismatch is what makes the next `clear_stats` toggle
+        the overlay back ON rather than off. Driven through the gateway,
+        like its sibling above, because what is under test is that the door
+        is wired to it.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.playback import (
+            PlaybackMixin)
+
+        self.play()
+        self.pm.toggle_stats()
+        self.assertTrue(
+            self.pm._stats_shown,
+            "the overlay was never turned on, so nothing is staged to leak")
+
+        with mock.patch("jellyfin_mpv_shim.player.playerManager", self.pm):
+            PlaybackMixin().on_browse_enter()
+        self.assertFalse(
+            self.pm._stats_shown,
+            "returning to the library left the Playback Data overlay up: it "
+            "is ASS OSD, so it draws over the browser and stays there")
+
+    def test_a_fresh_mpv_does_not_have_the_overlay_toggled_back_on(self):
+        """The inverse leak, and the reason the flag is reset in
+        `_init_mpv` rather than left alone: a fresh mpv starts with
+        stats.lua's overlay off, so a stale True would make the next
+        `clear_stats` TOGGLE IT ON -- putting the overlay up on the library
+        by way of the call whose job is to take it down."""
+        self.play()
+        self.pm.toggle_stats()
+        self.assertTrue(self.pm._stats_shown)
+        self.pm._stats_shown = False        # as _init_mpv does on re-create
+        calls = []
+        self.pm.toggle_stats = lambda: calls.append(1)
+        self.pm.clear_stats()
+        self.assertEqual(
+            calls, [],
+            "clear_stats toggled a fresh mpv's overlay ON, because it "
+            "believed a flag from the mpv before it")
+
     def test_clearing_it_falls_back_to_the_setting_not_to_off(self):
         """The two are different when `deinterlace_auto` is on, and reading
         "no override" as "off" would turn the setting off for anyone who had
