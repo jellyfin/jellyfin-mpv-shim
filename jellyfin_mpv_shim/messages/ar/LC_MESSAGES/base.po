@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-02 16:00+0000\n"
-"Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
+"PO-Revision-Date: 2026-09-08 15:09+0000\n"
+"Last-Translator: Ziad Senior <ziadsenior20@gmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
 "Language: ar\n"
@@ -831,7 +831,7 @@ msgstr "مفضل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "الويب"
 
 # seeded from jellyfin-web: Video
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1403,7 +1403,7 @@ msgstr "واجهة Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "واجهة MPV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
@@ -1624,7 +1624,7 @@ msgstr "متحكم اللعبة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "تبديل ازرار التأكيد و الرجوع"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
@@ -1653,31 +1653,27 @@ msgstr "فك ترميز عتاد"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "إزالة تشابك الفيديو تلقائيا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Motion Interpolation"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Reading"
 msgid "Debanding"
-msgstr "قراءة"
+msgstr "Debanding"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
 msgstr "خارطة تعيير HDR"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Rendering Quality"
-msgstr "تغيير جودة الفيديو"
+msgstr "جودة رندرة الفيديو"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "ذاكرة التخزين المؤقت للشبكة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
@@ -1700,10 +1696,8 @@ msgid "Storage Limit for Automatic Downloads (GB)"
 msgstr "حدود التخزين للتحميل التلقائي (ج ب)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "حذف الخادم"
+msgstr "حذف التحميلات التلقائية فور المشاهدة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
@@ -1742,24 +1736,20 @@ msgid "Window Buttons in the Top Bar"
 msgstr "أظرار النافذة في الشريط الأعلى"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Window Buttons in the Top Bar"
 msgid "Keep Window Buttons in Full Screen"
-msgstr "أظرار النافذة في الشريط الأعلى"
+msgstr "اظهار ازرار النافذة في وضع الشاشة الكاملة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "إخفاء شريط عنوان سطح المكتب"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
 msgstr "نمط متحكمات المشغل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "تمكين الصور المصغرة للمعاينة"
+msgstr "تفعيل الصور المصغرة للمعاينة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
@@ -1774,10 +1764,8 @@ msgid "Interface Scale"
 msgstr "مقياس الواجهة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Resize"
 msgid "Text size"
-msgstr "إعادة تحجيم"
+msgstr "جم النص"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
@@ -1790,19 +1778,19 @@ msgstr "حجم الغلاف"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
-msgstr ""
+msgstr "خلفيات بعرض الشاشة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "12-Hour Clock"
-msgstr ""
+msgstr "نظام توقيت ال 12 ساعة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
-msgstr ""
+msgstr "تباعد الشبكة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "تحسين وضوح شعارات قنوات البث المباشر"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
