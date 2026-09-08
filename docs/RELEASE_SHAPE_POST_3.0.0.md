@@ -571,6 +571,47 @@ accurate. **This is the trade CLAUDE.md names** — a platform-resolved default
 stack was three guards mirroring state (Flathub's publish state) owned
 elsewhere.
 
+#### The same platform probe answers a second question: SteamOS → gamepad on
+
+**[iw], recorded for 3.1.0 and deliberately not started now: do this when the
+Flatpak detection and the notifier disable are done, because it is the same
+probe and the same migration step.**
+
+Jellyfin Media Player already does this detection and it is worth copying rather
+than re-deriving — `jellyfin-media-player/src/system/SystemComponent.cpp`:
+
+```cpp
+QFile flatpakOsFile {"/run/host/os-release"};
+if (flatpakOsFile.exists()) {
+  // ... read it, then:
+  if (flatpakOsFileString.contains("NAME=\"SteamOS\"")) {
+```
+
+The mechanism is the part to keep: inside a Flatpak, `/etc/os-release` describes
+the *runtime*, so the host's identity is only at **`/run/host/os-release`**. That
+makes it the same file the Flathub-vs-elsewhere question is already reading, so
+the probe is written once and asked twice.
+
+**The decision, and it is narrower than the notifier's:** on SteamOS, force
+`input_gamepad` **on**. `conf.py:505` defaults it `False`, and a Steam Deck is a
+machine where the gamepad is the only pointing device most users have — so the
+default being off is simply wrong there.
+
+- **Not tri-state.** The notifier needed three states because "on" is a real
+  preference the platform default would otherwise silently overrule. Gamepad
+  input is additive — enabling it takes nothing away and breaks no other input
+  path — so there is nothing to protect and no `default`/`enabled`/`disabled`
+  distinction to carry. A plain `bool` forced on in the migration is the whole
+  change. **Do not copy the tri-state here just because it is next door.**
+- **Force it in the migration**, in the same `CONFIG_VERSION` step, for the
+  reason that section already establishes: `SettingsBase.dict()` writes every
+  field, so every existing conf.json already carries `input_gamepad: false`
+  explicitly and a changed default alone would reach nobody.
+- **A gamepad capability probe is not needed for the decision** — the shim
+  already has one at 0.34 ms and mpv's `sdl2-gamepad` can be disabled at build
+  time, so the setting being on is not a promise that a pad is present. That is
+  the existing behaviour on every other platform and needs no change here.
+
 ### 5.4 Hand-delivered builds are a real distribution channel
 
 **[iw] and this is the practice for user-facing issues now:** hand a CI build to
