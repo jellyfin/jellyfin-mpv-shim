@@ -149,12 +149,30 @@ _CANDIDATES = {
     ],
 }
 
-#: Where a script's face falls back to *before* the Latin one. Only emoji
-#: has an entry, and it matters: with no emoji font at all, "⭐" drawn by
-#: the Latin face is a box, and drawn by the symbol face is the monochrome
-#: star it has always been. Falling straight to Latin would make this
-#: change a regression on exactly the hosts it cannot help.
-_FALLBACK_SCRIPTS = {"emoji": ("symbol",)}
+#: Where a script's face falls back to *before* the Latin one, and both
+#: entries are measured rather than offered.
+#:
+#: **emoji -> symbol**: with no emoji font at all, "⭐" drawn by the Latin
+#: face is a box and drawn by the symbol face is the monochrome star it has
+#: always been. Falling straight to Latin would make the emoji bucket a
+#: regression on exactly the hosts it cannot help.
+#:
+#: **symbol -> emoji**: measured 2026-09-08 on Debian, of the 1108
+#: codepoints :data:`_SYMBOL_RANGES` claims, **223 are drawn by nothing in
+#: the symbol chain or the Latin one behind it, and the emoji chain draws
+#: 219 of them** -- `Symbola` is on that list and is a symbol face in every
+#: respect except the bucket it sits in. The colour faces are not reachable
+#: this way and do not need to be: `_load` only probes strikes for the emoji
+#: script, so a CBDT face that opens at one fixed size is simply skipped
+#: here, and #713's star still comes from the symbol chain's own first
+#: answer (a control test holds that).
+#:
+#: **No other edge is declared, because no other edge changed an answer.**
+#: A `cjk` edge would rescue 22 symbol codepoints and all 22 are already in
+#: the 219; the 33 Latin codepoints nothing draws are the C0/C1 controls,
+#: which must not be rescued by anything. A speculative entry here
+#: pre-authorises a face for a run nobody has seen.
+_FALLBACK_SCRIPTS = {"emoji": ("symbol",), "symbol": ("emoji",)}
 
 #: Pixel sizes a bitmap-strike face may be available at, tried in
 #: `_strike_order` when the asked-for size is refused. The Apple entries are
@@ -305,6 +323,14 @@ def script_of(text):
     the first character outside the Latin face's coverage wins, so
     "進撃の巨人 (2013)" resolves to cjk.
 
+    **Except that RTL outranks everything, wherever it appears.** This
+    answer becomes the *whole line's* face when `has_rtl` says so, and
+    "first non-Latin wins" handed "進撃の巨人 مسلسل" to a CJK face -- which
+    draws the Arabic as boxes, unjoined, in logical order. The trade is
+    already decided at :data:`_RTL_RANGES`: *reordered text is a wrong line
+    where tofu is only an ugly one*. So the CJK is what becomes tofu here,
+    and a line with no RTL in it is untouched.
+
     **A symbol only wins when there is nothing else in the string.** It is a
     face for the odd glyph, not for words, and this answer is used for two
     things that would be wrong for: the line height a caller reserves
@@ -330,14 +356,22 @@ def script_of(text):
     caller should be handed.
     """
     saw_symbol = saw_word = False
+    first = None
     for ch in text or "":
         script = script_of_char(ord(ch))
+        if script in ("hebrew", "arabic"):
+            # Returned rather than remembered: no later character can
+            # outrank it, so there is nothing left to scan for.
+            return script
         if script in ("symbol", "emoji"):
             saw_symbol = True
         elif script != "latin":
-            return script            # cjk / arabic / thai / devanagari
+            if first is None:
+                first = script       # cjk / thai / devanagari
         elif not ch.isspace():
             saw_word = True
+    if first is not None:
+        return first
     # No ``has_rtl`` guard needed and none added: every RTL codepoint maps
     # to hebrew or arabic and has returned above (an invariant a test
     # holds), so anything reaching here has no RTL in it at all. A

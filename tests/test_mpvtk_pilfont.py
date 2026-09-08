@@ -696,9 +696,17 @@ class TestSymbolFace(unittest.TestCase):
         `has_rtl` makes `draw_text` take a single draw call with the face it
         was handed -- necessary, because Pillow reorders bidi within a call
         and cannot across several. But "the face it was handed" was chosen
-        for a longer string: wrap "東京 دراما" and the Arabic-only line
-        inherits the CJK face. One draw call is still one draw call with
-        the *right* face, so the bypass must re-resolve rather than skip.
+        for a longer string, so an Arabic-only line can arrive holding a CJK
+        face. One draw call is still one draw call with the *right* face, so
+        the bypass must re-resolve rather than skip.
+
+        **The premise is now stated rather than produced.** It used to be
+        `font_for("東京 دراما")`, asserted to come back CJK-stamped -- and
+        that was the misclassification `TestMixedRtlLine` now forbids: RTL
+        outranks an earlier script precisely because a CJK face draws Arabic
+        as unjoined boxes in logical order. The fixture was the bug. Handing
+        the CJK face in directly tests the same bypass and no longer depends
+        on a caller being wrong first.
         """
         from PIL import Image, ImageDraw
 
@@ -707,8 +715,9 @@ class TestSymbolFace(unittest.TestCase):
         if cjk is latin or arabic is latin or cjk is arabic:
             self.skipTest("this host has no separate CJK and Arabic faces")
 
-        chosen = pilfont.font_for("東京 دراما", 28)
-        self.assertIs(chosen, cjk, "the premise: a CJK-stamped font")
+        chosen = cjk
+        self.assertEqual(getattr(chosen, "_jms_script", None), "cjk",
+                         "the premise: a CJK-stamped font")
 
         line = "دراما"
         got = Image.new("L", (200, 48), 0)
@@ -1048,6 +1057,163 @@ class TestCjkCoverage(unittest.TestCase):
                 checked += 1
         self.assertGreater(checked, 3,
                            "too few faces installed to be evidence")
+
+class TestMixedRtlLine(unittest.TestCase):
+    """An RTL line mixed with another script: which face carries it.
+
+    `has_rtl` gives the whole line to ONE face because Pillow reorders bidi
+    within a draw call and cannot across several. `script_of` decides which,
+    and it used to answer with the *first* non-Latin script it saw -- so a
+    title with Japanese before Arabic handed the line to a CJK face and the
+    Arabic came out as boxes, unjoined and in logical order.
+
+    The module already states which way this trade goes, at `_RTL_RANGES`:
+    *"reordered text is a wrong line where tofu is only an ugly one."* So RTL
+    outranks. The CJK becomes tofu instead, which is the ugly answer rather
+    than the wrong one.
+    """
+
+    def _bitmap(self, font, text):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("L", (110, 60), 0)
+        ImageDraw.Draw(img).text((2, 2), text, font=font, fill=255)
+        return img.tobytes()
+
+    def _missing(self, font, text):
+        tofu = self._bitmap(font, "\U000FFFFF")
+        return [ch for ch in text if not ch.isspace()
+                and self._bitmap(font, ch) == tofu]
+
+    def test_rtl_outranks_an_earlier_script(self):
+        self.assertEqual(pilfont.script_of("進撃の巨人 مسلسل"), "arabic")
+        self.assertEqual(pilfont.script_of("進撃の巨人 שלום"), "hebrew")
+
+    def test_the_line_is_drawn_by_a_face_that_has_the_rtl(self):
+        line = "進撃の巨人 مسلسل"
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        parts, whole, _per_run = pilfont._split(
+            line, pilfont.font_for(line, 24), None)
+        self.assertIsNotNone(whole, "an RTL line must be drawn with one face")
+        arabic = [ch for ch in line if pilfont.has_rtl(ch)]
+        if not self._missing(pilfont.font("arabic", 24), "".join(arabic)):
+            self.assertEqual(
+                [], self._missing(whole, "".join(arabic)),
+                "the Arabic in a CJK-then-Arabic line is still boxes")
+
+    def test_an_rtl_only_line_is_unchanged(self):
+        """Control: the ordinary case must answer exactly as before."""
+        self.assertEqual(pilfont.script_of("مسلسل (2013)"), "arabic")
+        self.assertEqual(pilfont.script_of("שלום עולם."), "hebrew")
+
+    def test_a_line_with_no_rtl_still_follows_the_first_script(self):
+        """Control: RTL outranking must not disturb anything else."""
+        self.assertEqual(pilfont.script_of("進撃の巨人 (2013)"), "cjk")
+        self.assertEqual(pilfont.script_of("進撃 ภาพยนตร์"), "cjk")
+        self.assertEqual(pilfont.script_of("ภาพยนตร์ 進撃"), "thai")
+
+
+class TestFallbackAcrossSymbolSets(unittest.TestCase):
+    """A symbol the symbol faces do not have, drawn by the emoji chain.
+
+    Measured 2026-09-08 on Debian: of the 1108 codepoints `_SYMBOL_RANGES`
+    claims, **223 are drawn by no face in the symbol chain or the Latin one
+    behind it, and the emoji chain draws 219 of them** -- `Symbola` is in that
+    list and is a symbol face in every respect except the bucket it sits in.
+    That is the only cross-script fallback edge the measurement supports; a
+    `cjk` edge rescues 22 and every one of them is already in the 219, and the
+    33 "orphaned" Latin codepoints are the C0/C1 controls, which must not be
+    rescued by anything.
+    """
+
+    def _bitmap(self, font, text):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("L", (60, 60), 0)
+        ImageDraw.Draw(img).text((2, 2), text, font=font, fill=255)
+        return img.tobytes()
+
+    def _draws(self, font, ch):
+        return self._bitmap(font, ch) != self._bitmap(font, "\U000FFFFF")
+
+    def _orphan(self):
+        """A symbol codepoint the symbol chain cannot draw and the emoji
+        chain can, discovered rather than hardcoded."""
+        from PIL import ImageFont
+
+        def faces(script, sizes):
+            out = []
+            for name in pilfont._CANDIDATES[script]:
+                for want in sizes:
+                    try:
+                        out.append(ImageFont.truetype(name, want))
+                        break
+                    except (OSError, IOError):
+                        continue
+            return out
+
+        sym = faces("symbol", [24]) + faces("latin", [24])
+        emo = faces("emoji", [24] + list(pilfont._STRIKES))
+        if not sym or not emo:
+            self.skipTest("no symbol or emoji face installed here")
+        for lo, hi in pilfont._SYMBOL_RANGES:
+            for cp in range(lo, hi + 1):
+                ch = chr(cp)
+                if pilfont.script_of_char(cp) != "symbol":
+                    continue
+                if any(self._draws(f, ch) for f in sym):
+                    continue
+                if any(self._draws(f, ch) for f in emo):
+                    return ch
+        self.skipTest("this host's symbol chain orphans nothing the emoji "
+                      "chain has")
+
+    def test_an_orphaned_symbol_reaches_the_emoji_chain(self):
+        ch = self._orphan()
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        got = pilfont.font("symbol", 24, text=ch)
+        self.assertTrue(
+            self._draws(got, ch),
+            "U+%04X is drawn by no symbol face and by an emoji-chain face, "
+            "and still came back as tofu from %s"
+            % (ord(ch), getattr(got, "path", "?")))
+
+    def test_the_713_star_and_tick_still_come_from_the_symbol_chain(self):
+        """The control that matters: #713 was the rating star drawing as
+        tofu, and the fix was the symbol bucket. No colour face draws U+2605
+        or U+2713, so if the emoji edge ever outranked the symbol chain for
+        these, that regression comes straight back.
+        """
+        from PIL import ImageFont
+
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        for ch in ("★", "✓"):
+            got = pilfont.font("symbol", 24, text=ch)
+            self.assertTrue(self._draws(got, ch),
+                            "%r is tofu again (#713)" % ch)
+            first = None
+            for name in pilfont._CANDIDATES["symbol"]:
+                try:
+                    face = ImageFont.truetype(name, 24)
+                except (OSError, IOError):
+                    continue
+                if self._draws(face, ch):
+                    first = name
+                    break
+            if first is not None:
+                # Basenames: Pillow resolves a bare candidate name through
+                # the platform font path, so `got.path` is absolute and the
+                # candidate string may not be.
+                import os
+
+                self.assertEqual(
+                    os.path.basename(str(getattr(got, "path", ""))),
+                    os.path.basename(str(first)),
+                    "%r was moved off the symbol chain's own first answer"
+                    % ch)
 
 class TestEmojiTable(unittest.TestCase):
     """The classifier half of F31, and the regression it must not cause.
