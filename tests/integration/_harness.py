@@ -1141,6 +1141,7 @@ def build_player(player_module, video=None):
     # does not skip a write, it raises into `_play_media`'s broad except
     # and leaves the whole feature untested and green.
     pm._deinterlace_override = None
+    pm._aspect_override = None
     pm._no_deinterlace_auto = False
     pm._render_written = set()
     # The real player snapshots this in `_init_mpv`, which build_player
