@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-06 21:17+0000\n"
+"PO-Revision-Date: 2026-09-08 15:09+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -131,7 +131,7 @@ msgstr "Nepavyko prisijungti prie serverio."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr "Šiame serveryje neįgalintas Quick Connect."
+msgstr "Šiame serveryje neįjungtas Quick Connect."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
