@@ -640,22 +640,78 @@ than asking for a restart. So the row belongs in `RESTART_REQUIRED`
 22, and the rest would repaint into the new language on the next draw, which is
 the ugly middle state the flag exists to prevent.
 
-Three things to settle when it is built, in `docs/settings-curation.md` terms:
+##### What to list — measured 2026-09-08
 
-- **Which tab.** It is a "look" setting applied at startup, which is the group
-  `browse` already collects.
-- **What to list.** There are **86 locales** under `jellyfin_mpv_shim/messages/`,
-  most of them partial — Weblate fills them and completeness moves. A picker
-  listing all 86 offers mostly-English UIs under native names; a filtered list
-  needs a completeness threshold computed from the `.po` files at build time,
-  and that number then has to be regenerated with the translations. Decide
-  which before writing the enum, because the two have different build stories.
-  `window_controls` (`config.py:532`) is the structural precedent for a
-  three-way whose first option resolves at runtime — here that first option is
-  **"Use the system language"**, which is what `lang = None` already means.
-- **The display name for each entry** should be the language's own endonym, not
-  its English name: a user who cannot read the current UI language is exactly
-  the person reaching for this control.
+86 locales, 1075 msgids in the template. Completeness, counting non-fuzzy
+translated entries:
+
+| completeness | locales |
+|---|---|
+| 95–100% | **3** — `zh_Hans`, `it`, `ca` |
+| 75–95% | 2 — `pt_PT`, `pt` |
+| 50–75% | 7 — `de`, `es`, `da`, `ar`, `lt`, `nl`, `en_GB` |
+| **25–50%** | **41** |
+| 5–25% | 19 |
+| 0–5% | 14 |
+
+**That 41-locale cluster is the jellyfin-web seed line** ([iw]: the seeded
+strings "don't cover a lot of the UI"), and it is what makes a threshold the
+wrong instrument: put the bar at 50% and the picker offers twelve languages,
+excluding French, Russian, Polish, Japanese and most of the list a user would
+actually look for. Put it at 25% and it means nothing.
+
+So **list them all and show the number** — "Deutsch — 62%" — computed from the
+`.po` files at build time and regenerated with the translations. It is honest,
+it needs no arbitrary bar, and it tells a would-be translator where the gaps
+are, which is the population most likely to open this menu. `window_controls`
+(`config.py:532`) is the structural precedent for a three-way whose first
+option resolves at runtime; here that option is **"Use the system language"**,
+which is exactly what `lang = None` already means.
+
+**Endonyms, not English names.** Someone reaching for this control is by
+definition someone who cannot read the current one.
+
+##### Where — and why further than jellyfin-web goes
+
+[iw]: **top of the settings landing page**, because a user may be pointing a
+phone camera at the screen to read it.
+
+**jellyfin-web does not have one on its login page** — checked: the login
+controllers reference no language or localization at all, and the selector
+lives in Display preferences (`LabelDisplayLanguage`). The setup wizard's
+`selectLanguage` is `HeaderPreferredMetadataLanguage`, i.e. metadata language,
+a server setting.
+
+**Our case is not theirs, and the difference is measured.** jellyfin-web runs
+in a browser, which reports the user's language reliably. We ask Python, and on
+Linux that is wrong three different ways — see below. So a user whose desktop
+*is* German can still get an English UI with no indication why, and the control
+that fixes it has to be findable without reading anything. That argues for the
+login screen too, since a first run reaches login before settings.
+
+##### Locale detection on Linux is unreliable — three measured faults
+
+`i18n.configure()` uses `locale.getdefaultlocale()`, chosen because it
+"supports Windows correctly" (the comment says so). On Linux it is wrong in
+three separate ways, all measured on this box:
+
+- **`LANGUAGE` is ignored.** With `LANG=en_US.UTF-8 LANGUAGE=de_DE:en` it
+  answers `('en_US','UTF-8')`. `LANGUAGE` is the variable GNOME and KDE set for
+  UI language, and gettext's *own* lookup honours it first.
+- **`LANG` only works if the locale has been generated.** `LANG=de_DE.UTF-8`
+  answers `('C','UTF-8')` on a box where only `C.utf8` and `en_US.utf8` exist —
+  and generating locales is opt-in on Debian/Ubuntu and absent in most
+  containers. The user's language is simply discarded.
+- **It is deprecated**, with removal in **Python 3.15**
+  (`DeprecationWarning` today on 3.13). This will stop working, not degrade.
+
+With no environment at all — a systemd service — it answers `('C','UTF-8')`,
+which falls back to English rather than crashing.
+
+**That is arguably a bug in its own right and worth fixing with the selector**:
+on non-Windows, defer to gettext's own environment handling (`LANGUAGE`,
+`LC_ALL`, `LC_MESSAGES`, `LANG`, no generated-locale requirement) and keep the
+`getdefaultlocale` path only where it earns its keep.
 
 
 ### 5.4 Hand-delivered builds are a real distribution channel
