@@ -612,6 +612,52 @@ default being off is simply wrong there.
   time, so the setting being on is not a promise that a pad is present. That is
   the existing behaviour on every other platform and needs no change here.
 
+#### An interface language selector — [iw], recorded for later
+
+**The mechanism already exists; the work is exposing it.** `conf.py:500` has
+`lang: Optional[str] = None`, and `i18n.configure()` already prefers it over
+the system locale:
+
+```python
+if settings.lang is not None:
+    lang = settings.lang
+else:
+    lc = locale.getdefaultlocale()      # robust on Windows, unlike gettext's own
+```
+
+So a user *can* override the language today — by hand-editing `conf.json`.
+`lang` is not in `config.py`'s `TAB_SECTIONS`, so nothing in the UI offers it,
+which is the same "real setting, no way to reach it" shape as the `kb_*` keys.
+
+**It requires a restart, and that is measured rather than assumed.** There are
+**22 module-scope `_()` / `_p()` call sites** (`syncplay.py:21`,
+`video_profile.py:32`, `users.py:36`, `menu.py:29` …). Those evaluate at
+import, so re-running `configure()` live would swap the translation object and
+leave those strings in the old language — a half-translated UI, which is worse
+than asking for a restart. So the row belongs in `RESTART_REQUIRED`
+(`config.py:299`), and that set's own docstring is the standard to meet:
+*"'Requires restart' means literally nothing happened"* — true here for those
+22, and the rest would repaint into the new language on the next draw, which is
+the ugly middle state the flag exists to prevent.
+
+Three things to settle when it is built, in `docs/settings-curation.md` terms:
+
+- **Which tab.** It is a "look" setting applied at startup, which is the group
+  `browse` already collects.
+- **What to list.** There are **86 locales** under `jellyfin_mpv_shim/messages/`,
+  most of them partial — Weblate fills them and completeness moves. A picker
+  listing all 86 offers mostly-English UIs under native names; a filtered list
+  needs a completeness threshold computed from the `.po` files at build time,
+  and that number then has to be regenerated with the translations. Decide
+  which before writing the enum, because the two have different build stories.
+  `window_controls` (`config.py:532`) is the structural precedent for a
+  three-way whose first option resolves at runtime — here that first option is
+  **"Use the system language"**, which is what `lang = None` already means.
+- **The display name for each entry** should be the language's own endonym, not
+  its English name: a user who cannot read the current UI language is exactly
+  the person reaching for this control.
+
+
 ### 5.4 Hand-delivered builds are a real distribution channel
 
 **[iw] and this is the practice for user-facing issues now:** hand a CI build to
