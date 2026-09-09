@@ -835,14 +835,38 @@ Note the tool's own rule while doing it: *"`owners` records the sites that exist
 never the ones that may"* — a speculative name pre-authorises the very second
 owner the audit exists to catch.
 
-### 5.3 `tools/audit_act_targets.py` — specified, never built
+### 5.3 `tools/audit_act_targets.py` — ~~specified, never built~~ BUILT
 
 `docs/RISK_MAP_2026-09.md` §7 says *"stays first among the lints: it covers R7
-and R8 (Tier 1 and Tier 2)"*. It does not exist — `ls tools/audit_*.py` returns
-four files and this is not one of them. Its rule: every gateway `_act` property
+and R8 (Tier 1 and Tier 2)"*. ~~It does not exist~~ — it does now, with
+`tests/test_no_act_reachthrough.py`. Its rule: every gateway `_act` property
 write must route through a `PlayerManager` owner method. It covers C6 above and
 R7 (`player_window.py:621` `set_picture_view` lacking the `_video is None and
 not _loading` guard that `reset_picture_view` grew at `:597`).
+
+**The site count, taken before any patch: ten, in two of the seventeen gateway
+modules.** Four writes (`speed`, `video_aspect_override`, `mute`, `fullscreen`,
+all in `hud.py`) and six reads, of which two are read-only by construction —
+the Playback Data panel's seven counters, and the diagnostics screen handing the
+handle to `clipboard.copy_or_save` as an argument.
+
+**Three of the four writes have a `PlayerManager` method sitting there
+unused** — `set_speed`, `set_mute` and `set_fullscreen` all exist. The fourth,
+`set_aspect`, exists only on `enrich-e2e-tests`, whose one production change is
+exactly this repair. So the lint's first run says the fix for most of this is
+*calling what is already written*, and none of it is made here: routing a write
+through `set_fullscreen` changes who takes the player lock, which is a behaviour
+change and `set_speed` carries no `@synchronous` either, so the honest repair is
+both halves at once and belongs in its own commit.
+
+Two things the first run found that hand-reading did not. A reach spelled
+`getattr(playerManager, "_player", None)` carries the handle as a **string**, so
+no `Attribute` node holds it and an AST walk goes straight past — the package
+has one. And writing the declaration list by hand produced **six** keys naming
+functions that do not exist, because the enclosing `def` of a `_act` lambda is
+often a nested one (`toggle_fullscreen.flip`, not `toggle_fullscreen`). The
+stale-key check caught all six on the first run, which is the case it was
+written for.
 
 ### 5.4 Make `_load` check coverage instead of reordering the list
 

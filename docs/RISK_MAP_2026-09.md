@@ -327,7 +327,9 @@ without the platform qualifier gets this backwards for every Mac user.
 
 - `tools/audit_act_targets.py` stays first among the lints: it covers R7 and R8
   (Tier 1 and Tier 2) and its Rule B reach-throughs are in `gateway/hud.py`,
-  which no setting gates.
+  which no setting gates. **BUILT.** Ten sites, all declared; three of the four
+  writes have an unused `PlayerManager` method waiting, and the fourth is the
+  aspect-override commit on `enrich-e2e-tests`. `docs/POSTMORTEM_3.0.0.md` §5.3.
 - The four declared entries on `tools/audit_owned_state.py` (`_sync_path`,
   `ThumbnailStore._gone`, `mpv.TIMEOUT`, `_login["pass"]`) are the cheapest
   Tier-1 coverage available — ~~a bookkeeping extension to a tool that exists,
