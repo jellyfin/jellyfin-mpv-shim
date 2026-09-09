@@ -10,18 +10,23 @@ whose handle may have been replaced in the meantime.
 
 `PlayerManager`'s own methods are where the rules about all of that live.
 A `_act` body that writes `pm._player.<prop>` instead of calling one of
-them skips every rule that method carries, and the two live examples both
-cost a user something no setting explains:
+them skips every rule that method carries.
 
-* **R7** -- `reset_picture_view` grew a `_video is None and not _loading`
-  guard; `set_picture_view` reaches the player through the same deferring
-  `_act` and has none. The reset landing second is what made every film in
-  a session play stretched.
-* **R8** -- `set_fullscreen` records `fullscreen_disable`, *a user-intent
-  flag*, above its own `if not persist: return`. An app-initiated
-  un-fullscreen latches it, and every film from then on starts windowed.
+* **R8 -- confirmed end to end.** `set_fullscreen` records
+  `fullscreen_disable`, *a user-intent flag*, above its own
+  `if not persist: return`. An app-initiated un-fullscreen latches it and
+  every film from then on starts windowed, with no setting to explain it
+  (`docs/POSTMORTEM_3.0.0.md` C6).
+* **R7 -- the same shape, and NOT established.** `reset_picture_view` grew
+  a `_video is None and not _loading` guard and `set_picture_view` has
+  none. Read the guard before acting on that: it covers only the
+  `keepaspect` write, which `set_picture_view` does not make, and the two
+  are symmetric on zoom and pan. `docs/do-not-fix.md` F15 says *"construct
+  the interleaving before fixing"*, and that is still owed.
 
-Both are in `docs/RISK_MAP_2026-09.md` section 2, both verified, both open.
+Both are rows in `docs/RISK_MAP_2026-09.md` section 2. This file needs
+neither to be true: what it checks is that a reach past the manager is a
+decision somebody wrote down.
 `docs/POSTMORTEM_3.0.0.md` section 5.3 asked for this file by name and
 `docs/RISK_MAP_2026-09.md` section 7 puts it first among the lints, because
 it is the only one of them covering a Tier-1 and a Tier-2 row.

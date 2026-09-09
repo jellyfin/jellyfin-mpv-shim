@@ -138,7 +138,9 @@ OWNED = [
             "from -- so a second reader anywhere in the browser is reading a "
             "value the user may have abandoned, and acting on it moves the "
             "download store recursively. Scoped to the whole browser "
-            "because it is one `self` across a dozen mixin modules.",
+            "because it is one `self` across a dozen mixin modules. "
+            "`docs/do-not-fix.md` F42 is this dict, and states why the "
+            "obvious repair is wrong.",
     ),
     Owned(
         scope="mpvtk_browser/",

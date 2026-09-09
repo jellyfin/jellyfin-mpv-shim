@@ -879,6 +879,13 @@ write must route through a `PlayerManager` owner method. It covers C6 above and
 R7 (`player_window.py:621` `set_picture_view` lacking the `_video is None and
 not _loading` guard that `reset_picture_view` grew at `:597`).
 
+**One correction to this section's own R7 example**, found while writing the
+lint: `reset_picture_view`'s `_video is None and not _loading` guard covers only
+its `keepaspect` write, and `set_picture_view` does not write `keepaspect` at
+all — the two are symmetric on zoom and pan. `docs/do-not-fix.md` F15 already
+records R7 as **unverified** and asks for the interleaving to be constructed
+first. The lint does not rest on it; C6/R8 is the confirmed example.
+
 **The site count, taken before any patch: ten, in two of the seventeen gateway
 modules.** Four writes (`speed`, `video_aspect_override`, `mute`, `fullscreen`,
 all in `hud.py`) and six reads, of which two are read-only by construction —

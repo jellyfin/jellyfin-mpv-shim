@@ -157,7 +157,10 @@ DECLARED = {
         "whether to drop the wake binding, then removes "
         "`mpvtk_summon_ENTER` and force-binds a literal `ENTER` on the next "
         "two -- so the Skip button takes ENTER even when `ui_select_key` "
-        "has moved."
+        "has moved. Also `docs/do-not-fix.md` F35, which records it as "
+        "deliberately left and says what it is waiting on: a decision about "
+        "whether the idle Skip offer follows `hud_wake_key` or "
+        "`ui_select_key`."
     ),
     "renderer.lua:phud_bind_summon": (
         OPEN,
@@ -172,7 +175,9 @@ DECLARED = {
         "before it needs a patch. `wk` here is the RESOLVED wake key, and "
         "it is compared against `ENTER` to decide whether waking the HUD "
         "also toggles pause. So moving `hud_wake_key` silently drops the "
-        "pause half. Whether that is intended is written down nowhere."
+        "pause half. Whether that is intended is written down nowhere, and "
+        "it is the same unanswered question `docs/do-not-fix.md` F35 parks "
+        "one function away."
     ),
 
     # ------------------------------------- resolvers, and their own default
