@@ -750,12 +750,74 @@ already accepts an explicit list, so the change is confined to
 alongside the selector means one round of translator-facing testing rather than
 two.
 
-Together that makes a localization package rather than a feature:
+##### Crashing translations must be filtered out at build time — 3.1.0
+
+**Four locales currently ship translations that raise when formatted, and the
+build does not notice.** Verified end to end 2026-09-09: `msgfmt` exits 0 with
+no stderr, the broken msgstr lands in the `.mo`, and gettext hands it back to
+be formatted and raise.
+
+| locale | msgstr | raises |
+|---|---|---|
+| `ar` | `صفحة %(page)d من %(total)ات` | `ValueError: unsupported format character` |
+| `gl` | `Páxina %(page) de %(total)` | `ValueError: incomplete format` |
+| `ms` | `Halaman %(page) daripada %(total)` | `ValueError: incomplete format` |
+| `sk` | `Používateľ {0} sa pripojil` | `TypeError` — brace syntax for a `%s` msgid |
+
+`ar` has a second at `base.po:5027` (`Downloading %(name)s — %(n)d remaining`).
+`Page %(page)d of %(total)d` is `reader.py:748` inside `_bottom_bar`, so in
+Galician, Malay and Arabic the epub/comic reader raises **on every repaint**.
+The `ru` `{0: 0.1f}` entry that `--check-format` also flags does **not** raise —
+a space is a valid format-spec flag — so a checker that only diffs placeholder
+sets over-reports.
+
+**The requirement: filter, do not gate.** [iw]: a crashing translation must
+never reach a build, and the way to guarantee that is to **drop the offending
+entry at compile time**, not to fail the build. gettext then returns the msgid,
+so that one string falls back to English and the rest of the locale is
+unaffected. Failing the build instead would hand Weblate volunteers a way to
+break our release, and would need fixing `.po` files by hand — which is
+Weblate's job, not ours (`docs/i18n.md`).
+
+Design, and the parts that are not obvious:
+
+- **Validate by attempting the substitution, not by parsing placeholders.**
+  Format each non-fuzzy msgstr with synthesized arguments and drop it if it
+  raises. That is what distinguishes the four real crashers from the `ru`
+  cosmetic case, and it cannot false-positive on a literal `%` in "125%" or a
+  stray brace in prose — both of which a placeholder-diff heuristic trips on.
+- **Both compile paths, or it is the usual one-of-two.** `gen_pkg.sh:85-89`
+  uses GNU `msgfmt` when present and falls back to `tools/msgfmt.py`
+  otherwise (Windows without MSYS2). The filter has to cover both, or the
+  guarantee holds only on the machine that happens to have gettext installed.
+  This repo's recurring defect shape is exactly that — see
+  `docs/do-not-fix.md` and the risk map's §2.
+- **Report what it dropped.** A silent filter turns a crash into a mystery
+  gap in the translation. Print the locale, the msgid and the exception, so a
+  dropped string is visible in the build log and can be sent upstream.
+- **Test the filter, not the catalog.** A test asserting the catalogs are
+  clean fails whenever a volunteer types a bad placeholder, which is both
+  inevitable and not our bug. Assert instead that the filter drops a crafted
+  bad entry, keeps a good one, and keeps the `ru`-style cosmetic case — with
+  the four real msgstrs above as fixtures.
+- Fuzzy entries are already excluded by both compilers, so only non-fuzzy
+  entries need checking.
+
+**Out of scope for 3.1.0, explicitly: LLM/generated translation of the
+application.** [iw] — community translation velocity in Jellyfin is good, and
+the generated-translation question stays open and unbuilt. See
+[[translation-landscape]] for the measured state if it is ever revisited.
+
+Together that makes a localization package rather than a feature, scoped for
+**3.1.0**:
 
 1. fix detection (a bug, with a Python-3.15 deadline);
-2. the selector, so a user can override it when it is still wrong;
-3. surface completeness in the picker, so the people most able to help can see
+2. **filter crashing translations at build time** (a shipped crash today);
+3. the selector, so a user can override detection when it is still wrong;
+4. surface completeness in the picker, so the people most able to help can see
    where the gaps are.
+
+Generated/LLM translation is **not** in it.
 
 
 ### 5.4 Hand-delivered builds are a real distribution channel
