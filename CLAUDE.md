@@ -314,7 +314,12 @@ the audit tooling are in `docs/testing.md`.
 User-facing strings use gettext via `i18n.py`'s `_()`. After adding or changing them:
 
 1. `./regen_pot.sh` — updates `base.pot` and nothing else. Commit it.
-2. `./gen_pkg.sh --skip-build` compiles `.po` → `.mo`. `.mo` files are gitignored.
+2. **Write the new string's `#.` translator context into `base.pot`.**
+   `tests/test_pot_context.py` fails until you do, and the regeneration
+   preserves what is there. A Weblate translator sees the English and a
+   filename, so say where the string is, what kind of control it labels, and
+   what each placeholder holds. `docs/i18n.md` §9.
+3. `./gen_pkg.sh --skip-build` compiles `.po` → `.mo`. `.mo` files are gitignored.
 
 **Never run `./regen_pot.sh --merge`, and never touch the per-locale `.po` files,
 unless explicitly asked.** The `.pot` is the template Weblate reads; filling the 86

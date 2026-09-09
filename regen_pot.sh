@@ -116,7 +116,21 @@ xgettext \
     --add-location=file \
     --foreign-user \
     --package-name=jellyfin-mpv-shim \
-    -o "$POT" "${SOURCES[@]}"
+    -o "$POT.new" "${SOURCES[@]}"
+
+# Carry the hand-written translator context across the regeneration.
+#
+# The `#.` comments in base.pot are the only context a Weblate translator
+# gets -- the string and a filename is everything else they see -- and
+# xgettext regenerates the template wholesale, so without this step every
+# one of them dies on each run. They are keyed on (msgctxt, msgid), so a
+# reworded string DROPS its note and the drop is reported; carrying it
+# across a reword is the failure docs/i18n.md section 5 already records.
+# Via a third file, so a failure anywhere in here leaves the committed
+# template alone rather than truncating it.
+python3 tools/pot_context.py "$POT.new" --restore "$POT" -o "$POT.ctx"
+mv "$POT.ctx" "$POT"
+rm -f "$POT.new"
 
 # Flag the translations that RAISE when the app formats them.
 #
