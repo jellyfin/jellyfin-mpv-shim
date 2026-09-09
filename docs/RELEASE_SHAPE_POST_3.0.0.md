@@ -803,6 +803,41 @@ Design, and the parts that are not obvious:
 - Fuzzy entries are already excluded by both compilers, so only non-fuzzy
   entries need checking.
 
+###### `regen_pot.sh` marks them fuzzy — and that IS the filter
+
+[iw]: running the regen should mark broken translations however Weblate needs
+to flag them. It does not need a new mechanism, because **fuzzy already does
+both jobs**:
+
+- **Weblate** shows a fuzzy entry as **"Needs editing"** — it leaves the
+  translated count, appears in the translator's queue, and clears itself when
+  someone fixes it.
+- **Both compilers already exclude fuzzy**, verified: `tools/msgfmt.py:164`
+  emits an entry only `if value and (is_header or not entry.fuzzy)`, and GNU
+  `msgfmt` requires an opt-in `-f`/`--use-fuzzy` to include them.
+
+So one surgical edit flags it upstream *and* keeps it out of the `.mo` on both
+paths. `tools/msgfmt.py`'s own docstring documents the header-emitted-even-when
+-fuzzy exception precisely because a tool writing fuzzy flags into `.po` files
+was expected.
+
+**This makes the regen touch `.po` files, and that is a deliberate, bounded
+exception rather than a relaxation of the `--merge` prohibition.** The
+difference is the diff: adding `#, fuzzy` to the offending entries is **5
+entries across 4 files** and leaves every other byte alone, where `--merge`
+rewrites references and re-wraps whatever it touches for **~10k lines across
+86 files** (`docs/i18n.md`). Keep `--merge` forbidden; this is not it.
+
+Two constraints:
+
+- **Mark only what actually raises.** The `ru` `{0: 0.1f}` entry must stay
+  translated — same reason the validator formats rather than diffs.
+- **The build-time filter still earns its place**, as defence for an entry
+  that arrives *after* the last regen: broken translations land on Weblate's
+  schedule, not ours, and a release cut between regens would otherwise ship
+  one. Which also argues for the check being runnable standalone, not only as
+  a side effect of a string change.
+
 **Out of scope for 3.1.0, explicitly: LLM/generated translation of the
 application.** [iw] — community translation velocity in Jellyfin is good, and
 the generated-translation question stays open and unbuilt. See
