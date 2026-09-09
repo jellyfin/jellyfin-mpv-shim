@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 11:34-0400\n"
+"POT-Creation-Date: 2026-09-09 12:00-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -571,21 +571,19 @@ msgstr ""
 msgid "Select Subtitle Position"
 msgstr ""
 
-#. Two uses. Where subtitles are drawn, on the in-player menu and in the
-#. Subtitle Position setting; and a button on the queue and playlist
-#. editors that moves the selected rows to the end of the list.
-#: jellyfin_mpv_shim/menu.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#: jellyfin_mpv_shim/osc_bridge.py
+#. Where subtitles are drawn on screen, on the in-player menu and in the
+#. Subtitle Position setting. A position in the picture. Split from the
+#. queue editor's button of the same English word.
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
+msgctxt "subtitle position"
 msgid "Bottom"
 msgstr ""
 
-#. Two uses. Where subtitles are drawn, on the in-player menu and in the
-#. Subtitle Position setting; and a button on the queue and playlist
-#. editors that moves the selected rows to the start of the list.
-#: jellyfin_mpv_shim/menu.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#: jellyfin_mpv_shim/osc_bridge.py
+#. Where subtitles are drawn on screen, on the in-player menu and in the
+#. Subtitle Position setting. A position in the picture. Split from the
+#. queue editor's button of the same English word.
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
+msgctxt "subtitle position"
 msgid "Top"
 msgstr ""
 
@@ -942,12 +940,11 @@ msgstr ""
 msgid "New PIN"
 msgstr ""
 
-#. One English word, two senses. The label of the field in the Set PIN
-#. dialog asking for the new passcode a second time, where it is a verb;
-#. and the default title of the yes/no dialog, where it is a noun naming
-#. the dialog.
+#. Label of the field in the Set PIN dialog asking for the new passcode a
+#. second time, to check it was typed correctly. A verb. Split from the
+#. yes/no dialog's title of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgctxt "form label"
 msgid "Confirm"
 msgstr ""
 
@@ -1467,14 +1464,12 @@ msgstr ""
 msgid "Rotation"
 msgstr ""
 
-#. One English word, two senses, and Jellyfin Web needs two separate keys
-#. for them. A choice in a settings dropdown meaning "change nothing, let
-#. MPV decide"; and a flag in the Media Info panel marking the stream a
-#. player picks when the viewer has expressed no preference. Several
-#. languages have translated the two differently here, so the single
-#. translation has to carry both.
+#. Flag row in the Media Info panel, marking the stream a player picks when
+#. the viewer has expressed no preference. Split from the settings dropdown
+#. choice of the same English word, which is a different sense; jellyfin-
+#. web calls this one MediaInfoDefault.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgctxt "media stream flag"
 msgid "Default"
 msgstr ""
 
@@ -2140,6 +2135,16 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Page"
+msgstr ""
+
+#. Choice in the "Shading Behind the Player Controls" dropdown (Settings >
+#. Playback > Player Controls), meaning change nothing and let MPV decide.
+#. Split from the Media Info flag of the same English word: jellyfin-web
+#. needs two keys for that pair and 15 of its languages translate them
+#. differently.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgctxt "setting value"
+msgid "Default"
 msgstr ""
 
 #. Choice in the "Shading Behind the Player Controls" dropdown (Settings >
@@ -3772,6 +3777,14 @@ msgstr ""
 msgid "Clipboard"
 msgstr ""
 
+#. Default title of the yes/no dialog, used when the caller supplied none.
+#. A noun naming the dialog, not an instruction to the reader. Split from
+#. the Set PIN dialog's field label of the same English word.
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr ""
+
 #. Shown in the Reading Progress dialog. %s is another application's name.
 #. Jellyfin stores an ebook position as a fraction of the whole book, not
 #. as a page of this file, so it cannot be typed in.
@@ -4801,13 +4814,12 @@ msgstr ""
 msgid "New"
 msgstr ""
 
-#. One English word, two senses. A badge on a Live TV guide cell marking an
-#. episode shown before, where it is an adjective; and the tooltip of the
-#. loop button on the now-playing bar, where it is a verb. Both must stay
-#. short.
+#. Badge on a Live TV guide cell: this episode has been shown before. An
+#. adjective describing the programme, not an instruction to repeat
+#. anything. Must stay short; the cell is about 120 pixels wide.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+msgctxt "guide badge"
 msgid "Repeat"
 msgstr ""
 
@@ -4902,6 +4914,15 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to favorites"
+msgstr ""
+
+#. Tooltip of the loop button on the now-playing bar, in the state where
+#. nothing repeats. A verb, and the family word behind "Repeat all" and
+#. "Repeat one". Split from the Live TV guide badge of the same English
+#. word.
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+msgctxt "playback control"
+msgid "Repeat"
 msgstr ""
 
 #. Tooltip of the loudness slider on the now-playing bar.
@@ -5295,12 +5316,12 @@ msgstr ""
 msgid "Earlier"
 msgstr ""
 
-#. One English word, two senses. A button on the Live TV guide that scrolls
-#. forward a few hours; and a button on the update banner that puts the
-#. notice off for now. A third use, on the restart banner, carries a
-#. context of its own.
+#. Tooltip of the button that scrolls the Live TV guide forward a few
+#. hours. Later in time, and the counterpart of "Earlier" beside it. A
+#. different sense from the update banner's "Later", which postpones a
+#. notice.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgctxt "guide navigation"
 msgid "Later"
 msgstr ""
 
@@ -5533,6 +5554,14 @@ msgstr ""
 msgid "Play Queue"
 msgstr ""
 
+#. Button on the queue and playlist editors that moves the selected rows to
+#. the start of the list. The beginning of an ordering, not a place on
+#. screen. Split from the subtitle position of the same English word.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+msgctxt "list position"
+msgid "Top"
+msgstr ""
+
 #. Button on the queue and playlist editors that moves the selected rows
 #. one place earlier. A direction.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -5543,6 +5572,14 @@ msgstr ""
 #. one place later. A direction.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Down"
+msgstr ""
+
+#. Button on the queue and playlist editors that moves the selected rows to
+#. the end of the list. The end of an ordering, not a place on screen.
+#. Split from the subtitle position of the same English word.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+msgctxt "list position"
+msgid "Bottom"
 msgstr ""
 
 #. Caption on the queue and playlist editors, counting how many rows are
@@ -6566,6 +6603,14 @@ msgstr ""
 #. means it opens something else.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Details…"
+msgstr ""
+
+#. Button on the update banner that puts the notice off for now, so it
+#. returns next time. "Not now", not a direction in time. Two other buttons
+#. use the same English word in other senses and carry their own contexts.
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgctxt "update banner"
+msgid "Later"
 msgstr ""
 
 #. Button on the update banner that hides it for this version for good. An

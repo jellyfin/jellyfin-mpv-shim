@@ -338,8 +338,11 @@ volunteer work.
 **One word, two meanings: use `_p(context, string)`.** gettext keys on the English, so
 a string reused in two senses collapses to one entry and no language can tell them
 apart. A context is part of the key, so adding one to a string that did not need it
-discards every existing translation of it. Known cases: `Record`, `Channels`,
-`Download`, `None`. Extraction rationale and seeding: `docs/i18n.md`.
+discards every existing translation of it — **`tools/po_recontext.py` is what carries
+them across instead**, and it is the one other thing besides `po_lint.py --fuzzy` that
+may write to a `.po`. Known cases: `Record`, `Channels`, `Download`, `None`, `Default`,
+`Later`, `Confirm`, `Repeat`, `Top`/`Bottom`. Extraction rationale, the two ways a
+two-sense msgid gets found, and the rescue: `docs/i18n.md` §6 and §10.
 
 ## Documentation Reference
 

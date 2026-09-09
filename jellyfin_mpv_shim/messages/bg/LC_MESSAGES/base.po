@@ -5307,6 +5307,24 @@ msgstr "Профили за възпроизвеждане на видеото"
 msgid "Select Shader Profile"
 msgstr "Избери профил за шейдъри"
 
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Горе"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Горе"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Отдолу"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Отдолу"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

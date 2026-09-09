@@ -573,7 +573,7 @@ LABELED_ENUMS = {
         (_("Fit Page"), "page"),
     ],
     "hud_scrim": [
-        (_("Default"), "default"),
+        (_p("setting value", "Default"), "default"),
         (_("Panel behind the controls"), "panel"),
         (_("None (shadowed text)"), "none"),
     ],

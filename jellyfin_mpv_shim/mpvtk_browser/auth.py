@@ -12,7 +12,7 @@ core's ``navigate`` / ``nav_stack``.
 
 import logging
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..mpvtk.widgets import (
     Box,
     Busy,
@@ -139,7 +139,8 @@ class AuthMixin:
             rows += [
                 self._pin_field(_("New PIN"), "ps-new", state, "new",
                                 on_submit=save),
-                self._pin_field(_("Confirm"), "ps-confirm", state, "confirm",
+                self._pin_field(_p("form label", "Confirm"), "ps-confirm",
+                                state, "confirm",
                                 on_submit=save),
                 Checkbox(_("Require this PIN at startup"), state["startup"],
                          id="ps-startup",

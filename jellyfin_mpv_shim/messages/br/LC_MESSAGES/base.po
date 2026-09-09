@@ -5378,6 +5378,22 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Dre ziouer"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Dre ziouer"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Adlenn"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Adlenn"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

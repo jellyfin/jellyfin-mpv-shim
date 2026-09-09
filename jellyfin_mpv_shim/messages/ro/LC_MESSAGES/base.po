@@ -5598,6 +5598,40 @@ msgstr "Profiluri de Redare Video"
 msgid "Select Shader Profile"
 msgstr "Selectați Profilul Shader"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Implicit"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Implicit"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Repetă"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Repetă"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "De-asupra"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "De-asupra"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Dedesubt"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Dedesubt"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

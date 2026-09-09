@@ -19,7 +19,7 @@ DisplayPreferences document as "true"/"false" *strings* — why that matters is
 import datetime
 import re
 
-from ..i18n import _
+from ..i18n import _, _p
 
 # -- preferences -----------------------------------------------------------
 
@@ -522,7 +522,7 @@ def program_indicators(item, indicators):
     # statement about an episode, and a film shown twice is not one.
     if (item.get("IsSeries") and item.get("IsRepeat")
             and indicators.get("repeat")):
-        return _("Repeat")
+        return _p("guide badge", "Repeat")
     return ""
 
 

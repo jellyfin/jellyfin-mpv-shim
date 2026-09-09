@@ -5558,6 +5558,40 @@ msgstr "Profiloj pri ludado de videoj"
 msgid "Select Shader Profile"
 msgstr "Elekti Ombrigilan Profilon"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Defaŭlte"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Defaŭlte"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Ripeto"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Ripeto"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Supro"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Supro"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Malsupro"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Malsupro"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

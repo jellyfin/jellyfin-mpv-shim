@@ -5575,6 +5575,40 @@ msgstr "Video toistoprofiilit"
 msgid "Select Shader Profile"
 msgstr "Valitse varjostimen profiili"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Oletus"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Oletus"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Toista uudelleen"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Toista uudelleen"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Ylin"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Ylin"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Pohja"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Pohja"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

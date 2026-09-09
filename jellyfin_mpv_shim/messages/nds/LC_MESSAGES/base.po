@@ -5215,6 +5215,24 @@ msgstr "Videowiedergabeprofile"
 msgid "Select Shader Profile"
 msgstr "Shader-Profil auswählen"
 
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Oben"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Oben"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Unten"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Unten"
+
 #, fuzzy
 #~ msgid "Could not copy the text."
 #~ msgstr ""

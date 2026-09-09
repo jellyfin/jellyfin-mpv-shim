@@ -5303,6 +5303,24 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr "शेडर प्रोफाइल निवडा"
 
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "वर"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "वर"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "खाली"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "खाली"
+
 #~ msgid "Fail"
 #~ msgstr "अपयशी"
 

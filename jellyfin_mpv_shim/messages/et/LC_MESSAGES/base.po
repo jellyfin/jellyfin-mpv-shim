@@ -5576,6 +5576,40 @@ msgstr "Video taasesituse profiilid"
 msgid "Select Shader Profile"
 msgstr "Vali Varjutaja Profiil"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Vaikimisi"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Vaikimisi"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Korda"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Korda"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Üleval"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Üleval"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "All"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "All"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

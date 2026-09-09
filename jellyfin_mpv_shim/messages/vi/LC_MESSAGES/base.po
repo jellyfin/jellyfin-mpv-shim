@@ -5586,6 +5586,32 @@ msgstr "Cấu hình phát lại video"
 msgid "Select Shader Profile"
 msgstr "Chọn hồ sơ Shader"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Lặp lại"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Lặp lại"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Ở Trên"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Ở Trên"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Ở Dưới"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Ở Dưới"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

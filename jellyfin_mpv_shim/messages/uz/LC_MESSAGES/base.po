@@ -5120,6 +5120,14 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Joriy"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Joriy"
+
 # seeded from jellyfin-web: Display
 #, fuzzy
 #~ msgid "Display"

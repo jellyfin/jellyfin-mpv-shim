@@ -5546,6 +5546,42 @@ msgstr "Video-afspeelprofielen"
 msgid "Select Shader Profile"
 msgstr "Selecteer Shader profiel"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Herhaling"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Herhaling"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Bevestigen"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Bevestigen"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Boven"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Boven"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Onder"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Onder"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "MPV-interface met miniaturen"
 

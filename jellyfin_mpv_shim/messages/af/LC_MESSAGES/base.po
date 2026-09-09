@@ -5437,6 +5437,32 @@ msgstr "Video Weergawe Profiele"
 msgid "Select Shader Profile"
 msgstr "Selekteer Shaderprofiel"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Standaard"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Standaard"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Bokant"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Bokant"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Onderkant"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Onderkant"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

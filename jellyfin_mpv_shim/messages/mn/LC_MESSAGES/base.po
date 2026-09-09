@@ -5587,6 +5587,40 @@ msgstr "Видео тоглуулах профайл"
 msgid "Select Shader Profile"
 msgstr "Shader Profile-г сонгоно уу"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Анхдагч"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Анхдагч"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Давтах"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Давтах"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Дээд"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Дээд"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Доод"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Доод"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

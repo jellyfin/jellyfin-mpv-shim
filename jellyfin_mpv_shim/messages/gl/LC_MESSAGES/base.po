@@ -5525,6 +5525,41 @@ msgstr "Perfís de Reprodución de Vídeo"
 msgid "Select Shader Profile"
 msgstr "Seleccionar Perfil de Sombras"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Por defecto"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Por defecto"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Repetir"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Repetir"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Confirmar"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Confirmar"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Superior"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Superior"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

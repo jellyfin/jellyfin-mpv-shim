@@ -4874,6 +4874,64 @@ msgstr "Vaizdo atkūrimo profilis"
 msgid "Select Shader Profile"
 msgstr "Pasirinkite Shader profilį"
 
+#, fuzzy
+msgctxt "setting value"
+msgid "Default"
+msgstr "Numatytasis"
+
+#, fuzzy
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Numatytasis"
+
+#, fuzzy
+msgctxt "guide navigation"
+msgid "Later"
+msgstr "Vėliau"
+
+#, fuzzy
+msgctxt "update banner"
+msgid "Later"
+msgstr "Vėliau"
+
+#, fuzzy
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Kartoti"
+
+#, fuzzy
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Kartoti"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Patvirtinti"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Patvirtinti"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Viršuje"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Viršuje"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Apačioje"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Apačioje"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "MPV vartotojo sąsaja su miniatiūromis"
 

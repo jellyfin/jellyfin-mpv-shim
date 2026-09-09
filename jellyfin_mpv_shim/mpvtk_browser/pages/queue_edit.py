@@ -12,7 +12,7 @@ drops ``on_error`` when the epoch has moved, so navigating away mid-flight can
 leave a rejected edit in the route dict.
 """
 
-from ...i18n import _
+from ...i18n import _, _p
 from ...mpvtk.widgets import (
     Button,
     Checkbox,
@@ -202,13 +202,15 @@ class QueuePage(SelectionPage):
         n = len(entries)
         toolbar = chrome.wrap_row([
             Text(_("Play Queue"), size="page", bold=True), Spacer(),
-            Button(_("Top"), id="q-top", icon="vertical_align_top",
+            Button(_p("list position", "Top"), id="q-top",
+                   icon="vertical_align_top",
                    on_click=lambda: self._move("top")),
             Button(_("Up"), id="q-up", icon="keyboard_arrow_up",
                    on_click=lambda: self._move("up")),
             Button(_("Down"), id="q-down", icon="keyboard_arrow_down",
                    on_click=lambda: self._move("down")),
-            Button(_("Bottom"), id="q-bottom", icon="vertical_align_bottom",
+            Button(_p("list position", "Bottom"), id="q-bottom",
+                   icon="vertical_align_bottom",
                    on_click=lambda: self._move("bottom")),
             Text(_("%d selected") % len(sel) if sel else "", size="small",
                  color=theme.SUBTLE_FG),
@@ -344,13 +346,15 @@ class PlaylistEditPage(SelectionPage):
         sel = self.selection()
         n = len(items)
         toolbar = chrome.wrap_row([
-            Button(_("Top"), id="pe-top", icon="vertical_align_top",
+            Button(_p("list position", "Top"), id="pe-top",
+                   icon="vertical_align_top",
                    on_click=lambda: self._move("top")),
             Button(_("Up"), id="pe-up", icon="keyboard_arrow_up",
                    on_click=lambda: self._move("up")),
             Button(_("Down"), id="pe-down", icon="keyboard_arrow_down",
                    on_click=lambda: self._move("down")),
-            Button(_("Bottom"), id="pe-bottom", icon="vertical_align_bottom",
+            Button(_p("list position", "Bottom"), id="pe-bottom",
+                   icon="vertical_align_bottom",
                    on_click=lambda: self._move("bottom")),
             Spacer(),
             Text(_("%d selected") % len(sel) if sel else "", size="small",

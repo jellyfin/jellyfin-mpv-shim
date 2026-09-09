@@ -5302,6 +5302,60 @@ msgstr "Profili riproduzione video"
 msgid "Select Shader Profile"
 msgstr "Seleziona profilo shader"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Predefinito"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Predefinito"
+
+msgctxt "guide navigation"
+msgid "Later"
+msgstr "Dopo"
+
+#, fuzzy
+msgctxt "update banner"
+msgid "Later"
+msgstr "Dopo"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Ripeti"
+
+#, fuzzy
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Ripeti"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Conferma"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Conferma"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "In alto"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "In alto"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "In basso"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "In basso"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "Interfaccia MPV con miniature"
 

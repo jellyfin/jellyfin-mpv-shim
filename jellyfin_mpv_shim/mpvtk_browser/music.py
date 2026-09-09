@@ -9,7 +9,7 @@ from a foreign thread by core's ``on_playstate``) and ``_np_thread`` (the
 state lives in the route dict.
 """
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..mpvtk.widgets import (Box, Column, Dropdown, Icon, Row, Slider,
                              Text)
 from . import components, theme
@@ -444,7 +444,9 @@ class MusicMixin:
             right.append(self._np_btn(
                 "repeat_one" if repeat == "one" else "repeat", "np-repeat",
                 lambda: self._cycle_repeat(),
-                self._REPEAT_TIPS.get(repeat, _("Repeat")),
+                self._REPEAT_TIPS.get(repeat,
+                                              _p("playback control",
+                                                 "Repeat")),
                 color=(theme.ACCENT if repeat != "none"
                        else theme.SUBTLE_FG)))
         if tiers["volbar"]:

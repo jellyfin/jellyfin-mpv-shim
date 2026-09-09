@@ -5577,6 +5577,40 @@ msgstr "ვიდეოს დაკვრის პროფილები"
 msgid "Select Shader Profile"
 msgstr "შეიდერის პროფილის არჩევა"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "ნაგულისხმევი"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "ნაგულისხმევი"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "გამეორება"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "გამეორება"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "ზედა"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "ზედა"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "ქვედა"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "ქვედა"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

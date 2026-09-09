@@ -5293,6 +5293,22 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Standard"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Standard"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Gjenta"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Gjenta"
+
 # seeded from jellyfin-web: Display
 #, fuzzy
 #~ msgid "Display"

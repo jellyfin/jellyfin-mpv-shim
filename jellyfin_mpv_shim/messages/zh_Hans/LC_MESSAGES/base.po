@@ -5157,6 +5157,60 @@ msgstr "视频播放预设"
 msgid "Select Shader Profile"
 msgstr "选择着色器配置预设"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "默认"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "默认"
+
+msgctxt "guide navigation"
+msgid "Later"
+msgstr "之后"
+
+#, fuzzy
+msgctxt "update banner"
+msgid "Later"
+msgstr "之后"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "循环播放"
+
+#, fuzzy
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "循环播放"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "确认"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "确认"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "顶部"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "顶部"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "底部"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "底部"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "带缩略图的 MPV UI"
 
