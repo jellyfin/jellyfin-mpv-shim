@@ -612,6 +612,249 @@ default being off is simply wrong there.
   time, so the setting being on is not a promise that a pad is present. That is
   the existing behaviour on every other platform and needs no change here.
 
+#### An interface language selector — [iw], recorded for later
+
+**The mechanism already exists; the work is exposing it.** `conf.py:500` has
+`lang: Optional[str] = None`, and `i18n.configure()` already prefers it over
+the system locale:
+
+```python
+if settings.lang is not None:
+    lang = settings.lang
+else:
+    lc = locale.getdefaultlocale()      # robust on Windows, unlike gettext's own
+```
+
+So a user *can* override the language today — by hand-editing `conf.json`.
+`lang` is not in `config.py`'s `TAB_SECTIONS`, so nothing in the UI offers it,
+which is the same "real setting, no way to reach it" shape as the `kb_*` keys.
+
+**It requires a restart, and that is measured rather than assumed.** There are
+**22 module-scope `_()` / `_p()` call sites** (`syncplay.py:21`,
+`video_profile.py:32`, `users.py:36`, `menu.py:29` …). Those evaluate at
+import, so re-running `configure()` live would swap the translation object and
+leave those strings in the old language — a half-translated UI, which is worse
+than asking for a restart. So the row belongs in `RESTART_REQUIRED`
+(`config.py:299`), and that set's own docstring is the standard to meet:
+*"'Requires restart' means literally nothing happened"* — true here for those
+22, and the rest would repaint into the new language on the next draw, which is
+the ugly middle state the flag exists to prevent.
+
+##### What to list — measured 2026-09-08
+
+86 locales, 1075 msgids in the template. Completeness, counting non-fuzzy
+translated entries:
+
+| completeness | locales |
+|---|---|
+| 95–100% | **3** — `zh_Hans`, `it`, `ca` |
+| 75–95% | 2 — `pt_PT`, `pt` |
+| 50–75% | 7 — `de`, `es`, `da`, `ar`, `lt`, `nl`, `en_GB` |
+| **25–50%** | **41** |
+| 5–25% | 19 |
+| 0–5% | 14 |
+
+**That 41-locale cluster is the jellyfin-web seed line** ([iw]: the seeded
+strings "don't cover a lot of the UI"), and it is what makes a threshold the
+wrong instrument: put the bar at 50% and the picker offers twelve languages,
+excluding French, Russian, Polish, Japanese and most of the list a user would
+actually look for. Put it at 25% and it means nothing.
+
+So **list them all and show the number** — "Deutsch — 62%" — computed from the
+`.po` files at build time and regenerated with the translations. It is honest,
+it needs no arbitrary bar, and it tells a would-be translator where the gaps
+are, which is the population most likely to open this menu. `window_controls`
+(`config.py:532`) is the structural precedent for a three-way whose first
+option resolves at runtime; here that option is **"Use the system language"**,
+which is exactly what `lang = None` already means.
+
+**Endonyms, not English names.** Someone reaching for this control is by
+definition someone who cannot read the current one.
+
+##### Where — and why further than jellyfin-web goes
+
+[iw]: **top of the settings landing page**, because a user may be pointing a
+phone camera at the screen to read it.
+
+**jellyfin-web does not have one on its login page** — checked: the login
+controllers reference no language or localization at all, and the selector
+lives in Display preferences (`LabelDisplayLanguage`). The setup wizard's
+`selectLanguage` is `HeaderPreferredMetadataLanguage`, i.e. metadata language,
+a server setting.
+
+**Our case is not theirs, and the difference is measured.** jellyfin-web runs
+in a browser, which reports the user's language reliably. We ask Python, and on
+Linux that is wrong three different ways — see below. So a user whose desktop
+*is* German can still get an English UI with no indication why, and the control
+that fixes it has to be findable without reading anything. That argues for the
+login screen too, since a first run reaches login before settings.
+
+##### Locale detection on Linux is unreliable — three measured faults
+
+`i18n.configure()` uses `locale.getdefaultlocale()`, chosen because it
+"supports Windows correctly" (the comment says so). On Linux it is wrong in
+three separate ways, all measured on this box:
+
+- **`LANGUAGE` is ignored.** With `LANG=en_US.UTF-8 LANGUAGE=de_DE:en` it
+  answers `('en_US','UTF-8')`. `LANGUAGE` is the variable GNOME and KDE set for
+  UI language, and gettext's *own* lookup honours it first.
+- **`LANG` only works if the locale has been generated.** `LANG=de_DE.UTF-8`
+  answers `('C','UTF-8')` on a box where only `C.utf8` and `en_US.utf8` exist —
+  and generating locales is opt-in on Debian/Ubuntu and absent in most
+  containers. The user's language is simply discarded.
+- **It is deprecated**, with removal in **Python 3.15**
+  (`DeprecationWarning` today on 3.13). This will stop working, not degrade.
+
+With no environment at all — a systemd service — it answers `('C','UTF-8')`,
+which falls back to English rather than crashing.
+
+##### The translations have been largely inert, and that is the headline
+
+[iw]: *"surprised no one ever reported the locale detection issues — most of
+the translations were inert."* Measured, and it holds for two large
+populations for two different reasons:
+
+- **KDE, on any packaging.** Plasma splits *formats* from *translations*:
+  `~/.config/plasma-localerc` carries `[Formats] LANG=...`, while the display
+  language a user picks in **Region & Language** goes to `LANGUAGE` —
+  `kcm_regionandlang` and both `startplasma-x11` / `startplasma-wayland`
+  reference it. We ignore `LANGUAGE`, so **changing the display language on
+  KDE does nothing to this app**. That is #737's reporter's platform family.
+- **The Flatpak, for almost everyone.** Measured inside the shipped sandbox,
+  the generated locales are `C`, `POSIX` and **twenty English variants — and
+  nothing else**: `en_AG en_AU en_BW en_CA en_DK en_GB en_HK en_IE en_IL en_IN
+  en_NG en_NZ en_PH en_SG en_US en_ZA en_ZM en_ZW`. No `de`, `fr`, `es`, `zh`.
+  So `LANG=de_DE.UTF-8` resolves to `C` for want of a generated locale, and
+  `LANGUAGE=de` is ignored — **both paths fail**, and the UI is English
+  whatever the user asked for. (Flatpak *does* forward `LANGUAGE` into the
+  sandbox — verified — so this is our detection and not the sandbox.)
+  Locales arrive with the per-language `.Locale` extension, which is installed
+  according to the user's configured languages; none is present here.
+
+**This reframes the 25-50% translation cluster.** It is not only that the
+jellyfin-web seed did not cover our UI — it is that a large share of users
+could never see their own language, so nobody was moved to finish it. Fixing
+detection is the input to the feedback loop, not a footnote to it.
+
+##### The fix, and the deadline
+
+On non-Windows, defer to gettext's own environment handling (`LANGUAGE`,
+`LC_ALL`, `LC_MESSAGES`, `LANG`, in that order, and **no generated-locale
+requirement**) and keep the `getdefaultlocale` path only where it earns its
+keep — the Windows case the comment cites. `gettext.translation(languages=...)`
+already accepts an explicit list, so the change is confined to
+`i18n.configure()`.
+
+**There is a deadline attached**: `locale.getdefaultlocale()` is removed in
+**Python 3.15**. This is not drift we can absorb — it stops working. Doing it
+alongside the selector means one round of translator-facing testing rather than
+two.
+
+##### Crashing translations must be filtered out at build time — 3.1.0
+
+**Four locales currently ship translations that raise when formatted, and the
+build does not notice.** Verified end to end 2026-09-09: `msgfmt` exits 0 with
+no stderr, the broken msgstr lands in the `.mo`, and gettext hands it back to
+be formatted and raise.
+
+| locale | msgstr | raises |
+|---|---|---|
+| `ar` | `صفحة %(page)d من %(total)ات` | `ValueError: unsupported format character` |
+| `gl` | `Páxina %(page) de %(total)` | `ValueError: incomplete format` |
+| `ms` | `Halaman %(page) daripada %(total)` | `ValueError: incomplete format` |
+| `sk` | `Používateľ {0} sa pripojil` | `TypeError` — brace syntax for a `%s` msgid |
+
+`ar` has a second at `base.po:5027` (`Downloading %(name)s — %(n)d remaining`).
+`Page %(page)d of %(total)d` is `reader.py:748` inside `_bottom_bar`, so in
+Galician, Malay and Arabic the epub/comic reader raises **on every repaint**.
+The `ru` `{0: 0.1f}` entry that `--check-format` also flags does **not** raise —
+a space is a valid format-spec flag — so a checker that only diffs placeholder
+sets over-reports.
+
+**The requirement: filter, do not gate.** [iw]: a crashing translation must
+never reach a build, and the way to guarantee that is to **drop the offending
+entry at compile time**, not to fail the build. gettext then returns the msgid,
+so that one string falls back to English and the rest of the locale is
+unaffected. Failing the build instead would hand Weblate volunteers a way to
+break our release, and would need fixing `.po` files by hand — which is
+Weblate's job, not ours (`docs/i18n.md`).
+
+Design, and the parts that are not obvious:
+
+- **Validate by attempting the substitution, not by parsing placeholders.**
+  Format each non-fuzzy msgstr with synthesized arguments and drop it if it
+  raises. That is what distinguishes the four real crashers from the `ru`
+  cosmetic case, and it cannot false-positive on a literal `%` in "125%" or a
+  stray brace in prose — both of which a placeholder-diff heuristic trips on.
+- **Both compile paths, or it is the usual one-of-two.** `gen_pkg.sh:85-89`
+  uses GNU `msgfmt` when present and falls back to `tools/msgfmt.py`
+  otherwise (Windows without MSYS2). The filter has to cover both, or the
+  guarantee holds only on the machine that happens to have gettext installed.
+  This repo's recurring defect shape is exactly that — see
+  `docs/do-not-fix.md` and the risk map's §2.
+- **Report what it dropped.** A silent filter turns a crash into a mystery
+  gap in the translation. Print the locale, the msgid and the exception, so a
+  dropped string is visible in the build log and can be sent upstream.
+- **Test the filter, not the catalog.** A test asserting the catalogs are
+  clean fails whenever a volunteer types a bad placeholder, which is both
+  inevitable and not our bug. Assert instead that the filter drops a crafted
+  bad entry, keeps a good one, and keeps the `ru`-style cosmetic case — with
+  the four real msgstrs above as fixtures.
+- Fuzzy entries are already excluded by both compilers, so only non-fuzzy
+  entries need checking.
+
+###### `regen_pot.sh` marks them fuzzy — and that IS the filter
+
+[iw]: running the regen should mark broken translations however Weblate needs
+to flag them. It does not need a new mechanism, because **fuzzy already does
+both jobs**:
+
+- **Weblate** shows a fuzzy entry as **"Needs editing"** — it leaves the
+  translated count, appears in the translator's queue, and clears itself when
+  someone fixes it.
+- **Both compilers already exclude fuzzy**, verified: `tools/msgfmt.py:164`
+  emits an entry only `if value and (is_header or not entry.fuzzy)`, and GNU
+  `msgfmt` requires an opt-in `-f`/`--use-fuzzy` to include them.
+
+So one surgical edit flags it upstream *and* keeps it out of the `.mo` on both
+paths. `tools/msgfmt.py`'s own docstring documents the header-emitted-even-when
+-fuzzy exception precisely because a tool writing fuzzy flags into `.po` files
+was expected.
+
+**This makes the regen touch `.po` files, and that is a deliberate, bounded
+exception rather than a relaxation of the `--merge` prohibition.** The
+difference is the diff: adding `#, fuzzy` to the offending entries is **5
+entries across 4 files** and leaves every other byte alone, where `--merge`
+rewrites references and re-wraps whatever it touches for **~10k lines across
+86 files** (`docs/i18n.md`). Keep `--merge` forbidden; this is not it.
+
+Two constraints:
+
+- **Mark only what actually raises.** The `ru` `{0: 0.1f}` entry must stay
+  translated — same reason the validator formats rather than diffs.
+- **The build-time filter still earns its place**, as defence for an entry
+  that arrives *after* the last regen: broken translations land on Weblate's
+  schedule, not ours, and a release cut between regens would otherwise ship
+  one. Which also argues for the check being runnable standalone, not only as
+  a side effect of a string change.
+
+**Out of scope for 3.1.0, explicitly: LLM/generated translation of the
+application.** [iw] — community translation velocity in Jellyfin is good, and
+the generated-translation question stays open and unbuilt. See
+[[translation-landscape]] for the measured state if it is ever revisited.
+
+Together that makes a localization package rather than a feature, scoped for
+**3.1.0**:
+
+1. fix detection (a bug, with a Python-3.15 deadline);
+2. **filter crashing translations at build time** (a shipped crash today);
+3. the selector, so a user can override detection when it is still wrong;
+4. surface completeness in the picker, so the people most able to help can see
+   where the gaps are.
+
+Generated/LLM translation is **not** in it.
+
+
 ### 5.4 Hand-delivered builds are a real distribution channel
 
 **[iw] and this is the practice for user-facing issues now:** hand a CI build to
