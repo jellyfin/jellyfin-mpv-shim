@@ -708,10 +708,54 @@ three separate ways, all measured on this box:
 With no environment at all — a systemd service — it answers `('C','UTF-8')`,
 which falls back to English rather than crashing.
 
-**That is arguably a bug in its own right and worth fixing with the selector**:
-on non-Windows, defer to gettext's own environment handling (`LANGUAGE`,
-`LC_ALL`, `LC_MESSAGES`, `LANG`, no generated-locale requirement) and keep the
-`getdefaultlocale` path only where it earns its keep.
+##### The translations have been largely inert, and that is the headline
+
+[iw]: *"surprised no one ever reported the locale detection issues — most of
+the translations were inert."* Measured, and it holds for two large
+populations for two different reasons:
+
+- **KDE, on any packaging.** Plasma splits *formats* from *translations*:
+  `~/.config/plasma-localerc` carries `[Formats] LANG=...`, while the display
+  language a user picks in **Region & Language** goes to `LANGUAGE` —
+  `kcm_regionandlang` and both `startplasma-x11` / `startplasma-wayland`
+  reference it. We ignore `LANGUAGE`, so **changing the display language on
+  KDE does nothing to this app**. That is #737's reporter's platform family.
+- **The Flatpak, for almost everyone.** Measured inside the shipped sandbox,
+  the generated locales are `C`, `POSIX` and **twenty English variants — and
+  nothing else**: `en_AG en_AU en_BW en_CA en_DK en_GB en_HK en_IE en_IL en_IN
+  en_NG en_NZ en_PH en_SG en_US en_ZA en_ZM en_ZW`. No `de`, `fr`, `es`, `zh`.
+  So `LANG=de_DE.UTF-8` resolves to `C` for want of a generated locale, and
+  `LANGUAGE=de` is ignored — **both paths fail**, and the UI is English
+  whatever the user asked for. (Flatpak *does* forward `LANGUAGE` into the
+  sandbox — verified — so this is our detection and not the sandbox.)
+  Locales arrive with the per-language `.Locale` extension, which is installed
+  according to the user's configured languages; none is present here.
+
+**This reframes the 25-50% translation cluster.** It is not only that the
+jellyfin-web seed did not cover our UI — it is that a large share of users
+could never see their own language, so nobody was moved to finish it. Fixing
+detection is the input to the feedback loop, not a footnote to it.
+
+##### The fix, and the deadline
+
+On non-Windows, defer to gettext's own environment handling (`LANGUAGE`,
+`LC_ALL`, `LC_MESSAGES`, `LANG`, in that order, and **no generated-locale
+requirement**) and keep the `getdefaultlocale` path only where it earns its
+keep — the Windows case the comment cites. `gettext.translation(languages=...)`
+already accepts an explicit list, so the change is confined to
+`i18n.configure()`.
+
+**There is a deadline attached**: `locale.getdefaultlocale()` is removed in
+**Python 3.15**. This is not drift we can absorb — it stops working. Doing it
+alongside the selector means one round of translator-facing testing rather than
+two.
+
+Together that makes a localization package rather than a feature:
+
+1. fix detection (a bug, with a Python-3.15 deadline);
+2. the selector, so a user can override it when it is still wrong;
+3. surface completeness in the picker, so the people most able to help can see
+   where the gaps are.
 
 
 ### 5.4 Hand-delivered builds are a real distribution channel
