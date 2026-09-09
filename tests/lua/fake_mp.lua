@@ -420,7 +420,8 @@ mp.msg = { error = function() end, warn = function() end,
            debug = function() end, log = mp.log }
 mp.utils = utils
 
--- assdraw: only ass_new() and the builder methods the renderer chains.
+-- assdraw: ass_new() and the builder methods the renderer chains, with the
+-- text it builds kept rather than discarded.
 --
 -- The methods used to be swallowed outright. They are recorded now, because
 -- a class of bug lives entirely in the drawing and nowhere in the state the
@@ -482,9 +483,23 @@ local function rect(_s, x1, y1, x2, y2, radius)
 end
 
 local Ass = {}
+-- `text` is accumulated, not just swallowed. The renderer publishes it as
+-- `osd.data`, so leaving it empty made every tag it writes unreachable --
+-- including the font size, which is how a UI that drew 13% small on
+-- Windows had a green renderer suite. `new_event` separates with a
+-- newline, as real assdraw does (one libass event per line).
 local ASS_METHODS = {
-    new_event = function(s) pending = {}; return s end,
-    append = function(s, t) pending[#pending + 1] = tostring(t or ""); return s end,
+    new_event = function(s)
+        pending = {}
+        if #s.text > 0 then s.text = s.text .. "\n" end
+        return s
+    end,
+    append = function(s, t)
+        t = tostring(t or "")
+        pending[#pending + 1] = t
+        s.text = s.text .. t
+        return s
+    end,
     rect_cw = function(s, ...) rect(s, ...); return s end,
     round_rect_cw = function(s, ...) rect(s, ...); return s end,
 }
