@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-08 15:09+0000\n"
+"PO-Revision-Date: 2026-09-08 23:24+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -78,8 +78,8 @@ msgstr "Nustatomas dabartinis..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
-"Atidarykite Jellyfin, eikite į vartotojo meniu -> Quick Connect ir įveskite "
-"šį kodą:"
+"Atidarykite Jellyfin, eikite į vartotojo meniu -> Greitas prisijungimas ir "
+"įveskite šį kodą:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
@@ -131,11 +131,11 @@ msgstr "Nepavyko prisijungti prie serverio."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr "Šiame serveryje neįjungtas Quick Connect."
+msgstr "Šiame serveryje neįjungtas greitas prisijungimas"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr "Nepavyko paleisti Quick Connect."
+msgstr "Nepavyko paleisti greito prisijungimo."
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Credits"
@@ -700,7 +700,7 @@ msgstr "Naudoti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
-msgstr "Quick Connect"
+msgstr "Greitas prisijungimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
@@ -724,7 +724,7 @@ msgstr "Slaptažodis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use Quick Connect"
-msgstr "Naudoti Quick Connect"
+msgstr "Naudoti greitą prisijungimą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect"
@@ -744,7 +744,7 @@ msgstr "Laukiama patvirtinimo…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr "Quick Connect nebuvo patvirtintas."
+msgstr "Greitas prisijungimas nebuvo patvirtintas."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
