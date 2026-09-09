@@ -230,6 +230,12 @@ class UpdateChecker:
 
         self.last_check = datetime.datetime.utcnow()
         if self.new_version is not None or self._check_updates():
+            # Equality, not ordering: the next release does not match, so
+            # the notice returns by itself. See conf.update_skip_version.
+            if settings.update_skip_version == self.new_version:
+                log.info("Update %s available; the user asked to skip it.",
+                         self.new_version)
+                return
             if not self.has_notified and settings.notify_updates_wanted():
                 self.has_notified = True
                 log.info("Update Available: {0}".format(self.new_version))

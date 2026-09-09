@@ -503,6 +503,18 @@ class Settings(SettingsBase):
     sync_osd_message: bool = True
     screenshot_menu: bool = True
     check_updates: bool = True
+    #: A version the user asked not to be told about again, or None.
+    #:
+    #: Written by the notice's own "Ignore", never by hand -- it is app
+    #: state, not a preference, which is why it has no entry in
+    #: docs/configuration.md.
+    #:
+    #: **Equality, not ordering.** The next release does not match it, so
+    #: the notice comes back on its own and there is nothing to reset; an
+    #: ordering test would also have to decide what a downgrade means. The
+    #: point of the button is that somebody who does not want to hear about
+    #: *this* version has an answer short of turning the checker off.
+    update_skip_version: Optional[str] = None
     #: Whether to raise an update notice the user did not ask for.
     #:
     #: **"default" is not a guess about the platform, it is what installed

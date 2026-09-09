@@ -82,12 +82,40 @@ function extract_zip {
 
 function compile_po {
     # $1: .po file, $2: .mo file to write
+    #
+    # Filtered before either compiler sees it: four locales ship
+    # translations that RAISE when the app formats them, and neither
+    # compiler notices -- msgfmt exits 0 and the entry lands in the .mo. The
+    # filter marks those entries fuzzy in a throwaway copy, which both
+    # compilers already exclude, so the string falls back to English and the
+    # rest of the locale is untouched. See tools/po_lint.py.
+    #
+    # In front of BOTH compilers rather than in one of them, because
+    # covering only the path this machine happens to take is this repo's
+    # recurring defect shape (docs/do-not-fix.md).
+    local source="$1"
+    local filtered=""
+    if find_python
+    then
+        filtered="$(mktemp)"
+        if "$PYTHON" "$(dirname "$0")/tools/po_lint.py" \
+                --filter "$1" -o "$filtered"
+        then
+            source="$filtered"
+        else
+            echo "Warning: could not check $1 for crashing translations." >&2
+        fi
+    fi
+    local status=0
     if command -v msgfmt > /dev/null 2>&1
     then
-        msgfmt "$1" -o "$2"
+        msgfmt "$source" -o "$2" || status=$?
     else
-        find_python && "$PYTHON" "$(dirname "$0")/tools/msgfmt.py" "$1" -o "$2"
+        find_python && "$PYTHON" "$(dirname "$0")/tools/msgfmt.py" \
+            "$source" -o "$2" || status=$?
     fi
+    [ -n "$filtered" ] && rm -f "$filtered"
+    return "$status"
 }
 
 # Say which one compiled the catalogs. The two are meant to be

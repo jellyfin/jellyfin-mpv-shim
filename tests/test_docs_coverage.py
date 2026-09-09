@@ -42,6 +42,7 @@ README = os.path.join(REPO, "README.md")
 # Documenting these would invite people to edit values that get overwritten.
 INTERNAL = {
     "config_version",        # migration bookkeeping; editing re-runs upgrades
+    "update_skip_version",   # written by the notice's "Ignore" button
     "client_uuid",           # device identity; editing orphans server sessions
     "window_width",          # window state, rewritten on exit
     "window_height",

@@ -464,10 +464,17 @@ def banner(b):
                   if b._update.get("flatpak") else _("Update available: %s"))
                  % b._update["version"], size="normal"),
             Spacer(),
-            Button(_("Open"), id="banner-open",
+            # Three answers, because two were not enough: "Later" is this
+            # run only, and without a way to say "not this version" the
+            # answer people reach for is turning the update check off
+            # entirely -- a much bigger switch, and one nobody revisits.
+            Button(_("Details\u2026"), id="banner-open",
                    on_click=lambda: b._open_url(b._update["url"])),
-            Button(_("Dismiss"), id="banner-dismiss",
+            Button(_("Later"), id="banner-dismiss",
                    on_click=b._dismiss_update),
+            Button(_("Ignore"), id="banner-ignore",
+                   tip=_("Do not mention this version again"),
+                   on_click=b._ignore_update),
         ], pad=10, gap=10, align="center", h=48, bg=theme.ACCENT_SOFT)
     if b._offline:
         return Row([

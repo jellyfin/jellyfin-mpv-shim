@@ -26,7 +26,7 @@ msgstr "تهيئة مجهولة"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, python-format
+#, python-format, fuzzy
 msgid "Page %(page)d of %(total)d"
 msgstr "صفحة %(page)d من %(total)ات"
 
@@ -5022,7 +5022,7 @@ msgid "Configure Servers"
 msgstr "إعدادات الخوادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, python-format
+#, python-format, fuzzy
 msgid "Downloading %(name)s — %(n)d remaining"
 msgstr "تنزيل %(name)ات — %(n)d باقي"
 

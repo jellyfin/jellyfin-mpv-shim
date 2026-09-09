@@ -2895,7 +2895,7 @@ msgid "The position could not be saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, python-format
+#, python-format, fuzzy
 msgid "%s (joined)"
 msgstr "Používateľ {0} sa pripojil"
 

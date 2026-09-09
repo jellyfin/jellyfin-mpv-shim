@@ -79,6 +79,43 @@ class FlatpakNoticeTest(unittest.TestCase):
         self.assertNotIn("flatpak update", plain)
 
 
+class SkipAVersionTest(unittest.TestCase):
+    """"Ignore" is the answer that is not "turn the checker off".
+
+    Without it the only way to stop being told about a version you have
+    decided against is `check_updates`, which is a much bigger switch and
+    one nobody goes back to. `has_notified` only covers the current run.
+    """
+
+    def _check(self, skip, found="99.0.0"):
+        player = FakePlayer(with_ui=True)
+        chk = UpdateChecker(player)
+        with mock.patch.object(uc, "requests") as rq, \
+                mock.patch.object(uc.settings, "check_updates", True), \
+                mock.patch.object(uc.settings, "notify_updates", "enabled"), \
+                mock.patch.object(uc.settings, "update_skip_version", skip):
+            rq.get.return_value = _Resp(found)
+            chk.check()
+        return chk, player
+
+    def test_the_skipped_version_is_not_announced(self):
+        chk, player = self._check("99.0.0")
+        self.assertEqual(chk.new_version, "99.0.0")
+        self.assertEqual(player.ui_calls, [],
+                         "the version the user skipped was announced anyway")
+
+    def test_the_next_one_is(self):
+        """Equality, not ordering: the skip stops matching by itself, so
+        there is nothing to reset and no downgrade rule to get wrong."""
+        _chk, player = self._check("99.0.0", found="99.1.0")
+        self.assertEqual(player.ui_calls,
+                         [("99.1.0", release_url + "latest")])
+
+    def test_and_an_unset_skip_announces_everything(self):
+        _chk, player = self._check(None)
+        self.assertEqual(len(player.ui_calls), 1)
+
+
 class UpdateNoticeRoutingTest(unittest.TestCase):
     def test_routes_to_ui_when_callback_present(self):
         player = FakePlayer(with_ui=True)
