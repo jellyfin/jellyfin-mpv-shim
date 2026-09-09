@@ -330,8 +330,10 @@ without the platform qualifier gets this backwards for every Mac user.
   which no setting gates.
 - The four declared entries on `tools/audit_owned_state.py` (`_sync_path`,
   `ThumbnailStore._gone`, `mpv.TIMEOUT`, `_login["pass"]`) are the cheapest
-  Tier-1 coverage available — a bookkeeping extension to a tool that exists,
-  not new machinery.
+  Tier-1 coverage available — ~~a bookkeeping extension to a tool that exists,
+  not new machinery.~~ **DONE, and three of the four needed the tool to grow
+  first: a directory scope for the browser's mixins, and a way to name state
+  that does not hang off `self`.** `docs/POSTMORTEM_3.0.0.md` §5.2.
 - `test_config_cells.py` drops: its verified cell is `headless`-gated, i.e.
   Tier 3.
 - The `_MpvHandle` capsule is unaffected — mpv re-creation is reached by

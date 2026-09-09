@@ -799,16 +799,41 @@ declaration is where the next reader learns the resolver exists.
 Guard: `tests/test_no_frozen_key_literals.py`. Precedent that it works: R10 was
 found by writing this predicate down, not by reading the file.
 
-### 5.2 Four lines in `tools/audit_owned_state.py:51` — cheapest possible
+### 5.2 Four lines in `tools/audit_owned_state.py` — DONE, and not four lines
 
 Add `_sync_path`, `ThumbnailStore._gone`, `mpv.TIMEOUT` and `_login["pass"]` to
 `OWNED`. `docs/RISK_MAP_2026-09.md` §7 already specifies them, already argues
 they are the cheapest Tier-1 coverage in the tree, and the tool is already wired
-into the suite. This is bookkeeping, not engineering.
+into the suite. ~~This is bookkeeping, not engineering.~~
+
+**It was not bookkeeping, and the reason is the finding.** Only
+`ThumbnailStore._gone` fitted the tool as written; the other three did not, and
+each in a different way:
+
+- **`_sync_path` and `_login` are not confined to one file.** The tool took one
+  module per entry, and the browser is one `self` spread across a dozen mixin
+  modules — so scoping either of them to the file that touches it today would
+  have been *this document's own defect shape*, the right rule at one of
+  several sites, installed by the tool meant to catch it. `scope` now takes a
+  directory, and owners are spelled `path:function`.
+- **`mpv.TIMEOUT` does not hang off `self` at all.** It is a module global of
+  the backend library. The walker only matched `self.<attr>`, so the entry
+  would have found nothing and reported a clean tree forever — the failure
+  `test_no_second_owner.py`'s second test exists to catch. `obj` now names what
+  the state hangs off.
+- **`_login["pass"]` is a dict key, and the entry is deliberately weaker than
+  the risk it records.** The tool matches attributes, not subscripts, so the
+  scope is the whole `_login` dict with six owners. Six is a weak check and it
+  is the honest one; the *repair* — clearing `pass` after a successful login,
+  the way `_pin` already clears — is a behaviour change and is not this.
+
+Each of the three was mutation-tested: a second owner in the same file, one in
+a sibling mixin module, and a second writer of the global from another module
+are all reported.
 
 Note the tool's own rule while doing it: *"`owners` records the sites that exist,
-never the ones that may"* (`audit_owned_state.py:30-35`) — a speculative name
-pre-authorises the very second owner the audit exists to catch.
+never the ones that may"* — a speculative name pre-authorises the very second
+owner the audit exists to catch.
 
 ### 5.3 `tools/audit_act_targets.py` — specified, never built
 
