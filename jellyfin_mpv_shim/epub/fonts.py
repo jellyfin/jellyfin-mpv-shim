@@ -106,7 +106,7 @@ def _resolve_family(kind):
     return None
 
 
-def face(kind, size, bold=False, italic=False, script="latin"):
+def face(kind, size, bold=False, italic=False, script="latin", text=None):
     """A PIL font. Never None, never raises.
 
     ``kind`` is "serif", "sans" or "mono"; ``script`` is a
@@ -118,12 +118,27 @@ def face(kind, size, bold=False, italic=False, script="latin"):
     legal answers here and are the faces for a star or a 🎬 in the prose --
     they would be catastrophic as a whole book's face, and the caller that
     picks that one keeps them out: see :class:`~.layout.Measurer`.
+
+    ``text`` is the run itself, and it is not optional in spirit: this is the
+    second site of #736's rule. Routing a script name into ``pilfont.font``
+    and letting the candidate order decide gave a Simplified Chinese book the
+    Japanese face that happened to open first, exactly as the library did.
+    It stays keyword-optional only so the Latin branch, which has its own
+    families, need not pass one.
     """
     size = max(6, int(size))
     key = (kind, size, bool(bold), bool(italic), script)
-    hit = _font_cache.get(key)
-    if hit is not None:
-        return hit
+    # **The cache is bypassed in both directions when ``text`` decides**, and
+    # reading it unconditionally was a defect: the key holds no text, and the
+    # book's own base face is resolved first and *without* text
+    # (`layout.Measurer.font`), so every later run was answered from that
+    # entry and the coverage check below never ran. Every test in this file
+    # still passed. See `test_epub_layout.py:TestCjkFaceCoverageInTheReader`.
+    cacheable = text is None or script in ("latin", "", None)
+    if cacheable:
+        hit = _font_cache.get(key)
+        if hit is not None:
+            return hit
     font = None
     if script not in ("latin", "", None):
         from ..mpvtk import pilfont
@@ -131,7 +146,7 @@ def face(kind, size, bold=False, italic=False, script="latin"):
         # No italic: pilfont's per-script lists are regular and bold, and a
         # synthesised slant is not something Pillow offers. Drawing the
         # upright face is the same choice every CJK-capable reader makes.
-        font = pilfont.font(script, size, bold)
+        font = pilfont.font(script, size, bold, text=text)
     else:
         family = _resolve_family(kind)
         if family:
@@ -149,7 +164,8 @@ def face(kind, size, bold=False, italic=False, script="latin"):
         from PIL import ImageFont
 
         font = ImageFont.load_default()
-    _font_cache[key] = font
+    if cacheable:
+        _font_cache[key] = font
     return font
 
 

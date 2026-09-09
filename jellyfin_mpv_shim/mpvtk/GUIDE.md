@@ -799,12 +799,58 @@ still stack. That is why the Hebrew list is ordered the opposite way from every
 other list in the file: putting Noto Hebrew first drew "שלום עולם." with the
 stop as a box and every year in a title as four more.
 
-**Arabic has no such face, and that is a knowing loss.** `NotoSansArabic` is
-255/256 of the block and 751/772 presentation forms but has no A-Z, so an
-Arabic line with a Latin word in it draws that word as boxes. DejaVu *does*
-have Arabic — 165/256, with `arab` shaping in both GSUB and GPOS — but only
-249/772 presentation forms, and Arabic is a script of presentation forms. That
-is the wrong three quarters to give up for the occasional Latin word.
+**Arabic had no such face, and the loss was knowing — until the choice stopped
+having to be global.** `NotoSansArabic` is 255/256 of the block and 751/772
+presentation forms but has no A-Z, so an Arabic line with a Latin word in it
+drew that word as boxes. DejaVu *does* have Arabic — 165/256, with `arab`
+shaping in both GSUB and GPOS — but only 249/772 presentation forms, and Arabic
+is a script of presentation forms. That was the wrong three quarters to give up
+for the occasional Latin word.
+
+**That trade was between one face and every Arabic line. It is now per line.**
+Coverage-based selection (12.6) means `font(whole=True)` can ask first for a
+face that carries *this* line and fall back to the script-only question, so:
+
+| line | face | why |
+|---|---|---|
+| `مسلسل الحلقة الأولى` | `NotoSansArabic` | nothing else in it; keeps 737/773 forms |
+| `مسلسل Netflix الأصلي` | `FreeSerif` | Noto has no A-Z, and this line needs it |
+| `مسلسل (2013)` | `FreeSerif` | Noto has the *digits* and not the brackets — measured |
+| Arabic + presentation forms + Latin | `NotoSansArabic` | no face carries both, so the script wins and the Latin degrades |
+
+`FreeSerif` is a real Arabic face rather than a Latin one with a few Arabic
+glyphs: measured 2026-09-08, it **joins** (its advance for مسلسل drops from 103
+to 70 under Raqm, which is what joining does) and has full ASCII including
+brackets, at 345/773 presentation forms. Only a line Noto cannot carry reaches
+it, so every other Arabic title is unaffected — which is the difference between
+this and reordering the list, and it is why the row above that gives up the
+Latin is still the right answer when no face can have both.
+
+**Windows never had this gap.** Measured: no Arabic face in a default Windows
+install exceeds 376/773 presentation forms (Courier New; Arial and Segoe UI are
+312) and all of them have full ASCII, so the face the shim already picks there
+carries the whole line.
+
+**Hebrew has always worked this way, by accident** — Liberation Sans covers both,
+so it satisfied the whole-line question before there was one. `whole=True` makes
+that deliberate for both scripts.
+
+**What is still lost: an RTL line mixed with CJK, Thai or Indic.** No installed
+face covers Arabic *and* CJK (unifont aside, which is not a candidate and is not
+a UI face), so the line keeps its RTL face and the other script degrades — and
+that is the right way round, per the rule above. Splitting such a line is not a
+font problem at all: it needs UAX#9 run reordering, whose paired-bracket rule
+(BD16) is the fiddliest part of the algorithm and covers one of the very cases
+this section is about, so a hand-rolled subset would be wrong exactly where it
+was needed. A test asserts this loss rather than leaving it to be rediscovered.
+
+**RTL also outranks every other script in `script_of`, wherever it appears in
+the string.** That answer becomes the whole line's face, and "first non-Latin
+wins" gave "進撃の巨人 مسلسل" to a CJK face — which draws all five Arabic
+characters as boxes, unjoined and in logical order. The trade is already
+settled by the rule above: reordered text is a *wrong* line where tofu is only
+an ugly one, so the CJK is what degrades. A line with no RTL in it is
+unaffected, and two control tests pin that.
 
 When adding or reordering an RTL candidate, check ASCII coverage and the
 OpenType script tags, not just the letters.
@@ -863,6 +909,22 @@ Symbol's Latin is not Arial's and it carries no Arabic or Hebrew at all, so one
 star choosing it would re-typeset whole paragraphs — and for an RTL line, which
 cannot be split at all, draw every word as a box.
 
+**A symbol the symbol faces lack falls to the emoji chain, and that is the
+only cross-script fallback edge in the file.** Measured 2026-09-08 on Debian:
+of the 1108 codepoints `_SYMBOL_RANGES` claims, **223 are drawn by nothing in
+the symbol chain or the Latin one behind it, and the emoji chain draws 219** —
+`Symbola` is on that list and is a symbol face in every respect except which
+bucket it sits in. The colour faces are not reachable this way and need not
+be: `_load` probes strikes only for the emoji script, so a CBDT face that opens
+at one fixed size is skipped here. #713's star still comes from the symbol
+chain's own first answer.
+
+Two edges were measured and **not** declared, which is the point of measuring:
+a `cjk` edge rescues 22 symbol codepoints and all 22 are already among the 219,
+and the 33 Latin codepoints nothing draws are the C0/C1 controls, which must not
+be rescued by anything. An entry in `_FALLBACK_SCRIPTS` that no run has needed
+pre-authorises a face for a case nobody has seen.
+
 Mixed lines cost a little vertical room: PIL's default vertical anchor is the
 *ascender* and two faces do not share one, so runs are drawn from a shared
 baseline set by the tallest ascent. A caller reserving from `script_of`'s face
@@ -882,7 +944,160 @@ Arial's (19, 5) at 20px.
   lands on), NotoSansThai and NotoSansArabic all draw the letter A as `.notdef`,
   so "進撃の巨人 (2013)" came out with the year as four tofu boxes.
 
-### 12.6 Where the Unicode data actually is
+### 12.6 One CJK bucket, four languages, and no face that covers it
+
+`script_of_char` folds Han, kana and Hangul into the single script `"cjk"`,
+because there is no way to tell zh-Hans from zh-Hant from ja by codepoint —
+they share the Unified Han block, and the shim has no per-item language to ask
+the server for. One bucket is the right answer. **One face for the bucket is
+not**, and that was #736: a Simplified Chinese library drawn half in glyphs and
+half in tofu.
+
+Coverage measured 2026-09-08, per face, against the codepoints of each
+language's sample (#736's own title `莲花 电视剧 第一季` for zh-Hans):
+
+| face | host | zh-Hans | zh-Hant | ja | ko | ASCII |
+|---|---|---|---|---|---|---|
+| `NotoSansCJK-Regular.ttc` | Debian | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `DroidSansFallbackFull.ttf` | Debian | ✓ | ✓ | ✓ | ✗ | **✗** |
+| `fonts-japanese-gothic.ttf` (IPAGothic) | Debian | **✗ 4/8** | ✗ 嬛 | ✓ | ✗ | ✓ |
+| `VL-Gothic-Regular.ttf` | Debian | **✗ 4/8** | ✓ | ✓ | ✗ | ✓ |
+| `msgothic.ttc` (MS Gothic) | Windows 10 | **✗ 4/8** | ✓ | ✓ | ✗ | ✓ |
+| `YuGothM.ttc` / `YuGothR.ttc` | Windows 10 | **✗ 4/8** | ✓ | ✓ | ✗ | ✓ |
+| `msyh.ttc` (YaHei) / `msjh.ttc` (JhengHei) | Windows 10 | ✓ | ✓ | ✓ | ✗ | ✓ |
+| `simsun.ttc` | Windows 10 | ✓ | ✓ | ✓ | ✗ | ✓ |
+| `malgun.ttf` | Windows 10 | ✗ 4/8 | ✓ | ✗ 撃 | ✓ | ✓ |
+| `arial.ttf` / `segoeui.ttf` / `seguisym.ttf` | Windows 10 | ✗ | ✗ | ✗ | ✗ | ✓ |
+
+**Nothing on a stock Windows 10 covers all four.** The Chinese faces have no
+Hangul at all; the Korean face is missing most Han; the Japanese faces are
+missing a quarter of #736's own title. So no ordering of `_CANDIDATES["cjk"]`
+can be correct, and the fix cannot be a reordering — it has to be **per-run
+selection by coverage**, which is what `font(script, size, bold, text=...)`
+does. `_load` answers "the first name that opens"; that was never the same
+question as "the first name that works".
+
+**How coverage is measured, and why it is a render comparison.** Pillow exposes
+no cmap — `FreeTypeFont` has `getmask`, `getbbox`, `getlength` and `getname`,
+and nothing mapping a character to a glyph id — so `_draws` renders the
+character and compares it against what that same face renders for a codepoint
+Unicode guarantees will never be assigned. That is a real answer for **39–45 µs
+on Linux and 7.5 µs on Windows**, memoized per (face, codepoint) at ~20 ns, and
+it needs no new dependency. The verdict is **identical at 8 px and at 96 px** on
+every face tried, which is why the memo is keyed by the face's *name* and shared
+across sizes.
+
+Three results that look like the probe failing and are not:
+
+- `simsun.ttc` renders a **blank** no-glyph mark, and `NotoColorEmoji.ttf`
+  renders one **identical to its space**. Both are harmless, because the only
+  glyphs that render blank are whitespace and `_covers` skips it. Do not add an
+  assertion that the mark is non-blank or differs from a space — it is false on
+  a stock Debian box.
+- `DroidSansFallbackFull.ttf` covers three CJK languages and **has no ASCII at
+  all**, not even digits. It is a legitimate candidate anyway: a mixed title
+  splits into runs and the Latin run resolves its own face.
+- Several entries on this list cover none of it. The Latin chain is appended to
+  every script for the tofu-rather-than-crash backstop, and it correctly never
+  satisfies a CJK run.
+
+**Only the selecting script's codepoints are required.** Asking a face to cover
+the whole *string* would overturn 12.1's two measured decisions — Noto Arabic is
+kept first although it has no ASCII, and the Hebrew list is ordered backwards
+precisely for the neutrals. Requiring just the codepoints that chose the list
+leaves both exactly as they were.
+
+**What coverage still cannot decide is regional glyph form.** Han unification
+means one codepoint has different shapes in Japanese and Chinese typography, and
+`msyh.ttc` covers Japanese perfectly well — so promoting it to fix Simplified
+Chinese would give every Japanese title Chinese shapes. The Japanese entries
+therefore keep their position and the Chinese ones are *appended*: order in that
+list is now preference, and only correctness was taken away from it. On the
+Windows VM the result is zh-Hans → `msyh.ttc`, ko → `malgun.ttf`, ja and zh-Hant
+still → `msgothic.ttc`. A zh-Hant library gets Japanese shapes for the Han it
+shares, which is the one case left open and needs a language the server is never
+asked for.
+
+### 12.7 A Flatpak sees the runtime's fonts, not the user's
+
+**Pillow does not use fontconfig.** It searches a fixed list of directories,
+which is the whole reason the sandbox needs anything said about it: inside a
+Flatpak that list finds the *runtime's* `/usr/share/fonts`, and the user's fonts
+are bind-mounted somewhere Pillow has never heard of.
+
+Measured 2026-09-08 against the shipped 3.0.0 Flatpak, on a host with the full
+Noto set installed:
+
+| | files | has CJK / Thai / Indic |
+|---|---|---|
+| runtime `/usr/share/fonts` (`org.freedesktop.Platform` 25.08) | 95 | **none of them** |
+| host, at `/run/host/fonts` | 4243 | all of them |
+
+So **Chinese, Japanese, Korean, Thai and Hindi libraries drew as a screen of
+boxes**, and `NotoSansCJK-Regular.ttc` — verified in the sandbox to draw 莲 —
+was on the disk the whole time. Absolute candidates made it worse rather than
+better: `/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc` names the
+runtime's tree inside the sandbox, so the entry that looks most specific is the
+one guaranteed to miss.
+
+`_load` therefore tries each candidate's **basename** under
+`_HOST_FONT_DIRS` (`/run/host/fonts`, `/run/host/local-fonts`,
+`/run/host/user-fonts`). Basename, because it has to carry over for an absolute
+candidate as much as a bare one. It is `_resolutions`' second yield, so the walk
+is only reached once a name has failed at every size — 2656 files in 3 ms, once
+per process, and never on a host that has no such directory.
+
+Two things worth knowing before touching it:
+
+- **The index being built is not the same as a directory being walked.** On
+  Windows the first Latin candidate (`DejaVuSans.ttf`) does not exist, so the
+  lookup *is* reached and the index is built empty: three `isdir` calls. A test
+  asserting "the index is None off-Flatpak" passes on Linux for an accidental
+  reason and fails on Windows for a correct one.
+- `/run/host/os-release` is the same trick from the other direction — it is the
+  only place a Flatpak can read the *host's* identity, which is what the
+  SteamOS detection in `docs/RELEASE_SHAPE_POST_3.0.0.md` §5.3 uses.
+
+### 12.8 One bucket per family of faces, not per script
+
+`script_of_char` buckets a codepoint, and the right granularity is **however
+many buckets the available faces justify** — not one per script and not one for
+everything.
+
+Seventeen scripts had no bucket at all until 2026-09-08, so every codepoint in
+them answered `"latin"`, took the Latin face and drew as boxes: Bengali,
+Gurmukhi, Gujarati, Oriya, Tamil, Telugu, Kannada, Malayalam, Sinhala, Lao,
+Tibetan, Myanmar, Georgian, Ethiopic, Cherokee, Khmer, Mongolian. Both platforms
+ship a face for every one of them. Georgian and Armenian were in exactly the
+same position and were invisible, because DejaVu happens to cover them — which
+is what made the whole set read as a platform limit instead of a bug.
+
+**The ten Indic scripts share one `"indic"` bucket, and that is only correct
+because of 12.6's coverage check.** They share no codepoints, so unlike CJK
+there is no regional-form problem: Noto ships a file per script, Windows ships
+`Nirmala.ttf` for all ten, and `font()` picks per run by what the run's
+codepoints actually draw as. Measured: from one list, Bengali resolves
+`NotoSansBengali`, Tamil `NotoSansTamil`, Telugu `NotoSansTelugu`; on Windows all
+ten resolve `Nirmala.ttf`.
+
+**Cost is one comparison**, because every added range lives inside
+U+0980..U+18AF and a single band test sits in front of `_BAND_SCRIPTS`. The
+scripts in it got *faster*: they used to traverse the whole chain to reach
+`"latin"` (147 ns measured) instead of returning at the gate. Thai and
+Devanagari sit inside that band, keep their own buckets and are answered
+*before* it — and a codepoint the table does not claim falls through rather than
+being taken, so the two orderings cannot silently swap. A test holds both ends.
+
+**Measure the font name on a host that has it.** `mangal.ttf` was Devanagari's
+only Windows entry for years and Mangal is not on Windows 10 — it became an
+optional feature — so Hindi drew in Arial. `NotoSansTibetan` does not exist
+either; Noto ships Serif only for that script. Both were caught by
+`TestTheHostsOwnInventory`, which walks the platform's font directories and
+fails when the host owns a face the shim did not find, naming the file. That
+test is the only thing here that can catch an *incomplete* list, because
+completeness cannot be checked against the file — only against a machine.
+
+### 12.9 Where the Unicode data actually is
 
 Debian's `unicode-data` package ships
 `/usr/share/unicode/emoji/emoji-data.txt` — the authoritative

@@ -1138,16 +1138,18 @@ Set it to the full path of a font file and that font is tried *first* for every
 piece of text the client bakes into the picture — library tiles, the playback
 HUD, the cast screen, the built-in book reader.
 
-It exists for hosts where the automatic choice picks a face that cannot draw
-your language. The client picks the first installed font from a per-script list
-and does not check that the font actually covers the text, so a system whose
-fonts are laid out unusually can end up with boxes (tofu) instead of
-characters.
+It exists for hosts where the automatic choice is still not the font you want.
+The client checks, character by character, that a font can actually draw the
+text before using it, and moves on to the next candidate when it cannot — so
+boxes (tofu) should be rare, and this override is an appearance preference more
+often than a repair.
 
-**Known case: Simplified Chinese, Korean and Traditional Chinese on Windows.**
-The client finds MS Gothic — a *Japanese* font — before the Chinese and Korean
-ones, and MS Gothic can draw only part of those scripts, so some characters
-render and others become boxes. Until this is fixed properly, set:
+**Simplified Chinese, Korean and Traditional Chinese on Windows no longer need
+it.** The client used to take MS Gothic — a *Japanese* font — for every CJK
+script, and MS Gothic can draw only part of Chinese and none of Korean, so some
+characters rendered and others became boxes. Chinese text now resolves Microsoft
+YaHei and Korean resolves Malgun Gothic on their own. If you would rather pick
+the font yourself, these are the ones to name:
 
 ```
 JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\msyh.ttc      Simplified Chinese
@@ -1155,15 +1157,21 @@ JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\msjh.ttc      Traditional Chinese
 JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\malgun.ttf    Korean
 ```
 
+Traditional Chinese is the case where naming a font still buys something real:
+Chinese and Japanese share most of their characters but draw some of them
+differently, and the client cannot tell which language a title is in — so a
+Traditional Chinese library is drawn with Japanese letterforms unless you point
+this at `msjh.ttc`.
+
 On Linux and macOS the automatic choice is normally right; if it is not, point
 this at any font file with the coverage you need (for example
 `/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc`).
 
-**What it costs.** The override goes in front of *every* font list, including
-the one used for emoji and symbols — so with it set, colour emoji and some
-symbols are drawn by whatever your chosen font has for them, which is usually
-nothing. It is a workaround for unreadable text, not a general appearance
-setting; unset it once the underlying problem is fixed.
+**What it costs.** The override is offered ahead of *every* built-in font list,
+including the one used for emoji and symbols, but it is only used for text it can
+actually draw — so colour emoji still work if your chosen font has no emoji in
+it. What you do give up is the client's own preference for anything the font
+*can* draw: name a Chinese font and Japanese titles are drawn with it too.
 
 ## Other Configuration Options
 

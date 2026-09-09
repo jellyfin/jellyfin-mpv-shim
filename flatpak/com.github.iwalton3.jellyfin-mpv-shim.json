@@ -254,6 +254,28 @@
         },
         "shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json",
         {
+            "//": "Pillow is installed from its SDIST below, and it enables Raqm -- bidi reorder, Arabic joining and GPOS kerning -- only if it finds libraqm at BUILD time. org.gnome.Sdk 50 ships harfbuzz, fribidi and freetype but NO raqm, and Pillow's build says nothing when it is absent: it just produces a _imagingft with no Raqm support, and every baked string is then laid out with Layout.BASIC. Measured on the shipped 3.0.0 Flatpak: right-to-left text unjoined and unreordered, and nothing kerned anywhere -- which mpvtk.metrics then feeds to every ellipsize and wrap decision. MUST stay ahead of the module that pip-installs the app.",
+            "name": "libraqm",
+            "buildsystem": "meson",
+            "config-opts": [
+                "-Dtests=false",
+                "-Ddocs=false"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/HOST-Oman/libraqm/releases/download/v0.11.0/raqm-0.11.0.tar.xz",
+                    "sha256": "3d0add115f7d4a9410d3377462ed3c05e86342193ef984183e4380e3787b2d4c",
+                    "x-checker-data": {
+                        "type": "json",
+                        "url": "https://api.github.com/repos/HOST-Oman/libraqm/releases/latest",
+                        "version-query": ".tag_name | sub(\"^v\"; \"\")",
+                        "url-query": "\"https://github.com/HOST-Oman/libraqm/releases/download/v\" + $version + \"/raqm-\" + $version + \".tar.xz\""
+                    }
+                }
+            ]
+        },
+        {
             "name": "jellyfin-mpv-shim",
             "buildsystem": "simple",
             "//note": "Built from the checkout this manifest lives in, with network access, so the dependencies come straight from PyPI. That is deliberately NOT what Flathub publishes -- Flathub forbids network in the build and pins every wheel in flathub/com.github.iwalton3.jellyfin-mpv-shim's pypi-dependencies.json. This manifest is for CI and local test bundles of the working tree.",

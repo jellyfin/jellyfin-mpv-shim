@@ -59,6 +59,60 @@ worse than not shipping it — a 32-bit user was downloading something official-
 that failed cryptically instead of reading "not supported".
 
 
+### The Flatpak needs libraqm, and its absence was silent too
+
+Same fault as FriBiDi below, at the other end of the stack, and it shipped in
+3.0.0. **Flathub installs Pillow from its sdist** (`pillow-12.3.0.tar.gz`, via
+`pip3 install 'jellyfin-mpv-shim[all]'`), so Raqm is compiled in only if
+`raqm.pc` is present at build time — and **`org.gnome.Sdk` 50 has harfbuzz,
+fribidi and freetype but no raqm at all** (verified: no `raqm.pc`, no
+`libraqm.so`). Pillow says nothing about it; it just produces an `_imagingft`
+that links freetype and nothing else.
+
+Measured on the shipped 3.0.0 Flatpak:
+
+```
+raqm = False,  libraqm = None,  fribidi = None,  harfbuzz = None
+arabic: RAQM vs BASIC identical, advance 125.0 vs 125.0   -> unshaped
+latin:  AVATAR 111.88 vs 111.88                           -> UNKERNED
+```
+
+So every baked string was laid out with `Layout.BASIC`: right-to-left text in
+logical order with isolated letterforms, and no GPOS kerning for any script —
+which `mpvtk.metrics` then feeds to every ellipsize and wrap decision.
+
+The fix is a `libraqm` module **ordered before** the module that pip-installs
+the app. Verified with a real `flatpak-builder` run of that module plus the
+same sdist:
+
+```
+PKG_CONFIG_PATH=/app/lib/pkgconfig:/app/share/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+pkg-config --modversion raqm -> 0.11.0
+_imagingft NEEDED: libfreetype.so.6, libraqm.so.0, libc.so.6
+raqm = True, libraqm = 0.11.0
+AVATAR: RAQM 105.25 vs BASIC 111.88  -> KERNED
+arabic: differ, advance 95.4 vs 125.0 -> joining active
+```
+
+Three things that cost a test each, so they are worth knowing:
+
+- **`flatpak run` is not the build environment.** In a bare `flatpak run` of the
+  SDK `PKG_CONFIG_PATH` is unset and `/app/lib/pkgconfig` is not searched, so a
+  hand-rolled probe finds no raqm and "proves" the fix does not work.
+  `flatpak-builder` exports the path above; test with it, not around it.
+- **`/app` is fresh per `flatpak run`**, so a two-invocation test (install, then
+  build) silently loses the install between them.
+- **`features.version("fribidi")` and `("harfbuzz")` stay `None`** with a system
+  raqm — Pillow only knows raqm's own version. Do not read that as a partial
+  fix; the kerning and joining numbers above are what answer the question.
+
+The **PyPI** path is different and mostly fine: Pillow publishes 86 wheels
+(manylinux/musllinux x86_64+aarch64, macOS, Windows, iOS) with raqm and
+harfbuzz compiled in. What those wheels do *not* carry is FriBiDi — see below —
+which is why a pip install on Windows measures `raqm=False` while the same
+wheel on a desktop Linux measures `True`. README's Linux Installation section
+carries the user-facing version of this.
+
 ### FriBiDi is required, and its absence is silent
 
 `fribidi-0.dll` must sit beside the batch file. `python tools/build_win_fribidi.py`

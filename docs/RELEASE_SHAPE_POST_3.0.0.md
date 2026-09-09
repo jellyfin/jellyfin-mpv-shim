@@ -248,8 +248,8 @@ are the ones a 3.0.1 could also have carried; 8-11 are what waiting buys.
 | 4 | The four wrong claims still in the repo | all CONFIRMED — see the table below | **None.** |
 | 5 | Strike ISSUES's "delete the dead branch" instruction (postmortem §2 C3); write the owed `do-not-fix.md` entries for #726 and #727 item 1 | CONFIRMED absent: `grep -n '726\|727' docs/do-not-fix.md` returns nothing | **None.** |
 | 6 | #736 stopgap: document `JELLYFIN_MPV_SHIM_UI_FONT` in `docs/configuration.md` — **DONE**; the reply to the issue is Izzie's to post (see the policy note below) | `pilfont.py:739`; was CONFIRMED in no `.md` file | **None.** The docs state the cost: `_env_extra` prepends the path to **every** candidate list including emoji, so the workaround trades colour emoji away. Covers Korean and Traditional Chinese too, which have the same cause. |
-| 7 | #688: **verify locally rather than waiting** — [iw] asked for a retest and got no response. Linux is expected fixed; **Windows needs a renderer check** against the packaged build, since that is where FriBiDi actually has to be present | `7ed41bce` is contained in the tag | **None to ship**, but it is a test task rather than a doc task, and it shares the Windows-artifact gap with #736 (§5.4): the shipped PyInstaller build has its own Pillow wheel and its own DLL set. |
-| 8 | **#736 properly**: coverage-based face selection — keep the opened faces in candidate order and pick per run by what the run's codepoints actually draw as, with a per-face covered/missing memo | The `.notdef` mask comparison is validated: measured **39.4 us** cold per codepoint and **20 ns** cached, stable across 14 faces, never equal to the space glyph. No new dependency. §6 has the control. | **Moderate** — it lands in the cluster that produced five of the postmortem's top ten generators, and the site count (`strips.py`, `components/banner.py`, `cast.py`, `epub/paint.py`, `epub/fonts.py`) must be done **before** the first patch. It removes an authority: list order stops deciding. |
+| 7 | #688: **verify locally rather than waiting** — [iw] asked for a retest and got no response. Linux verified live (2026-09-08: RAQM and BASIC render Arabic and Hebrew differently, so shaping is on). **Windows is BLOCKED and the block is itself the finding** — see below | `7ed41bce` is contained in the tag | **None to ship**, but it is a test task rather than a doc task, and it shares the Windows-artifact gap with #736 (§5.4): the shipped PyInstaller build has its own Pillow wheel and its own DLL set. |
+| 8 | **#736 properly**: coverage-based face selection — **DONE** (`cc3660e5`, branch `fix-font-selection`) | Measured 45 us/codepoint on Linux and 7.5 us on Windows, ~20 ns memoized, verdict size-independent 8→96 px. On the VM: zh-Hans `msgothic`→`msyh`, ko →`malgun`, both with zero tofu; ja and zh-Hant unchanged. 5781 tests / 214 modules green on both platforms. | The site count was done first and came out smaller than this row assumed: `strips.py`, `banner.py`, `cast.py` and `epub/paint.py` all reach selection through `_split`'s two resolvers, so there was **one** chokepoint plus `epub/fonts.face`. Two corrections to this row's own evidence: notdef **can** be blank (`simsun.ttc`) and **can** equal the space glyph (`NotoColorEmoji.ttf`), so "never equal to the space glyph" was false and an assertion resting on it fails on stock Debian. |
 | 9 | **#739**: bounded async paste (`command_native_async` + `mp.abort_async_command` + a timer) **together with** the concatenated `clip_tools()` list and `wl-clipboard` in the manifest | §1.1 | **Moderate, and indivisible.** Shipping the packaging half alone extends a present-tense hang to Flatpak users. Gated on the measurement in §6. |
 | 10 | **Make `notify_updates` tri-state** (`default` / `enabled` / `disabled`), resolve `default` by platform — off inside a Flathub Flatpak, on elsewhere — and add a `CONFIG_VERSION` 6 migration | §5.3 | **Low-moderate.** The risk is the migration, not the setting: conf.json persists every key, so a stored `true` is indistinguishable between "never touched" and "explicitly wanted", and migrating it to `default` silently loses the second. Migrate a stored `false` to `disabled` so a deliberate opt-out is never stomped. |
 | 10a | **Retarget the notice's action inside Flatpak** — say `flatpak update`, drop the [Open] link — for the users who switch it back on, and for hand-delivered builds marked `JMS_UPDATE_CHECK=1` | §5.3 | **Low.** Independent of 10; the banner still exists wherever it is enabled, and [Open] on a Flathub install has never been the right action. |
@@ -268,6 +268,26 @@ The four wrong claims, each re-verified for this document:
 trace to items 1-3, and none of them carries code risk.
 
 ---
+
+**#688 on Windows cannot be checked from the VM as it stands, and that is worth
+more than the check would have been.** Measured 2026-09-08: the VM's venv has
+`features.check("raqm")` **False** and no FriBiDi at all, so `ImageFont.truetype`
+silently returns a Basic-layout font — right-to-left text draws unreordered and
+unjoined and nothing gets GPOS kerning. That is *expected* for a bare venv
+rather than a defect: Pillow's Windows wheel carries libraqm and HarfBuzz but
+loads FriBiDi at runtime, and only the packaged build ships `fribidi-0.dll`
+beside the exe.
+
+The consequence is bigger than #688. **Every Windows leg of every suite has
+been running without text shaping**, so a green RTL test there is not evidence
+about what ships — it is Codex's "there is an owner for `pilfont.py` but none
+for the shipped artifact rendering a multilingual corpus" (§4 of the postmortem
+handoff) made concrete and measurable. Closing it needs a `fribidi-0.dll` on the
+VM, and `tools/build_win_fribidi.py` targets MSVC through meson `--vsenv`, which
+**this VM cannot run** — it has no C++ workload, the same gap that blocks the
+Vulkan loader. So the options are a mingw cross-build from the Linux box, the VS
+C++ workload, or testing a real PyInstaller artifact; all three are a decision
+rather than a step.
 
 ## 3. Held out of the release
 
@@ -550,6 +570,47 @@ accurate. **This is the trade CLAUDE.md names** — a platform-resolved default
 *removes the app's claim to be an update authority on Flatpak*, where the delay
 stack was three guards mirroring state (Flathub's publish state) owned
 elsewhere.
+
+#### The same platform probe answers a second question: SteamOS → gamepad on
+
+**[iw], recorded for 3.1.0 and deliberately not started now: do this when the
+Flatpak detection and the notifier disable are done, because it is the same
+probe and the same migration step.**
+
+Jellyfin Media Player already does this detection and it is worth copying rather
+than re-deriving — `jellyfin-media-player/src/system/SystemComponent.cpp`:
+
+```cpp
+QFile flatpakOsFile {"/run/host/os-release"};
+if (flatpakOsFile.exists()) {
+  // ... read it, then:
+  if (flatpakOsFileString.contains("NAME=\"SteamOS\"")) {
+```
+
+The mechanism is the part to keep: inside a Flatpak, `/etc/os-release` describes
+the *runtime*, so the host's identity is only at **`/run/host/os-release`**. That
+makes it the same file the Flathub-vs-elsewhere question is already reading, so
+the probe is written once and asked twice.
+
+**The decision, and it is narrower than the notifier's:** on SteamOS, force
+`input_gamepad` **on**. `conf.py:505` defaults it `False`, and a Steam Deck is a
+machine where the gamepad is the only pointing device most users have — so the
+default being off is simply wrong there.
+
+- **Not tri-state.** The notifier needed three states because "on" is a real
+  preference the platform default would otherwise silently overrule. Gamepad
+  input is additive — enabling it takes nothing away and breaks no other input
+  path — so there is nothing to protect and no `default`/`enabled`/`disabled`
+  distinction to carry. A plain `bool` forced on in the migration is the whole
+  change. **Do not copy the tri-state here just because it is next door.**
+- **Force it in the migration**, in the same `CONFIG_VERSION` step, for the
+  reason that section already establishes: `SettingsBase.dict()` writes every
+  field, so every existing conf.json already carries `input_gamepad: false`
+  explicitly and a changed default alone would reach nobody.
+- **A gamepad capability probe is not needed for the decision** — the shim
+  already has one at 0.34 ms and mpv's `sdl2-gamepad` can be disabled at build
+  time, so the setting being on is not a promise that a pad is present. That is
+  the existing behaviour on every other platform and needs no change here.
 
 ### 5.4 Hand-delivered builds are a real distribution channel
 

@@ -39,6 +39,21 @@ _CANDIDATES = {
         "Arial.ttf",
         "arial.ttf",
     ],
+    # **Order here is preference, not correctness** -- `font()` rejects a
+    # candidate that cannot draw the run in hand, so nothing below depends on
+    # its position for a string to render. What it still decides is *regional
+    # glyph form*, and that is why the Japanese entries are deliberately NOT
+    # demoted: Han unification means one codepoint has different shapes in
+    # Japanese and Chinese typography, coverage cannot tell them apart, and
+    # the shim has no per-item language to ask. Promoting `msyh.ttc` would
+    # fix Simplified Chinese by giving every Japanese title Chinese shapes.
+    #
+    # Measured 2026-09-08 on a stock Windows 10 -- and it is the reason no
+    # ordering of this list was ever going to be right: `msgothic.ttc` has
+    # zh-Hant and ja and misses four of #736's eight codepoints; `msyh.ttc`
+    # and `simsun.ttc` have the Chinese and no Hangul at all; `malgun.ttf`
+    # has the Hangul and misses most Han. Four languages, one bucket, no
+    # single face. See mpvtk/GUIDE.md section 12.6.
     "cjk": [
         "NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -50,6 +65,13 @@ _CANDIDATES = {
         "msgothic.ttc",
         "meiryo.ttc",
         "YuGothM.ttc",
+        # Microsoft YaHei and JhengHei -- the Simplified and Traditional
+        # Chinese UI faces, shipped with Windows since Vista/7. Appended
+        # rather than promoted, for the reason above: with the coverage
+        # check they are what a Chinese title reaches once the Japanese
+        # faces decline it, which is a modern face instead of `simsun.ttc`.
+        "msyh.ttc",
+        "msjh.ttc",
         "simsun.ttc",
         "malgun.ttf",
     ],
@@ -63,6 +85,19 @@ _CANDIDATES = {
         "NotoSansArabic-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
         "/System/Library/Fonts/GeezaPro.ttc",
+        # For the LINE, not for the script. Measured 2026-09-08: FreeSerif
+        # joins Arabic (its advance for مسلسل drops 103 -> 70 under Raqm,
+        # which is joining) and has full ASCII including the brackets, at
+        # 345/773 presentation forms against Noto's 737. `font(whole=True)`
+        # reaches it only for a line Noto cannot carry, so every other
+        # Arabic line still gets Noto -- which is what makes this a
+        # different answer from reordering the list.
+        "FreeSerif.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+        # Windows has no high-coverage Arabic face at all: measured, the
+        # best in a default install is Courier New at 376/773 and Arial is
+        # 312 -- but both have full ASCII, so the gap this list closes for
+        # Noto-first hosts never opens there.
         "arial.ttf",
     ],
     # **The order here is load-bearing and is the opposite of every other
@@ -81,15 +116,126 @@ _CANDIDATES = {
         "NotoSansHebrew-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansHebrew-Regular.ttf",
     ],
+    # `mangal.ttf` alone was a Windows entry that is not on Windows:
+    # **Mangal became an optional feature in Windows 10** ("Hindi
+    # Supplemental Fonts"), so on a stock install this list resolved
+    # nothing, fell through to the Latin backstop and drew Hindi as boxes
+    # with Arial. `Nirmala.ttf` (Nirmala UI) ships by default and covers
+    # the script completely -- measured 2026-09-08, 12/12 codepoints.
+    # Mangal stays behind it for the hosts that do have it.
+    #
+    # Found by `TestTheHostsOwnInventory`, which asks the host what it has
+    # rather than trusting this list -- every Devanagari assertion here was
+    # about `script_of` and none could see it.
     "devanagari": [
         "NotoSansDevanagari-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+        "Nirmala.ttf",
         "mangal.ttf",
     ],
     "thai": [
         "NotoSansThai-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
+        # Leelawadee UI is Windows' own Thai face; tahoma also has it and
+        # stays behind it. `FreeSerif` is the one the Flatpak runtime has.
+        "LeelawUI.ttf",
         "tahoma.ttf",
+        "FreeSerif.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+    ],
+    # Nine scripts that had **no bucket at all** until now: every codepoint
+    # in them answered "latin", got the Latin face and drew as boxes -- on
+    # Linux boxes with the whole Noto set installed and on a stock Windows
+    # 10, both of which ship a face for every one of them. Georgian and
+    # Armenian were in the same position and were invisible because DejaVu
+    # happens to cover them, which is what made this look like nothing.
+    #
+    # Every name below was **measured on the host that has it**, never
+    # guessed -- `mangal.ttf` above is what guessing costs. Windows 10
+    # inventory, measured 2026-09-08: `Nirmala.ttf` covers all ten Indic
+    # scripts by itself, `LeelawUI.ttf` covers Lao and Khmer (and Thai),
+    # `mmrtext.ttf` Myanmar, `himalaya.ttf` Tibetan, `ebrima.ttf` Ethiopic,
+    # `gadugi.ttf` Cherokee, `monbaiti.ttf` Mongolian, `sylfaen.ttf` and
+    # Calibri Georgian. `FreeSerif` is a broad Indic backstop and is in the
+    # Flatpak runtime, which matters on a host with no Indic font at all.
+    #
+    # **One bucket for the ten Indic scripts, and the coverage check is why
+    # that works** (mpvtk/GUIDE.md section 12.8). They share no codepoints, so unlike CJK there is no
+    # regional-form problem; Noto has a file per script and Windows has one
+    # face for all of them, and `font()` picks per run by what the run's
+    # codepoints actually draw as. Order here is preference only.
+    "indic": [
+        "NotoSansBengali-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansBengali-Regular.ttf",
+        "NotoSansGurmukhi-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansGurmukhi-Regular.ttf",
+        "NotoSansGujarati-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansGujarati-Regular.ttf",
+        "NotoSansOriya-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansOriya-Regular.ttf",
+        "NotoSansTamil-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansTamil-Regular.ttf",
+        "NotoSansTelugu-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansTelugu-Regular.ttf",
+        "NotoSansKannada-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansKannada-Regular.ttf",
+        "NotoSansMalayalam-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMalayalam-Regular.ttf",
+        "NotoSansSinhala-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansSinhala-Regular.ttf",
+        # One face for all ten on Windows.
+        "Nirmala.ttf",
+        "FreeSerif.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+    ],
+    "lao": [
+        "NotoSansLao-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansLao-Regular.ttf",
+        "LeelawUI.ttf",
+        "DejaVuSans.ttf",
+    ],
+    # **Serif, not Sans**: Noto ships no `NotoSansTibetan`, and the guessed
+    # name was caught by `TestTheHostsOwnInventory` on the first run rather
+    # than by a bug report -- the same way `mangal.ttf` was.
+    "tibetan": [
+        "NotoSerifTibetan-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSerifTibetan-Regular.ttf",
+        "himalaya.ttf",
+    ],
+    "myanmar": [
+        "NotoSansMyanmar-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf",
+        "mmrtext.ttf",
+    ],
+    "georgian": [
+        "NotoSansGeorgian-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansGeorgian-Regular.ttf",
+        # DejaVu has Georgian, which is why this script never looked broken.
+        "DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "sylfaen.ttf",
+    ],
+    "ethiopic": [
+        "NotoSansEthiopic-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf",
+        "ebrima.ttf",
+        "FreeSerif.ttf",
+    ],
+    "cherokee": [
+        "NotoSansCherokee-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansCherokee-Regular.ttf",
+        "gadugi.ttf",
+        "FreeSans.ttf",
+    ],
+    "khmer": [
+        "NotoSansKhmer-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansKhmer-Regular.ttf",
+        "LeelawUI.ttf",
+    ],
+    "mongolian": [
+        "NotoSansMongolian-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMongolian-Regular.ttf",
+        "monbaiti.ttf",
     ],
     # Stars, ticks, arrows, media glyphs. Not a script anybody writes in, and
     # on Linux it resolves to the same DejaVu the Latin text does -- it earns
@@ -127,12 +273,30 @@ _CANDIDATES = {
     ],
 }
 
-#: Where a script's face falls back to *before* the Latin one. Only emoji
-#: has an entry, and it matters: with no emoji font at all, "⭐" drawn by
-#: the Latin face is a box, and drawn by the symbol face is the monochrome
-#: star it has always been. Falling straight to Latin would make this
-#: change a regression on exactly the hosts it cannot help.
-_FALLBACK_SCRIPTS = {"emoji": ("symbol",)}
+#: Where a script's face falls back to *before* the Latin one, and both
+#: entries are measured rather than offered.
+#:
+#: **emoji -> symbol**: with no emoji font at all, "⭐" drawn by the Latin
+#: face is a box and drawn by the symbol face is the monochrome star it has
+#: always been. Falling straight to Latin would make the emoji bucket a
+#: regression on exactly the hosts it cannot help.
+#:
+#: **symbol -> emoji**: measured 2026-09-08 on Debian, of the 1108
+#: codepoints :data:`_SYMBOL_RANGES` claims, **223 are drawn by nothing in
+#: the symbol chain or the Latin one behind it, and the emoji chain draws
+#: 219 of them** -- `Symbola` is on that list and is a symbol face in every
+#: respect except the bucket it sits in. The colour faces are not reachable
+#: this way and do not need to be: `_load` only probes strikes for the emoji
+#: script, so a CBDT face that opens at one fixed size is simply skipped
+#: here, and #713's star still comes from the symbol chain's own first
+#: answer (a control test holds that).
+#:
+#: **No other edge is declared, because no other edge changed an answer.**
+#: A `cjk` edge would rescue 22 symbol codepoints and all 22 are already in
+#: the 219; the 33 Latin codepoints nothing draws are the C0/C1 controls,
+#: which must not be rescued by anything. A speculative entry here
+#: pre-authorises a face for a run nobody has seen.
+_FALLBACK_SCRIPTS = {"emoji": ("symbol",), "symbol": ("emoji",)}
 
 #: Pixel sizes a bitmap-strike face may be available at, tried in
 #: `_strike_order` when the asked-for size is refused. The Apple entries are
@@ -149,8 +313,22 @@ _BOLD = {
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"],
 }
 
-_cache = {}          # (script, size, bold) -> ImageFont
+_cache = {}          # (script, size, bold) -> the face asked for with no text
+_chains = {}         # (script, size, bold) -> [(name, face), ...] opened so far
+# (font name, char) -> whether that face has a glyph. Unbounded on purpose:
+# the ceiling is the codepoints actually drawn times the faces asked, and a
+# bounded clear would re-pay 45 us per entry to save a few hundred KB.
+_coverage = {}
+_notdef = {}         # (font name, open size) -> that face's no-glyph renders
 _resolved = {}       # (script, bold) -> path/name that loaded, or None
+
+#: Codepoints Unicode guarantees will never be assigned, so what a face
+#: renders for one is that face's own "no glyph" mark. Three rather than
+#: one because a face that maps one anyway would make everything look
+#: covered; they are required to agree, which
+#: `tests/test_mpvtk_pilfont.py:TestCjkCoverage` holds against every
+#: candidate installed on the host.
+_NOTDEF_PROBES = ("\U000FFFFF", "\U0010FFFF", "\U000FFFFE")
 
 
 #: Blocks a text face is not expected to cover: arrows, media and geometric
@@ -254,6 +432,14 @@ def script_of_char(cp):
         return "devanagari"
     if 0x0E00 <= cp <= 0x0E7F:
         return "thai"
+    # One comparison for the nine table-driven scripts. Deliberately after
+    # thai and devanagari, which are inside this band and have their own
+    # buckets, and deliberately falling through rather than returning when
+    # nothing matches.
+    if 0x0980 <= cp <= 0x18AF:
+        for lo, hi, script in _BAND_SCRIPTS:
+            if lo <= cp <= hi:
+                return script
     # Before the CJK catch-all, because most of this table is above it.
     if cp in _EMOJI_CPS:
         return "emoji"
@@ -268,6 +454,14 @@ def script_of(text):
     """The single script a string is drawn with when it cannot be split:
     the first character outside the Latin face's coverage wins, so
     "進撃の巨人 (2013)" resolves to cjk.
+
+    **Except that RTL outranks everything, wherever it appears.** This
+    answer becomes the *whole line's* face when `has_rtl` says so, and
+    "first non-Latin wins" handed "進撃の巨人 مسلسل" to a CJK face -- which
+    draws the Arabic as boxes, unjoined, in logical order. The trade is
+    already decided at :data:`_RTL_RANGES`: *reordered text is a wrong line
+    where tofu is only an ugly one*. So the CJK is what becomes tofu here,
+    and a line with no RTL in it is untouched.
 
     **A symbol only wins when there is nothing else in the string.** It is a
     face for the odd glyph, not for words, and this answer is used for two
@@ -294,20 +488,49 @@ def script_of(text):
     caller should be handed.
     """
     saw_symbol = saw_word = False
+    first = None
     for ch in text or "":
         script = script_of_char(ord(ch))
+        if script in ("hebrew", "arabic"):
+            # Returned rather than remembered: no later character can
+            # outrank it, so there is nothing left to scan for.
+            return script
         if script in ("symbol", "emoji"):
             saw_symbol = True
         elif script != "latin":
-            return script            # cjk / arabic / thai / devanagari
+            if first is None:
+                first = script       # cjk / thai / devanagari
         elif not ch.isspace():
             saw_word = True
+    if first is not None:
+        return first
     # No ``has_rtl`` guard needed and none added: every RTL codepoint maps
     # to hebrew or arabic and has returned above (an invariant a test
     # holds), so anything reaching here has no RTL in it at all. A
     # redundant condition would read as load-bearing.
     return "symbol" if saw_symbol and not saw_word else "latin"
 
+
+#: ``(lo, hi, script)`` for the scripts that need nothing but a range and a
+#: candidate list. Reached through **one** comparison in
+#: :func:`script_of_char` -- every entry lives inside U+0980..U+18AF, so a
+#: single band test in front of this loop keeps the cost off Latin, CJK,
+#: emoji and symbols entirely.
+#:
+#: Thai (U+0E00..U+0E7F) and Devanagari (U+0900..U+097F) sit inside that
+#: band and are deliberately **not** here: they have their own buckets and
+#: are answered before the gate. A codepoint in the band that matches
+#: nothing here falls through to the rest of the chain rather than being
+#: claimed, so the two orderings cannot silently swap.
+_BAND_SCRIPTS = ((0x0980, 0x0DFF, "indic"),      # Bengali..Sinhala
+                 (0x0E80, 0x0EFF, "lao"),
+                 (0x0F00, 0x0FFF, "tibetan"),
+                 (0x1000, 0x109F, "myanmar"),
+                 (0x10A0, 0x10FF, "georgian"),
+                 (0x1200, 0x137F, "ethiopic"),
+                 (0x13A0, 0x13FF, "cherokee"),
+                 (0x1780, 0x17FF, "khmer"),
+                 (0x1800, 0x18AF, "mongolian"))
 
 #: Characters that join what is around them into one glyph and must never
 #: start a run of their own, because **shaping does not cross a run
@@ -317,6 +540,21 @@ def script_of(text):
 _JOINERS = frozenset((0x200D,            # zero width joiner
                       0xFE0E, 0xFE0F,    # text / emoji variation selectors
                       0x20E3))           # combining enclosing keycap
+
+#: Combining enclosing keycap, which ends a ``base [U+FE0F] U+20E3``
+#: sequence and is the one joiner that decides its run's *script*.
+#:
+#: **A keycap has no text presentation.** Only a colour emoji face composes
+#: the sequence; a Latin face has U+20E3 and draws a dotted box around the
+#: digit, which is why no coverage check can see this -- the glyph is not
+#: missing, it is the wrong picture. Measured: the emoji face and the Latin
+#: face draw ``1️⃣`` differently, and the Latin one is what the sheet showed
+#: as ``1□``.
+#:
+#: **U+FE0F is deliberately not in here.** Rerouting on the variation
+#: selector alone would send ``★️`` to a colour face, and no colour face
+#: draws U+2605 -- #713's tofu, straight back (see :data:`_EMOJI_RANGES`).
+_KEYCAP = 0x20E3
 
 
 def runs(text):
@@ -343,6 +581,23 @@ def runs(text):
     """
     out = []
     for ch in text or "":
+        if ord(ch) == _KEYCAP and out:
+            # Peel the sequence's base off the run it joined and give it to
+            # the emoji face. **Peel, not relabel**: relabelling the run
+            # would draw "Season 1️⃣" entirely in a 109px colour face.
+            chunk = out[-1][1]
+            peeled = []
+            if chunk and ord(chunk[-1]) == 0xFE0F:
+                peeled.insert(0, chunk.pop())
+            if chunk:
+                peeled.insert(0, chunk.pop())
+            if not chunk:
+                out.pop()
+            if out and out[-1][0] == "emoji":
+                out[-1][1].extend(peeled + [ch])
+            else:
+                out.append(["emoji", peeled + [ch]])
+            continue
         if ord(ch) in _JOINERS:
             script = None
         elif ch.isspace():
@@ -384,6 +639,67 @@ def _strike_order(size):
             + [s for s in reversed(_STRIKES) if s < size])
 
 
+#: Where a Flatpak's *host* fonts are bind-mounted. **This is the whole of
+#: why the sandbox needs special handling**: Pillow does not use fontconfig
+#: -- it searches a fixed list of directories -- so inside a Flatpak it sees
+#: only the runtime's own ``/usr/share/fonts``, and the user's fonts are
+#: over here instead.
+#:
+#: Full account and the measured inventory: mpvtk/GUIDE.md section 12.7.
+#:
+#: Measured 2026-09-08 against the shipped 3.0.0 Flatpak: the
+#: ``org.freedesktop.Platform`` 25.08 runtime carries **95 font files and no
+#: CJK, Thai or Indic face at all** (DejaVu, Liberation, FreeSans, Adwaita,
+#: Caladea, Carlito, Cantarell, plus NotoColorEmoji), while the host's 4243
+#: fonts -- including ``NotoSansCJK-Regular.ttc``, verified to draw 莲 --
+#: were sitting in here unreachable. Every Flatpak user with a Chinese,
+#: Japanese, Korean, Thai or Hindi library saw a screen of boxes.
+_HOST_FONT_DIRS = ("/run/host/fonts", "/run/host/local-fonts",
+                   "/run/host/user-fonts")
+
+#: ``basename.lower() -> path`` over :data:`_HOST_FONT_DIRS`, or ``{}``.
+#: Built at most once, and only when a candidate has already failed to load
+#: by its own name, so a host that is not a Flatpak never walks anything.
+_host_index = None
+
+
+def _host_fonts():
+    global _host_index
+    if _host_index is None:
+        _host_index = {}
+        for directory in _HOST_FONT_DIRS:
+            if not os.path.isdir(directory):
+                continue
+            for root, _dirs, files in os.walk(directory):
+                for filename in files:
+                    if filename.lower().endswith((".ttf", ".otf", ".ttc",
+                                                  ".otc")):
+                        # First wins, so the earlier directory in the tuple
+                        # takes precedence over a later duplicate.
+                        _host_index.setdefault(filename.lower(),
+                                               os.path.join(root, filename))
+    return _host_index
+
+
+def _resolutions(name):
+    """The paths to try for one candidate: its own name, then the same
+    **basename** under the host's font tree.
+
+    A generator because the second half must not be reached on a normal
+    host: `_load` only advances it when the name has already failed at
+    every size, so the walk in :func:`_host_fonts` is paid by a Flatpak and
+    by nobody else.
+
+    The basename is what carries over, for absolute candidates as much as
+    bare ones -- ``/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc``
+    does not exist inside the sandbox, and the file it names does.
+    """
+    yield name
+    alt = _host_fonts().get(os.path.basename(name).lower())
+    if alt and alt != name:
+        yield alt
+
+
 def _load(names, size, strikes=False):
     """``(font, name, native)``. ``native`` is the size it actually opened
     at, which is ``size`` for every scalable face and the strike for a
@@ -398,52 +714,151 @@ def _load(names, size, strikes=False):
     from PIL import ImageFont
 
     for name in names:
-        for want in [size] + (_strike_order(size) if strikes else []):
-            try:
-                return ImageFont.truetype(name, want), name, want
-            except (OSError, IOError):
-                continue
+        for candidate in _resolutions(name):
+            for want in [size] + (_strike_order(size) if strikes else []):
+                try:
+                    return (ImageFont.truetype(candidate, want), candidate,
+                            want)
+                except (OSError, IOError):
+                    continue
     return None, None, size
 
 
-def font_for(text, size, bold=False):
-    """A PIL font able to render ``text`` at ``size``. Falls back to the Latin
-    face (and finally Pillow's bitmap default) when nothing better is
-    installed."""
-    return font(script_of(text), size, bold)
+def _notdef_refs(fnt, name):
+    """What ``fnt`` renders for a codepoint that cannot exist.
+
+    Memoized per (name, open size) because the *bitmap* is size-dependent
+    even though the coverage verdict below is not: three renders cost 105 us
+    on Linux and 19 us on Windows (measured), which is worth paying once per
+    face rather than once per batch of characters.
+    """
+    key = (name, getattr(fnt, "size", None))
+    hit = _notdef.get(key)
+    if hit is None:
+        hit = []
+        for probe in _NOTDEF_PROBES:
+            mask = fnt.getmask(probe, mode="L")
+            hit.append((mask.size, bytes(mask)))
+        _notdef[key] = hit
+    return hit
 
 
-def font(script, size, bold=False):
+def _draws(fnt, name, ch):
+    """Whether ``fnt`` has a glyph for ``ch``, by rendering it and comparing
+    against that face's own no-glyph mark.
+
+    **A render comparison because Pillow exposes no cmap.** A
+    ``FreeTypeFont`` offers ``getmask``, ``getbbox``, ``getlength`` and
+    ``getname`` and nothing that maps a character to a glyph id, so the
+    alternative is a fontTools dependency for a check this cheap.
+
+    Measured 2026-09-08: 45 us per codepoint on Linux, 7.5 us on Windows,
+    paid once per (face, codepoint) for the session. **The verdict is the
+    same at 8px and at 96px on every face tried**, which is why the memo is
+    keyed by the face's name and shared across every size it is opened at.
+
+    Two faces measured here answer in ways that look wrong and are not.
+    ``simsun.ttc`` renders a *blank* no-glyph mark, and
+    ``NotoColorEmoji.ttf`` renders one identical to its space -- both are
+    harmless because the only glyphs that render blank are whitespace, and
+    :func:`_covers` skips it. Do not "fix" this by requiring the mark to be
+    non-blank; that assertion fails on a stock Debian box.
+    """
+    key = (name, ch)
+    hit = _coverage.get(key)
+    if hit is None:
+        try:
+            mask = fnt.getmask(ch, mode="L")
+            hit = (mask.size, bytes(mask)) not in _notdef_refs(fnt, name)
+        except (OSError, ValueError, AttributeError):
+            # Pillow's bitmap default, or a face that will not render this
+            # at all. "Covered" is the answer that keeps the behaviour
+            # there was before this check existed, which for an
+            # unanswerable face is the right one.
+            hit = True
+        _coverage[key] = hit
+    return hit
+
+
+def _covers(fnt, name, text, script):
+    """Whether ``fnt`` can draw the part of ``text`` that chose ``script``,
+    or **all** of it when ``script`` is None.
+
+    **Only that part, and that is the whole design of this check.** Asking
+    a face to cover the whole *string* would quietly overturn two decisions
+    this module made on measured evidence and wrote down:
+    ``NotoSansArabic-Regular.ttf`` is kept first for Arabic although it has
+    no ASCII at all (:data:`_CANDIDATES`, and the comment above it says
+    why), and the Hebrew list is ordered the opposite way round for
+    precisely the neutrals an RTL line cannot split off. Requiring only the
+    selecting script's codepoints leaves both answering exactly as they did,
+    while a Japanese face stops being handed a Simplified Chinese title
+    (#736).
+
+    Everything else in the string is somebody else's run: ``runs`` splits a
+    mixed title and each piece resolves its own face.
+
+    **Except for an RTL line, which has no other run to fall to** -- there
+    the whole line is one draw call, so ``script`` is passed as None and
+    every codepoint is required. `font` asks for that first and falls back
+    to the script-only question, so the stricter answer is a preference and
+    never a way to end up with no face at all.
+    """
+    for ch in text or "":
+        if ch.isspace():
+            continue
+        if script is not None and script_of_char(ord(ch)) != script:
+            continue
+        if not _draws(fnt, name, ch):
+            return False
+    return True
+
+
+def _opened(script, size, bold, index):
+    """``(name, face)`` at ``index`` in this script's candidate order, or
+    None past the end. Candidates are opened lazily and kept, so the common
+    case is still one ``ImageFont.truetype`` per (script, size, weight).
+
+    Measured 2026-09-08 on the Windows VM, where the walk is longest: a
+    Korean title reaches ``malgun.ttf`` on the fourth candidate for 1.81 ms
+    all in, once per chain.
+    """
     key = (script, size, bool(bold))
-    hit = _cache.get(key)
-    if hit is not None:
-        return hit
-    names = []
-    if bold:
-        names += _BOLD.get(script, [])
-    names += _CANDIDATES.get(script, [])
-    for other in _FALLBACK_SCRIPTS.get(script, ()):
-        names += _CANDIDATES.get(other, [])
-    if script != "latin":
-        # Better a Latin face than Pillow's 11px bitmap default.
+    state = _chains.get(key)
+    if state is None:
+        names = []
         if bold:
-            names += _BOLD["latin"]
-        names += _CANDIDATES["latin"]
-    fnt, name, native = _load(names, size, strikes=(script == "emoji"))
-    if fnt is None:
-        from PIL import ImageFont
+            names += _BOLD.get(script, [])
+        names += _CANDIDATES.get(script, [])
+        for other in _FALLBACK_SCRIPTS.get(script, ()):
+            names += _CANDIDATES.get(other, [])
+        if script != "latin":
+            # Better a Latin face than Pillow's 11px bitmap default. It will
+            # not satisfy `_covers` for a non-Latin run, which is correct:
+            # it is the tofu backstop, not a candidate.
+            if bold:
+                names += _BOLD["latin"]
+            names += _CANDIDATES["latin"]
+        state = {"names": names, "next": 0, "faces": []}
+        _chains[key] = state
+    while len(state["faces"]) <= index and state["next"] < len(state["names"]):
+        name = state["names"][state["next"]]
+        state["next"] += 1
+        fnt, got, native = _load([name], size, strikes=(script == "emoji"))
+        if fnt is not None:
+            _stamp(fnt, script, size, bold, native)
+            state["faces"].append((got, fnt))
+    if index < len(state["faces"]):
+        return state["faces"][index]
+    return None
 
-        fnt = ImageFont.load_default()
-        name, native = None, size
-    if _resolved.get((script, bool(bold))) != name:
-        _resolved[(script, bool(bold))] = name
-        if name is None and script != "latin":
-            log.info("no font found for script %r; text may not render", script)
-    # What it was asked for, so draw_text can ask for the same in another
-    # script. `size` is on FreeTypeFont already but the weight is not, and
-    # the bitmap default has neither. The script rides along too, so a face
-    # can be asked whether it is the right one for the run in hand -- see
-    # _run_face.
+
+def _stamp(fnt, script, size, bold, native):
+    """What it was asked for, so ``draw_text`` can ask for the same in
+    another script. ``size`` is on ``FreeTypeFont`` already but the weight is
+    not, and the bitmap default has neither. The script rides along too, so
+    a face can be asked whether it is the right one for the run in hand --
+    see :func:`_run_face`."""
     try:
         fnt._jms_size, fnt._jms_bold = size, bool(bold)
         fnt._jms_script = script
@@ -452,8 +867,81 @@ def font(script, size, bold=False):
         fnt._jms_native = native
     except AttributeError:         # a face that will not be annotated
         pass
-    _cache[key] = fnt
-    return fnt
+
+
+def font_for(text, size, bold=False):
+    """A PIL font able to render ``text`` at ``size``. Falls back to the Latin
+    face (and finally Pillow's bitmap default) when nothing better is
+    installed."""
+    # `has_rtl`, because that is exactly the condition under which the
+    # face has to carry the whole line: `_split` gives an RTL string one
+    # draw call and there is no second run to fall back to.
+    return font(script_of(text), size, bold, text=text, whole=has_rtl(text))
+
+
+def _pick(script, size, bold, text, require):
+    """First face in candidate order satisfying ``require`` (a script name,
+    or None for "every codepoint in ``text``"). None if the chain runs out."""
+    index = 0
+    while True:
+        entry = _opened(script, size, bold, index)
+        if entry is None:
+            return None
+        name, fnt = entry
+        if name is None or _covers(fnt, name, text, require):
+            return fnt
+        index += 1
+
+
+def font(script, size, bold=False, text=None, whole=False):
+    """A PIL face for ``script``, able to draw ``text`` if it is given.
+
+    **"The first candidate that opens" is not the same question as "the
+    first candidate that works", and the difference is #736.** A stock
+    Windows 10 resolves ``msgothic.ttc`` for every CJK string, and MS Gothic
+    is a *Japanese* face: measured, it is missing four of the eight
+    codepoints in that issue's own title, so half a Simplified Chinese
+    library drew as tofu. No ordering of :data:`_CANDIDATES` fixes that,
+    because no face on that host covers all four CJK languages -- msyh and
+    simsun have the Chinese and no Hangul, malgun has the Hangul and little
+    Han. So ``text`` decides, and the list only expresses preference.
+
+    Without ``text`` this answers exactly what it always did, from the same
+    one-lookup cache: the first candidate that opens. That is the answer for
+    a caller who wants a face's *metrics* rather than its glyphs
+    (`components/banner.py` reserving a line), and it is the fallback when
+    nothing in the chain covers the string -- tofu, but never a crash.
+    """
+    key = (script, size, bool(bold))
+    primary = _cache.get(key)
+    if primary is None:
+        entry = _opened(script, size, bold, 0)
+        if entry is None:
+            from PIL import ImageFont
+
+            fnt = ImageFont.load_default()
+            _stamp(fnt, script, size, bold, size)
+            entry = (None, fnt)
+        name, primary = entry
+        if _resolved.get((script, bool(bold))) != name:
+            _resolved[(script, bool(bold))] = name
+            if name is None and script != "latin":
+                log.info("no font found for script %r; text may not render",
+                         script)
+        _cache[key] = primary
+    if not text:
+        return primary
+    if whole:
+        # An RTL line is drawn in ONE call, so prefer a face that carries
+        # all of it -- the Latin word, the brackets, the year. Only a
+        # preference: `_pick` returning None falls through to the
+        # script-only question below, so a line whose Latin cannot be had
+        # without losing the script keeps the script.
+        got = _pick(script, size, bold, text, None)
+        if got is not None:
+            return got
+    got = _pick(script, size, bold, text, script)
+    return got if got is not None else primary
 
 
 def _scale_of(fnt):
@@ -494,7 +982,7 @@ def metrics(fnt):
     return int(round(ascent * scale)), int(round(descent * scale))
 
 
-def _same_size(fnt, script):
+def _same_size(fnt, script, text=None):
     """The face for ``script`` at the size and weight ``fnt`` was made with.
 
     Callers hold a font, not a (size, bold) pair -- they need its metrics for
@@ -504,10 +992,11 @@ def _same_size(fnt, script):
     nobody: the worst case is a bold run drawn regular.
     """
     return font(script, getattr(fnt, "_jms_size", getattr(fnt, "size", 12)),
-                getattr(fnt, "_jms_bold", False))
+                getattr(fnt, "_jms_bold", False), text=text,
+                whole=has_rtl(text))
 
 
-def _run_face(fnt, script):
+def _run_face(fnt, script, text=None):
     """The face to draw a run of ``script`` with, given the font a caller
     chose — possibly for a longer string this run was wrapped out of.
 
@@ -517,17 +1006,26 @@ def _run_face(fnt, script):
     it was before any of this existed.
 
     **Single-run only.** The multi-run paths use :func:`_same_size`, which
-    resolves a real face per script unconditionally. For a stamped font the
-    two agree exactly (the stamp came from the same `font()` call the
-    lookup would make), and for an unstamped one they must not: "leave the
-    caller's face alone" is right for a string that face can draw and
-    disastrous for the mixed string this whole path exists to handle,
-    where it puts the tofu straight back.
+    resolves a real face per script unconditionally. For an unstamped font the
+    two must not agree: "leave the caller's face alone" is right for a string
+    that face can draw and disastrous for the mixed string this whole path
+    exists to handle, where it puts the tofu straight back.
+
+    For a stamped font the two agree **as long as the caller resolved the face
+    for the text it goes on to draw** -- every caller here does, and the ones
+    that ellipsize or wrap draw a subset plus a Latin "…", which is its own
+    run. That is the contract now, not an identity: since `font()` picks by
+    coverage, the same (script, size, weight) can legitimately answer with two
+    different faces, so a face resolved for one string and reused for another
+    the first face cannot draw would be returned unchanged. No guard is added
+    for it, because a guard here would be a second place deciding what
+    `font()` already decides -- if a caller ever needs that, it should pass
+    the text it draws.
     """
     stamped = getattr(fnt, "_jms_script", None)
     if stamped is None or stamped == script:
         return fnt
-    return _same_size(fnt, script)
+    return _same_size(fnt, script, text)
 
 
 def _face_pickers(fnt, faces):
@@ -545,8 +1043,8 @@ def _face_pickers(fnt, faces):
     """
     if faces is not None:
         return faces, faces
-    return ((lambda script: _run_face(fnt, script)),
-            (lambda script: _same_size(fnt, script)))
+    return ((lambda script, text=None: _run_face(fnt, script, text)),
+            (lambda script, text=None: _same_size(fnt, script, text)))
 
 
 def _split(text, fnt, faces):
@@ -562,9 +1060,11 @@ def _split(text, fnt, faces):
     parts = runs(text)
     single, per_run = _face_pickers(fnt, faces)
     if has_rtl(text):
-        return parts, single(script_of(text)), per_run
+        # The whole line, so the face is chosen against every codepoint in
+        # it that belongs to the line's script -- see `_covers`.
+        return parts, single(script_of(text), text), per_run
     if len(parts) == 1 and parts[0][0] != "emoji":
-        return parts, single(parts[0][0]), per_run
+        return parts, single(parts[0][0], parts[0][1]), per_run
     return parts, None, per_run
 
 
@@ -576,7 +1076,7 @@ def _measure(text, fnt, faces, measure):
         return measure(text, whole) * _scale_of(whole)
     total = 0.0
     for script, chunk in parts:
-        face = per_run(script)
+        face = per_run(script, chunk)
         total += measure(chunk, face) * _scale_of(face)
     return total
 
@@ -684,7 +1184,7 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
         draw.text(xy, text, font=whole, fill=fill, anchor=anchor)
         return
 
-    fonts = [per_run(script) for script, _chunk in parts]
+    fonts = [per_run(script, chunk) for script, chunk in parts]
     scales = [_scale_of(f) for f in fonts]
     # Through `metrics`, or a 109px emoji strike would decide the baseline
     # for a 20px line and push the whole thing five lines down.
@@ -723,7 +1223,13 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
 
 
 def clear_cache():
+    global _host_index
+
+    _host_index = None
     _cache.clear()
+    _chains.clear()
+    _coverage.clear()
+    _notdef.clear()
     _resolved.clear()
 
 

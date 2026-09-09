@@ -473,6 +473,44 @@ support `--enable-libmpv-shared` in the `mpv_options` file, you can clear the fi
 is now enabled by default. Add `-Dsdl2-gamepad=enabled` to `mpv_options` if you want gamepad
 support.
 
+### Right-to-left text and kerning need FriBiDi
+
+Some of what the client draws is baked into the picture with Pillow, and Pillow
+does complex text layout only through **Raqm**. Raqm and HarfBuzz are compiled
+into Pillow's wheels, but **FriBiDi is loaded at runtime and is not bundled on
+any platform** — so on a system without `libfribidi`, Pillow quietly falls back
+to a basic layout. Nothing errors, and an English library looks perfectly fine.
+
+What it costs, if it happens to you:
+
+* Right-to-left scripts (Arabic, Hebrew) are drawn in logical order with
+  isolated letterforms — reversed and disconnected — wherever the client bakes
+  text into the picture: tile captions, Cast & Crew, the heading over a
+  backdrop. The same text drawn as an overlay is correct, because MPV carries
+  its own copy.
+* No script gets kerning, Latin included. That also makes captions *measure*
+  slightly wide, so they get shortened with a "…" a little earlier than they
+  should.
+
+You can ask Pillow directly:
+
+```bash
+python3 -c "from PIL import features; print(features.check('raqm'))"
+```
+
+`True` and there is nothing to do — which is the normal case, because most
+desktops already have FriBiDi (Pango needs it). If it prints `False`:
+
+* install FriBiDi — `libfribidi0` on Debian/Ubuntu, `fribidi` on Fedora and
+  Arch — and check again;
+* and if pip had to **build Pillow from source** rather than use a wheel (no
+  wheel for your platform, an unusual architecture, or `--no-binary`), Pillow
+  needs libraqm's development files *at build time* too: `libraqm-dev` on
+  Debian/Ubuntu, `libraqm-devel` on Fedora, `libraqm` on Arch. Install those,
+  then `pip3 install --force-reinstall --no-binary=pillow pillow`.
+
+The Flatpak and the Windows installer both ship what they need for this.
+
 ## <h2 id="osx-installation">macOS Installation</h2>
 Currently on macOS only the external MPV backend seems to be working. I cannot test on macOS, so please report any issues you find.
 
@@ -495,6 +533,10 @@ If you'd like the menu bar icon as well:
 6. Run `jellyfin-mpv-shim`.
 
 Display mirroring is not tested on macOS, but may be installable with 'pipx install 'jellyfin-mpv-shim[mirror]'`.
+
+macOS installs the same Pillow wheels as Linux, so the FriBiDi note under
+[Linux Installation](#linux-installation) applies here too — worth checking if
+Arabic or Hebrew titles look wrong.
 
 ## Building on Windows
 
