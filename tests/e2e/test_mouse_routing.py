@@ -449,9 +449,13 @@ class MouseRoutingTest(unittest.TestCase):
         """
         self._hud_idle(click_pauses=False)
         self.app.set_hud_skip("Skip Intro")
+        # Well inside `PHUD_SKIP_S` (10s), which is the button's own
+        # auto-hide: a wait that outlasts it would watch the segment arm
+        # and disarm, and then report that it never armed.
         self._wait(lambda: self._state().get("phud_skip") is True,
-                   "no skip segment ever armed, so `mpvtk_skip_click` was "
-                   "never bound and there is nothing to leak")
+                   "no skip segment ever armed within 5s, so "
+                   "`mpvtk_skip_click` was never bound and there is nothing "
+                   "to leak", timeout=5.0)
         self.app.set_hud_skip("")
         self._wait(lambda: not self._state().get("phud_skip"),
                    "the skip button never went away")
