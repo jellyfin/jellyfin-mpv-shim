@@ -1140,7 +1140,7 @@ class TestMixedRtlLine(unittest.TestCase):
         line = "進撃の巨人 مسلسل"
         self.addCleanup(pilfont.clear_cache)
         pilfont.clear_cache()
-        parts, whole, _per_run = pilfont._split(
+        _pieces, whole = pilfont._split(
             line, pilfont.font_for(line, 24), None)
         self.assertIsNotNone(whole, "an RTL line must be drawn with one face")
         arabic = [ch for ch in line if pilfont.has_rtl(ch)]
@@ -1261,6 +1261,253 @@ class TestFallbackAcrossSymbolSets(unittest.TestCase):
                     os.path.basename(str(first)),
                     "%r was moved off the symbol chain's own first answer"
                     % ch)
+
+class TestPerCharacterFallback(unittest.TestCase):
+    """A character the run's own face lacks, drawn by a face that has it.
+
+    #740: "机动战士Z高达Ⅱ：恋人们" drew the Roman numeral as a box on
+    Windows once the Han around it was fixed. U+2161 is neither CJK nor a
+    symbol to `script_of_char`, so it lands in a *Latin* run -- and the
+    Latin face on Windows is Arial, which has **7 of the 64 Number Forms**
+    while every CJK face on the same machine has all of them (measured on
+    the Windows VM, 2026-09-09, with `_draws`).
+
+    The class of it, measured the same day: of the 9,103 assigned
+    codepoints below U+2E80 that `script_of_char` calls "latin", Arial
+    draws 2,375 and DejaVu 4,669 -- and of the 6,728 Arial misses, a CJK
+    face already installed draws 906. GUIDE 12.4's "the only orphaned Latin
+    codepoints are the C0/C1 controls" was measured on Debian, where the
+    Latin face is DejaVu.
+    """
+
+    #: The scan below costs a getmask per (codepoint, face); shared so the
+    #: class pays it once rather than once per test.
+    _found = {}
+
+    def setUp(self):
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+
+    def _chain(self, script, size):
+        from PIL import ImageFont
+
+        out = []
+        for name in pilfont._CANDIDATES[script]:
+            try:
+                out.append(ImageFont.truetype(name, size))
+            except (OSError, IOError):
+                continue
+        return out
+
+    def _draws(self, face, ch):
+        ref = face.getmask("\U000FFFFF", mode="L")
+        got = face.getmask(ch, mode="L")
+        return (got.size, bytes(got)) != (ref.size, bytes(ref))
+
+    def _scan(self, size):
+        """``(orphan, undrawable)`` for this host, discovered not hardcoded.
+
+        The orphan is a printable character no Latin candidate draws and
+        some other chain does -- U+2161 on Windows, and on Debian the
+        Hangul Jamo and the enclosed alphanumerics, which are the same bug
+        with a different face. The undrawable one is a character *nothing*
+        installed draws, which is the case the peel must leave alone.
+        """
+        import unicodedata
+
+        if size in self._found:
+            return self._found[size]
+        latin = self._chain("latin", size)
+        rescue = self._chain("symbol", size) + self._chain("cjk", size)
+        orphan = undrawable = None
+        if latin and rescue:
+            for lo, hi in ((0x1100, 0x11FF), (0x2000, 0x2E7F)):
+                for cp in range(lo, hi + 1):
+                    ch = chr(cp)
+                    if (pilfont.script_of_char(cp) != "latin" or ch.isspace()
+                            or unicodedata.category(ch)[0] == "C"):
+                        continue
+                    if any(self._draws(f, ch) for f in latin):
+                        continue
+                    if any(self._draws(f, ch) for f in rescue):
+                        if orphan is None:
+                            orphan = ch
+                    elif undrawable is None:
+                        undrawable = ch
+                    if orphan is not None and undrawable is not None:
+                        break
+                if orphan is not None and undrawable is not None:
+                    break
+        self._found[size] = (orphan, undrawable)
+        return self._found[size]
+
+    def _orphan(self, size=24):
+        ch = self._scan(size)[0]
+        if ch is None:
+            self.skipTest("every printable codepoint this host's Latin face "
+                          "misses is missing from every other chain too")
+        return ch
+
+    def _image(self, size=24):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("L", (size * 4, size * 3), 0)
+        return img, ImageDraw.Draw(img)
+
+    def _ink(self, font, text, size=24):
+        """What `draw_text` puts on a plate."""
+        img, draw = self._image(size)
+        pilfont.draw_text(draw, (2, 2), text, font, fill=255)
+        return img.tobytes()
+
+    def _plain(self, font, text, size=24):
+        """What one `draw.text` with that face puts there -- the tofu, for
+        a character the face does not have.
+
+        **Not `draw_text` of a codepoint that cannot exist**: the notdef
+        probes are astral and `script_of_char` sends them to the CJK face,
+        so that reference is a different face's box and the comparison
+        passes whatever happens. Measured, and it cost a mutation run.
+        """
+        img, draw = self._image(size)
+        draw.text((2, 2), text, font=font, fill=255)
+        return img.tobytes()
+
+    def test_an_orphan_is_drawn_by_a_face_that_has_it(self):
+        """The bug itself: the run's face draws a box, and a face on this
+        host draws the character."""
+        ch = self._orphan()
+        fnt = pilfont.font("latin", 24)
+        drawn = self._ink(fnt, ch)
+        self.assertNotEqual(
+            drawn, self._plain(fnt, ch),
+            "U+%04X came back as the Latin face's own tofu" % ord(ch))
+        self.assertNotEqual(drawn, self._ink(fnt, ""),
+                            "U+%04X drew nothing at all" % ord(ch))
+
+    def test_only_the_orphan_moves(self):
+        """The letters around it keep the face they had. A chain that
+        covered the *run* would re-typeset the whole word, which is the
+        trade this peel exists to avoid."""
+        ch = self._orphan()
+        fnt = pilfont.font("latin", 24)
+        pieces, whole = pilfont._split("A" + ch + "B", fnt, None)
+        self.assertIsNone(whole, "the string was drawn with one face")
+        self.assertEqual([chunk for _script, chunk, _face in pieces],
+                         ["A", ch, "B"])
+        self.assertIs(pieces[0][2], fnt)
+        self.assertIs(pieces[2][2], fnt)
+        self.assertTrue(self._draws(pieces[1][2], ch))
+
+    def test_a_control_character_is_never_rescued(self):
+        """GUIDE 12.4's rule, and it is not theoretical:
+        `NotoSansSymbols2` draws a *picture* for every C0/C1 control, so a
+        peel that took the first face with a glyph would turn a stray
+        U+0085 in a title into a visible one."""
+        fnt = pilfont.font("latin", 24)
+        for ch in ("\x7f", "\x85", "\u200b"):
+            pieces, whole = pilfont._split("A" + ch + "B", fnt, None)
+            self.assertIsNotNone(
+                whole, "%r was peeled off the run's own face" % ch)
+
+    def test_a_character_nothing_draws_stays_where_it_was(self):
+        """No face on the host has it, so there is nothing to move it to
+        and the answer is the tofu there always was -- not a crash, and not
+        a second face in the middle of a word."""
+        ch = self._scan(24)[1]
+        if ch is None:
+            self.skipTest("this host draws every printable codepoint tried")
+        fnt = pilfont.font("latin", 24)
+        pieces, whole = pilfont._split("A" + ch + "B", fnt, None)
+        self.assertIsNotNone(whole)
+
+    def test_a_combining_character_is_never_split_from_its_base(self):
+        """Shaping does not cross a run boundary, and the peel is one.
+
+        Measured on the Windows VM: Segoe UI Symbol has no U+FE0F, so the
+        first version of this peeled the variation selector onto the emoji
+        face and drew "☂️" as two pieces -- which is the split `_JOINERS`
+        exists to prevent, arriving one level down. Asked of a face that
+        draws nothing at all, so every character is an orphan on every
+        host.
+        """
+        class _Blank:
+            size = (1, 1)
+
+            def __bytes__(self):
+                return b"\x00"
+
+        class _NoGlyphFace:
+            size = 24
+            path = "<test: draws nothing>"
+
+            def getmask(self, text, mode="L"):
+                return _Blank()
+
+        # Named here rather than asked of `_attaches`, and the rescue is
+        # offered **only** for the joining characters: a test that asks the
+        # function under test what counts as joining agrees with it however
+        # it is broken, and one where the base moves to the same face as
+        # its mark cannot see the split either. Both versions of this
+        # passed with `_attaches` stubbed to False before it was built this
+        # way.
+        joins = {0xFE0F, 0xFE0E, 0x200D, 0x20E3, 0x0301}
+        moved = _NoGlyphFace()
+
+        def only_joiners(ch, script, size, bold, prefer=()):
+            return moved if ord(ch) in joins else None
+
+        real = pilfont._orphan_face
+        self.addCleanup(setattr, pilfont, "_orphan_face", real)
+        pilfont._orphan_face = only_joiners
+
+        face = _NoGlyphFace()
+        text = "1\ufe0f\u20e3 A\u0301 \u2602\ufe0f"
+        pieces = pilfont._peel(text, face, "latin", ())
+        self.assertTrue(pieces)
+        for chunk, used in pieces:
+            self.assertNotIn(
+                ord(chunk[0]), joins,
+                "a piece starts with U+%04X, which joins what is before it"
+                % ord(chunk[0]))
+            self.assertIs(used, face,
+                          "%r was moved to a face offered only to the "
+                          "characters that join" % chunk)
+
+    def test_measuring_and_drawing_agree_after_a_peel(self):
+        """Both go through `_split`, and a caption ellipsized against a
+        width it is not drawn at is the failure this pins."""
+        from PIL import Image, ImageDraw
+
+        ch = self._orphan()
+        draw = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
+        for text in ("A" + ch + "B", ch, ch + ch, "A " + ch):
+            fnt = pilfont.font_for(text, 24)
+            self.assertAlmostEqual(pilfont.text_length(draw, text, fnt),
+                                   pilfont.length(text, fnt), places=3,
+                                   msg=repr(text))
+
+    def test_the_740_title_has_no_tofu_left_in_it(self):
+        """The issue's own string, drawn the way the browser draws it."""
+        title = "机动战士Z高达Ⅱ：恋人们"
+        size = 24
+        installed = (self._chain("latin", size) + self._chain("cjk", size)
+                     + self._chain("symbol", size))
+        if not installed:
+            self.skipTest("no fonts at all on this host")
+        fnt = pilfont.font_for(title, size)
+        pieces, whole = pilfont._split(title, fnt, None)
+        if whole is not None:
+            pieces = [(None, title, whole)]
+        for _script, chunk, face in pieces:
+            for ch in chunk:
+                if not any(self._draws(f, ch) for f in installed):
+                    continue        # nothing here can draw it; not our bug
+                self.assertTrue(
+                    self._draws(face, ch),
+                    "U+%04X drew as tofu from %s"
+                    % (ord(ch), getattr(face, "path", "?")))
+
 
 class TestTheHostsOwnInventory(unittest.TestCase):
     """If this machine HAS a face for a script, the shim must find it.
@@ -1580,11 +1827,10 @@ class TestAnRtlLineCarriesWhatIsInIt(unittest.TestCase):
         """The faces `draw_text` will really use, and whether one covers
         the whole line."""
         fnt = pilfont.font_for(text, size)
-        parts, whole, per_run = pilfont._split(text, fnt, None)
+        pieces, whole = pilfont._split(text, fnt, None)
         if whole is not None:
             return [(whole, text)]
-        return [(per_run(script, chunk)) and (per_run(script, chunk), chunk)
-                for script, chunk in parts]
+        return [(face, chunk) for _script, chunk, face in pieces]
 
     def _tofu(self, text):
         """Characters the line's own face(s) cannot draw.

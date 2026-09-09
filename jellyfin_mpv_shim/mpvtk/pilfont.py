@@ -11,6 +11,12 @@ Latin/Cyrillic/Greek range our default face covers, map it to a script, and
 load a system font known to cover that script. Everything is cached, and a
 miss degrades to the default face (tofu, but never a crash).
 
+Three granularities, because each one was a bug: **per string** (this
+module), **per run** of one script (:func:`runs`, so a year beside a Japanese
+title is not four boxes) and **per character** (:func:`_peel`, so a Roman
+numeral in a Chinese title is not one box -- #740, and mpvtk/GUIDE.md
+section 12.9).
+
 Two pseudo-scripts, neither of which is one anywhere else. **"symbol"**,
 because a Latin face is not a symbol face (:data:`_SYMBOL_RANGES`). **"emoji"**,
 the only one where the *face* is awkward rather than the choice of it: it draws
@@ -25,6 +31,7 @@ mpvtk/GUIDE.md section 12.
 
 import logging
 import os
+import unicodedata
 
 log = logging.getLogger("mpvtk.pilfont")
 
@@ -321,6 +328,7 @@ _chains = {}         # (script, size, bold) -> [(name, face), ...] opened so far
 _coverage = {}
 _notdef = {}         # (font name, open size) -> that face's no-glyph renders
 _resolved = {}       # (script, bold) -> path/name that loaded, or None
+_orphans = {}        # (char, script, size, bold) -> a face that draws it
 
 #: Codepoints Unicode guarantees will never be assigned, so what a face
 #: renders for one is that face's own "no glyph" mark. Three rather than
@@ -1047,36 +1055,162 @@ def _face_pickers(fnt, faces):
             (lambda script, text=None: _same_size(fnt, script, text)))
 
 
+#: Chains an orphaned character is looked for in, after the run's own.
+#:
+#: **Not a preference between faces -- a search for one that has the glyph
+#: at all**, asked per character, so the Latin word beside the orphan keeps
+#: the face it had. Measured on the Windows VM 2026-09-09: of the 6,728
+#: codepoints Arial misses among the 9,103 that `script_of_char` calls
+#: "latin", the CJK faces on the same machine draw 906 and Segoe UI Symbol
+#: most of what is left. Latin needs no entry: `_opened` already appends
+#: the Latin backstop to every non-Latin chain (GUIDE section 12.9).
+_ORPHAN_SCRIPTS = ("symbol", "cjk")
+
+
+def _peelable(ch):
+    """Whether a character the run's face lacks may be moved to another.
+
+    **Category C is excluded and it is not a formality**: measured on
+    Debian, `NotoSansSymbols2` draws a *picture* for every C0/C1 control
+    and for U+007F, so a peel that took the first face with a glyph would
+    turn a stray U+0085 in a title into a visible one -- and a zero-width
+    space into something with width. GUIDE section 12.4 names that set as
+    the one nothing may rescue. Whitespace is left alone for the reason
+    :func:`_covers` skips it: it is blank in every face, and moving it
+    would split a run for no glyph.
+    """
+    return not ch.isspace() and unicodedata.category(ch)[0] != "C"
+
+
+def _attaches(ch):
+    """Whether a character joins what is beside it, so it can never be
+    peeled off on its own **or left behind when its base moves**.
+
+    Shaping does not cross a run boundary (GUIDE section 12.3), and the peel
+    is a run boundary. Measured on the Windows VM: Segoe UI Symbol has no
+    U+FE0F, so without this the variation selector was peeled to the emoji
+    face and "☂️" was drawn as two pieces -- the exact split
+    :data:`_JOINERS` exists to prevent, arriving one level down. The
+    combining marks are here for the same reason and for the other
+    direction: an orphaned base takes its marks with it, or Devanagari and
+    niqqud stack onto the wrong glyph.
+    """
+    return ord(ch) in _JOINERS or unicodedata.category(ch)[0] == "M"
+
+
+def _face_draws(fnt, ch):
+    """:func:`_draws` for a face somebody already resolved.
+
+    The name is only a memo key, and it comes off the object here because
+    there is no candidate list in hand. Pillow's bitmap default is the one
+    face reachable without a ``path``; every other one is a file.
+    """
+    return _draws(fnt, getattr(fnt, "path", None), ch)
+
+
+def _orphan_face(ch, script, size, bold, prefer=()):
+    """A face for one character its run's face cannot draw, or None.
+
+    ``prefer`` is the faces the *rest of this string* resolved, and it is
+    asked first because a character with no script of its own belongs with
+    the text around it: U+2161 in a Chinese title is East Asian wide, and
+    taking it from the face already drawing the Han beside it is both the
+    right width and the right weight. Falling to :data:`_ORPHAN_SCRIPTS`
+    after that is what covers the character standing on its own.
+
+    The run's own chain is asked before either, because `font` rejected a
+    candidate for failing *somewhere else in the run* -- a face further
+    down the same list may have exactly this glyph.
+    """
+    for face in prefer:
+        if _face_draws(face, ch):
+            return face
+    key = (ch, script, size, bool(bold))
+    if key not in _orphans:
+        got = None
+        for other in (script,) + tuple(s for s in _ORPHAN_SCRIPTS
+                                       if s != script):
+            got = _pick(other, size, bold, ch, None)
+            if got is not None:
+                break
+        _orphans[key] = got
+    return _orphans[key]
+
+
+def _peel(chunk, face, script, prefer):
+    """``[(chunk, face), ...]`` for one run, splitting off the characters
+    ``face`` cannot draw.
+
+    **This is the fallback Pillow does not have** (#740). A run's face is
+    chosen for the whole run, so one codepoint the chain cannot supply used
+    to make one box; here that character alone moves to a face that has it
+    and everything around it is drawn exactly as before. A character
+    nothing on the host draws stays put -- tofu, as it was.
+    """
+    size = getattr(face, "_jms_size", getattr(face, "size", 12))
+    bold = getattr(face, "_jms_bold", False)
+    out = []
+    for ch in chunk:
+        if out and _attaches(ch):
+            out[-1][0].append(ch)
+            continue
+        use = face
+        if _peelable(ch) and not _face_draws(face, ch):
+            use = _orphan_face(ch, script, size, bold, prefer) or face
+        if out and out[-1][1] is use:
+            out[-1][0].append(ch)
+        else:
+            out.append(([ch], use))
+    return [("".join(chars), used) for chars, used in out]
+
+
 def _split(text, fnt, faces):
-    """``(runs, one_face_or_None, per_run_resolver)`` — the one place the
-    two bypasses live, so measuring and drawing cannot disagree about them.
-    A non-None second element means the whole string is drawn with it.
+    """``(pieces, one_face_or_None)`` — the one place face resolution
+    happens, so measuring and drawing cannot disagree about it. ``pieces``
+    is ``[(script, chunk, face), ...]`` in order; a non-None second element
+    means the whole string is drawn with that face in a single call.
 
     A single **emoji** run does not take the bypass. It has to reach the
     per-run resolver (`_run_face` would hand back the caller's own face,
     which is the face that cannot draw it) and, on a bitmap-strike face,
     the scaling that only the run loop does.
+
+    **An RTL line is never peeled**: Pillow reorders bidi within one draw
+    call and cannot across several, so a missing glyph there stays tofu
+    rather than becoming a reordered line (GUIDE section 12.1).
     """
     parts = runs(text)
     single, per_run = _face_pickers(fnt, faces)
     if has_rtl(text):
         # The whole line, so the face is chosen against every codepoint in
         # it that belongs to the line's script -- see `_covers`.
-        return parts, single(script_of(text), text), per_run
-    if len(parts) == 1 and parts[0][0] != "emoji":
-        return parts, single(parts[0][0], parts[0][1]), per_run
-    return parts, None, per_run
+        script = script_of(text)
+        face = single(script, text)
+        return [(script, text, face)], face
+    resolver = (single if len(parts) == 1 and parts[0][0] != "emoji"
+                else per_run)
+    chosen = [resolver(script, chunk) for script, chunk in parts]
+    pieces = []
+    for (script, chunk), face in zip(parts, chosen):
+        prefer = [other for other in chosen if other is not face]
+        for piece, used in _peel(chunk, face, script, prefer):
+            pieces.append((script, piece, used))
+    # One piece left after the peel is the original path, byte for byte:
+    # every string that needed no fallback still takes one draw call with
+    # the face its caller chose.
+    if len(pieces) == 1 and pieces[0][0] != "emoji":
+        return pieces, pieces[0][2]
+    return pieces, None
 
 
 def _measure(text, fnt, faces, measure):
     if not text:
         return 0.0
-    parts, whole, per_run = _split(text, fnt, faces)
+    pieces, whole = _split(text, fnt, faces)
     if whole is not None:
         return measure(text, whole) * _scale_of(whole)
     total = 0.0
-    for script, chunk in parts:
-        face = per_run(script, chunk)
+    for _script, chunk, face in pieces:
         total += measure(chunk, face) * _scale_of(face)
     return total
 
@@ -1174,7 +1308,7 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
     """
     if not text:
         return
-    parts, whole, per_run = _split(text, fnt, faces)
+    pieces, whole = _split(text, fnt, faces)
     if whole is not None:
         # One draw call covers the line. For an RTL line that is forced --
         # Pillow reorders bidi within a call and cannot across several --
@@ -1184,7 +1318,7 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
         draw.text(xy, text, font=whole, fill=fill, anchor=anchor)
         return
 
-    fonts = [per_run(script, chunk) for script, chunk in parts]
+    fonts = [face for _script, _chunk, face in pieces]
     scales = [_scale_of(f) for f in fonts]
     # Through `metrics`, or a 109px emoji strike would decide the baseline
     # for a 20px line and push the whole thing five lines down.
@@ -1204,7 +1338,7 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
         baseline = y - descent
     else:                          # "s" -- already a baseline
         baseline = y
-    for (script, chunk), face, scale in zip(parts, fonts, scales):
+    for (script, chunk, face), scale in zip(pieces, scales):
         if scale != 1.0:
             _draw_scaled(draw, x, baseline, chunk, face, scale, fill)
         else:
@@ -1229,6 +1363,7 @@ def clear_cache():
     _cache.clear()
     _chains.clear()
     _coverage.clear()
+    _orphans.clear()
     _notdef.clear()
     _resolved.clear()
 

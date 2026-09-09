@@ -143,6 +143,42 @@ SAMPLES = [
      "مسلسل Netflix الأصلي"),
     ("Mixes -- where it breaks", "CJK + symbol",
      "進撃の巨人 ★ 8.1"),
+
+    # #740: the character the run's face does not have. `script_of_char`
+    # calls all of these "latin" -- they are below the CJK catch-all and in
+    # none of the symbol tables -- so they are drawn by the Latin face,
+    # which on Windows is Arial: 7 of the 64 Number Forms and none of the
+    # 160 enclosed alphanumerics, against every CJK face on the same box
+    # having them all. The peel moves the one character and leaves the
+    # words around it alone, so what a reader is checking here is that the
+    # numeral appears AND that nothing beside it changed typeface.
+    ("Characters the run's own face lacks", "#740's title",
+     "机动战士Z高达Ⅱ：恋人们"),
+    ("Characters the run's own face lacks", "Roman numerals, CJK context",
+     "高达Ⅱ · 第Ⅲ部 · Ⅳ"),
+    ("Characters the run's own face lacks", "Roman numerals, Latin context",
+     "Rocky Ⅱ · Final Fantasy Ⅶ"),
+    ("Characters the run's own face lacks", "enclosed alphanumerics",
+     "① ② ③ ⑩ ⓐ"),
+    ("Characters the run's own face lacks", "letterlike and units",
+     "№ 5 · 25℃ · ℡ · ™"),
+    ("Characters the run's own face lacks", "Hangul jamo (no bucket)",
+     "ᄀ ᄁ ᄂ ᅡ ᆨ"),
+    ("Characters the run's own face lacks", "orphan inside a Latin word",
+     "Blade Runner Ⅱ 2049"),
+    ("Characters the run's own face lacks", "orphan beside an emoji",
+     "Ⅶ 🎬 ① ⭐"),
+    ("Characters the run's own face lacks", "orphan in an RTL line",
+     "مسلسل Ⅱ الجزء",
+     "BY DESIGN: an RTL line is one draw call and nothing is peeled off "
+     "its face -- Pillow reorders bidi within a call and cannot across "
+     "several (GUIDE section 12.1)."),
+    ("Characters the run's own face lacks", "controls and zero-width",
+     "A\u0085B\u200bC\u007fD",
+     "BY DESIGN: category C is never peeled, so these draw as whatever the "
+     "line's own face does with them, which is nothing. NotoSansSymbols2 "
+     "has a picture for every C0/C1 control and must not be handed them "
+     "(GUIDE section 12.4)."),
 ]
 
 #: A codepoint that can never be assigned, so every face draws its own
@@ -154,11 +190,11 @@ TOFU = "\U000FFFFF"
 def _faces_for(text, size, bold=False):
     """The face names `draw_text` will actually use, run by run."""
     fnt = pilfont.font_for(text, size, bold)
-    parts, whole, per_run = pilfont._split(text, fnt, None)
+    pieces, whole = pilfont._split(text, fnt, None)
     if whole is not None:
         used = [whole]
     else:
-        used = [per_run(script, chunk) for script, chunk in parts]
+        used = [face for _script, _chunk, face in pieces]
     names = []
     for f in used:
         name = os.path.basename(str(getattr(f, "path", "") or "builtin"))
