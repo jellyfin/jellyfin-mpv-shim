@@ -48,6 +48,33 @@ class TestClipboardNotice(unittest.TestCase):
         self.assertIn("wl-clipboard", text)
         self.assertIn("apt install wl-clipboard", text)
 
+    def test_a_wayland_session_is_not_told_to_upgrade_mpv(self):
+        """#739's other half. The message said "or use MPV 0.41 or newer" for
+        every session, and the reporter -- on a Flatpak already running master
+        -- said so: *"it is assumed that the mentioned mpv version from the
+        error is already being used ... suggests something more is going on."*
+
+        They were right. On Wayland a newer MPV does **not** help: its x11
+        clipboard backend declines to start whenever WAYLAND_DISPLAY is set
+        unless `--clipboard-xwayland=yes`, which defaults to no. Telling a
+        Wayland user to upgrade sends them after the wrong thing.
+        """
+        b, shown = self._browser()
+        b._on_clipboard_error("paste", "wl-clipboard")
+        text = shown[0][0]
+        self.assertIn("wl-clipboard", text)
+        self.assertNotIn("0.41", text,
+                         "a Wayland session was told to upgrade MPV, which "
+                         "cannot help it")
+
+    def test_an_x11_session_is_still_told_a_newer_mpv_helps(self):
+        """The control: on X11 it genuinely does -- the x11 backend only
+        arrived in 0.41, and there it does start."""
+        b, shown = self._browser()
+        b._on_clipboard_error("paste", "xclip")
+        self.assertIn("xclip", shown[0][0])
+        self.assertIn("0.41", shown[0][0])
+
     def test_it_says_which_operation_failed(self):
         b, shown = self._browser()
         b._on_clipboard_error("copy", "xclip")

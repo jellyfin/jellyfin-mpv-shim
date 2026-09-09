@@ -92,6 +92,22 @@ class TestRendererLua(unittest.TestCase):
             self._run("test_renderer.lua",
                       env=self._session_env(WAYLAND_DISPLAY="wayland-0")))
 
+    def test_the_renderer_suite_passes_without_update_clipboard(self):
+        """Third session: an mpv with no `update-clipboard` command.
+
+        It is master-only -- neither v0.40.0 nor v0.41.0 has it -- and the
+        renderer probes `command-list` once and caches the answer, exactly
+        as it caches `clip_tools`. So one process can only ever see one of
+        the two answers, and the case that needs pinning is the one where
+        the command is ABSENT: `mp.command_native` does not raise for a
+        missing command, it returns nil and mpv logs an ERROR line, which
+        would then appear on every paste for those users.
+        """
+        self._assert_suite_passed(
+            self._run("test_renderer.lua",
+                      env=self._session_env(DISPLAY=":0",
+                                            JMS_TEST_NO_CLIP_UPDATE="1")))
+
     def test_the_thumbfast_suite_passes(self):
         """`thumbfast.lua` is the other consumer of the trickplay frame
         file — the compatibility layer every thumbfast-style lua OSC talks

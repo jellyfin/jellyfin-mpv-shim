@@ -792,6 +792,125 @@ Two scope limits, both load-bearing:
 The suspend does nothing at all on an mpv without the option (built without
 gpu-next, or too old) — reading it is how we find that out.
 
+## 11a. The clipboard property is outdated until you ask for it
+
+**`clipboard/text` is not a live value on Linux**, and reading it as if it were
+is the whole of #739 — paste inserted nothing, for a reason that had nothing to
+do with which backends were enabled.
+
+Three facts from mpv's own source at our pin (`182fa6ca49`):
+
+- **Only `x11` and `wayland` implement `update_data`** — the two Linux backends.
+  `win32` and `mac` do not need it.
+- **`--clipboard-monitor` defaults to `no`** (`player/clipboard/clipboard.c`
+  sets no default in `clipboard_conf.defaults`), so nothing polls for changes.
+- mpv's commit adding the command (`f7f7cf18f3`, an ancestor of our pin) states
+  the contract outright: *"The client now needs to run this command to update
+  the clipboard content, otherwise the property value is outdated."*
+
+Measured on an X11 session with `JMS-CLIP-TEST-42` on the clipboard:
+
+| | `clipboard/text` |
+|---|---|
+| plain read | `[]` |
+| after `update-clipboard` | `[JMS-CLIP-TEST-42]` |
+
+So every Linux paste fell through to the `wl-paste`/`xclip`/`xsel` helpers,
+and **which helper it finds is the rest of the bug**:
+
+- **X11 session, any packaging** — `xclip` reads the same clipboard the user
+  copied into. Paste worked, which is why plenty of users saw nothing wrong.
+- **Wayland session, host install** — `wl-paste` is normally present, so it
+  worked there too.
+- **Wayland session, Flatpak** — the manifest ships `xclip` (module at
+  `flatpak/…json:90`) and **not** `wl-clipboard`, so `clip_tools` falls to
+  `xclip`, which talks to **XWayland — a different clipboard from the one the
+  user copied into**. Paste silently inserted the wrong thing or nothing.
+
+That last row is the reported case, and the shape of it — works for some
+users, not others, no error either way — is why it looked unexplained. An
+earlier version of this section said the Flatpak "ships none of them", which
+is wrong: it ships `xclip`, and shipping the *wrong* helper for the session is
+worse than shipping none, because the fallback then appears to succeed.
+
+### The wait is bounded, and the bound is the only thing protecting the UI
+
+`update-clipboard` is `{type, timeout_ms}`, `.spawn_thread = true`, and
+`cmd_update_clipboard` calls `mp_core_unlock` before waiting — so **playback is
+never affected**; only the caller waits. Measured wall-clock (`mp.get_time()`,
+not `os.clock()`, which is CPU time and reports 0.1ms for any wait):
+
+| clipboard state | timeout | actual block |
+|---|---|---|
+| healthy owner | 1–200 ms | **0.18–0.28 ms** |
+| nothing owns the selection | 10 / 50 ms | 0.27 / 0.28 ms |
+| **owner alive and not answering** | 10 / 50 / 200 ms | **10.1 / 50.1 / 200.1 ms** |
+| any | 0 ms | returns immediately, and **does not fetch** |
+
+The wait ends when the notification arrives, so the timeout is a *ceiling on a
+wedged owner* and not a budget for a working one. The unresponsive case was
+simulated with a `SIGSTOP`ped `xclip` still holding the X selection — that is
+the hang mpv designed the worker thread and `mp_cancel` around, and it is real.
+
+`renderer.lua`'s `clip_get` therefore issues it **synchronously with a 20 ms
+ceiling**: about one frame in the worst case, nothing measurable in the normal
+one. Async was the obvious alternative and is the wrong trade here — `tb_insert`
+writes to whichever textbox has focus, so a callback can land after focus moved
+or the scene was rebuilt, which is the stale-capture class `docs/browser-shell.md`
+exists to warn about. A 20 ms ceiling is the cheaper correctness.
+
+### The Flatpak does not need `wl-clipboard` — measured
+
+The obvious conclusion from the above is to ship `wl-clipboard` so the Wayland
+fallback is the *right* clipboard. **Measured, and it is not needed**, because
+with mpv from master there is no Wayland gap left for a helper to fill:
+
+| compositor | mpv backend | how the data arrives | refresh needed? |
+|---|---|---|---|
+| has `ext-data-control-v1` | `wayland` | it has `update_data` | yes — and `clip_get` sends it |
+| lacks it | `vo` | compositor pushes the selection offer | **no** |
+
+The second row is the one worth measuring, and it was: under a **headless**
+sway 1.10.1 (which advertises only `zwlr_data_control_manager_v1`, so mpv falls
+to `vo`), `clipboard/text` read `WL-CLIP-VALUE` immediately, with no
+`update-clipboard` and with mpv's own `focused` property reporting `no`. The
+`vo` backend has no `update_data` hook precisely because it does not need one.
+
+**A nested sway on X11 cannot test this and will tell you the opposite.** The
+first attempt ran sway with `WLR_BACKENDS=x11`; its host window never had
+keyboard focus from a non-interactive shell, so the seat had *no* focus at all
+(`swaymsg -t get_tree` reported zero focused nodes before mpv even started) and
+the property read `nil` forever. Use `WLR_BACKENDS=headless WLR_RENDERER=pixman`
+with `--vo=wlshm`, which owns its own seat.
+
+So the helpers stay a fallback for **mpv <= 0.41 only** — no `update-clipboard`,
+and `clipboard-x11.c` declines under Wayland unless `--clipboard-xwayland=yes`.
+The Flatpak pins master, so that case cannot arise there, and adding a
+dependency to cover it would be paying for a configuration the package cannot
+be in.
+
+### Every branch of the fork, measured
+
+The `wayland` backend needed a compositor with `ext-data-control-v1`, which
+nothing wlroots-0.18 has. **Hyprland has it** — measured by grepping the
+binaries, and it is the only such compositor packaged for Debian trixie
+(`ext_data_control_manager_v1` present in `/usr/bin/Hyprland`; absent from
+mutter 48.7, KWin 6.3.6, and everything on Debian's wlroots 0.18). Run it
+nested inside a headless sway, because aquamarine needs a seat and there is
+no logind session in a test shell.
+
+| session | mpv backend | before refresh | after refresh |
+|---|---|---|---|
+| X11 | `x11` | `[]` | correct |
+| Wayland, **no** `ext-data-control` (sway 1.10.1, KWin 6.3.6) | `vo` | **already correct** | n/a — `vo` has no `update_data` |
+| Wayland, **with** `ext-data-control` (Hyprland 0.55.2) | `wayland` | `[]` for 4.9 s straight | correct, refresh took 0.62 ms |
+
+The third row is #739's reported case. KWin gained `ext-data-control` after
+6.3.6, so a Plasma new enough to have it puts mpv on the `wayland` backend and
+the property is stale — while an older KWin lands on `vo` and works, which is
+why the same build pasted fine when smoke-tested on Debian's KWin 6.3.6 and
+failed for a reporter on Fedora KDE 44.
+
 ## 12. The on-screen controls, and the user's own OSC
 
 `osc_style` has four values and only three of them are ours. `default` means

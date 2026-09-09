@@ -240,8 +240,39 @@ function mp.commandv(...)
     return true
 end
 
+--- Model mpv's real clipboard behaviour: the x11 and wayland backends are
+--- the only ones with an `update_data` hook and `--clipboard-monitor`
+--- defaults to **no**, so `clipboard/text` reads EMPTY until the client
+--- issues `update-clipboard`. mpv's own commit for that command says it:
+--- *"the client now needs to run this command to update the clipboard
+--- content, otherwise the property value is outdated."*
+---
+--- **This fake answered the property straight away, which is exactly why
+--- nothing here could see #739.** Set this and the property behaves like
+--- the two Linux backends do.
+M.clipboard_needs_update = false
+local clipboard_fetched = false
+
+--- `command-list`, so a capability probe can find (or miss) a command.
+--- Defaults to having `update-clipboard`; drop it to model mpv <= 0.41,
+--- which does not.
+M.commands_available = { "update-clipboard" }
+
+function M.reset_clipboard()
+    M.clipboard_needs_update = false
+    clipboard_fetched = false
+    -- NOT commands_available: the renderer caches its capability probe for
+    -- the life of the script, so a reset here would claim to change
+    -- something that cannot change and make a test pass for the wrong
+    -- reason. The suite decides it once, up front.
+end
+
 function mp.command_native(t)
     table.insert(M.log.commands, t)
+    if type(t) == "table" and t[1] == "update-clipboard" then
+        clipboard_fetched = true
+        return true
+    end
     if type(t) == "table" and t.name == "subprocess" then
         if M.subprocess then return M.subprocess(t) end
         return { status = -1, stdout = "" }
@@ -274,9 +305,24 @@ function mp.set_property_bool(name, value) M.log.props[name] = value end
 -- the renderer -- so it never reached mpv through any of the paths above and
 -- had no fake at all until the end-of-page interlock needed testing.
 function mp.set_property_number(name, value) M.log.props[name] = value end
-function mp.get_property_native(name, def) return M.log.props[name] or def end
+function mp.get_property_native(name, def)
+    if name == "command-list" then
+        local out = {}
+        for _, n in ipairs(M.commands_available or {}) do
+            out[#out + 1] = { name = n }
+        end
+        return out
+    end
+    return M.log.props[name] or def
+end
 function mp.get_property(name, def)
     if M.unavailable[name] then return nil, "property unavailable" end
+    if name == "clipboard/text" and M.clipboard_needs_update
+            and not clipboard_fetched then
+        -- Outdated, not unavailable: mpv answers with the stale value, and
+        -- for a backend that has never fetched, stale is empty.
+        return ""
+    end
     return M.log.props[name] or def
 end
 function mp.get_property_number(name, def) return M.log.props[name] or def end

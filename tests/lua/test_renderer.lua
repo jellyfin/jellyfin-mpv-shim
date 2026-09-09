@@ -289,6 +289,15 @@ ok(last_event("commit") == nil, "ESC reverts rather than committing")
 -- Copy and paste were pcall'd, and mp.set_property signals failure by
 -- RETURNING nil rather than raising -- so both silently did nothing.
 
+-- The `update-clipboard` capability is probed once and cached for the life
+-- of the script (like `clip_tools`), so it has to be decided before the
+-- first paste below -- not in the #739 block further down, which is where
+-- the first version of this set it and got a warm cache instead.
+-- `test_renderer_lua.py` runs this file again with the flag set.
+if os.getenv("JMS_TEST_NO_CLIP_UPDATE") then
+    fake.commands_available = {}         -- an mpv <= 0.41
+end
+
 local function subprocess_calls()
     local out = {}
     for _, c in ipairs(fake.log.commands) do
@@ -386,6 +395,87 @@ fake.key("mpvtk_k_ctrl_x")
 local cut = last_event("change")
 ok(cut == nil, "cut keeps the text when the copy could not happen",
    cut and cut.value or "")
+
+-- #739: the property is OUTDATED until the client asks for a refresh.
+-- mpv's x11 and wayland backends are the only ones with an `update_data`
+-- hook and `--clipboard-monitor` defaults to no, so a read without
+-- `update-clipboard` returns the stale value -- empty, for a backend that
+-- has never fetched. Measured at our mpv pin on an X11 session: with text
+-- on the clipboard the property read empty before the command and correct
+-- after. So paste fell through to the CLI helpers on *every* Linux paste,
+-- and the Flatpak ships none of them -- which is the whole bug report.
+--
+-- **Two mutually exclusive sessions, because the capability probe is
+-- cached for the life of the script** (as `clip_tools` is). One process
+-- cannot see both answers, so `test_renderer_lua.py` runs this file again
+-- with JMS_TEST_NO_CLIP_UPDATE set -- the same trick it already uses to
+-- pin an X11 and a Wayland session.
+fake.reset_events()
+fake.unavailable = {}
+fake.log.commands = {}
+fake.clipboard_needs_update = true
+
+if os.getenv("JMS_TEST_NO_CLIP_UPDATE") then
+    -- mpv <= 0.41 has no `update-clipboard`; it is master-only. And
+    -- `mp.command_native` does not raise for a command mpv lacks -- it
+    -- returns nil and mpv logs "Command 'update-clipboard' not found." at
+    -- ERROR level. So the probe has to be a probe: issuing it anyway would
+    -- put an error line in the log on every paste, on a supported version.
+    fake.log.props["clipboard/text"] = "unreachable"
+    -- The READ path invokes the tool directly; only copy goes through a
+    -- shell (for the pipe). Same shape as the fallback paste test above.
+    fake.subprocess = function(t)
+        if t.args and t.args[1] == WANT_GET then
+            return { status = 0, stdout = "via helper" }
+        end
+        return { status = -1, stdout = "" }
+    end
+    scene({ textbox("clip739", "") })
+    click("clip739")
+    fake.key("mpvtk_k_ctrl_v")
+    local issued = false
+    for _, c in ipairs(fake.log.commands) do
+        if type(c) == "table" and c[1] == "update-clipboard" then
+            issued = true
+        end
+    end
+    ok(not issued, "an mpv without the command is not asked for it")
+    local chb = last_event("change")
+    ok(chb ~= nil and chb.value == "via helper",
+       "and paste still reaches the desktop helper",
+       chb and chb.value or "no change event")
+else
+    fake.subprocess = nil        -- no helper installed, like the Flatpak
+    fake.log.props["clipboard/text"] = "from the clipboard"
+    scene({ textbox("clip739", "") })
+    click("clip739")
+    fake.key("mpvtk_k_ctrl_v")
+    local ch739 = last_event("change")
+    ok(ch739 ~= nil and ch739.value == "from the clipboard",
+       "ctrl+v refreshes mpv's clipboard before reading it (#739)",
+       ch739 and ch739.value or "no change event")
+
+    -- And the refresh must stay BOUNDED. Measured against a clipboard owner
+    -- that is alive and does not answer (a SIGSTOPped xclip still holding
+    -- the selection): the wait burns the WHOLE timeout -- 10ms, 50ms and
+    -- 200ms timeouts blocked 10.1, 50.1 and 200.1ms. A healthy clipboard
+    -- returns in 0.2ms, so the number is a ceiling on a wedged owner and
+    -- not a budget for a working one.
+    local upd739
+    for _, c in ipairs(fake.log.commands) do
+        if type(c) == "table" and c[1] == "update-clipboard" then
+            upd739 = c
+        end
+    end
+    ok(upd739 ~= nil, "the refresh was actually issued")
+    if upd739 then
+        ok(type(upd739[3]) == "number" and upd739[3] > 0 and upd739[3] <= 50,
+           "the refresh is bounded, or a wedged owner stalls the UI",
+           tostring(upd739[3]))
+    end
+end
+
+fake.reset_clipboard()
 
 fake.unavailable = {}
 fake.subprocess = nil

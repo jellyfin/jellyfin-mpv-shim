@@ -1053,21 +1053,34 @@ class DialogsMixin:
         the text field being broken; say what to install.
         The renderer raises this at most once per session.
 
-        The default backend list is win32,mac,wayland,**x11**,vo -- this
-        said the x11 entry was absent until it was read from mpv's source.
-        The advice below is still stale for a different reason: on Wayland
-        `--clipboard-xwayland` defaults to no, so a NEWER mpv does not help
-        either, and the flatpak is already on master. Fixing the string is
-        #739's work, not this comment's -- it is translated, so it moves
-        with the .pot."""
+        **The "or use MPV 0.41 or newer" half used to be said to everyone,
+        and on Wayland it is wrong** -- mpv's x11 clipboard backend declines
+        to start whenever WAYLAND_DISPLAY is set unless
+        `--clipboard-xwayland=yes`, which defaults to no, so no upgrade
+        helps there. #739's reporter was on a Flatpak already running master
+        and said as much: *"it is assumed that the mentioned mpv version
+        from the error is already being used ... suggests something more is
+        going on."* They were right, and the advice sent them after the
+        wrong thing.
+
+        `need` carries the session: the renderer picks the package from it
+        (`clip_tools`), so wl-clipboard means Wayland and xclip/xsel mean
+        X11. On X11 the upgrade advice is genuinely useful and stays."""
         if op == "copy":
             text = _("Copying to the clipboard is not available.")
         else:
             text = _("Pasting from the clipboard is not available.")
-        if need:
+        if need in ("xclip", "xsel"):
+            # X11: both remedies are real, and this msgid is unchanged so
+            # its existing translations survive.
             text += " " + (
                 _('Install the "%(package)s" package (for example '
                   '"apt install %(package)s"), or use MPV 0.41 or newer.')
+                % {"package": need})
+        elif need:
+            text += " " + (
+                _('Install the "%(package)s" package (for example '
+                  '"apt install %(package)s").')
                 % {"package": need})
         else:
             text += " " + _("Use MPV 0.41 or newer.")
