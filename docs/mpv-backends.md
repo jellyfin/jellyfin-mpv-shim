@@ -307,12 +307,20 @@ re-installs its nav keys on pointer movement and on every lifecycle event, so an
 overlay that came up first can lose its keyboard a moment later and remain on
 screen with nothing to activate. That is what the `user-data/mpv/console/open`
 handler exists for — it drops our claims for as long as the console is up.
-`any_unicode` is the exception to the ordering rule: it outranks an exact key
-whichever went in first, so the block claim has to be released regardless.
+`any_unicode` does **not** escape the ordering rule, and it is worth being
+precise because the renderer depends on it not escaping: it outranks an exact
+key installed *before* it, and loses to one installed after. That is exactly why
+`ui_resume` binds the browse block **first** and says so at `renderer.lua:5771` —
+installed last it swallowed a printable `ui_select_key` (#717). The console
+handler still has to release it, because the console's own keys go in after
+ours.
 
 **The comment on that handler said the opposite for a release** — that our
 bindings outranked the console — and the handler was right for a reason its own
-comment did not give. `tools/audit_key_bindings.py:PUBLISHED` now enumerates
+comment did not give. The rule was in the file the whole time: `:5771` states it
+correctly, 1,200 lines away, because getting it wrong there had cost #717. One
+rule, right at one site and wrong at another, which is the shape
+`docs/RISK_MAP_2026-09.md` §2 is a table of. `tools/audit_key_bindings.py:PUBLISHED` now enumerates
 every `user-data/mpv/*` property mpv's builtin scripts set, with what the
 renderer owes each; `context-menu/open` is recorded there as watched by nothing.
 

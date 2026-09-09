@@ -6913,8 +6913,9 @@ end)
 -- opened after our ENTER is bound receives the key. What takes it back is a
 -- RE-bind while the console is up -- the HUD re-installs its nav keys on
 -- pointer movement and on every lifecycle event -- and the any_unicode
--- block claim, which outranks an exact key in either order. Same exposure,
--- same measurement, at mpv's context menu: tools/audit_key_bindings.py.
+-- block claim, which outranks an exact key installed BEFORE it (which is
+-- why ui_resume binds it first; see the note there). Same exposure, same
+-- measurement, at mpv's context menu: tools/audit_key_bindings.py.
 --
 -- Restored from what was actually bound rather than re-derived: which of
 -- the three groups is live depends on browse-vs-HUD, hud_grab_keys and

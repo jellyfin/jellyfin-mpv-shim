@@ -145,8 +145,14 @@ def audit(path):
 #
 # It also corrects the console handler's own comment, which says our
 # forced bindings "outrank" the console. They do not; B measures the
-# opposite. What the handler is really for is C, plus the `any_unicode`
-# block claim, which outranks an exact key in either order.
+# opposite -- and `renderer.lua:5771` had the rule right the whole time,
+# 1,200 lines away: "between two forced bindings of one key the LATER one
+# wins". One rule, written correctly at one site and wrongly at another,
+# which is this repo's signature shape.
+#
+# What the console handler is really for is C, plus the `any_unicode`
+# block claim -- which outranks an exact key installed BEFORE it, and is
+# bound first for that reason.
 
 
 class Published:
@@ -193,11 +199,11 @@ PUBLISHED = {
         "real session, and that is a real-mpv e2e leg, not a lint.",
     ),
     "ytdl/path": Published(
-        "not-input", "0.36.0", "ytdl_hook.lua",
+        "not-input", "0.39.0 (ff47926d6a, 2024-05-09)", "ytdl_hook.lua",
         "Where yt-dlp was found. Says nothing about the keyboard.",
     ),
     "ytdl/json-subprocess-result": Published(
-        "not-input", "0.36.0", "ytdl_hook.lua",
+        "not-input", "0.39.0 (ff47926d6a, 2024-05-09)", "ytdl_hook.lua",
         "The hook's subprocess result, for scripts that want the raw "
         "answer. Says nothing about the keyboard.",
     ),
