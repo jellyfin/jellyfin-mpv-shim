@@ -889,9 +889,27 @@ The Flatpak pins master, so that case cannot arise there, and adding a
 dependency to cover it would be paying for a configuration the package cannot
 be in.
 
-The `wayland` backend path itself was **not** exercised here (sway 1.10.1 is
-wlroots 0.18 and has no `ext-data-control-v1`); it is the same code path as
-`x11` — both declare `update_data` — and the x11 half is measured above.
+### Every branch of the fork, measured
+
+The `wayland` backend needed a compositor with `ext-data-control-v1`, which
+nothing wlroots-0.18 has. **Hyprland has it** — measured by grepping the
+binaries, and it is the only such compositor packaged for Debian trixie
+(`ext_data_control_manager_v1` present in `/usr/bin/Hyprland`; absent from
+mutter 48.7, KWin 6.3.6, and everything on Debian's wlroots 0.18). Run it
+nested inside a headless sway, because aquamarine needs a seat and there is
+no logind session in a test shell.
+
+| session | mpv backend | before refresh | after refresh |
+|---|---|---|---|
+| X11 | `x11` | `[]` | correct |
+| Wayland, **no** `ext-data-control` (sway 1.10.1, KWin 6.3.6) | `vo` | **already correct** | n/a — `vo` has no `update_data` |
+| Wayland, **with** `ext-data-control` (Hyprland 0.55.2) | `wayland` | `[]` for 4.9 s straight | correct, refresh took 0.62 ms |
+
+The third row is #739's reported case. KWin gained `ext-data-control` after
+6.3.6, so a Plasma new enough to have it puts mpv on the `wayland` backend and
+the property is stale — while an older KWin lands on `vo` and works, which is
+why the same build pasted fine when smoke-tested on Debian's KWin 6.3.6 and
+failed for a reporter on Fedora KDE 44.
 
 ## 12. The on-screen controls, and the user's own OSC
 
