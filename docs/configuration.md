@@ -713,8 +713,21 @@ You can use the config file to enable and disable features.
     `jellyfin`, `jellyfin-labs` or `iwalton3`. A redirect anywhere else is
     logged and ignored, so an account takeover cannot re-home your update
     notice.
-- `notify_updates` - Display update notification when playing media. Default: `true`
+- `notify_updates` - Display update notification when playing media. One of `default`, `enabled`, `disabled`. Default: `default`
   - Notification will only display once until the application is restarted.
+  - `default` answers by how the app was installed: **off inside a Flatpak**,
+    where your desktop's software centre already announces updates and
+    `flatpak update` is what installs them, and **on everywhere else** (pip,
+    Windows, macOS), where this app is the only thing that knows.
+  - `enabled` and `disabled` are your answer and are never overridden.
+  - Inside a Flatpak the notice tells you to run `flatpak update`, since the
+    releases page cannot install anything there. It still links to the page,
+    which is where the release notes are. A build handed to you directly (a
+    CI artifact, a local bundle) says nothing about `flatpak update`: those
+    have no remote to update from.
+  - Was a `true`/`false` setting before 3.1.0. An existing `false` becomes
+    `disabled`; an existing `true` becomes `default`, since nothing on disk
+    distinguishes "never touched it" from "asked for it".
 - `discord_presence` - Enable Discord rich presence support. Default: `false`
   - Also in Settings → General → This Device. Needs the optional `pypresence` package
     (`pip install jellyfin-mpv-shim[discord]`) and takes effect after a
@@ -857,7 +870,10 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `input_gamepad` - Enable game controller input, so a pad can drive the
   library and playback. Also in Settings → General → Input. mpv reads
   this once when it starts, so it takes effect on the next launch.
-  Default: `false`
+  Default: `false`, except on **SteamOS**, where it is turned on once when
+  the config is upgraded to 3.1.0 — a Steam Deck is a machine where the pad
+  is the only pointing device most people have. Turn it back off and it
+  stays off.
 
   The d-pad and **left stick** move the selection; the **right stick**
   seeks, by the same distances your arrow keys do. The bottom face button
@@ -1186,8 +1202,20 @@ Other miscellaneous configuration options. You probably won't have to change the
   - Photos open paused, so this is the slideshow speed once you press play.
   - This is MPV's `--image-display-duration`, but setting it in `mpv.conf` will not work: the library browser
     holds the same option at `inf` while it is on screen, so the player has to set it for each photo.
-- `lang` - Allows overriding system locale. (Enter a language code.) Default: `null`
-  - MPV Shim should use your OS language by default.
+- `lang` - Interface language, as a locale code (`de`, `pt_BR`, `zh_Hans`).
+  Also in Settings → General, at the top of the page. Takes effect after a
+  restart. Default: `null`, meaning follow the system.
+  - The picker lists every language with the share of the app translated into
+    it. The rest of the interface stays in English; translations are
+    contributed through Weblate at translate.jellyfin.org.
+  - Following the system means what gettext means by it: `LANGUAGE`, then
+    `LC_ALL`, `LC_MESSAGES` and `LANG`. On Windows it is the user's UI
+    language instead, which no environment variable carries.
+  - Before 3.1.0 this app asked Python for the system locale, which ignores
+    `LANGUAGE` (what GNOME and KDE set for the display language) and answers
+    `C` for a locale that has not been generated — the Debian, container and
+    Flatpak default. If your desktop language never had any effect here, that
+    is why.
 - `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`
   - Please consider getting a certificate from Let's Encrypt instead of using this.
 - `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`

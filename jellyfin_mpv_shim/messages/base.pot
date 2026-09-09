@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-08 22:26-0400\n"
+"POT-Creation-Date: 2026-09-09 03:57-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -879,6 +879,7 @@ msgid "Title"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Language"
 msgstr ""
 
@@ -1406,6 +1407,12 @@ msgid "One row per notch"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#: jellyfin_mpv_shim/svp_integration.py
+msgid "Automatic"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
 msgstr ""
 
@@ -1540,6 +1547,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Tell Me About Updates"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1840,6 +1851,20 @@ msgid ""
 "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target "
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"The percentage is how much of this app that language has been translated so "
+"far; the rest stays in English. Translations are contributed at "
+"translate.jellyfin.org."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"\"Automatic\" turns this off inside a Flatpak, where your desktop already "
+"announces updates and \"flatpak update\" installs them, and leaves it on "
+"everywhere else."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2674,11 +2699,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Automatic: Actively Watched"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#: jellyfin_mpv_shim/svp_integration.py
-msgid "Automatic"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -3643,6 +3663,7 @@ msgid "Earlier"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Later"
 msgstr ""
 
@@ -4110,6 +4131,10 @@ msgid "Delete the watched downloads in %s?"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+msgid "Use the system language"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Show advanced settings"
 msgstr ""
 
@@ -4534,15 +4559,24 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
+msgid "Update available: %s — run “flatpak update”"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, python-format
 msgid "Update available: %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-msgid "Open"
+msgid "Details…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-msgid "Dismiss"
+msgid "Ignore"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Do not mention this version again"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4767,6 +4801,13 @@ msgstr ""
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
+msgstr ""
+
+#: jellyfin_mpv_shim/update_check.py
+#, python-brace-format
+msgid ""
+"MPV Shim v{0} Update Available\n"
+"Run \"flatpak update\" to install it."
 msgstr ""
 
 #: jellyfin_mpv_shim/users.py

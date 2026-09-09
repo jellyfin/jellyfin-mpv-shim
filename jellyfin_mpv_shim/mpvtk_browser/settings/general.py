@@ -25,6 +25,30 @@ from .. import theme
 log = logging.getLogger("mpvtk_browser.settings")
 
 
+def _language_choices():
+    """``[(label, value), ...]`` for the interface language picker.
+
+    **Endonyms and a percentage**, from the generated `locale_index`: the
+    person reaching for this control cannot read the language it is
+    currently in, and 41 of the 86 locales sit between 25% and 50%, so any
+    completeness threshold either hides most of the list or means nothing.
+    Showing the number is what makes listing everything honest.
+
+    None, not "", for "use the system language" -- that is what `lang`
+    already means in conf.py, and `set_setting` writes None for a nullable
+    key. The row is compared with `str(value)`, where None matches None.
+    """
+    try:
+        from ...locale_index import LOCALES
+    except ImportError:            # not generated in this checkout
+        log.debug("no locale index", exc_info=True)
+        return None
+    out = [(_("Use the system language"), None)]
+    for code, endonym, percent in LOCALES:
+        out.append(("%s \u2014 %d%%" % (endonym, percent), code))
+    return out
+
+
 class GeneralTabMixin:
 
     #: Width of a settings field, and of the label column beside it. One
@@ -294,6 +318,8 @@ class GeneralTabMixin:
         here would buy nothing for a directory listing and a JSON parse per
         theme per frame.
         """
+        if key == "lang":
+            return _language_choices()
         if key == "theme":
             try:
                 from .. import themes

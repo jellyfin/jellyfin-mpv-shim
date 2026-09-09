@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-08 15:09+0000\n"
-"Last-Translator: Ziad Senior <ziadsenior20@gmail.com>\n"
+"PO-Revision-Date: 2026-09-09 17:10+0000\n"
+"Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
 "Language: ar\n"
@@ -26,7 +26,7 @@ msgstr "تهيئة مجهولة"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, python-format
+#, python-format, fuzzy
 msgid "Page %(page)d of %(total)d"
 msgstr "صفحة %(page)d من %(total)ات"
 
@@ -1794,38 +1794,36 @@ msgstr "تحسين وضوح شعارات قنوات البث المباشر"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "صنع شعارات المكتبة بشكل مقروء اكثر"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Type"
 msgid "Type Size"
-msgstr "نوع"
+msgstr "نوع حجم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "لون صفحة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "توزيع النص"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "وضع قراءة القصص المصورة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "زضع بث موجه (لا يتم تصفح المكتبة)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "يفتح البث مكتبة المتصفح"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "صفحة المكتبة ملئ الشاشة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
@@ -5022,7 +5020,7 @@ msgid "Configure Servers"
 msgstr "إعدادات الخوادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, python-format
+#, python-format, fuzzy
 msgid "Downloading %(name)s — %(n)d remaining"
 msgstr "تنزيل %(name)ات — %(n)d باقي"
 

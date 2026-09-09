@@ -456,14 +456,25 @@ def banner(b):
     # Update before offline: the offline banner is persistent, so checking
     # it first meant an update notice was never seen while offline.
     if b._update:
+        # Inside a Flatpak the releases page cannot install anything, so the
+        # notice says what can -- but it keeps the link, because the release
+        # notes are worth reading wherever the build comes from.
         return Row([
-            Text(_("Update available: %s") % b._update["version"],
-                 size="normal"),
+            Text((_("Update available: %s \u2014 run \u201cflatpak update\u201d")
+                  if b._update.get("flatpak") else _("Update available: %s"))
+                 % b._update["version"], size="normal"),
             Spacer(),
-            Button(_("Open"), id="banner-open",
+            # Three answers, because two were not enough: "Later" is this
+            # run only, and without a way to say "not this version" the
+            # answer people reach for is turning the update check off
+            # entirely -- a much bigger switch, and one nobody revisits.
+            Button(_("Details\u2026"), id="banner-open",
                    on_click=lambda: b._open_url(b._update["url"])),
-            Button(_("Dismiss"), id="banner-dismiss",
+            Button(_("Later"), id="banner-dismiss",
                    on_click=b._dismiss_update),
+            Button(_("Ignore"), id="banner-ignore",
+                   tip=_("Do not mention this version again"),
+                   on_click=b._ignore_update),
         ], pad=10, gap=10, align="center", h=48, bg=theme.ACCENT_SOFT)
     if b._offline:
         return Row([

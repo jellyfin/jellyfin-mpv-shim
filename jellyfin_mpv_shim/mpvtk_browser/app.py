@@ -3129,8 +3129,16 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
     def notify_update(self, version, url):
         """Registered as playerManager.notify_update: show the update notice
-        as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
-        self._update = {"version": version, "url": url}
+        as a browser banner (mirrors the Tk browser / CLI-OSD split).
+
+        ``flatpak`` decides the wording only -- the link stays either way.
+        Asked once here rather than in the banner builder, which runs on
+        every repaint while the notice is up.
+        """
+        from ..hostinfo import flatpak_managed
+
+        self._update = {"version": version, "url": url,
+                        "flatpak": flatpak_managed()}
         self.invalidate()
 
     def resend_hud_config(self):
@@ -3282,6 +3290,26 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _dismiss_update(self):
         self._update = None
         self.invalidate()
+
+    def _ignore_update(self):
+        """"Ignore": do not raise this version again, in this run or any
+        later one.
+
+        The alternative people reach for is turning the update check off
+        entirely, which is a much bigger answer to "not this one" -- and one
+        they never revisit. `has_notified` only covers the current run.
+        """
+        version = (self._update or {}).get("version")
+        self._dismiss_update()
+        if not version:
+            return
+        try:
+            from . import config as cfg
+
+            cfg.set_setting("update_skip_version", version)
+        except Exception:
+            log.warning("could not remember the skipped version",
+                        exc_info=True)
 
     def note_restart_needed(self, key):
         """Remember that ``key`` will not do anything until a restart."""

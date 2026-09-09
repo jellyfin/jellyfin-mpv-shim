@@ -30,7 +30,14 @@ config_path = None
 #      become real bindings in their input.conf (see input_conf.py).
 #   5: osc_style "default" folds into "mpv" -- one "MPV UI" instead of two
 #      that only differed in who loaded the OSC.
-CONFIG_VERSION = 5
+#   6: notify_updates becomes a tri-state so the platform can answer it, and
+#      SteamOS gets the gamepad turned on. One probe (hostinfo), two
+#      answers.
+CONFIG_VERSION = 6
+
+#: The three answers `notify_updates` takes. Also what the migration uses to
+#: recognise a value that has already been migrated.
+_NOTIFY_STATES = ("default", "enabled", "disabled")
 
 # Media segment types the server publishes, and the setting that decides what
 # each one does. Jellyfin's enum also has "Unknown", which has no meaning to
@@ -496,12 +503,44 @@ class Settings(SettingsBase):
     sync_osd_message: bool = True
     screenshot_menu: bool = True
     check_updates: bool = True
-    notify_updates: bool = True
+    #: A version the user asked not to be told about again, or None.
+    #:
+    #: Written by the notice's own "Ignore", never by hand -- it is app
+    #: state, not a preference, which is why it has no entry in
+    #: docs/configuration.md.
+    #:
+    #: **Equality, not ordering.** The next release does not match it, so
+    #: the notice comes back on its own and there is nothing to reset; an
+    #: ordering test would also have to decide what a downgrade means. The
+    #: point of the button is that somebody who does not want to hear about
+    #: *this* version has an answer short of turning the checker off.
+    update_skip_version: Optional[str] = None
+    #: Whether to raise an update notice the user did not ask for.
+    #:
+    #: **"default" is not a guess about the platform, it is what installed
+    #: this copy.** Inside a Flatpak the desktop's own updater already
+    #: announces updates and `flatpak update` is what installs them, so an
+    #: extra banner duplicates a notification the user already gets --
+    #: against the platform convention that applications do not notify about
+    #: their own updates. Everywhere else the app IS the only thing that
+    #: knows, and this client's compatibility depends on a moving server, so
+    #: "you are out of date" is information rather than nagging.
+    #:
+    #: Three states rather than a platform-dependent bool, because "on" is a
+    #: real preference that a resolved default would silently overrule.
+    #: `notify_updates_wanted` resolves it; CONFIG_VERSION 6 migrates
+    #: existing installs, which all carry an explicit `true`.
+    notify_updates: str = "default"
     lang: Optional[str] = None
     discord_presence: bool = False
     ignore_ssl_cert: bool = False
     menu_mouse: bool = True
     media_keys: bool = True
+    #: Forced on for SteamOS at CONFIG_VERSION 6: a Steam Deck is a machine
+    #: where the gamepad is the only pointing device most users have, so off
+    #: is simply the wrong answer there. A plain bool and deliberately not
+    #: the tri-state next door -- gamepad input is additive, so there is no
+    #: preference for a platform default to overrule.
     input_gamepad: bool = False
     #: Which face button confirms. mpv reports the face buttons by POSITION
     #: -- ACTION_DOWN is the bottom one whatever is printed on it -- and the
@@ -759,6 +798,21 @@ class Settings(SettingsBase):
     tls_server_ca: Optional[str] = None
     language_config: Optional[List[LanguageRule]] = None
 
+    def notify_updates_wanted(self):
+        """Whether an unasked-for update notice should be raised here.
+
+        Anything that is not one of the two explicit answers resolves by
+        platform, so a hand-edited or older conf.json degrades to the
+        default rather than to silence.
+        """
+        from . import hostinfo
+
+        if self.notify_updates == "enabled":
+            return True
+        if self.notify_updates == "disabled":
+            return False
+        return not hostinfo.flatpak_managed()
+
     def _migrate(self, data=None):
         """Apply one-time upgrades for configs written by older versions.
 
@@ -836,6 +890,39 @@ class Settings(SettingsBase):
                     "(mpv now supports Dolby Vision natively)."
                 )
                 self.transcode_dolby_vision = False
+        if self.config_version < 6:
+            # `notify_updates` becomes a tri-state, and the platform gets to
+            # answer for anyone who never expressed a preference.
+            #
+            # **Migrated by the OLD value, and one case cannot be read.** A
+            # stored `false` is unambiguous -- somebody turned it off -- and
+            # becomes `disabled`. A stored `true` is both "never touched it"
+            # and "explicitly wanted it", with nothing on disk telling them
+            # apart, so it becomes `default`: the few who deliberately
+            # enabled an already-on setting lose that, once, and get it back
+            # from one row in Settings.
+            #
+            # Read from `data` rather than from self: the field is `str`
+            # now, so a JSON `true` has already been coerced on the way in
+            # and the attribute no longer carries the answer.
+            raw = data.get("notify_updates")
+            if not isinstance(raw, str) or raw not in _NOTIFY_STATES:
+                want = "disabled" if raw is not None and not adv_bool(raw) \
+                    else "default"
+                if self.notify_updates != want:
+                    log.info("Config migration: notify_updates = %s (was %r; "
+                             "the platform now answers for \"default\").",
+                             want, raw)
+                    self.notify_updates = want
+                    changed = True
+            # The same probe, asked once and used twice: on SteamOS the
+            # gamepad is the only pointing device most users have.
+            from . import hostinfo
+
+            if not self.input_gamepad and hostinfo.is_steamos():
+                log.info("Config migration: input_gamepad = True (SteamOS).")
+                self.input_gamepad = True
+                changed = True
         if self.config_version < 5:
             # "MPV built-in default" and "MPV UI with thumbnails" collapse
             # into one "MPV UI". They only ever differed in who loaded the

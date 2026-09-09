@@ -2987,6 +2987,58 @@ fake.key("mbtn_right")
 ok(not did("cycle", "pause"),
    "click-to-pause on: right click is not a second way to pause")
 
+-- ...and with the HUD HIDDEN, which is most of playback. A4, and the other
+-- half of #737's right-click story.
+--
+-- `on_rclick`'s bare-video pause requires `state.phud.shown`, and
+-- `phud_bind_summon` binds `mbtn_left` when click_pauses is ON and nothing
+-- at all when it is off -- so with right-click-to-pause and the bar
+-- auto-hidden there was no path to pause by mouse. That used to be covered
+-- by mpv's own default, and our pin move took it away: v0.41.0 binds
+-- MBTN_RIGHT to `cycle pause`, master binds it to
+-- `script-binding select/context-menu` (65a1852ba3), and the flatpak moved
+-- to master for an unrelated HDR fix.
+hud_engage({ hide = 4, mode = "hover", click = false })
+hud_pointer(600, 300)          -- off the controls, onto the picture
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "premise: the HUD engaged and then auto-hid")
+-- Asserted through the binding rather than `fake.key("mbtn_right")`,
+-- because the fake dispatches by binding NAME and cannot model mpv's
+-- section stack (fake_mp says so itself) -- `mbtn_right` there reaches the
+-- mouse section's handler, while in real mpv a FORCED binding outranks the
+-- section. So: the binding must exist while the HUD is hidden, and it must
+-- pause.
+ok(fake.log.keybinds["mpvtk_phud_rclick"] ~= nil,
+   "mpv modality: the right button is bound while the HUD is hidden (A4)")
+fake.log.commands = {}
+if fake.log.keybinds["mpvtk_phud_rclick"] then
+    fake.key("mpvtk_phud_rclick")
+end
+ok(did("cycle", "pause"),
+   "mpv modality: right click pauses with the HUD hidden too (A4)")
+
+-- The control, both ways round: click-to-pause on must not gain a second
+-- pause button, and the left button must keep dragging the window in mpv
+-- modality rather than pausing.
+hud_engage({ hide = 4, mode = "hover", click = true })
+hud_pointer(600, 300)
+fake.reset_events()
+hud_wait()
+eq(fake.log.keybinds["mpvtk_phud_rclick"], nil,
+   "click-to-pause on: the right button is not taken with the HUD hidden")
+fake.log.commands = {}
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "click-to-pause on: right click is not a second pause with the HUD hidden")
+
+-- And the release, which the pairing lint also insists on: leaving
+-- mpvtk_phud_rclick bound after the HUD disengages would be #737 again
+-- with the other button.
+fake.send("mpvtk-hud", "no")
+eq(fake.log.keybinds["mpvtk_phud_rclick"], nil,
+   "the right-button binding is released when the HUD disengages")
+
 -- ------------- ...but "no node" is not "bare video" while something floats
 --
 -- node_at() answers with clickable SCENE nodes, and a modal's body, a
@@ -3369,6 +3421,61 @@ eq(last_event("hudskip"), nil, "a direction accepted the skip")
 eq(fake.log.props["user-data/mpvtk/active"], true,
    "a direction over the Skip button did not bring the bar up")
 fake.send("mpvtk-hud-skip", "")
+
+-- ============================================ #737: the leaked skip click
+--
+-- Reported as "right click to pause causes the UI to become unresponsive":
+-- after a couple of videos no mouse click reaches the UI at all, the
+-- keyboard still works, and quitting playback does not clear it. Only with
+-- right-click-to-pause -- "switching back to left click to pause this
+-- behavior never occurs".
+--
+-- That is exactly the shape of a forced binding nobody released.
+-- `phud_skip_bind` takes `mbtn_left` for the Skip button **only when
+-- click_pauses is off** (with it on, `mpvtk_phud_click` already owns the
+-- button), and `phud_skip_unbind` released only the ENTER half. So every
+-- skip segment left another `mpvtk_skip_click` behind, and once the button
+-- is down that handler's else-branch runs `begin-vo-dragging` for every
+-- click -- which is a UI that ignores the mouse and a window that drags.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes",
+          fake.token({ hide = 4, mode = "hover", click = false }))
+fake.send("mpvtk-hud-skip", "Skip Intro")
+fake.advance(1)
+ok(fake.log.keybinds["mpvtk_skip_click"] ~= nil,
+   "the premise: right-click mode takes mbtn_left while the button is up")
+fake.send("mpvtk-hud-skip", "")
+ok(fake.log.keybinds["mpvtk_skip_click"] == nil,
+   "the Skip button gives mbtn_left back when it hides (#737)")
+
+-- And it must survive the loop that the report describes: several videos,
+-- each with a skip segment. One release that only works the first time
+-- would still strand the button.
+for i = 1, 3 do
+    fake.send("mpvtk-hud", "no")
+    fake.send("mpvtk-hud", "yes",
+              fake.token({ hide = 4, mode = "hover", click = false }))
+    fake.send("mpvtk-hud-skip", "Skip Intro")
+    fake.advance(1)
+    fake.send("mpvtk-hud-skip", "")
+    if fake.log.keybinds["mpvtk_skip_click"] ~= nil then
+        ok(false, "mbtn_left was still bound after skip cycle " .. i)
+        break
+    end
+end
+ok(fake.log.keybinds["mpvtk_skip_click"] == nil,
+   "three skip segments in a row leave nothing bound")
+
+-- The control: with click-to-pause ON, the button is owned by
+-- mpvtk_phud_click and this binding is never taken in the first place.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.send("mpvtk-hud-skip", "Skip Intro")
+fake.advance(1)
+eq(fake.log.keybinds["mpvtk_skip_click"], nil,
+   "left-click-to-pause never takes the second binding")
+fake.send("mpvtk-hud-skip", "")
+fake.send("mpvtk-hud", "no")
 
 -- Auto-repeat. mpv repeats a held key at --input-ar-rate -- 40 a second by
 -- default -- which on a stick is forty library rows a second and is not

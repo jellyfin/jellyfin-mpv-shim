@@ -267,6 +267,68 @@ class TestBanners(unittest.TestCase):
         handlers["banner-open"]["click"]()
         self.assertEqual(self.ctl.opened_urls, ["http://example/rel"])
 
+    def test_inside_a_flatpak_it_says_what_installs_it(self):
+        """`flatpak update` is what installs an update there; the releases
+        page cannot. The wording is the only thing that changes."""
+        self.b.notify_update("2.5.0", "http://example/rel")
+        self.b._update["flatpak"] = True
+        nodes, _h = build_scene(self.b)
+        said = " ".join(str(n.get("text") or "") for n in nodes)
+        self.assertIn("flatpak update", said)
+        self.assertIn("2.5.0", said)
+
+    def test_and_keeps_the_link_anyway(self):
+        """[iw]: the notice is off by default in a Flatpak now, so anyone
+        seeing it asked for it -- and may want to read the release notes,
+        which is what the page is good for even where it cannot deliver the
+        build."""
+        self.b.notify_update("2.5.0", "http://example/rel")
+        self.b._update["flatpak"] = True
+        _n, handlers = build_scene(self.b)
+        handlers["banner-open"]["click"]()
+        self.assertEqual(self.ctl.opened_urls, ["http://example/rel"])
+
+    def test_and_says_nothing_about_flatpak_anywhere_else(self):
+        self.b.notify_update("2.5.0", "http://example/rel")
+        self.b._update["flatpak"] = False
+        nodes, _h = build_scene(self.b)
+        said = " ".join(str(n.get("text") or "") for n in nodes)
+        self.assertNotIn("flatpak", said)
+
+    def test_ignore_remembers_the_version(self):
+        """The third answer. "Later" is this run only, and without this the
+        switch people reach for is the update check itself."""
+        import jellyfin_mpv_shim.mpvtk_browser.config as cfg
+
+        wrote = []
+        real = cfg.set_setting
+        cfg.set_setting = lambda k, v: wrote.append((k, v)) or True
+        try:
+            self.b.notify_update("2.5.0", "http://example/rel")
+            _n, handlers = build_scene(self.b)
+            handlers["banner-ignore"]["click"]()
+        finally:
+            cfg.set_setting = real
+        self.assertEqual(wrote, [("update_skip_version", "2.5.0")])
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-ignore", ids(nodes))
+
+    def test_later_remembers_nothing(self):
+        """The control: [Later] must not write anything, or a dismissal
+        this run would silence the version for good."""
+        import jellyfin_mpv_shim.mpvtk_browser.config as cfg
+
+        wrote = []
+        real = cfg.set_setting
+        cfg.set_setting = lambda k, v: wrote.append((k, v)) or True
+        try:
+            self.b.notify_update("2.5.0", "http://example/rel")
+            _n, handlers = build_scene(self.b)
+            handlers["banner-dismiss"]["click"]()
+        finally:
+            cfg.set_setting = real
+        self.assertEqual(wrote, [])
+
     def test_offline_banner_toggles(self):
         self.b.set_offline(True)
         nodes, _h = build_scene(self.b)
