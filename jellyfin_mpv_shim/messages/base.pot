@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 03:10-0400\n"
+"POT-Creation-Date: 2026-09-09 03:21-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -879,6 +879,7 @@ msgid "Title"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Language"
 msgstr ""
 
@@ -1850,6 +1851,13 @@ msgid ""
 "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target "
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"The percentage is how much of this app that language has been translated so "
+"far; the rest stays in English. Translations are contributed at "
+"translate.jellyfin.org."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -4122,6 +4130,10 @@ msgid "Delete the watched downloads in %s?"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+msgid "Use the system language"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Show advanced settings"
 msgstr ""
 
@@ -4546,12 +4558,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
-msgid "Update available: %s"
+msgid "Update available: %s — run “flatpak update”"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
-msgid "Update available: %s — run “flatpak update”"
+msgid "Update available: %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py

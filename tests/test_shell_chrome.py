@@ -267,25 +267,31 @@ class TestBanners(unittest.TestCase):
         handlers["banner-open"]["click"]()
         self.assertEqual(self.ctl.opened_urls, ["http://example/rel"])
 
-    def test_a_notice_with_no_url_offers_no_link(self):
-        """A managed Flatpak: `update_check.notify` passes no url because
-        the releases page cannot install anything there. The banner must
-        then say what does and offer nothing that leads away from it -- an
-        [Open] that went nowhere would be worse than the notice."""
-        self.b.notify_update("2.5.0", None)
+    def test_inside_a_flatpak_it_says_what_installs_it(self):
+        """`flatpak update` is what installs an update there; the releases
+        page cannot. The wording is the only thing that changes."""
+        self.b.notify_update("2.5.0", "http://example/rel")
+        self.b._update["flatpak"] = True
         nodes, _h = build_scene(self.b)
-        self.assertNotIn("banner-open", ids(nodes))
-        self.assertIn("banner-dismiss", ids(nodes))
         said = " ".join(str(n.get("text") or "") for n in nodes)
         self.assertIn("flatpak update", said)
         self.assertIn("2.5.0", said)
 
-    def test_and_a_notice_with_one_still_does(self):
-        """The control for the row above: the same banner with a url is
-        unchanged, so the split is the url and not something else."""
+    def test_and_keeps_the_link_anyway(self):
+        """[iw]: the notice is off by default in a Flatpak now, so anyone
+        seeing it asked for it -- and may want to read the release notes,
+        which is what the page is good for even where it cannot deliver the
+        build."""
         self.b.notify_update("2.5.0", "http://example/rel")
+        self.b._update["flatpak"] = True
+        _n, handlers = build_scene(self.b)
+        handlers["banner-open"]["click"]()
+        self.assertEqual(self.ctl.opened_urls, ["http://example/rel"])
+
+    def test_and_says_nothing_about_flatpak_anywhere_else(self):
+        self.b.notify_update("2.5.0", "http://example/rel")
+        self.b._update["flatpak"] = False
         nodes, _h = build_scene(self.b)
-        self.assertIn("banner-open", ids(nodes))
         said = " ".join(str(n.get("text") or "") for n in nodes)
         self.assertNotIn("flatpak", said)
 

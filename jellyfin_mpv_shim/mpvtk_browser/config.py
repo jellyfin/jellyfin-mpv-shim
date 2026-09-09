@@ -152,7 +152,10 @@ TAB_SECTIONS = {
         # hand-editing conf.json, which is not a thing to leave one click
         # away in the main list. They stay editable under Advanced, with
         # notes saying what they cost.
-        (_("This Device"), ["player_name", "raise_mpv",
+        # `lang` first, and first on the whole landing page: somebody who
+        # needs it cannot read anything else on this screen to find it, and
+        # may well be reading it through a phone camera.
+        (_("This Device"), ["lang", "player_name", "raise_mpv",
                             "discord_presence",
                             "check_updates", "notify_updates"]),
         # A controller drives the *library* as much as playback -- it is the
@@ -321,6 +324,12 @@ RESTART_REQUIRED = frozenset({
     # mpv reads it exactly once, in mp_input_load_config -- a runtime write
     # succeeds and reads back yes while the SDL thread is never started.
     "input_gamepad",
+    # 22 module-scope `_()` / `_p()` call sites evaluate at import, so
+    # re-running `i18n.configure()` would leave those in the old language
+    # while everything else repainted into the new one. A half-translated
+    # UI is worse than being asked to restart, which is the state this
+    # marker exists to prevent.
+    "lang",
     # One-way doors: both change what the app is at startup rather than what
     # it is doing.
     "enable_gui", "headless",
@@ -613,6 +622,7 @@ LABELED_ENUMS = {
 }
 
 LABEL_OVERRIDES = {
+    "lang": _("Language"),
     "notify_updates": _("Tell Me About Updates"),
     "input_gamepad": _("Game Controller"),
     "gamepad_swap_confirm": _("Swap Confirm and Back Buttons"),
@@ -719,6 +729,13 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # The percentage is the point of the note as much as the restart is: a
+    # language at 30% is mostly English and picking it should not look like
+    # a fault. Translating is where that number moves, so the note says so.
+    "lang": _(
+        "The percentage is how much of this app that language has been "
+        "translated so far; the rest stays in English. Translations are "
+        "contributed at translate.jellyfin.org."),
     # Says what "Automatic" resolves to here rather than in general: a
     # Flatpak user reading "Automatic" has no way to know it means off, and
     # this app is a client whose compatibility depends on a moving server,

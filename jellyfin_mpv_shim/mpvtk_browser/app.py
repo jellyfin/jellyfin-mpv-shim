@@ -3129,8 +3129,16 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
     def notify_update(self, version, url):
         """Registered as playerManager.notify_update: show the update notice
-        as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
-        self._update = {"version": version, "url": url}
+        as a browser banner (mirrors the Tk browser / CLI-OSD split).
+
+        ``flatpak`` decides the wording only -- the link stays either way.
+        Asked once here rather than in the banner builder, which runs on
+        every repaint while the notice is up.
+        """
+        from ..hostinfo import flatpak_managed
+
+        self._update = {"version": version, "url": url,
+                        "flatpak": flatpak_managed()}
         self.invalidate()
 
     def resend_hud_config(self):

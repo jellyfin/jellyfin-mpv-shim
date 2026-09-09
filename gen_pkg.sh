@@ -179,6 +179,17 @@ do
     compile_po "$file" "${file%.*}.mo" || exit 1
 done < <(find -iname '*.po')
 
+# The language picker's list, from the same .po files that were just
+# compiled. Regenerated here so a release always carries current
+# completeness numbers; a source checkout carries whatever was last
+# committed. Not fatal: an out-of-date list is a wrong percentage, not a
+# broken build.
+if find_python
+then
+    "$PYTHON" tools/gen_locale_index.py || \
+        echo "Warning: could not regenerate the language index."
+fi
+
 # Download default-shader-pack
 update_shader_pack="no"
 if [[ ! -e "jellyfin_mpv_shim/default_shader_pack" ]]

@@ -720,10 +720,11 @@ You can use the config file to enable and disable features.
     `flatpak update` is what installs them, and **on everywhere else** (pip,
     Windows, macOS), where this app is the only thing that knows.
   - `enabled` and `disabled` are your answer and are never overridden.
-  - Inside a Flatpak the notice tells you to run `flatpak update` and offers
-    no link, because the releases page cannot install anything there. A build
-    handed to you directly (a CI artifact, a local bundle) keeps the link:
-    those cannot update themselves.
+  - Inside a Flatpak the notice tells you to run `flatpak update`, since the
+    releases page cannot install anything there. It still links to the page,
+    which is where the release notes are. A build handed to you directly (a
+    CI artifact, a local bundle) says nothing about `flatpak update`: those
+    have no remote to update from.
   - Was a `true`/`false` setting before 3.1.0. An existing `false` becomes
     `disabled`; an existing `true` becomes `default`, since nothing on disk
     distinguishes "never touched it" from "asked for it".
@@ -1201,8 +1202,20 @@ Other miscellaneous configuration options. You probably won't have to change the
   - Photos open paused, so this is the slideshow speed once you press play.
   - This is MPV's `--image-display-duration`, but setting it in `mpv.conf` will not work: the library browser
     holds the same option at `inf` while it is on screen, so the player has to set it for each photo.
-- `lang` - Allows overriding system locale. (Enter a language code.) Default: `null`
-  - MPV Shim should use your OS language by default.
+- `lang` - Interface language, as a locale code (`de`, `pt_BR`, `zh_Hans`).
+  Also in Settings → General, at the top of the page. Takes effect after a
+  restart. Default: `null`, meaning follow the system.
+  - The picker lists every language with the share of the app translated into
+    it. The rest of the interface stays in English; translations are
+    contributed through Weblate at translate.jellyfin.org.
+  - Following the system means what gettext means by it: `LANGUAGE`, then
+    `LC_ALL`, `LC_MESSAGES` and `LANG`. On Windows it is the user's UI
+    language instead, which no environment variable carries.
+  - Before 3.1.0 this app asked Python for the system locale, which ignores
+    `LANGUAGE` (what GNOME and KDE set for the display language) and answers
+    `C` for a locale that has not been generated — the Debian, container and
+    Flatpak default. If your desktop language never had any effect here, that
+    is why.
 - `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`
   - Please consider getting a certificate from Let's Encrypt instead of using this.
 - `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`

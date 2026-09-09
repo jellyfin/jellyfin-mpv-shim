@@ -240,16 +240,12 @@ class UpdateChecker:
         ``notify_update``) the notice goes to the browser window; otherwise it
         falls back to an MPV OSD toast for CLI/headless users.
 
-        **Inside a Flatpak that updates itself, the notice carries no link.**
-        The releases page cannot help there: what it offers is either "wait
-        until Flathub has it" or a bundle install whose origin is dead, so
-        the only true instruction is ``flatpak update``. ``url`` is None for
-        that case and the banner drops its [Open] button
-        (docs/RELEASE_SHAPE_POST_3.0.0.md section 5.3).
-
-        A build we handed somebody is not this case -- it is marked, has no
-        remote to update from, and its user was given it deliberately -- so
-        it keeps the link.
+        **Inside a Flatpak that updates itself, the notice says how to
+        install it** -- ``flatpak update``, since the releases page cannot
+        install anything there -- but it still carries the link. [iw], once
+        the notice stopped being on by default there: somebody who switched
+        it back on may well want to read the release notes, and that is what
+        the page is good for even where it cannot deliver the build.
         """
         from . import hostinfo
 
@@ -257,8 +253,7 @@ class UpdateChecker:
         notify_ui = getattr(self.playerManager, "notify_update", None)
         if notify_ui is not None:
             try:
-                notify_ui(self.new_version,
-                          None if managed else self.release_url + "latest")
+                notify_ui(self.new_version, self.release_url + "latest")
                 return
             except Exception:
                 log.error("Could not send update notice to the UI.", exc_info=True)

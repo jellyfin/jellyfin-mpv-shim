@@ -44,13 +44,12 @@ class FakePlayer:
 
 
 class FlatpakNoticeTest(unittest.TestCase):
-    """Inside a Flatpak that updates itself, the notice carries no link.
+    """Inside a Flatpak the notice says how to install the update.
 
-    The releases page cannot install anything there: what it offers is
-    "wait until Flathub has it" or a bundle whose origin is dead. So the
-    only true instruction is `flatpak update`, and a button that leads away
-    from it is worse than no button. A build we handed somebody is marked,
-    has no remote to update from, and keeps its link.
+    `flatpak update` is what installs one there; the releases page cannot.
+    The **link stays** either way -- [iw], once the notice stopped being on
+    by default in a Flatpak: anyone seeing it there switched it on, and the
+    release notes are worth reading wherever the build comes from.
     """
 
     def _notify(self, managed, with_ui=True):
@@ -63,12 +62,11 @@ class FlatpakNoticeTest(unittest.TestCase):
             chk.notify()
         return player
 
-    def test_a_managed_flatpak_gets_no_url(self):
-        self.assertEqual(self._notify(True).ui_calls, [("2.9.0", None)])
-
-    def test_everything_else_keeps_the_releases_page(self):
-        self.assertEqual(self._notify(False).ui_calls,
-                         [("2.9.0", release_url + "latest")])
+    def test_the_releases_page_goes_to_the_ui_either_way(self):
+        for managed in (True, False):
+            self.assertEqual(self._notify(managed).ui_calls,
+                             [("2.9.0", release_url + "latest")],
+                             "managed=%s lost the link" % managed)
 
     def test_the_osd_fallback_says_what_to_run_instead(self):
         """The CLI half of the same split. "Open menu for details" leads to
