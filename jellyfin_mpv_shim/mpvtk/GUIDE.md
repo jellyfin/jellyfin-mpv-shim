@@ -435,12 +435,22 @@ the fallback outvote the renderer — see `MpvtkApp.scroll_offsets`.
    slots and remove-before-add both showed as scroll flicker).
 3. Text metrics: measured per-char advances (ASCII) shared by layout
    and renderer + `\fn` for the same font. **libass scales `\fs` to the
-   font's ascender+descender height, not the em** (VSFilter compat) —
-   metrics.py folds the correction factor (em/(asc+desc), ≈0.859 for
-   DejaVu Sans) into the table; `calibrate.py` verifies pixel-wise
-   (ratios ~1.00). Without the factor, widths run ~16% wide and
-   click/selection lands on the wrong letter. **Pair kerning** is also
-   measured (`getlength(ab) - a - b`, ~220 non-zero ASCII pairs for
+   font's ascender+descender height, not the em** (VSFilter compat), and
+   that box is font-relative — 150 for DejaVu Sans at a 128px em, 172 for
+   Segoe UI, both measured. Two consequences, and only the first was
+   handled for a long time. Widths are a fraction of the nominal size, so
+   metrics.py folds the constant `_WIDTH_FACTOR` (≈0.853) into the table;
+   without it they run ~16% wide and click/selection lands on the wrong
+   letter, and `calibrate.py` verifies that pixel-wise (ratios ~1.00).
+   **And the rendered size is font-relative unless something cancels the
+   face out**: the renderer multiplies every `\fs` by `state.fs_mul`
+   (metrics.py `_fs_multiplier`, sent as the `fs` key), which is the face's
+   own box over DejaVu Sans'. Linux is the reference, so it is 1.0 there
+   and 1.147 on Windows — where the whole UI drew 13% small, with every box
+   around it the right size, because the width model carried the same
+   per-face factor and predicted the smaller text correctly. `calibrate.py`
+   cannot see that: it compares two models that shared the error.
+   **Pair kerning** is also measured (`getlength(ab) - a - b`, ~220 non-zero ASCII pairs for
    DejaVu, e.g. "Ta" = -0.14em) and applied in every width/boundary
    path — advances alone drift badly on strings like "TaTaTa".
    Caret/selection boundaries include the kern INTO the next glyph

@@ -3827,6 +3827,44 @@ ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
    "a cleared select key left nothing bound")
 ok(fake.log.keybinds["mpvtk_nav_j"] == nil, "the old select key was left bound")
 
+-- ================================================ libass \fs stretch
+--
+-- libass reads `\fs` as the face's ascender+descender box rather than as
+-- its em, and that box is font-relative -- 150 for DejaVu Sans, 172 for
+-- Segoe UI, both measured. Feeding the size straight in drew every string
+-- 13% smaller on Windows, with every box around it the same size, because
+-- the width table carried the same per-face factor and predicted the
+-- smaller text correctly. mpvtk/metrics.py sends the stretch; this is the
+-- half that applies it.
+
+--- The `\fs` in the ASS the renderer last published. The render is paced
+--- by a timer, so it has to be let run before there is anything to read.
+local function fs_in_ass()
+    fake.advance(1)
+    fake.fire_timers()
+    return tonumber((fake.osd.data or ""):match("\\fs([%d%.]+)"))
+end
+
+scene({ { id = "t", t = "text", x = 10, y = 10, w = 200, h = 30,
+          size = 20, c = "ffffff", text = "Hxg" } })
+eq(fs_in_ass(), 20, "an unmeasured face was stretched anyway")
+
+fake.send("mpvtk-metrics", fake.token(
+    { font = "Segoe UI", fs = 1.146667, widths = {}, kern = {} }))
+scene({ { id = "t", t = "text", x = 10, y = 10, w = 200, h = 30,
+          size = 20, c = "ffffff", text = "Hxg" } })
+ok(math.abs((fs_in_ass() or 0) - 22.93) < 0.01,
+   "a taller face was not stretched to draw at the reference size",
+   tostring(fs_in_ass()))
+
+-- Nothing to stretch by is the size this drew before, not a crash and not
+-- a zero: a machine with no Pillow gets no metrics message at all.
+fake.send("mpvtk-metrics", fake.token(
+    { font = "Segoe UI", widths = {}, kern = {} }))
+scene({ { id = "t", t = "text", x = 10, y = 10, w = 200, h = 30,
+          size = 20, c = "ffffff", text = "Hxg" } })
+eq(fs_in_ass(), 20, "a metrics message with no stretch changed the size")
+
 -- ========================================================== teardown
 
 scene({})

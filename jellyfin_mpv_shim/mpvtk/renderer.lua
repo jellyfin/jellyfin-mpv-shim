@@ -63,6 +63,17 @@ local state = {
     nodes = {},
     byid = {},
     w = 0, h = 0,
+    -- What to multiply a font size by before it reaches `\fs`. libass reads
+    -- `\fs` as the face's ascender+descender box rather than as its em, and
+    -- that box is font-relative, so the same size draws smaller in a face
+    -- with a taller box -- 13% smaller in Segoe UI than in DejaVu Sans,
+    -- measured, which is what made the whole UI look small on Windows.
+    -- mpvtk/metrics.py computes it against DejaVu Sans. 1.0 until the
+    -- metrics arrive, and 1.0 forever where Pillow cannot measure, which
+    -- is the size this drew before. NOT applied to `\fsp`: letter spacing
+    -- is already in drawn pixels. (On `state` rather than a local of its
+    -- own only because this chunk is at the 200-local ceiling.)
+    fs_mul = 1.0,
     -- Design tokens, replaced wholesale by the mpvtk-theme message (see
     -- theme.py, which owns the names and the stock values). Everything the
     -- renderer draws for itself -- text fields, dropdowns and their popups,
@@ -847,7 +858,7 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra,
         -- paragraph used to overrun its column on a fractional UI scale.
         '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%.2f\\bord0\\shad0' ..
         '\\1c%s\\1a&H00&%s%s%s%s%s}',
-        an, px, ey + node.h / 2, node.size,
+        an, px, ey + node.h / 2, node.size * state.fs_mul,
         ass_color(color), glow, node.bold and '\\b1' or '',
         ui_font and ('\\fn' .. ui_font) or '',
         clip_tag(clip), extra or ''))
@@ -2399,7 +2410,8 @@ render = function()
         ass:append(string.format(
             '{\\q2\\an5\\pos(%.1f,%.1f)\\fs%.2f\\bord0\\shad0\\1c%s' ..
             '\\1a&H00&\\b0%s}',
-            x1 + bw / 2, y1 + bh / 2, fs, ass_color(PHUD_SKIP_FG),
+            x1 + bw / 2, y1 + bh / 2, fs * state.fs_mul,
+            ass_color(PHUD_SKIP_FG),
             ui_font and ('\\fn' .. ui_font) or ''))
         ass:append(esc(label))
     else
@@ -5562,6 +5574,7 @@ mp.register_script_message('mpvtk-metrics', function(json)
     measured_widths = m.widths
     kern_table = m.kern
     ui_font = m.font
+    state.fs_mul = tonumber(m.fs) or 1.0
     if m.mask_w then MASK_W = m.mask_w end
     request_render()
 end)
