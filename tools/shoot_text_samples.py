@@ -68,10 +68,7 @@ SAMPLES = [
      "（２０１３）　ＡＢＣ　！？"),
 
     ("Right to left", "Arabic", "مسلسل الحلقة الأولى"),
-    ("Right to left", "Arabic + digits", "مسلسل (2013) الجزء 2",
-     "GUIDE 12.1: Noto Arabic has no ASCII and is first on purpose -- "
-     "the face that would draw the parens gives up 3/4 of the "
-     "presentation forms. Digits render; brackets are boxes."),
+    ("Right to left", "Arabic + digits", "مسلسل (2013) الجزء 2"),
     ("Right to left", "Hebrew", "שלום עולם"),
     ("Right to left", "Hebrew + punctuation", "הסרט הזה, משנת 2013."),
     ("Right to left", "Hebrew + niqqud", "בְּרֵאשִׁית"),
@@ -143,8 +140,7 @@ SAMPLES = [
      "BY DESIGN: it contains RTL, so the whole line is one face and "
      "almost everything else boxes. No face covers this and none can."),
     ("Mixes -- where it breaks", "Arabic + Latin word",
-     "مسلسل Netflix الأصلي",
-     "GUIDE 12.1, knowingly: the Latin word in an Arabic line is boxes."),
+     "مسلسل Netflix الأصلي"),
     ("Mixes -- where it breaks", "CJK + symbol",
      "進撃の巨人 ★ 8.1"),
 ]

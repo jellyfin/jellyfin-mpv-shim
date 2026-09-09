@@ -85,6 +85,19 @@ _CANDIDATES = {
         "NotoSansArabic-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
         "/System/Library/Fonts/GeezaPro.ttc",
+        # For the LINE, not for the script. Measured 2026-09-08: FreeSerif
+        # joins Arabic (its advance for مسلسل drops 103 -> 70 under Raqm,
+        # which is joining) and has full ASCII including the brackets, at
+        # 345/773 presentation forms against Noto's 737. `font(whole=True)`
+        # reaches it only for a line Noto cannot carry, so every other
+        # Arabic line still gets Noto -- which is what makes this a
+        # different answer from reordering the list.
+        "FreeSerif.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+        # Windows has no high-coverage Arabic face at all: measured, the
+        # best in a default install is Courier New at 376/773 and Arial is
+        # 312 -- but both have full ASCII, so the gap this list closes for
+        # Noto-first hosts never opens there.
         "arial.ttf",
     ],
     # **The order here is load-bearing and is the opposite of every other
@@ -528,6 +541,21 @@ _JOINERS = frozenset((0x200D,            # zero width joiner
                       0xFE0E, 0xFE0F,    # text / emoji variation selectors
                       0x20E3))           # combining enclosing keycap
 
+#: Combining enclosing keycap, which ends a ``base [U+FE0F] U+20E3``
+#: sequence and is the one joiner that decides its run's *script*.
+#:
+#: **A keycap has no text presentation.** Only a colour emoji face composes
+#: the sequence; a Latin face has U+20E3 and draws a dotted box around the
+#: digit, which is why no coverage check can see this -- the glyph is not
+#: missing, it is the wrong picture. Measured: the emoji face and the Latin
+#: face draw ``1️⃣`` differently, and the Latin one is what the sheet showed
+#: as ``1□``.
+#:
+#: **U+FE0F is deliberately not in here.** Rerouting on the variation
+#: selector alone would send ``★️`` to a colour face, and no colour face
+#: draws U+2605 -- #713's tofu, straight back (see :data:`_EMOJI_RANGES`).
+_KEYCAP = 0x20E3
+
 
 def runs(text):
     """``[(script, chunk), ...]`` in order, adjacent same-script chars merged.
@@ -553,6 +581,23 @@ def runs(text):
     """
     out = []
     for ch in text or "":
+        if ord(ch) == _KEYCAP and out:
+            # Peel the sequence's base off the run it joined and give it to
+            # the emoji face. **Peel, not relabel**: relabelling the run
+            # would draw "Season 1️⃣" entirely in a 109px colour face.
+            chunk = out[-1][1]
+            peeled = []
+            if chunk and ord(chunk[-1]) == 0xFE0F:
+                peeled.insert(0, chunk.pop())
+            if chunk:
+                peeled.insert(0, chunk.pop())
+            if not chunk:
+                out.pop()
+            if out and out[-1][0] == "emoji":
+                out[-1][1].extend(peeled + [ch])
+            else:
+                out.append(["emoji", peeled + [ch]])
+            continue
         if ord(ch) in _JOINERS:
             script = None
         elif ch.isspace():
@@ -736,7 +781,8 @@ def _draws(fnt, name, ch):
 
 
 def _covers(fnt, name, text, script):
-    """Whether ``fnt`` can draw the part of ``text`` that chose ``script``.
+    """Whether ``fnt`` can draw the part of ``text`` that chose ``script``,
+    or **all** of it when ``script`` is None.
 
     **Only that part, and that is the whole design of this check.** Asking
     a face to cover the whole *string* would quietly overturn two decisions
@@ -751,9 +797,17 @@ def _covers(fnt, name, text, script):
 
     Everything else in the string is somebody else's run: ``runs`` splits a
     mixed title and each piece resolves its own face.
+
+    **Except for an RTL line, which has no other run to fall to** -- there
+    the whole line is one draw call, so ``script`` is passed as None and
+    every codepoint is required. `font` asks for that first and falls back
+    to the script-only question, so the stricter answer is a preference and
+    never a way to end up with no face at all.
     """
     for ch in text or "":
-        if ch.isspace() or script_of_char(ord(ch)) != script:
+        if ch.isspace():
+            continue
+        if script is not None and script_of_char(ord(ch)) != script:
             continue
         if not _draws(fnt, name, ch):
             return False
@@ -819,10 +873,27 @@ def font_for(text, size, bold=False):
     """A PIL font able to render ``text`` at ``size``. Falls back to the Latin
     face (and finally Pillow's bitmap default) when nothing better is
     installed."""
-    return font(script_of(text), size, bold, text=text)
+    # `has_rtl`, because that is exactly the condition under which the
+    # face has to carry the whole line: `_split` gives an RTL string one
+    # draw call and there is no second run to fall back to.
+    return font(script_of(text), size, bold, text=text, whole=has_rtl(text))
 
 
-def font(script, size, bold=False, text=None):
+def _pick(script, size, bold, text, require):
+    """First face in candidate order satisfying ``require`` (a script name,
+    or None for "every codepoint in ``text``"). None if the chain runs out."""
+    index = 0
+    while True:
+        entry = _opened(script, size, bold, index)
+        if entry is None:
+            return None
+        name, fnt = entry
+        if name is None or _covers(fnt, name, text, require):
+            return fnt
+        index += 1
+
+
+def font(script, size, bold=False, text=None, whole=False):
     """A PIL face for ``script``, able to draw ``text`` if it is given.
 
     **"The first candidate that opens" is not the same question as "the
@@ -860,15 +931,17 @@ def font(script, size, bold=False, text=None):
         _cache[key] = primary
     if not text:
         return primary
-    index = 0
-    while True:
-        entry = _opened(script, size, bold, index)
-        if entry is None:
-            return primary
-        name, fnt = entry
-        if name is None or _covers(fnt, name, text, script):
-            return fnt
-        index += 1
+    if whole:
+        # An RTL line is drawn in ONE call, so prefer a face that carries
+        # all of it -- the Latin word, the brackets, the year. Only a
+        # preference: `_pick` returning None falls through to the
+        # script-only question below, so a line whose Latin cannot be had
+        # without losing the script keeps the script.
+        got = _pick(script, size, bold, text, None)
+        if got is not None:
+            return got
+    got = _pick(script, size, bold, text, script)
+    return got if got is not None else primary
 
 
 def _scale_of(fnt):
@@ -919,7 +992,8 @@ def _same_size(fnt, script, text=None):
     nobody: the worst case is a bold run drawn regular.
     """
     return font(script, getattr(fnt, "_jms_size", getattr(fnt, "size", 12)),
-                getattr(fnt, "_jms_bold", False), text=text)
+                getattr(fnt, "_jms_bold", False), text=text,
+                whole=has_rtl(text))
 
 
 def _run_face(fnt, script, text=None):

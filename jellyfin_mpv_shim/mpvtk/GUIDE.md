@@ -799,12 +799,50 @@ still stack. That is why the Hebrew list is ordered the opposite way from every
 other list in the file: putting Noto Hebrew first drew "שלום עולם." with the
 stop as a box and every year in a title as four more.
 
-**Arabic has no such face, and that is a knowing loss.** `NotoSansArabic` is
-255/256 of the block and 751/772 presentation forms but has no A-Z, so an
-Arabic line with a Latin word in it draws that word as boxes. DejaVu *does*
-have Arabic — 165/256, with `arab` shaping in both GSUB and GPOS — but only
-249/772 presentation forms, and Arabic is a script of presentation forms. That
-is the wrong three quarters to give up for the occasional Latin word.
+**Arabic had no such face, and the loss was knowing — until the choice stopped
+having to be global.** `NotoSansArabic` is 255/256 of the block and 751/772
+presentation forms but has no A-Z, so an Arabic line with a Latin word in it
+drew that word as boxes. DejaVu *does* have Arabic — 165/256, with `arab`
+shaping in both GSUB and GPOS — but only 249/772 presentation forms, and Arabic
+is a script of presentation forms. That was the wrong three quarters to give up
+for the occasional Latin word.
+
+**That trade was between one face and every Arabic line. It is now per line.**
+Coverage-based selection (12.6) means `font(whole=True)` can ask first for a
+face that carries *this* line and fall back to the script-only question, so:
+
+| line | face | why |
+|---|---|---|
+| `مسلسل الحلقة الأولى` | `NotoSansArabic` | nothing else in it; keeps 737/773 forms |
+| `مسلسل Netflix الأصلي` | `FreeSerif` | Noto has no A-Z, and this line needs it |
+| `مسلسل (2013)` | `FreeSerif` | Noto has the *digits* and not the brackets — measured |
+| Arabic + presentation forms + Latin | `NotoSansArabic` | no face carries both, so the script wins and the Latin degrades |
+
+`FreeSerif` is a real Arabic face rather than a Latin one with a few Arabic
+glyphs: measured 2026-09-08, it **joins** (its advance for مسلسل drops from 103
+to 70 under Raqm, which is what joining does) and has full ASCII including
+brackets, at 345/773 presentation forms. Only a line Noto cannot carry reaches
+it, so every other Arabic title is unaffected — which is the difference between
+this and reordering the list, and it is why the row above that gives up the
+Latin is still the right answer when no face can have both.
+
+**Windows never had this gap.** Measured: no Arabic face in a default Windows
+install exceeds 376/773 presentation forms (Courier New; Arial and Segoe UI are
+312) and all of them have full ASCII, so the face the shim already picks there
+carries the whole line.
+
+**Hebrew has always worked this way, by accident** — Liberation Sans covers both,
+so it satisfied the whole-line question before there was one. `whole=True` makes
+that deliberate for both scripts.
+
+**What is still lost: an RTL line mixed with CJK, Thai or Indic.** No installed
+face covers Arabic *and* CJK (unifont aside, which is not a candidate and is not
+a UI face), so the line keeps its RTL face and the other script degrades — and
+that is the right way round, per the rule above. Splitting such a line is not a
+font problem at all: it needs UAX#9 run reordering, whose paired-bracket rule
+(BD16) is the fiddliest part of the algorithm and covers one of the very cases
+this section is about, so a hand-rolled subset would be wrong exactly where it
+was needed. A test asserts this loss rather than leaving it to be rediscovered.
 
 **RTL also outranks every other script in `script_of`, wherever it appears in
 the string.** That answer becomes the whole line's face, and "first non-Latin

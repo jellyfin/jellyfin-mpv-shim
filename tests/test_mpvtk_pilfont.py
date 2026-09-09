@@ -999,15 +999,24 @@ class TestCjkCoverage(unittest.TestCase):
         self.assertEqual([], self._missing(font, korean),
                          "a Korean title resolved a Han-only face")
 
-    def test_the_arabic_face_is_still_chosen_for_a_line_with_ascii_in_it(self):
-        """Negative control for the deliberate decision at `pilfont.py:57`.
+    def test_the_arabic_face_is_still_chosen_for_a_pure_arabic_line(self):
+        """Negative control for the deliberate decision at `pilfont.py:57`,
+        **narrowed on purpose** once that decision was revisited.
 
-        `NotoSansArabic-Regular.ttf` has the Arabic and **no ASCII**
-        (measured), and the list keeps it first knowingly: the face that
-        would draw the Latin word gives up three quarters of the
-        presentation forms. A coverage check that asked the whole *line* to
-        be covered would silently overturn that. It asks only for the
-        codepoints of the script that chose the list.
+        `NotoSansArabic-Regular.ttf` has the Arabic and **no A-Z**
+        (measured), and the list keeps it first knowingly. The coverage
+        check must not overturn that by asking the whole *line* to be
+        covered as a matter of course -- so the script-only question is
+        what a run asks, and this pins it.
+
+        It used to assert the same thing for a line *with* ASCII in it, and
+        that half was retired deliberately, not because it was
+        inconvenient: `TestAnRtlLineCarriesWhatIsInIt` now prefers a face
+        that carries the whole line **for RTL lines only**, because such a
+        line gets one draw call and has no second run to fall back to. The
+        trade 12.1 refused was global -- one Arabic face for every line -
+        and this one is per line, so a pure Arabic title still keeps Noto's
+        737/773 presentation forms. That is the assertion left here.
         """
         from PIL import ImageFont
 
@@ -1022,13 +1031,13 @@ class TestCjkCoverage(unittest.TestCase):
 
         self.addCleanup(pilfont.clear_cache)
         pilfont.clear_cache()
-        got = pilfont.font_for("مسلسل (2013)", 24)
+        got = pilfont.font_for("مسلسل الحلقة", 24)
         self.assertEqual(
             [], self._missing(got, "مسلسل"),
             "the Arabic line lost its Arabic face")
         self.assertEqual(
             getattr(got, "path", None), getattr(face, "path", None),
-            "the Arabic line was moved off %s, which is the face "
+            "a pure Arabic line was moved off %s, which is the face "
             "pilfont.py:57-62 keeps first on purpose" % first)
 
     def test_the_notdef_probes_agree_on_every_installed_candidate(self):
@@ -1546,6 +1555,222 @@ class TestBucketBookkeeping(unittest.TestCase):
             self.assertEqual("thai", pilfont.script_of_char(cp))
         for cp in (0x0900, 0x097F):
             self.assertEqual("devanagari", pilfont.script_of_char(cp))
+
+class TestAnRtlLineCarriesWhatIsInIt(unittest.TestCase):
+    """An RTL line gets ONE face, so that face has to cover the whole line.
+
+    12.1 chose Noto Arabic's 737/773 presentation forms over having any
+    Latin, and said so: *"that is the wrong three quarters to give up for
+    the occasional Latin word."* **That trade was real when one face had to
+    serve every Arabic line, and coverage-based selection retired it** --
+    the choice is now per line, so a line with a Latin word in it can take
+    a face that carries both while every other Arabic line keeps Noto.
+
+    Measured 2026-09-08: `FreeSerif` joins Arabic (its advance for مسلسل
+    drops from 103 to 70 under Raqm, which is joining) and has full ASCII
+    including brackets, at 345/773 presentation forms. So the fallback is a
+    real Arabic face, not a Latin face with a few Arabic glyphs.
+
+    Hebrew has always behaved this way for an accidental reason -- Liberation
+    Sans happens to carry both -- and these tests make it deliberate for
+    both scripts.
+    """
+
+    def _line_faces(self, text, size=26):
+        """The faces `draw_text` will really use, and whether one covers
+        the whole line."""
+        fnt = pilfont.font_for(text, size)
+        parts, whole, per_run = pilfont._split(text, fnt, None)
+        if whole is not None:
+            return [(whole, text)]
+        return [(per_run(script, chunk)) and (per_run(script, chunk), chunk)
+                for script, chunk in parts]
+
+    def _tofu(self, text):
+        """Characters the line's own face(s) cannot draw.
+
+        **Asked of the face the LINE gets, not of a character drawn alone.**
+        A single Latin character resolves the Latin face on its own, so a
+        per-character `draw_text` reports no tofu for exactly the bug this
+        class is about -- measured, and it cost a probe.
+        """
+        bad = []
+        for face, chunk in self._line_faces(text):
+            ref = face.getmask("\U000FFFFF", mode="L")
+            rt = (ref.size, bytes(ref))
+            for ch in chunk:
+                if ch.isspace():
+                    continue
+                mask = face.getmask(ch, mode="L")
+                if (mask.size, bytes(mask)) == rt:
+                    bad.append(ch)
+        return "".join(bad)
+
+    def _needs_arabic_pair(self):
+        """Skip unless this host both reproduces the gap and can fix it."""
+        from PIL import ImageFont
+
+        first = None
+        for name in pilfont._CANDIDATES["arabic"]:
+            try:
+                face = ImageFont.truetype(name, 26)
+            except (OSError, IOError):
+                continue
+            first = face
+            break
+        if first is None:
+            self.skipTest("no Arabic face installed")
+        ref = first.getmask("\U000FFFFF", mode="L")
+        rt = (ref.size, bytes(ref))
+        if all((lambda m: (m.size, bytes(m)) != rt)(
+                first.getmask(c, mode="L")) for c in "Netflix()"):
+            self.skipTest("this host's first Arabic face already has Latin, "
+                          "so there is no gap to close (Windows is this)")
+
+    def test_an_arabic_line_with_a_latin_word_draws_the_word(self):
+        self._needs_arabic_pair()
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        self.assertEqual(
+            "", self._tofu("مسلسل Netflix الأصلي"),
+            "the Latin word in an Arabic line is boxes, and the line's one "
+            "face is the only one it gets")
+
+    def test_an_arabic_line_keeps_its_brackets(self):
+        self._needs_arabic_pair()
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        # Noto Arabic HAS the digits and lacks the brackets -- measured, so
+        # this is about "(" and ")" specifically and not about numerals.
+        self.assertEqual("", self._tofu("مسلسل (2013) الجزء 2"),
+                         "the brackets around the year are boxes")
+
+    def test_a_pure_arabic_line_still_gets_the_best_arabic_face(self):
+        """The control, and the reason this is a two-pass and not a
+        reordering: giving up presentation forms is only acceptable on the
+        lines that actually need the Latin. A pure Arabic line must keep
+        whatever the candidate order prefers."""
+        from PIL import ImageFont
+
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        first = None
+        for name in pilfont._CANDIDATES["arabic"]:
+            try:
+                ImageFont.truetype(name, 26)
+            except (OSError, IOError):
+                continue
+            first = name
+            break
+        if first is None:
+            self.skipTest("no Arabic face installed")
+        faces = self._line_faces("مسلسل الحلقة الأولى")
+        self.assertEqual(
+            os.path.basename(str(getattr(faces[0][0], "path", ""))),
+            os.path.basename(str(first)),
+            "a pure Arabic line was moved off the preferred Arabic face")
+
+    def test_a_hebrew_line_with_latin_and_punctuation_is_unchanged(self):
+        """Hebrew already passed, by accident. It must keep passing, and
+        for the same reason as before."""
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        self.assertEqual("", self._tofu("הסרט הזה, משנת 2013."))
+
+    def test_a_cjk_and_arabic_line_is_still_the_documented_loss(self):
+        """The case this deliberately does NOT fix, asserted so that a
+        later change cannot quietly claim it.
+
+        No installed face covers Arabic and CJK (unifont aside, which is not
+        a candidate and is not a UI face), so the line keeps its RTL face
+        and the CJK degrades. Splitting it needs UAX#9 run reordering --
+        whose paired-bracket rule is the fiddliest part of the algorithm and
+        one of the very cases above -- so a subset would be wrong exactly
+        where it mattered. jellyfin_mpv_shim/mpvtk/GUIDE.md section 12.1.
+        """
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        line = "進撃の巨人 مسلسل"
+        faces = self._line_faces(line)
+        self.assertEqual(1, len(faces), "an RTL line must be one face")
+        arabic = "".join(c for c in line if pilfont.has_rtl(c))
+        self.assertEqual("", self._tofu(line).replace(
+            "".join(c for c in line if pilfont.script_of_char(ord(c)) == "cjk"),
+            ""), "the Arabic itself must still be drawn")
+        self.assertNotEqual("", arabic)
+
+class TestKeycapSequences(unittest.TestCase):
+    """``1️⃣`` is base + U+FE0F + U+20E3, and only a colour emoji face
+    composes it.
+
+    **Not a coverage fault, which is why the `.notdef` check cannot see
+    it.** DejaVu *has* U+20E3 and draws it as a dotted enclosing box around
+    the digit, so every "is this glyph missing" test says the line is fine
+    while the sheet shows `1□ 2□`. The fault is that U+20E3 is in
+    :data:`_JOINERS` and rides with the digit before it, which made the run
+    "latin" and kept it off the only face that can compose it.
+
+    Only U+20E3 is treated this way. A bare U+FE0F is deliberately left
+    alone: it would move ``★️`` to the emoji face, and no colour face draws
+    U+2605 -- putting #713's tofu straight back (see :data:`_EMOJI_RANGES`).
+    """
+
+    def _draw(self, text, font):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("RGB", (120, 90), (0, 0, 0))
+        pilfont.draw_text(ImageDraw.Draw(img), (2, 2), text, font,
+                          fill=(255, 255, 255))
+        return img.tobytes()
+
+    def _direct(self, text, font):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("RGB", (120, 90), (0, 0, 0))
+        ImageDraw.Draw(img).text((2, 2), text, font=font,
+                                 fill=(255, 255, 255))
+        return img.tobytes()
+
+    def setUp(self):
+        self.addCleanup(pilfont.clear_cache)
+        pilfont.clear_cache()
+        if pilfont.font("emoji", 26) is pilfont.font("latin", 26):
+            self.skipTest("no separate emoji face on this host")
+
+    def test_the_run_is_not_drawn_by_the_latin_face(self):
+        """The effect, not the face name: before the fix `draw_text` and
+        the Latin face drew byte-identical pictures."""
+        latin = pilfont.font("latin", 26)
+        self.assertNotEqual(
+            self._draw("1️⃣", pilfont.font_for("1️⃣", 26)),
+            self._direct("1️⃣", latin),
+            "the keycap is still drawn exactly as the Latin face draws it")
+
+    def test_the_words_around_it_stay_on_their_own_face(self):
+        """The half that a naive fix breaks: the keycap's base has to be
+        peeled off the run it joined, or "Season 1️⃣" draws "Season " in a
+        109px colour-emoji face."""
+        parts = pilfont.runs("Season 1️⃣")
+        self.assertEqual(["latin", "emoji"], [script for script, _c in parts],
+                         "got %r" % (parts,))
+        self.assertEqual("Season ", parts[0][1])
+        self.assertEqual("1️⃣", parts[1][1])
+
+    def test_two_keycaps_in_a_row_are_one_run(self):
+        parts = pilfont.runs("1️⃣2️⃣")
+        self.assertEqual(["emoji"], [script for script, _c in parts],
+                         "got %r" % (parts,))
+
+    def test_a_keycap_with_nothing_before_it_does_not_crash(self):
+        self.assertIsInstance(pilfont.runs("⃣"), list)
+        self.assertIsInstance(pilfont.runs("️⃣"), list)
+
+    def test_a_star_with_a_variation_selector_stays_on_the_symbol_face(self):
+        """The #713 guard. U+FE0F alone must not reroute anything."""
+        parts = pilfont.runs("★️")
+        self.assertEqual(["symbol"], [script for script, _c in parts],
+                         "a variation selector moved the star off the "
+                         "symbol face, which is #713 again: %r" % (parts,))
 
 class TestEmojiTable(unittest.TestCase):
     """The classifier half of F31, and the regression it must not cause.
