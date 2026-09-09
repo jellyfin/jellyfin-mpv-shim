@@ -316,6 +316,11 @@ them needs a config-file edit to reach*. By this rule it is post-3.0.0 work. It
 should still be built, because R10 proves the class is live and growing; it
 should not be built first.
 
+**BUILT (last, per that rule), and the class was indeed growing: seven open
+rows, not four.** R2 turned out to have a second site, and two more are in the
+HUD's summon bindings. None repaired — the reachability argument above is
+unchanged. `docs/POSTMORTEM_3.0.0.md` §5.1.
+
 **One platform exception.** `conf.py:413` is
 `mpv_ext: bool = sys.platform.startswith("darwin")` — **the external backend is
 the default on macOS.** So `mpv.TIMEOUT` (jsonipc-only, lowered 120s→5s and

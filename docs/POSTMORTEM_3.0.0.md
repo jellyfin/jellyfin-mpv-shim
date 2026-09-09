@@ -785,7 +785,7 @@ tree — CLAUDE.md's own finding is that *advisory prose does not change the rat
 and this repo has twice ended a loop with an enumerating instrument (C4, C5) and
 zero times with a careful re-read.
 
-### 5.1 `tools/audit_frozen_key_literals.py` (new, ~150 lines) — highest value
+### 5.1 `tools/audit_frozen_key_literals.py` — BUILT, and it found three more
 
 Covers C1 / R1, R2, R3, R10 — the cluster with the worst live record and no
 instrument at all. Structure copied verbatim from
@@ -798,6 +798,41 @@ declaration is where the next reader learns the resolver exists.
 
 Guard: `tests/test_no_frozen_key_literals.py`. Precedent that it works: R10 was
 found by writing this predicate down, not by reading the file.
+
+**Built, with two departures from the spec above and one result.**
+
+The spec said *"scan for string literals equal to any of their defaults"*. That
+matches 85 sites, most of them noise — `'left'` is an alignment far more often
+than it is a key, and the first run flagged a debug overlay's `'F'` glyph on
+`kb_fullscreen`. So the vocabulary is the **multi-character** defaults only, and
+matching is case-sensitive on mpv's uppercase spelling, which is exactly what
+separates a key from a direction here. Both limits are stated in the file: a
+frozen key written lowercase in binding code is invisible to it.
+
+The second departure is the grain. Declaring 49 individual literals would have
+been exempted into uselessness, so a declaration covers a *scope* — 20 of them.
+That needed real scope tracking in Lua rather than "the last `function` line
+seen": without it a file-scope constant is charged to whatever function is
+above, which put **R3 inside `phud_wake_key`** — the resolver that is R3's own
+counter-example.
+
+**Three more findings, from the first clean run:**
+
+- **R2 has a second site.** `_shell_claimed_keys` claims the literal `SPACE`
+  and `_shell_key` dispatches on `key == "SPACE"`. Two independent freezes of
+  `kb_pause`; the risk map records the claim only.
+- **`phud_bind_summon`** compares the loop's key against a literal `ENTER` to
+  choose its handler, so resolving R3's table would not by itself repair it.
+- **`phud_bind_wake`** compares the *resolved* wake key against `ENTER` to
+  decide whether waking the HUD also toggles pause — so moving `hud_wake_key`
+  silently drops the pause half. That is a product question rather than a
+  freeze, and it is declared as one.
+
+Seven declared-open rows in all, none repaired here: every one needs a
+config-file edit to reach, which is §7's reason for deferring them, and the
+status is a field on the declaration rather than a word in its prose. The first
+draft read `"OPEN" in why` and disagreed with itself about two rows — the
+tool's own defect shape, in the tool.
 
 ### 5.2 Four lines in `tools/audit_owned_state.py` — DONE, and not four lines
 
