@@ -925,6 +925,12 @@ and the 33 Latin codepoints nothing draws are the C0/C1 controls, which must not
 be rescued by anything. An entry in `_FALLBACK_SCRIPTS` that no run has needed
 pre-authorises a face for a case nobody has seen.
 
+**That last figure is a Debian figure, and 12.9 is what it looks like on
+Windows** — where the Latin face is Arial rather than DejaVu, "the Latin
+codepoints nothing draws" is 6,728 rather than 33. The rule about the controls
+survives unchanged and is now enforced in code: `NotoSansSymbols2` draws a
+*picture* for every one of them.
+
 Mixed lines cost a little vertical room: PIL's default vertical anchor is the
 *ascender* and two faces do not share one, so runs are drawn from a shared
 baseline set by the tallest ascent. A caller reserving from `script_of`'s face
@@ -1097,7 +1103,66 @@ fails when the host owns a face the shim did not find, naming the file. That
 test is the only thing here that can catch an *incomplete* list, because
 completeness cannot be checked against the file — only against a machine.
 
-### 12.9 Where the Unicode data actually is
+### 12.9 A character the run's own face lacks
+
+`runs()` gives each run a face and 12.6 makes that face one that covers the
+run. Neither answers the character that is in **no** bucket's chain: #740 is a
+Simplified Chinese title, "机动战士Z高达Ⅱ：恋人们", whose Roman numeral drew as a
+box on Windows once the Han around it was fixed. U+2161 is neither CJK nor a
+symbol to `script_of_char` — it is below the CJK catch-all and in none of the
+symbol tables — so it lands in a *Latin* run, and the Latin face on Windows is
+Arial.
+
+Measured on the Windows VM, 2026-09-09, through `_draws` (the same test the
+selector uses):
+
+| face | Number Forms | ⅠⅡⅢ | ① | ℃ |
+|---|---|---|---|---|
+| `arial.ttf` | 7/64 | no | no | no |
+| `seguisym.ttf` | 0/64 | no | yes | yes |
+| `msgothic` / `msyh` / `simsun` / `malgun` | 22–52/64 | **yes** | yes | yes |
+| `DejaVuSans.ttf` (Linux, Flatpak) | 55/64 | yes | — | — |
+
+**The class, not the character.** Of the 9,103 assigned codepoints below U+2E80
+that `script_of_char` calls `"latin"`, Arial draws 2,375 and DejaVu 4,669; of
+the 6,728 Arial misses, a CJK face already installed draws 906 — letterlike,
+number forms, enclosed alphanumerics, maths, box drawing and the whole of
+Hangul Jamo, which has no bucket and does not need one now.
+
+**The repair is per character, not per chain.** A `latin -> cjk` entry in
+`_FALLBACK_SCRIPTS` would have fixed the reported title, because there the
+numeral is a run of its own — and re-typeset the whole of "Rocky Ⅱ" in a CJK
+face, because there it is not. So `_peel` splits the run instead: the character
+the face cannot draw moves, and everything beside it is drawn exactly as before.
+`_orphan_face` asks, in order, the faces the **rest of this string** resolved
+(a character with no script of its own belongs with the text around it — U+2161
+in a Chinese title is East Asian wide, and the face drawing the Han beside it is
+the right width and weight), then the run's own chain, then `_ORPHAN_SCRIPTS`.
+
+Three characters are never peeled, and each one has a measurement behind it:
+
+- **Category C.** `NotoSansSymbols2` draws a picture for every C0/C1 control and
+  for U+007F, so a peel that took the first face with a glyph would turn a stray
+  U+0085 in a title into a visible one, and a zero-width space into something
+  with width. This is 12.4's rule, now enforced rather than observed.
+- **Joiners and combining marks.** Shaping does not cross a run boundary (12.3),
+  and the peel *is* a boundary. Segoe UI Symbol has no U+FE0F, so the first
+  version of this drew "☂️" as two pieces — the split `_JOINERS` exists to
+  prevent, one level down. Marks also follow a base that moves, or niqqud and
+  Devanagari stack onto the wrong glyph.
+- **Anything in an RTL line.** It is one draw call and stays one (12.1).
+
+**Cost: about 3µs on a 72µs measure** (three captions, warm memo, Debian
+2026-09-09), because `_draws` is memoized per face and codepoint and the peel
+asks it once per character.
+
+What this does **not** address: a run-level face mix inside one title. The Han
+in #740's own title resolves `msyh` for 机动战士 and `msgothic` for 高达, since
+each run takes the first candidate covering *that run* — so two Han runs of one
+title can carry Chinese and Japanese letterforms. Visible on the sample sheet,
+pre-existing, and a different decision from this one.
+
+### 12.10 Where the Unicode data actually is
 
 Debian's `unicode-data` package ships
 `/usr/share/unicode/emoji/emoji-data.txt` — the authoritative
