@@ -6004,6 +6004,18 @@ end
 -- Give ENTER back to the scene without taking the button down.
 function phud_skip_unbind()
     mp.remove_key_binding('mpvtk_skip_enter')
+    -- **And the mouse half, which `phud_skip_bind` takes only in
+    -- right-click-to-pause mode.** Releasing just ENTER left a forced
+    -- `mbtn_left` behind after every skip segment, and its else-branch
+    -- runs `begin-vo-dragging` -- so once the button was down, every click
+    -- dragged the window instead of reaching the UI, for the rest of the
+    -- session. That is #737: "the UI becomes unresponsive after a few
+    -- videos ... switching back to left click to pause this behavior never
+    -- occurs". Unconditional because `remove_key_binding` on a name that
+    -- was never bound is a no-op, and gating it on `click_pauses` would
+    -- strand the binding for anyone who changes the setting while a skip
+    -- segment is up.
+    mp.remove_key_binding('mpvtk_skip_click')
     state.kb_skip = false
 end
 

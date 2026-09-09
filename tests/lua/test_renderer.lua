@@ -3370,6 +3370,61 @@ eq(fake.log.props["user-data/mpvtk/active"], true,
    "a direction over the Skip button did not bring the bar up")
 fake.send("mpvtk-hud-skip", "")
 
+-- ============================================ #737: the leaked skip click
+--
+-- Reported as "right click to pause causes the UI to become unresponsive":
+-- after a couple of videos no mouse click reaches the UI at all, the
+-- keyboard still works, and quitting playback does not clear it. Only with
+-- right-click-to-pause -- "switching back to left click to pause this
+-- behavior never occurs".
+--
+-- That is exactly the shape of a forced binding nobody released.
+-- `phud_skip_bind` takes `mbtn_left` for the Skip button **only when
+-- click_pauses is off** (with it on, `mpvtk_phud_click` already owns the
+-- button), and `phud_skip_unbind` released only the ENTER half. So every
+-- skip segment left another `mpvtk_skip_click` behind, and once the button
+-- is down that handler's else-branch runs `begin-vo-dragging` for every
+-- click -- which is a UI that ignores the mouse and a window that drags.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes",
+          fake.token({ hide = 4, mode = "hover", click = false }))
+fake.send("mpvtk-hud-skip", "Skip Intro")
+fake.advance(1)
+ok(fake.log.keybinds["mpvtk_skip_click"] ~= nil,
+   "the premise: right-click mode takes mbtn_left while the button is up")
+fake.send("mpvtk-hud-skip", "")
+ok(fake.log.keybinds["mpvtk_skip_click"] == nil,
+   "the Skip button gives mbtn_left back when it hides (#737)")
+
+-- And it must survive the loop that the report describes: several videos,
+-- each with a skip segment. One release that only works the first time
+-- would still strand the button.
+for i = 1, 3 do
+    fake.send("mpvtk-hud", "no")
+    fake.send("mpvtk-hud", "yes",
+              fake.token({ hide = 4, mode = "hover", click = false }))
+    fake.send("mpvtk-hud-skip", "Skip Intro")
+    fake.advance(1)
+    fake.send("mpvtk-hud-skip", "")
+    if fake.log.keybinds["mpvtk_skip_click"] ~= nil then
+        ok(false, "mbtn_left was still bound after skip cycle " .. i)
+        break
+    end
+end
+ok(fake.log.keybinds["mpvtk_skip_click"] == nil,
+   "three skip segments in a row leave nothing bound")
+
+-- The control: with click-to-pause ON, the button is owned by
+-- mpvtk_phud_click and this binding is never taken in the first place.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.send("mpvtk-hud-skip", "Skip Intro")
+fake.advance(1)
+eq(fake.log.keybinds["mpvtk_skip_click"], nil,
+   "left-click-to-pause never takes the second binding")
+fake.send("mpvtk-hud-skip", "")
+fake.send("mpvtk-hud", "no")
+
 -- Auto-repeat. mpv repeats a held key at --input-ar-rate -- 40 a second by
 -- default -- which on a stick is forty library rows a second and is not
 -- something anybody can aim. Held controls are thinned to their own rate.
