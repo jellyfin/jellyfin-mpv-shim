@@ -2987,6 +2987,58 @@ fake.key("mbtn_right")
 ok(not did("cycle", "pause"),
    "click-to-pause on: right click is not a second way to pause")
 
+-- ...and with the HUD HIDDEN, which is most of playback. A4, and the other
+-- half of #737's right-click story.
+--
+-- `on_rclick`'s bare-video pause requires `state.phud.shown`, and
+-- `phud_bind_summon` binds `mbtn_left` when click_pauses is ON and nothing
+-- at all when it is off -- so with right-click-to-pause and the bar
+-- auto-hidden there was no path to pause by mouse. That used to be covered
+-- by mpv's own default, and our pin move took it away: v0.41.0 binds
+-- MBTN_RIGHT to `cycle pause`, master binds it to
+-- `script-binding select/context-menu` (65a1852ba3), and the flatpak moved
+-- to master for an unrelated HDR fix.
+hud_engage({ hide = 4, mode = "hover", click = false })
+hud_pointer(600, 300)          -- off the controls, onto the picture
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "premise: the HUD engaged and then auto-hid")
+-- Asserted through the binding rather than `fake.key("mbtn_right")`,
+-- because the fake dispatches by binding NAME and cannot model mpv's
+-- section stack (fake_mp says so itself) -- `mbtn_right` there reaches the
+-- mouse section's handler, while in real mpv a FORCED binding outranks the
+-- section. So: the binding must exist while the HUD is hidden, and it must
+-- pause.
+ok(fake.log.keybinds["mpvtk_phud_rclick"] ~= nil,
+   "mpv modality: the right button is bound while the HUD is hidden (A4)")
+fake.log.commands = {}
+if fake.log.keybinds["mpvtk_phud_rclick"] then
+    fake.key("mpvtk_phud_rclick")
+end
+ok(did("cycle", "pause"),
+   "mpv modality: right click pauses with the HUD hidden too (A4)")
+
+-- The control, both ways round: click-to-pause on must not gain a second
+-- pause button, and the left button must keep dragging the window in mpv
+-- modality rather than pausing.
+hud_engage({ hide = 4, mode = "hover", click = true })
+hud_pointer(600, 300)
+fake.reset_events()
+hud_wait()
+eq(fake.log.keybinds["mpvtk_phud_rclick"], nil,
+   "click-to-pause on: the right button is not taken with the HUD hidden")
+fake.log.commands = {}
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "click-to-pause on: right click is not a second pause with the HUD hidden")
+
+-- And the release, which the pairing lint also insists on: leaving
+-- mpvtk_phud_rclick bound after the HUD disengages would be #737 again
+-- with the other button.
+fake.send("mpvtk-hud", "no")
+eq(fake.log.keybinds["mpvtk_phud_rclick"], nil,
+   "the right-button binding is released when the HUD disengages")
+
 -- ------------- ...but "no node" is not "bare video" while something floats
 --
 -- node_at() answers with clickable SCENE nodes, and a modal's body, a

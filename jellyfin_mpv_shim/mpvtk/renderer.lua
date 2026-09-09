@@ -5962,6 +5962,24 @@ local phud_skip_hide, phud_skip_unbind  -- fwd: summon/hide retune them
 -- routed here as a keypress) skips instead of summoning, and a click
 -- skips on the button / summons elsewhere. While the HUD is up, ENTER
 -- and clicks belong to the scene, whose Skip button is a real node.
+--- Is the pointer on the Skip button? The only thing a click on an
+--- otherwise-hidden HUD can hit; everything else there is bare video.
+---
+--- Shared by all three bindings that can land on it -- `mbtn_left` in
+--- click-to-pause mode, `mbtn_right` in mpv modality, and the skip
+--- button's own `mbtn_left` -- because three copies of one hit test is how
+--- they drift apart.
+--- On `state` rather than a file-scope `local`, like `state.pause_now`:
+--- the main chunk is at Lua's 200-local ceiling and one more would not
+--- compile (tests/test_renderer_lua.py reports the headroom).
+state.hit_skip = function()
+    local r = state.phud.skip_rect
+    local x, y = state.phud.mx, state.phud.my
+    return state.phud.skip_show and r and x >= r.x1 and x <= r.x2
+        and y >= r.y1 and y <= r.y2 and true or false
+end
+
+
 local function phud_skip_bind()
     if state.kb_saved then            -- see bind_nav_keys
         state.kb_saved.skip = true
@@ -5987,10 +6005,7 @@ local function phud_skip_bind()
     -- keyboard-only in that mode, which is not a trade anybody chose.
     if not state.phud.click_pauses then
         mp.add_forced_key_binding('mbtn_left', 'mpvtk_skip_click', function()
-            local r = state.phud.skip_rect
-            local x, y = state.phud.mx, state.phud.my
-            if state.phud.skip_show and r and x >= r.x1 and x <= r.x2
-                and y >= r.y1 and y <= r.y2 then
+            if state.hit_skip() then
                 send({ t = 'hudskip' })
                 phud_skip_hide()
             else
@@ -6085,14 +6100,29 @@ function phud_bind_summon()
     -- even with this bound the two pause toggles cancel and fullscreen
     -- still fires.
     if not state.phud.click_pauses then
+        -- **The right button needs binding here, and used not to.** In mpv
+        -- modality the left button drags the window and the RIGHT one
+        -- pauses -- `on_rclick` does that, but only while the bar is
+        -- `shown`, and the bar is hidden for most of playback. What covered
+        -- the gap was mpv's own default, and our pin move took it away:
+        -- v0.41.0 binds MBTN_RIGHT to `cycle pause`, master binds it to
+        -- `script-binding select/context-menu` (65a1852ba3), and the
+        -- flatpak went to master for an unrelated HDR fix (#687). So right
+        -- click over a hidden HUD did nothing at all.
+        mp.add_forced_key_binding('mbtn_right', 'mpvtk_phud_rclick',
+            function()
+                if state.hit_skip() then
+                    send({ t = 'hudskip' })
+                    phud_skip_hide()
+                else
+                    state.pause_now()
+                end
+            end)
         state.kb_summon = true
         return
     end
     mp.add_forced_key_binding('mbtn_left', 'mpvtk_phud_click', function()
-        local r = state.phud.skip_rect
-        local x, y = state.phud.mx, state.phud.my
-        if state.phud.skip_show and r and x >= r.x1 and x <= r.x2
-            and y >= r.y1 and y <= r.y2 then
+        if state.hit_skip() then
             send({ t = 'hudskip' })
             phud_skip_hide()
         else
@@ -6108,6 +6138,7 @@ local function phud_unbind_summon()
         mp.remove_key_binding('mpvtk_summon_' .. key)
     end
     mp.remove_key_binding('mpvtk_phud_click')
+    mp.remove_key_binding('mpvtk_phud_rclick')
     state.kb_summon = false
 end
 
