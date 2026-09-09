@@ -285,6 +285,37 @@ purpose — while the library or the HUD is up the pointer really is over a UI �
 and enables them only for as long as it is. The player's sections are enabled for
 the life of the process.
 
+### Forced does not mean first — the later section wins
+
+Two forced sections holding the same key is the normal case, not a corner one:
+`renderer.lua` forces ENTER, ESC, the arrows and `any_unicode`, and so do mpv's
+own `console.lua` and `context_menu.lua`. Which one gets the key is decided by
+**order**, not by the word "forced".
+
+Measured with `tools/probe_key_precedence.py`, which presses the key and reports
+the handler that ran rather than reading `priority` off `input-bindings`. Same
+answer for the console and the context menu, on two master builds:
+
+| when | who receives ENTER |
+|---|---|
+| nothing open | ours |
+| the overlay opens *after* our binding | the overlay's |
+| we re-bind while the overlay is up | **ours, and the overlay stays drawn** |
+
+Only the third row is an exposure, and it is not hypothetical: the HUD
+re-installs its nav keys on pointer movement and on every lifecycle event, so an
+overlay that came up first can lose its keyboard a moment later and remain on
+screen with nothing to activate. That is what the `user-data/mpv/console/open`
+handler exists for — it drops our claims for as long as the console is up.
+`any_unicode` is the exception to the ordering rule: it outranks an exact key
+whichever went in first, so the block claim has to be released regardless.
+
+**The comment on that handler said the opposite for a release** — that our
+bindings outranked the console — and the handler was right for a reason its own
+comment did not give. `tools/audit_key_bindings.py:PUBLISHED` now enumerates
+every `user-data/mpv/*` property mpv's builtin scripts set, with what the
+renderer owes each; `context-menu/open` is recorded there as watched by nothing.
+
 ### Which keys the shim binds, and why so few (#16)
 
 The governing rule is *stop intercepting keys whose meaning we did not change*.

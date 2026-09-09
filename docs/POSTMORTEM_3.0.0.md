@@ -899,6 +899,27 @@ property mpv's builtin scripts set should have an observer or a declared
 and not `context-menu/open` — one rule, one of two sites, and §3.3 names it as a
 live #737 candidate.
 
+**DONE as the lint; the fix is deliberately not in it, and the measurement
+changed what the fix would have to be.** `PUBLISHED` in the same tool now
+enumerates all four `user-data/mpv/*` properties mpv's scripts set, each either
+observed, declared irrelevant, or recorded as a gap that the test pins so a
+*new* one has to be argued for.
+
+`tools/probe_key_precedence.py` asks the question of a real mpv by pressing the
+key, and it refutes the premise this section was written on. A standing forced
+binding of ours does **not** outrank an overlay that opens after it — the
+overlay wins. The exposure is the third case: we re-bind while it is up, which
+the HUD does on pointer movement, and then the menu is drawn and dead. Same
+answer for the console, so `renderer.lua`'s own comment about why its console
+handler exists was wrong for a release and is corrected. Full table:
+`docs/mpv-backends.md` §5.
+
+The repair is one handler mirroring the console's, and it is not made here: it
+lands on the input arbiter — `docs/do-not-fix.md` F37, the worst regression
+surface in the tree — and #737's fix is still ahead of its own evidence one
+branch below. What is measured is mpv's mechanism. What is **not** measured is
+that a real session reaches the third case, and that is a real-mpv e2e leg.
+
 ### 5.7 Ship the branch's mouse e2e coverage — but know what it does and does not cover
 
 `tests/e2e/test_mouse_routing.py` — real `MBTN_RIGHT` presses at `:358` and
