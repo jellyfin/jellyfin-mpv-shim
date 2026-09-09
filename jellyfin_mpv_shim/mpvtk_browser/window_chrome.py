@@ -456,15 +456,26 @@ def banner(b):
     # Update before offline: the offline banner is persistent, so checking
     # it first meant an update notice was never seen while offline.
     if b._update:
-        return Row([
-            Text(_("Update available: %s") % b._update["version"],
-                 size="normal"),
+        # No url means a Flatpak that updates itself: the releases page
+        # cannot help there, so the notice says what does and offers no
+        # button that leads away from it (update_check.notify).
+        url = b._update.get("url")
+        row = [
+            Text((_("Update available: %s") if url else
+                  _("Update available: %s \u2014 run \u201cflatpak update\u201d"))
+                 % b._update["version"], size="normal"),
             Spacer(),
-            Button(_("Open"), id="banner-open",
-                   on_click=lambda: b._open_url(b._update["url"])),
-            Button(_("Dismiss"), id="banner-dismiss",
-                   on_click=b._dismiss_update),
-        ], pad=10, gap=10, align="center", h=48, bg=theme.ACCENT_SOFT)
+        ]
+        if url:
+            # Read inside the handler, not from the `url` above: a
+            # captured value is whatever was on screen when the page last
+            # drew (docs/browser-shell.md).
+            row.append(Button(_("Open"), id="banner-open",
+                              on_click=lambda: b._open_url(b._update["url"])))
+        row.append(Button(_("Dismiss"), id="banner-dismiss",
+                          on_click=b._dismiss_update))
+        return Row(row, pad=10, gap=10, align="center", h=48,
+                   bg=theme.ACCENT_SOFT)
     if b._offline:
         return Row([
             Text(_("Offline — showing what's available."), size="normal"),

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-08 22:26-0400\n"
+"POT-Creation-Date: 2026-09-09 03:10-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1406,6 +1406,12 @@ msgid "One row per notch"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#: jellyfin_mpv_shim/svp_integration.py
+msgid "Automatic"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
 msgstr ""
 
@@ -1540,6 +1546,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Tell Me About Updates"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1840,6 +1850,13 @@ msgid ""
 "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target "
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"\"Automatic\" turns this off inside a Flatpak, where your desktop already "
+"announces updates and \"flatpak update\" installs them, and leaves it on "
+"everywhere else."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2674,11 +2691,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Automatic: Actively Watched"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#: jellyfin_mpv_shim/svp_integration.py
-msgid "Automatic"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -4538,6 +4550,11 @@ msgid "Update available: %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, python-format
+msgid "Update available: %s — run “flatpak update”"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Open"
 msgstr ""
 
@@ -4767,6 +4784,13 @@ msgstr ""
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Open menu (press c) for details."
+msgstr ""
+
+#: jellyfin_mpv_shim/update_check.py
+#, python-brace-format
+msgid ""
+"MPV Shim v{0} Update Available\n"
+"Run \"flatpak update\" to install it."
 msgstr ""
 
 #: jellyfin_mpv_shim/users.py

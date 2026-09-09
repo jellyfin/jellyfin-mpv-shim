@@ -230,7 +230,7 @@ class UpdateChecker:
 
         self.last_check = datetime.datetime.utcnow()
         if self.new_version is not None or self._check_updates():
-            if not self.has_notified and settings.notify_updates:
+            if not self.has_notified and settings.notify_updates_wanted():
                 self.has_notified = True
                 log.info("Update Available: {0}".format(self.new_version))
                 self.notify()
@@ -238,21 +238,36 @@ class UpdateChecker:
     def notify(self):
         """Surface the available update. When a UI is running (it sets
         ``notify_update``) the notice goes to the browser window; otherwise it
-        falls back to an MPV OSD toast for CLI/headless users."""
+        falls back to an MPV OSD toast for CLI/headless users.
+
+        **Inside a Flatpak that updates itself, the notice carries no link.**
+        The releases page cannot help there: what it offers is either "wait
+        until Flathub has it" or a bundle install whose origin is dead, so
+        the only true instruction is ``flatpak update``. ``url`` is None for
+        that case and the banner drops its [Open] button
+        (docs/RELEASE_SHAPE_POST_3.0.0.md section 5.3).
+
+        A build we handed somebody is not this case -- it is marked, has no
+        remote to update from, and its user was given it deliberately -- so
+        it keeps the link.
+        """
+        from . import hostinfo
+
+        managed = hostinfo.flatpak_managed()
         notify_ui = getattr(self.playerManager, "notify_update", None)
         if notify_ui is not None:
             try:
-                notify_ui(self.new_version, self.release_url + "latest")
+                notify_ui(self.new_version,
+                          None if managed else self.release_url + "latest")
                 return
             except Exception:
                 log.error("Could not send update notice to the UI.", exc_info=True)
-        self.playerManager.show_text(
-            _(
-                "MPV Shim v{0} Update Available\nOpen menu (press c) for details."
-            ).format(self.new_version),
-            5000,
-            1,
+        text = _(
+            "MPV Shim v{0} Update Available\nOpen menu (press c) for details."
+        ) if not managed else _(
+            "MPV Shim v{0} Update Available\nRun \"flatpak update\" to install it."
         )
+        self.playerManager.show_text(text.format(self.new_version), 5000, 1)
 
     def open(self):
         self.playerManager.set_fullscreen(False)

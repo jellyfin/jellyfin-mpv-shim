@@ -112,6 +112,9 @@ class DocsCoverageTest(unittest.TestCase):
             "panel", "hover", "always", "paused",
             # segment_* values
             "off", "ask",
+            # notify_updates values ("default" above, "disabled" is not a
+            # bare word in the doc)
+            "enabled",
             # motion_interpolation values
             "smooth", "blend", "hq",
             # deband values

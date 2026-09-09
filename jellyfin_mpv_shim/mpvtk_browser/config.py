@@ -526,6 +526,17 @@ LABELED_ENUMS = {
         (_("Aligned to rows"), "aligned"),
         (_("One row per notch"), "row"),
     ],
+    # Same shape as "window_controls" below, and the same sentence applies:
+    # "Automatic" is not a guess about the platform, it is what installed
+    # this copy. Inside a Flatpak the desktop's own updater already
+    # announces updates and `flatpak update` installs them, so the notice
+    # would duplicate one the user already gets; everywhere else this app is
+    # the only thing that knows. See conf.notify_updates.
+    "notify_updates": [
+        (_("Automatic"), "default"),
+        (_("Always"), "enabled"),
+        (_("Never"), "disabled"),
+    ],
     # Phrased as what the user sees, not as "client-side decorations":
     # "auto" is not a guess about the desktop, it is MPV reporting whether
     # anything decorated this window. See conf.window_controls.
@@ -602,6 +613,7 @@ LABELED_ENUMS = {
 }
 
 LABEL_OVERRIDES = {
+    "notify_updates": _("Tell Me About Updates"),
     "input_gamepad": _("Game Controller"),
     "gamepad_swap_confirm": _("Swap Confirm and Back Buttons"),
     "sync_path": _("Download Folder"),
@@ -707,6 +719,14 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # Says what "Automatic" resolves to here rather than in general: a
+    # Flatpak user reading "Automatic" has no way to know it means off, and
+    # this app is a client whose compatibility depends on a moving server,
+    # so the answer is worth stating rather than hiding.
+    "notify_updates": _(
+        "\"Automatic\" turns this off inside a Flatpak, where your desktop "
+        "already announces updates and \"flatpak update\" installs them, "
+        "and leaves it on everywhere else."),
     # Both caveats are ones a user would otherwise report as bugs: input
     # arriving while another window is focused, and the setting appearing to
     # do nothing at all on an mpv that cannot do it.

@@ -43,6 +43,44 @@ class FakePlayer:
         self.osd_calls.append((text, duration, level))
 
 
+class FlatpakNoticeTest(unittest.TestCase):
+    """Inside a Flatpak that updates itself, the notice carries no link.
+
+    The releases page cannot install anything there: what it offers is
+    "wait until Flathub has it" or a bundle whose origin is dead. So the
+    only true instruction is `flatpak update`, and a button that leads away
+    from it is worse than no button. A build we handed somebody is marked,
+    has no remote to update from, and keeps its link.
+    """
+
+    def _notify(self, managed, with_ui=True):
+        from jellyfin_mpv_shim import hostinfo
+
+        player = FakePlayer(with_ui=with_ui)
+        chk = UpdateChecker(player)
+        chk.new_version = "2.9.0"
+        with mock.patch.object(hostinfo, "flatpak_managed", lambda: managed):
+            chk.notify()
+        return player
+
+    def test_a_managed_flatpak_gets_no_url(self):
+        self.assertEqual(self._notify(True).ui_calls, [("2.9.0", None)])
+
+    def test_everything_else_keeps_the_releases_page(self):
+        self.assertEqual(self._notify(False).ui_calls,
+                         [("2.9.0", release_url + "latest")])
+
+    def test_the_osd_fallback_says_what_to_run_instead(self):
+        """The CLI half of the same split. "Open menu for details" leads to
+        the same page, so on a managed Flatpak it is the same dead end."""
+        text = self._notify(True, with_ui=False).osd_calls[0][0]
+        self.assertIn("flatpak update", text)
+        self.assertNotIn("press c", text)
+        plain = self._notify(False, with_ui=False).osd_calls[0][0]
+        self.assertIn("press c", plain)
+        self.assertNotIn("flatpak update", plain)
+
+
 class UpdateNoticeRoutingTest(unittest.TestCase):
     def test_routes_to_ui_when_callback_present(self):
         player = FakePlayer(with_ui=True)
@@ -70,7 +108,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         chk = UpdateChecker(player)
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             rq.get.return_value = _Resp("99.0.0")
             chk.check()
         self.assertEqual(chk.new_version, "99.0.0")
@@ -82,7 +120,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         chk = UpdateChecker(player)
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             rq.get.return_value = _Resp(CLIENT_VERSION)
             chk.check()
         self.assertIsNone(chk.new_version)
@@ -96,7 +134,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc, "CLIENT_VERSION", "3.0.0pre8"), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             rq.get.return_value = _Resp("2.10.0")
             chk.check()
         self.assertIsNone(chk.new_version)
@@ -108,7 +146,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc, "CLIENT_VERSION", "3.0.0pre8"), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             rq.get.return_value = _Resp("3.0.0")
             chk.check()
         self.assertEqual(chk.new_version, "3.0.0")
@@ -122,7 +160,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         resp.headers["location"] = release_url + "tag/99.0.0"
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", False):
+                mock.patch.object(uc.settings, "notify_updates", "disabled"):
             rq.get.return_value = resp
             chk.check()
         self.assertEqual(chk.new_version, "99.0.0")
@@ -279,7 +317,7 @@ class RepositoryMoveTest(unittest.TestCase):
         with mock.patch.object(uc, "requests", chain), \
                 mock.patch.object(uc, "CLIENT_VERSION", "3.0.0"), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             chk.check()
         return chk, player, chain
 
@@ -388,7 +426,7 @@ class RepositoryMoveTest(unittest.TestCase):
         with mock.patch.object(uc, "requests", chain), \
                 mock.patch.object(uc, "CLIENT_VERSION", "3.0.0"), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             chk.check()
         self.assertIsNone(chk.new_version)
         self.assertEqual(chk.release_url, MOVED)
@@ -444,7 +482,7 @@ class RepositoryMoveTest(unittest.TestCase):
         with mock.patch.object(uc, "requests", chain), \
                 mock.patch.object(uc, "CHAIN_BUDGET", 0.0), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             chk.check()
         self.assertIsNone(chk.new_version)
         # The first hop always goes out with its full read timeout; it is the

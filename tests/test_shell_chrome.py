@@ -267,6 +267,28 @@ class TestBanners(unittest.TestCase):
         handlers["banner-open"]["click"]()
         self.assertEqual(self.ctl.opened_urls, ["http://example/rel"])
 
+    def test_a_notice_with_no_url_offers_no_link(self):
+        """A managed Flatpak: `update_check.notify` passes no url because
+        the releases page cannot install anything there. The banner must
+        then say what does and offer nothing that leads away from it -- an
+        [Open] that went nowhere would be worse than the notice."""
+        self.b.notify_update("2.5.0", None)
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-open", ids(nodes))
+        self.assertIn("banner-dismiss", ids(nodes))
+        said = " ".join(str(n.get("text") or "") for n in nodes)
+        self.assertIn("flatpak update", said)
+        self.assertIn("2.5.0", said)
+
+    def test_and_a_notice_with_one_still_does(self):
+        """The control for the row above: the same banner with a url is
+        unchanged, so the split is the url and not something else."""
+        self.b.notify_update("2.5.0", "http://example/rel")
+        nodes, _h = build_scene(self.b)
+        self.assertIn("banner-open", ids(nodes))
+        said = " ".join(str(n.get("text") or "") for n in nodes)
+        self.assertNotIn("flatpak", said)
+
     def test_offline_banner_toggles(self):
         self.b.set_offline(True)
         nodes, _h = build_scene(self.b)

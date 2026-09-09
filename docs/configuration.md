@@ -713,8 +713,20 @@ You can use the config file to enable and disable features.
     `jellyfin`, `jellyfin-labs` or `iwalton3`. A redirect anywhere else is
     logged and ignored, so an account takeover cannot re-home your update
     notice.
-- `notify_updates` - Display update notification when playing media. Default: `true`
+- `notify_updates` - Display update notification when playing media. One of `default`, `enabled`, `disabled`. Default: `default`
   - Notification will only display once until the application is restarted.
+  - `default` answers by how the app was installed: **off inside a Flatpak**,
+    where your desktop's software centre already announces updates and
+    `flatpak update` is what installs them, and **on everywhere else** (pip,
+    Windows, macOS), where this app is the only thing that knows.
+  - `enabled` and `disabled` are your answer and are never overridden.
+  - Inside a Flatpak the notice tells you to run `flatpak update` and offers
+    no link, because the releases page cannot install anything there. A build
+    handed to you directly (a CI artifact, a local bundle) keeps the link:
+    those cannot update themselves.
+  - Was a `true`/`false` setting before 3.1.0. An existing `false` becomes
+    `disabled`; an existing `true` becomes `default`, since nothing on disk
+    distinguishes "never touched it" from "asked for it".
 - `discord_presence` - Enable Discord rich presence support. Default: `false`
   - Also in Settings → General → This Device. Needs the optional `pypresence` package
     (`pip install jellyfin-mpv-shim[discord]`) and takes effect after a
@@ -857,7 +869,10 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `input_gamepad` - Enable game controller input, so a pad can drive the
   library and playback. Also in Settings → General → Input. mpv reads
   this once when it starts, so it takes effect on the next launch.
-  Default: `false`
+  Default: `false`, except on **SteamOS**, where it is turned on once when
+  the config is upgraded to 3.1.0 — a Steam Deck is a machine where the pad
+  is the only pointing device most people have. Turn it back off and it
+  stays off.
 
   The d-pad and **left stick** move the selection; the **right stick**
   seeks, by the same distances your arrow keys do. The bottom face button
