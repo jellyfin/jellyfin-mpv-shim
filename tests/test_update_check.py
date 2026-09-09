@@ -43,6 +43,79 @@ class FakePlayer:
         self.osd_calls.append((text, duration, level))
 
 
+class FlatpakNoticeTest(unittest.TestCase):
+    """Inside a Flatpak the notice says how to install the update.
+
+    `flatpak update` is what installs one there; the releases page cannot.
+    The **link stays** either way -- [iw], once the notice stopped being on
+    by default in a Flatpak: anyone seeing it there switched it on, and the
+    release notes are worth reading wherever the build comes from.
+    """
+
+    def _notify(self, managed, with_ui=True):
+        from jellyfin_mpv_shim import hostinfo
+
+        player = FakePlayer(with_ui=with_ui)
+        chk = UpdateChecker(player)
+        chk.new_version = "2.9.0"
+        with mock.patch.object(hostinfo, "flatpak_managed", lambda: managed):
+            chk.notify()
+        return player
+
+    def test_the_releases_page_goes_to_the_ui_either_way(self):
+        for managed in (True, False):
+            self.assertEqual(self._notify(managed).ui_calls,
+                             [("2.9.0", release_url + "latest")],
+                             "managed=%s lost the link" % managed)
+
+    def test_the_osd_fallback_says_what_to_run_instead(self):
+        """The CLI half of the same split. "Open menu for details" leads to
+        the same page, so on a managed Flatpak it is the same dead end."""
+        text = self._notify(True, with_ui=False).osd_calls[0][0]
+        self.assertIn("flatpak update", text)
+        self.assertNotIn("press c", text)
+        plain = self._notify(False, with_ui=False).osd_calls[0][0]
+        self.assertIn("press c", plain)
+        self.assertNotIn("flatpak update", plain)
+
+
+class SkipAVersionTest(unittest.TestCase):
+    """"Ignore" is the answer that is not "turn the checker off".
+
+    Without it the only way to stop being told about a version you have
+    decided against is `check_updates`, which is a much bigger switch and
+    one nobody goes back to. `has_notified` only covers the current run.
+    """
+
+    def _check(self, skip, found="99.0.0"):
+        player = FakePlayer(with_ui=True)
+        chk = UpdateChecker(player)
+        with mock.patch.object(uc, "requests") as rq, \
+                mock.patch.object(uc.settings, "check_updates", True), \
+                mock.patch.object(uc.settings, "notify_updates", "enabled"), \
+                mock.patch.object(uc.settings, "update_skip_version", skip):
+            rq.get.return_value = _Resp(found)
+            chk.check()
+        return chk, player
+
+    def test_the_skipped_version_is_not_announced(self):
+        chk, player = self._check("99.0.0")
+        self.assertEqual(chk.new_version, "99.0.0")
+        self.assertEqual(player.ui_calls, [],
+                         "the version the user skipped was announced anyway")
+
+    def test_the_next_one_is(self):
+        """Equality, not ordering: the skip stops matching by itself, so
+        there is nothing to reset and no downgrade rule to get wrong."""
+        _chk, player = self._check("99.0.0", found="99.1.0")
+        self.assertEqual(player.ui_calls,
+                         [("99.1.0", release_url + "latest")])
+
+    def test_and_an_unset_skip_announces_everything(self):
+        _chk, player = self._check(None)
+        self.assertEqual(len(player.ui_calls), 1)
+
+
 class UpdateNoticeRoutingTest(unittest.TestCase):
     def test_routes_to_ui_when_callback_present(self):
         player = FakePlayer(with_ui=True)
@@ -70,7 +143,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         chk = UpdateChecker(player)
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             rq.get.return_value = _Resp("99.0.0")
             chk.check()
         self.assertEqual(chk.new_version, "99.0.0")
@@ -82,7 +155,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         chk = UpdateChecker(player)
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             rq.get.return_value = _Resp(CLIENT_VERSION)
             chk.check()
         self.assertIsNone(chk.new_version)
@@ -96,7 +169,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc, "CLIENT_VERSION", "3.0.0pre8"), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             rq.get.return_value = _Resp("2.10.0")
             chk.check()
         self.assertIsNone(chk.new_version)
@@ -108,7 +181,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc, "CLIENT_VERSION", "3.0.0pre8"), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             rq.get.return_value = _Resp("3.0.0")
             chk.check()
         self.assertEqual(chk.new_version, "3.0.0")
@@ -122,7 +195,7 @@ class UpdateNoticeRoutingTest(unittest.TestCase):
         resp.headers["location"] = release_url + "tag/99.0.0"
         with mock.patch.object(uc, "requests") as rq, \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", False):
+                mock.patch.object(uc.settings, "notify_updates", "disabled"):
             rq.get.return_value = resp
             chk.check()
         self.assertEqual(chk.new_version, "99.0.0")
@@ -279,7 +352,7 @@ class RepositoryMoveTest(unittest.TestCase):
         with mock.patch.object(uc, "requests", chain), \
                 mock.patch.object(uc, "CLIENT_VERSION", "3.0.0"), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             chk.check()
         return chk, player, chain
 
@@ -388,7 +461,7 @@ class RepositoryMoveTest(unittest.TestCase):
         with mock.patch.object(uc, "requests", chain), \
                 mock.patch.object(uc, "CLIENT_VERSION", "3.0.0"), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             chk.check()
         self.assertIsNone(chk.new_version)
         self.assertEqual(chk.release_url, MOVED)
@@ -444,7 +517,7 @@ class RepositoryMoveTest(unittest.TestCase):
         with mock.patch.object(uc, "requests", chain), \
                 mock.patch.object(uc, "CHAIN_BUDGET", 0.0), \
                 mock.patch.object(uc.settings, "check_updates", True), \
-                mock.patch.object(uc.settings, "notify_updates", True):
+                mock.patch.object(uc.settings, "notify_updates", "enabled"):
             chk.check()
         self.assertIsNone(chk.new_version)
         # The first hop always goes out with its full read timeout; it is the

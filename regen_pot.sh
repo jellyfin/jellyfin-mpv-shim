@@ -118,11 +118,31 @@ xgettext \
     --package-name=jellyfin-mpv-shim \
     -o "$POT" "${SOURCES[@]}"
 
+# Flag the translations that RAISE when the app formats them.
+#
+# This is the one thing here that writes to the per-locale .po files, and it
+# is a bounded exception to the rule above rather than a relaxation of it.
+# The difference is the diff: "#, fuzzy" on the offenders is a handful of
+# lines in a handful of files and leaves every other byte alone, where
+# --merge rewrites references and re-wraps what it touches across all 86.
+#
+# Fuzzy does both jobs at once: Weblate shows the entry as "Needs editing"
+# so it reaches a translator, and both compile paths already exclude fuzzy
+# so it cannot reach a .mo. See tools/po_lint.py. The build filters again on
+# its own, because a broken translation lands on Weblate's schedule and not
+# on ours.
+echo
+echo "Checking translations that would raise when formatted:"
+python3 "$(dirname "$0")/tools/po_lint.py" --fuzzy \
+    "$(dirname "$0")"/jellyfin_mpv_shim/messages/*/LC_MESSAGES/base.po \
+    || echo "  (could not run the format check)"
+
 if [ "$MERGE_PO" -eq 0 ]; then
     echo
-    echo "Wrote $POT. The per-locale .po files were NOT touched:"
-    echo "  that is Weblate's job, and merging them here is ~10k lines of"
-    echo "  churn across 86 files that conflicts with master."
+    echo "Wrote $POT. The per-locale .po files were NOT touched, except for"
+    echo "  any '#, fuzzy' the format check added just above:"
+    echo "  filling translations in is Weblate's job, and merging them here"
+    echo "  is ~10k lines of churn across 86 files that conflicts with master."
     echo "Pass --merge if you are the maintainer doing a translation sync."
     exit 0
 fi
