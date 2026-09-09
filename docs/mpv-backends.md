@@ -815,10 +815,23 @@ Measured on an X11 session with `JMS-CLIP-TEST-42` on the clipboard:
 | plain read | `[]` |
 | after `update-clipboard` | `[JMS-CLIP-TEST-42]` |
 
-So every Linux paste fell through to the `wl-paste`/`xclip`/`xsel` helpers.
-That works on a desktop that has them and **inserts nothing in the Flatpak,
-which ships none** — which is why the bug reproduced for some users only and
-looked unexplained.
+So every Linux paste fell through to the `wl-paste`/`xclip`/`xsel` helpers,
+and **which helper it finds is the rest of the bug**:
+
+- **X11 session, any packaging** — `xclip` reads the same clipboard the user
+  copied into. Paste worked, which is why plenty of users saw nothing wrong.
+- **Wayland session, host install** — `wl-paste` is normally present, so it
+  worked there too.
+- **Wayland session, Flatpak** — the manifest ships `xclip` (module at
+  `flatpak/…json:90`) and **not** `wl-clipboard`, so `clip_tools` falls to
+  `xclip`, which talks to **XWayland — a different clipboard from the one the
+  user copied into**. Paste silently inserted the wrong thing or nothing.
+
+That last row is the reported case, and the shape of it — works for some
+users, not others, no error either way — is why it looked unexplained. An
+earlier version of this section said the Flatpak "ships none of them", which
+is wrong: it ships `xclip`, and shipping the *wrong* helper for the session is
+worse than shipping none, because the fallback then appears to succeed.
 
 ### The wait is bounded, and the bound is the only thing protecting the UI
 
@@ -846,9 +859,39 @@ writes to whichever textbox has focus, so a callback can land after focus moved
 or the scene was rebuilt, which is the stale-capture class `docs/browser-shell.md`
 exists to warn about. A 20 ms ceiling is the cheaper correctness.
 
-Shipping `wl-clipboard` in the Flatpak is still worth doing, but it is the belt:
-with the refresh in place the helpers are a fallback again rather than the only
-path that ever worked.
+### The Flatpak does not need `wl-clipboard` — measured
+
+The obvious conclusion from the above is to ship `wl-clipboard` so the Wayland
+fallback is the *right* clipboard. **Measured, and it is not needed**, because
+with mpv from master there is no Wayland gap left for a helper to fill:
+
+| compositor | mpv backend | how the data arrives | refresh needed? |
+|---|---|---|---|
+| has `ext-data-control-v1` | `wayland` | it has `update_data` | yes — and `clip_get` sends it |
+| lacks it | `vo` | compositor pushes the selection offer | **no** |
+
+The second row is the one worth measuring, and it was: under a **headless**
+sway 1.10.1 (which advertises only `zwlr_data_control_manager_v1`, so mpv falls
+to `vo`), `clipboard/text` read `WL-CLIP-VALUE` immediately, with no
+`update-clipboard` and with mpv's own `focused` property reporting `no`. The
+`vo` backend has no `update_data` hook precisely because it does not need one.
+
+**A nested sway on X11 cannot test this and will tell you the opposite.** The
+first attempt ran sway with `WLR_BACKENDS=x11`; its host window never had
+keyboard focus from a non-interactive shell, so the seat had *no* focus at all
+(`swaymsg -t get_tree` reported zero focused nodes before mpv even started) and
+the property read `nil` forever. Use `WLR_BACKENDS=headless WLR_RENDERER=pixman`
+with `--vo=wlshm`, which owns its own seat.
+
+So the helpers stay a fallback for **mpv <= 0.41 only** — no `update-clipboard`,
+and `clipboard-x11.c` declines under Wayland unless `--clipboard-xwayland=yes`.
+The Flatpak pins master, so that case cannot arise there, and adding a
+dependency to cover it would be paying for a configuration the package cannot
+be in.
+
+The `wayland` backend path itself was **not** exercised here (sway 1.10.1 is
+wlroots 0.18 and has no `ext-data-control-v1`); it is the same code path as
+`x11` — both declare `update_data` — and the x11 half is measured above.
 
 ## 12. The on-screen controls, and the user's own OSC
 
