@@ -1027,7 +1027,7 @@ first skip segment and the report says "after a video or two".
 Ship the branch anyway — it is real coverage — but do not let it be mistaken for
 this cluster's guard.
 
-### 5.8 The process rule that actually fires
+### 5.8 The process rule that actually fires — BUILT as `tools/selffix_rate.py`
 
 The daily table in §1 is computable in one command. **A release should not tag
 while the trailing-3-day self-fix rate is above the window's opening rate.** On
@@ -1036,6 +1036,30 @@ later. This is CLAUDE.md's stated trigger — *"when a round's findings land mos
 in code that earlier rounds fixed, stop applying them one at a time and run
 `/breakfix-review`"* — with a number attached so it can fire without anyone
 noticing it should.
+
+**`tools/selffix_rate.py --since <ref> --daily` is that command**, and it exits
+non-zero when the gate is failing. Run against this release it says **DO NOT
+TAG**: opening 24.4%, trailing 47.7%.
+
+It reproduces §1's numerators exactly — 56 self-fixes by instrument A, 40 by B —
+and the daily table with them, 20.0% on 2026-09-01 and 78.6% on 2026-09-02. The
+denominators differ on purpose: §1 kept the prose commits in them and excluded
+them only from the numerator, and this drops them from both, so 44.1%/29.9%
+reads here as 46.3%/30.9%. The excluded count is printed on every run so the two
+can be reconciled.
+
+Two corrections came out of building it. **There are six prose-compression
+commits, not four** — `f1127df4` and `775d8d79` are the same batch on the same
+day and the hand count missed them, which is the argument for the filter being
+code. And the AST comparison §1 describes needs **docstrings stripped before
+comparing**: a docstring is an AST node, so a plain `ast.dump` calls a
+prose-only commit a behaviour change. The first version of the tool did that and
+disagreed with §1 by exactly the commits §1 had proved prose-only.
+
+The 0.0% trap has an assertion rather than a warning:
+`tests/test_selffix_rate.py` fails the tool if blame produces no lines at all
+across a non-empty window, because an instrument that reports "no rot" when it
+has measured nothing is worse than no instrument.
 
 ---
 
