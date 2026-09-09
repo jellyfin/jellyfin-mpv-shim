@@ -879,6 +879,28 @@ unreachable while reporting a pass"* — applies exactly: a fake or fixture whos
 `grep -rn phud tests/_*.py` finds nothing modelling it.
 `tools/audit_fake_contracts.py` is the existing home for this.
 
+**DONE, and not there — that pointer was wrong.** `audit_fake_contracts.py`
+extracts what production *Python* reaches on a collaborator; `phud.mode` is
+renderer state and never crosses into Python except as the `phud_mode` field of
+the `debug_state` reply, which `tests/integration/test_mpvtk_hud.py` already
+reads. There was nothing for it to audit.
+
+The gap the section names is real, and it was a missing *case* rather than a
+missing field: nothing had ever clicked bare video with HUD mode **off** and
+`mpvtk_mouse` still enabled — the state a lua OSC leaves the renderer in, where
+all three fall-throughs are dead and the buttons go nowhere. That case is now in
+`tests/lua/test_renderer.lua`, next to the HUD-up block it is the negative of,
+and it opens by asserting `phud_mode` is actually false, because a fixture that
+quietly had the mode on would pass every one of its assertions for the wrong
+reason.
+
+Mutation-checked one gate at a time: ungating the click, the double click and
+the right click each fails exactly its own assertion, and publishing
+`phud_mode = true` fails the setup guard. The first draft shared one command log
+across the three presses, so a left click that wrongly paused also answered the
+right click's assertion — three assertions, one of them measuring the others.
+They get a log each.
+
 ### 5.6 A binding-lifetime lint — the one instrument that fits `renderer.lua`
 
 Every `mp.add_forced_key_binding(<key>, '<name>', …)` in `renderer.lua` should
