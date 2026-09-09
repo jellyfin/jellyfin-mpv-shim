@@ -977,6 +977,18 @@ for all three, so none of it shipped.
 menus. They do **not** cover A4, which needs right-click **over bare video, with
 `mouse_click_pauses` off, after the HUD auto-hides**. The coverage that would
 have caught #724/#737 is a fourth state in the same file, not one of these three.
+
+**That fourth state exists now**, as two tests rather than one, because the
+cluster turned out to be two properties: the right button reaching the picture
+(A4), and the left button still reaching a tile after a skip segment has come
+and gone (#737). Both mutation-controlled, both green on both backends.
+
+The second one is worth more than a test. Putting the leak back — deleting the
+one `remove_key_binding` line — fails it on the click, which means the
+preemption is now *shown* rather than argued from how mpv ranks bindings. That
+was one of the two things §3.3 could not establish. The other, whether the
+reporter's freeze is this leak, is unchanged: this predicts the freeze on the
+first skip segment and the report says "after a video or two".
 Ship the branch anyway — it is real coverage — but do not let it be mistaken for
 this cluster's guard.
 

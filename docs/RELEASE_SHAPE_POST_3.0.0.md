@@ -898,11 +898,29 @@ zero-risk substitute is a release-notes line:
    currently suspended."* So the Lua test is necessary and not sufficient.
 2. **A real-mpv leg for the same property:** `click_pauses = false` → a skip
    segment arms → the button hides → return to the browser → left-click a tile.
-   That is the cross-product no existing suite covers.
+   That is the cross-product no existing suite covers. **DONE** —
+   `test_a_real_click_still_activates_after_a_skip_segment`.
 3. **A4 through real `MBTN_RIGHT` down/up over bare video with the HUD
    auto-hidden.** `tests/e2e/test_mouse_routing.py`'s two `MBTN_RIGHT` calls are
-   at `:358` and `:456` and are both on nodes — CONFIRMED, and it is the honest
-   limit the postmortem records at §5.7.
+   at `:358` and `:456` and are both on nodes — CONFIRMED, and it was the honest
+   limit the postmortem records at §5.7. **DONE** —
+   `test_the_right_button_pauses_over_a_hidden_hud`.
+
+**Both are mutation-controlled, and criterion 2's control settles the half of
+#737 that was inferred.** Deleting `mp.remove_key_binding('mpvtk_skip_click')`
+from `phud_skip_unbind` — i.e. putting the defect back — makes the click test
+fail on the tile, naming the leak, while every other test in the file stays
+green; reverting A4's `mpvtk_phud_rclick` binding fails only the right-button
+test. Green on both backends, 8 of 8.
+
+So *"a leaked forced `mbtn_left` eats browser clicks"* is no longer inferred
+from how mpv ranks bindings — it is demonstrated, through mpv's own section
+stack, which is precisely what `tests/lua/fake_mp.lua` says it cannot model.
+**What that does NOT settle is whether this is #737's cause.** The mechanism
+predicts the freeze on the *first* skip segment and the report says "after a
+video or two"; those agree only if not every episode offered a Skip button, and
+that question still belongs to the reporter or to a hand repro. Do not write
+"fixes #737" on the strength of this.
 4. **The pairing lint green with zero exemptions.**
 5. **A CI build to each reporter (§5.4) — Izzie's to send, per the policy
    above — which is the strongest evidence available here and the only kind for
