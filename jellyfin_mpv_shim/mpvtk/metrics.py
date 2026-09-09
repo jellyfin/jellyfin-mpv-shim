@@ -16,7 +16,7 @@ import tempfile
 log = logging.getLogger("mpvtk")
 
 # Bump when the measurement logic changes (invalidates disk caches).
-_METRICS_VERSION = 1
+_METRICS_VERSION = 2
 
 # Candidates per platform; Pillow searches the system font paths.
 _CANDIDATES = [
@@ -27,6 +27,28 @@ _CANDIDATES = [
 ]
 
 _MEASURE_SIZE = 128
+
+#: DejaVu Sans' ascender+descender box at ``_MEASURE_SIZE``, and the size
+#: the whole app is drawn at.
+#:
+#: libass reads ``\fs`` as that box rather than as the em (VSFilter compat),
+#: and the box is font-relative -- 150 for DejaVu Sans, 172 for Segoe UI,
+#: both measured. Feeding the nominal size straight in therefore drew a
+#: 14.5px em on Linux and a 12.7px em on Windows for the same 17, with every
+#: box around it identical, because the width table carried the same
+#: per-face factor and predicted the smaller text correctly.
+#:
+#: **Linux is the reference**, so every face is stretched to the size this
+#: box would have drawn (:func:`_fs_multiplier`, applied by the renderer)
+#: and the width table is a fraction of the nominal size on every platform.
+#: Conforming to the nominal number instead would have been the same fix
+#: with every string on every platform 17% larger.
+_REFERENCE_HEIGHT = 150.0
+
+#: Nominal size -> the em libass ends up drawing. A constant, because the
+#: renderer now cancels the face out; folding a face into this as well would
+#: apply the correction twice.
+_WIDTH_FACTOR = _MEASURE_SIZE / _REFERENCE_HEIGHT
 
 
 def _load_font():
@@ -47,6 +69,20 @@ def _load_font():
     return None
 
 
+def _fs_multiplier(font):
+    """What to multiply a nominal size by before it reaches ``\\fs``.
+
+    1.0 for a face with the reference box, more for a taller one. The only
+    place a face's own metrics are read -- see ``_REFERENCE_HEIGHT``.
+    """
+    try:
+        ascent, descent = font.getmetrics()
+    except AttributeError:  # Pillow too old to measure anything
+        return 1.0
+    box = float(ascent + descent)
+    return box / _REFERENCE_HEIGHT if box > 0 else 1.0
+
+
 def measure_kerning():
     """Pair-kerning adjustments as {2-char string: em fraction}, only
     non-zero pairs, with the libass fs factor folded in. ~9k getlength
@@ -56,8 +92,6 @@ def measure_kerning():
     if font is None:
         return None
     try:
-        ascent, descent = font.getmetrics()
-        factor = _MEASURE_SIZE / float(ascent + descent)
         chars = [chr(i) for i in range(32, 127)]
         single = {c: font.getlength(c) for c in chars}
         kern = {}
@@ -66,7 +100,7 @@ def measure_kerning():
             for b in chars:
                 d = font.getlength(a + b) - la - single[b]
                 if abs(d) > 0.6:  # font units of noise at 128px
-                    kern[a + b] = round(d / _MEASURE_SIZE * factor, 4)
+                    kern[a + b] = round(d / _MEASURE_SIZE * _WIDTH_FACTOR, 4)
         log.info("mpvtk metrics: %d kerning pairs", len(kern))
         return kern
     except AttributeError:
@@ -75,23 +109,14 @@ def measure_kerning():
 
 # session state for on-demand measurement (extend_metrics)
 _session_font = None
-_session_factor = None
 _seen_pairs = set()
 
 
 def _dyn_font():
-    global _session_font, _session_factor
+    global _session_font
     if _session_font is None:
-        f = _load_font()
-        if f is None:
-            return None, None
-        try:
-            ascent, descent = f.getmetrics()
-        except AttributeError:
-            return None, None
-        _session_factor = _MEASURE_SIZE / float(ascent + descent)
-        _session_font = f
-    return _session_font, _session_factor
+        _session_font = _load_font()
+    return _session_font
 
 
 def extend_metrics(m, texts):
@@ -101,7 +126,7 @@ def extend_metrics(m, texts):
     real UI text actually uses. Limited to codepoints below U+2E80, which
     is what the base font covers; CJK keeps the ~1em heuristic because
     libass draws it with a fallback font Pillow is not measuring."""
-    font, factor = _dyn_font()
+    font = _dyn_font()
     if font is None or not m:
         return False
     widths = m["widths"]
@@ -115,20 +140,15 @@ def extend_metrics(m, texts):
                 prev = None
                 continue
             if c not in widths:
-                widths[c] = round(
-                    font.getlength(c) / _MEASURE_SIZE * factor, 4
-                )
+                widths[c] = round(font.getlength(c) / _MEASURE_SIZE * _WIDTH_FACTOR, 4)
                 added = True
             if prev is not None and (ord(prev) > 0x7E or o > 0x7E):
                 p = prev + c
                 if p not in _seen_pairs:
                     _seen_pairs.add(p)
-                    d = (font.getlength(p) - font.getlength(prev)
-                         - font.getlength(c))
+                    d = font.getlength(p) - font.getlength(prev) - font.getlength(c)
                     if abs(d) > 0.6:
-                        kern[p] = round(
-                            d / _MEASURE_SIZE * factor, 4
-                        )
+                        kern[p] = round(d / _MEASURE_SIZE * _WIDTH_FACTOR, 4)
                         added = True
             prev = c
     return added
@@ -138,9 +158,7 @@ def _cache_path():
     if sys.platform.startswith("win"):
         base = os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()
     else:
-        base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser(
-            "~/.cache"
-        )
+        base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
     return os.path.join(base, "mpvtk-metrics.json")
 
 
@@ -202,33 +220,32 @@ def measure_font():
         except (OSError, ValueError, KeyError):
             pass
         try:
-            # libass scales \fs to ascender+descender, not the em, so the
-            # correction factor is folded in HERE and every width consumer
-            # inherits it (GUIDE.md section 6.3; calibrate.py verifies).
-            ascent, descent = font.getmetrics()
-            factor = _MEASURE_SIZE / float(ascent + descent)
             # printable ASCII + Latin-1 supplement (é, ü, ñ, …); other
             # scripts use the fallback widths (fullwidth heuristic for
             # CJK)
             chars = [chr(i) for i in range(32, 127)]
             chars += [chr(i) for i in range(0xA1, 0x100)]
             widths = {
-                c: round(font.getlength(c) / _MEASURE_SIZE * factor, 4)
+                c: round(font.getlength(c) / _MEASURE_SIZE * _WIDTH_FACTOR, 4)
                 for c in chars
             }
-            mask_w = font.getlength("•") / _MEASURE_SIZE * factor
+            mask_w = font.getlength("•") / _MEASURE_SIZE * _WIDTH_FACTOR
+            stretch = _fs_multiplier(font)
             if not 0.1 < mask_w < 1.5:  # glyph missing/degenerate
                 mask_w = 0.55
             family = font.getname()[0]
         except AttributeError:  # Pillow < 8: no getlength
             return None
         log.info(
-            "mpvtk metrics: measured %s (libass factor %.3f)",
+            "mpvtk metrics: measured %s (\\fs stretch %.3f)",
             family,
-            factor,
+            stretch,
         )
         data = {
             "font": family,
+            # The renderer multiplies every \fs by this, which is what makes
+            # a nominal size mean one physical size on every platform.
+            "fs": round(stretch, 6),
             "widths": widths,
             "mask_w": round(mask_w, 4),
             "kern": measure_kerning() or {},
