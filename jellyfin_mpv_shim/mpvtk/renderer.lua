@@ -398,6 +398,50 @@ local function clip_set(text)
 end
 
 local function clip_get()
+    -- **`clipboard/text` is OUTDATED until we ask for it**, and asking is
+    -- the whole of #739. mpv's x11 and wayland backends are the only two
+    -- with an `update_data` hook, `--clipboard-monitor` defaults to no, and
+    -- mpv's own commit for the command states the contract: "the client now
+    -- needs to run this command to update the clipboard content, otherwise
+    -- the property value is outdated". So on Linux this read returned the
+    -- stale value -- empty -- every time, paste fell through to the helpers
+    -- below, and the Flatpak ships none of them. Measured at our pin on an
+    -- X11 session: empty before the command, correct after.
+    --
+    -- **Synchronous with a ceiling, and both halves are measured.** The wait
+    -- ends when the notification arrives, not when the timeout does: 0.2ms
+    -- for a healthy clipboard and 0.3ms when nothing owns the selection. It
+    -- burns the WHOLE timeout only for an owner that is alive and does not
+    -- answer -- simulated with a SIGSTOPped xclip still holding the
+    -- selection, where 10/50/200ms timeouts blocked 10.1/50.1/200.1ms. 20ms
+    -- caps that at about one frame, and `cmd_update_clipboard` unlocks the
+    -- core before waiting, so playback is untouched either way and only this
+    -- script pauses. docs/mpv-backends.md has the numbers.
+    --
+    -- **Deliberately not async.** `tb_insert` writes to whichever textbox
+    -- has focus, so a callback can land after focus moved or the scene was
+    -- rebuilt -- the stale-capture bug this file warns about everywhere
+    -- else. A 20ms ceiling is the cheaper correctness.
+    --
+    -- **Probed, not just pcall'd, because the command is master-only.** It
+    -- is in neither v0.40.0 nor v0.41.0, and `mp.command_native` does not
+    -- raise for a command mpv lacks -- it returns nil plus "invalid
+    -- parameter" and mpv logs `Command 'update-clipboard' not found.` at
+    -- ERROR level. A pcall would swallow the value and leave the log line,
+    -- once per paste, on a version this client supports. `command-list` is
+    -- 87 entries in 0.6ms, cached like `clip_tools`.
+    if state.clip_update == nil then
+        state.clip_update = false
+        for _, c in ipairs(mp.get_property_native('command-list') or {}) do
+            if c.name == 'update-clipboard' then
+                state.clip_update = true
+                break
+            end
+        end
+    end
+    if state.clip_update then
+        pcall(mp.command_native, { 'update-clipboard', 'text', 20 })
+    end
     local ok, v = pcall(mp.get_property, 'clipboard/text')
     if ok and v and v ~= '' then return v end
     for _, tool in ipairs(clip_tools()) do

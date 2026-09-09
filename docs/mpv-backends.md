@@ -792,6 +792,64 @@ Two scope limits, both load-bearing:
 The suspend does nothing at all on an mpv without the option (built without
 gpu-next, or too old) — reading it is how we find that out.
 
+## 11a. The clipboard property is outdated until you ask for it
+
+**`clipboard/text` is not a live value on Linux**, and reading it as if it were
+is the whole of #739 — paste inserted nothing, for a reason that had nothing to
+do with which backends were enabled.
+
+Three facts from mpv's own source at our pin (`182fa6ca49`):
+
+- **Only `x11` and `wayland` implement `update_data`** — the two Linux backends.
+  `win32` and `mac` do not need it.
+- **`--clipboard-monitor` defaults to `no`** (`player/clipboard/clipboard.c`
+  sets no default in `clipboard_conf.defaults`), so nothing polls for changes.
+- mpv's commit adding the command (`f7f7cf18f3`, an ancestor of our pin) states
+  the contract outright: *"The client now needs to run this command to update
+  the clipboard content, otherwise the property value is outdated."*
+
+Measured on an X11 session with `JMS-CLIP-TEST-42` on the clipboard:
+
+| | `clipboard/text` |
+|---|---|
+| plain read | `[]` |
+| after `update-clipboard` | `[JMS-CLIP-TEST-42]` |
+
+So every Linux paste fell through to the `wl-paste`/`xclip`/`xsel` helpers.
+That works on a desktop that has them and **inserts nothing in the Flatpak,
+which ships none** — which is why the bug reproduced for some users only and
+looked unexplained.
+
+### The wait is bounded, and the bound is the only thing protecting the UI
+
+`update-clipboard` is `{type, timeout_ms}`, `.spawn_thread = true`, and
+`cmd_update_clipboard` calls `mp_core_unlock` before waiting — so **playback is
+never affected**; only the caller waits. Measured wall-clock (`mp.get_time()`,
+not `os.clock()`, which is CPU time and reports 0.1ms for any wait):
+
+| clipboard state | timeout | actual block |
+|---|---|---|
+| healthy owner | 1–200 ms | **0.18–0.28 ms** |
+| nothing owns the selection | 10 / 50 ms | 0.27 / 0.28 ms |
+| **owner alive and not answering** | 10 / 50 / 200 ms | **10.1 / 50.1 / 200.1 ms** |
+| any | 0 ms | returns immediately, and **does not fetch** |
+
+The wait ends when the notification arrives, so the timeout is a *ceiling on a
+wedged owner* and not a budget for a working one. The unresponsive case was
+simulated with a `SIGSTOP`ped `xclip` still holding the X selection — that is
+the hang mpv designed the worker thread and `mp_cancel` around, and it is real.
+
+`renderer.lua`'s `clip_get` therefore issues it **synchronously with a 20 ms
+ceiling**: about one frame in the worst case, nothing measurable in the normal
+one. Async was the obvious alternative and is the wrong trade here — `tb_insert`
+writes to whichever textbox has focus, so a callback can land after focus moved
+or the scene was rebuilt, which is the stale-capture class `docs/browser-shell.md`
+exists to warn about. A 20 ms ceiling is the cheaper correctness.
+
+Shipping `wl-clipboard` in the Flatpak is still worth doing, but it is the belt:
+with the refresh in place the helpers are a fallback again rather than the only
+path that ever worked.
+
 ## 12. The on-screen controls, and the user's own OSC
 
 `osc_style` has four values and only three of them are ours. `default` means
