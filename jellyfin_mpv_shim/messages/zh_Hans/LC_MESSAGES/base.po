@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-08 03:19+0000\n"
+"PO-Revision-Date: 2026-09-10 06:07+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -5169,7 +5169,6 @@ msgctxt "guide navigation"
 msgid "Later"
 msgstr "之后"
 
-#, fuzzy
 msgctxt "update banner"
 msgid "Later"
 msgstr "之后"
@@ -5178,17 +5177,14 @@ msgctxt "playback control"
 msgid "Repeat"
 msgstr "循环播放"
 
-#, fuzzy
 msgctxt "guide badge"
 msgid "Repeat"
-msgstr "循环播放"
+msgstr "循环模式"
 
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "确认"
 
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "确认"
@@ -5197,7 +5193,6 @@ msgctxt "subtitle position"
 msgid "Top"
 msgstr "顶部"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Top"
 msgstr "顶部"
@@ -5206,7 +5201,6 @@ msgctxt "subtitle position"
 msgid "Bottom"
 msgstr "底部"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
 msgstr "底部"
