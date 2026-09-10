@@ -27,6 +27,13 @@ enumerated the pairs. This does.
 A finding is not automatically a bug. Either release the binding where its
 owner goes away, or add the name to `ACCEPTED` with the reason it does not
 need releasing -- which is documentation either way.
+
+**Second pass, the other direction: the keys mpv's own scripts take from
+us.** The console and the context menu each force the same keys the
+renderer does, and each publishes a `user-data/mpv/<thing>/open` flag while
+it is up. `PUBLISHED` declares every one of those properties and what the
+renderer owes it. The block above `Published` carries the measurement that
+says why ORDER, and not force, decides who gets the key.
 """
 
 import argparse
@@ -108,6 +115,141 @@ def audit(path):
     return findings
 
 
+# --------------------------------------------------------------------
+# Second pass: the keyboard mpv's own scripts take, and whether we notice.
+#
+# The first pass is about bindings WE install and forget. This one is the
+# other direction, and it is the same rule at the site nobody wrote it at.
+#
+# mpv's builtin console and context menu both install their keys with
+# `mp.add_forced_key_binding`, exactly as the renderer does, and each
+# publishes a `user-data/mpv/<thing>/open` boolean while it is up. The
+# renderer observes the console's and hands its own keys back for the
+# duration. Nothing watches the context menu's.
+#
+# **Measured against mpv 182fa6ca49, not reasoned about** (the probes are
+# in the commit message; each asserts which handler RECEIVED a synthetic
+# `keypress ENTER`, not which one has the larger `priority` number):
+#
+#   A. nothing open .............. our forced ENTER fires
+#   B. the thing opens AFTER us .. ITS binding fires, not ours
+#   C. we re-bind while it is up . OUR binding fires, and it stays open
+#
+# B is why this is not the leak the first pass looks for: a standing
+# binding of ours does not break a menu that opens later. C is the whole
+# exposure -- the HUD re-installs its nav keys on pointer movement and on
+# every lifecycle event, so anything that re-binds while a menu is up
+# takes the key back and leaves the menu on screen with no way to activate
+# an item. That is what the console handler prevents, at one of the two
+# places that need it.
+#
+# It also corrects the console handler's own comment, which says our
+# forced bindings "outrank" the console. They do not; B measures the
+# opposite -- and `renderer.lua:5771` had the rule right the whole time,
+# 1,200 lines away: "between two forced bindings of one key the LATER one
+# wins". One rule, written correctly at one site and wrongly at another,
+# which is this repo's signature shape.
+#
+# What the console handler is really for is C, plus the `any_unicode`
+# block claim -- which outranks an exact key installed BEFORE it, and is
+# bound first for that reason.
+
+
+class Published:
+    """One `user-data/mpv/*` property, and what the renderer owes it.
+
+    ``state`` is ``observed`` (the renderer watches it and must go on
+    doing so), ``not-input`` (it says nothing about who owns the
+    keyboard, so watching it would be noise), or ``gap`` (it should be
+    watched, it is not, and the reason is recorded rather than fixed
+    quietly).
+    """
+
+    def __init__(self, state, since, by, why):
+        self.state = state
+        self.since = since
+        self.by = by
+        self.why = why
+
+
+#: Everything mpv's builtin scripts publish under `user-data/mpv/`, read
+#: out of mpv's own tree at 182fa6ca49. Not discoverable at lint time --
+#: mpv's source is not in this repo -- so it is a declared list, and the
+#: version each appeared in is part of the declaration because the shim
+#: runs against several.
+PUBLISHED = {
+    "console/open": Published(
+        "observed", "0.40.0 (8669205d92, 2025-01-30)", "console.lua",
+        "The console wants the whole keyboard. The renderer hands back "
+        "nav, summon, skip, wake and the any_unicode block while it is "
+        "up and takes them again on close.",
+    ),
+    "context-menu/open": Published(
+        "gap", "master only (aec426a4d8, 2026-02-19); NOT in v0.41.0",
+        "context_menu.lua",
+        "The menu forces ENTER, ESC, the arrows and any_unicode, and it "
+        "is what MBTN_RIGHT opens on master -- which is the pin both "
+        "shipped builds use. Nothing hands our keys back, so any "
+        "re-bind while it is up (case C above) leaves the menu drawn and "
+        "dead. NOT FIXED HERE ON PURPOSE: the repair lands on the input "
+        "arbiter, which docs/do-not-fix.md F37 records as the worst "
+        "regression surface in the tree, and #737's own fix is still "
+        "ahead of its evidence one branch below. What is measured is the "
+        "mpv mechanism; what is not is that the shim reaches case C in a "
+        "real session, and that is a real-mpv e2e leg, not a lint.",
+    ),
+    "ytdl/path": Published(
+        "not-input", "0.39.0 (ff47926d6a, 2024-05-09)", "ytdl_hook.lua",
+        "Where yt-dlp was found. Says nothing about the keyboard.",
+    ),
+    "ytdl/json-subprocess-result": Published(
+        "not-input", "0.39.0 (ff47926d6a, 2024-05-09)", "ytdl_hook.lua",
+        "The hook's subprocess result, for scripts that want the raw "
+        "answer. Says nothing about the keyboard.",
+    ),
+}
+
+_OBSERVE = re.compile(
+    r"mp\.observe_property\s*\(\s*'user-data/mpv/([^']+)'")
+
+
+def observed(path):
+    """The `user-data/mpv/*` properties the file observes."""
+    with open(path, encoding="utf-8") as fh:
+        return set(_OBSERVE.findall(fh.read()))
+
+
+def audit_user_data(path):
+    """[(prop, problem)] where the renderer and PUBLISHED disagree.
+
+    A declared gap is NOT a finding -- it is printed every run and pinned
+    by the test, so a new one fails and a recorded one stays visible.
+    """
+    seen = observed(path)
+    findings = []
+    for prop, entry in sorted(PUBLISHED.items()):
+        if entry.state == "observed" and prop not in seen:
+            findings.append((prop, "declared observed, and nothing observes "
+                                   "it -- the handler was removed or the "
+                                   "property was renamed"))
+        elif entry.state != "observed" and prop in seen:
+            findings.append((prop, "declared %r, and the renderer observes "
+                                   "it anyway -- move the entry to "
+                                   "'observed' with what the handler does"
+                                   % entry.state))
+    for prop in sorted(seen - set(PUBLISHED)):
+        findings.append((prop, "observed, and not in PUBLISHED -- say which "
+                               "mpv script publishes it and from which "
+                               "release, so the next reader can tell a live "
+                               "property from a dead one"))
+    return findings
+
+
+def gaps():
+    """The properties recorded as watched-by-nothing, on purpose."""
+    return sorted(p for p, e in PUBLISHED.items() if e.state == "gap")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("files", nargs="*", help="lua files to audit")
@@ -118,13 +260,21 @@ def main(argv=None):
 
     bad = 0
     for path in files:
+        rel = os.path.relpath(path, root)
         for line, name, kind in audit(path):
             bad += 1
             print("%s:%d: %s binding %r is never released"
-                  % (os.path.relpath(path, root), line, kind, name))
+                  % (rel, line, kind, name))
+        for prop, problem in audit_user_data(path):
+            bad += 1
+            print("%s: user-data/mpv/%s: %s" % (rel, prop, problem))
     if bad:
-        print("\n%d unreleased binding(s). Release it where its owner goes "
-              "away, or add it to ACCEPTED with the reason." % bad)
+        print("\n%d finding(s). Release the binding where its owner goes "
+              "away and add it to ACCEPTED with the reason; for a "
+              "user-data property, correct its PUBLISHED entry." % bad)
+    for prop in gaps():
+        print("note: user-data/mpv/%s is watched by nothing, on purpose --"
+              " see PUBLISHED" % prop)
     return 1 if bad else 0
 
 

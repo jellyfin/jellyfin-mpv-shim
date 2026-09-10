@@ -785,7 +785,7 @@ tree — CLAUDE.md's own finding is that *advisory prose does not change the rat
 and this repo has twice ended a loop with an enumerating instrument (C4, C5) and
 zero times with a careful re-read.
 
-### 5.1 `tools/audit_frozen_key_literals.py` (new, ~150 lines) — highest value
+### 5.1 `tools/audit_frozen_key_literals.py` — BUILT, and it found three more
 
 Covers C1 / R1, R2, R3, R10 — the cluster with the worst live record and no
 instrument at all. Structure copied verbatim from
@@ -799,25 +799,116 @@ declaration is where the next reader learns the resolver exists.
 Guard: `tests/test_no_frozen_key_literals.py`. Precedent that it works: R10 was
 found by writing this predicate down, not by reading the file.
 
-### 5.2 Four lines in `tools/audit_owned_state.py:51` — cheapest possible
+**Built, with two departures from the spec above and one result.**
+
+The spec said *"scan for string literals equal to any of their defaults"*. That
+matches 85 sites, most of them noise — `'left'` is an alignment far more often
+than it is a key, and the first run flagged a debug overlay's `'F'` glyph on
+`kb_fullscreen`. So the vocabulary is the **multi-character** defaults only, and
+matching is case-sensitive on mpv's uppercase spelling, which is exactly what
+separates a key from a direction here. Both limits are stated in the file: a
+frozen key written lowercase in binding code is invisible to it.
+
+The second departure is the grain. Declaring 49 individual literals would have
+been exempted into uselessness, so a declaration covers a *scope* — 20 of them.
+That needed real scope tracking in Lua rather than "the last `function` line
+seen": without it a file-scope constant is charged to whatever function is
+above, which put **R3 inside `phud_wake_key`** — the resolver that is R3's own
+counter-example.
+
+**Three more findings, from the first clean run:**
+
+- **R2 has a second site.** `_shell_claimed_keys` claims the literal `SPACE`
+  and `_shell_key` dispatches on `key == "SPACE"`. Two independent freezes of
+  `kb_pause`; the risk map records the claim only.
+- **`phud_bind_summon`** compares the loop's key against a literal `ENTER` to
+  choose its handler, so resolving R3's table would not by itself repair it.
+- **`phud_bind_wake`** compares the *resolved* wake key against `ENTER` to
+  decide whether waking the HUD also toggles pause — so moving `hud_wake_key`
+  silently drops the pause half. That is a product question rather than a
+  freeze, and it is declared as one.
+
+Seven declared-open rows in all, none repaired here: every one needs a
+config-file edit to reach, which is §7's reason for deferring them, and the
+status is a field on the declaration rather than a word in its prose. The first
+draft read `"OPEN" in why` and disagreed with itself about two rows — the
+tool's own defect shape, in the tool.
+
+### 5.2 Four lines in `tools/audit_owned_state.py` — DONE, and not four lines
 
 Add `_sync_path`, `ThumbnailStore._gone`, `mpv.TIMEOUT` and `_login["pass"]` to
 `OWNED`. `docs/RISK_MAP_2026-09.md` §7 already specifies them, already argues
 they are the cheapest Tier-1 coverage in the tree, and the tool is already wired
-into the suite. This is bookkeeping, not engineering.
+into the suite. ~~This is bookkeeping, not engineering.~~
+
+**It was not bookkeeping, and the reason is the finding.** Only
+`ThumbnailStore._gone` fitted the tool as written; the other three did not, and
+each in a different way:
+
+- **`_sync_path` and `_login` are not confined to one file.** The tool took one
+  module per entry, and the browser is one `self` spread across a dozen mixin
+  modules — so scoping either of them to the file that touches it today would
+  have been *this document's own defect shape*, the right rule at one of
+  several sites, installed by the tool meant to catch it. `scope` now takes a
+  directory, and owners are spelled `path:function`.
+- **`mpv.TIMEOUT` does not hang off `self` at all.** It is a module global of
+  the backend library. The walker only matched `self.<attr>`, so the entry
+  would have found nothing and reported a clean tree forever — the failure
+  `test_no_second_owner.py`'s second test exists to catch. `obj` now names what
+  the state hangs off.
+- **`_login["pass"]` is a dict key, and the entry is deliberately weaker than
+  the risk it records.** The tool matches attributes, not subscripts, so the
+  scope is the whole `_login` dict with six owners. Six is a weak check and it
+  is the honest one; the *repair* — clearing `pass` after a successful login,
+  the way `_pin` already clears — is a behaviour change and is not this.
+
+Each of the three was mutation-tested: a second owner in the same file, one in
+a sibling mixin module, and a second writer of the global from another module
+are all reported.
 
 Note the tool's own rule while doing it: *"`owners` records the sites that exist,
-never the ones that may"* (`audit_owned_state.py:30-35`) — a speculative name
-pre-authorises the very second owner the audit exists to catch.
+never the ones that may"* — a speculative name pre-authorises the very second
+owner the audit exists to catch.
 
-### 5.3 `tools/audit_act_targets.py` — specified, never built
+### 5.3 `tools/audit_act_targets.py` — ~~specified, never built~~ BUILT
 
 `docs/RISK_MAP_2026-09.md` §7 says *"stays first among the lints: it covers R7
-and R8 (Tier 1 and Tier 2)"*. It does not exist — `ls tools/audit_*.py` returns
-four files and this is not one of them. Its rule: every gateway `_act` property
+and R8 (Tier 1 and Tier 2)"*. ~~It does not exist~~ — it does now, with
+`tests/test_no_act_reachthrough.py`. Its rule: every gateway `_act` property
 write must route through a `PlayerManager` owner method. It covers C6 above and
 R7 (`player_window.py:621` `set_picture_view` lacking the `_video is None and
 not _loading` guard that `reset_picture_view` grew at `:597`).
+
+**One correction to this section's own R7 example**, found while writing the
+lint: `reset_picture_view`'s `_video is None and not _loading` guard covers only
+its `keepaspect` write, and `set_picture_view` does not write `keepaspect` at
+all — the two are symmetric on zoom and pan. `docs/do-not-fix.md` F15 already
+records R7 as **unverified** and asks for the interleaving to be constructed
+first. The lint does not rest on it; C6/R8 is the confirmed example.
+
+**The site count, taken before any patch: ten, in two of the seventeen gateway
+modules.** Four writes (`speed`, `video_aspect_override`, `mute`, `fullscreen`,
+all in `hud.py`) and six reads, of which two are read-only by construction —
+the Playback Data panel's seven counters, and the diagnostics screen handing the
+handle to `clipboard.copy_or_save` as an argument.
+
+**Three of the four writes have a `PlayerManager` method sitting there
+unused** — `set_speed`, `set_mute` and `set_fullscreen` all exist. The fourth,
+`set_aspect`, exists only on `enrich-e2e-tests`, whose one production change is
+exactly this repair. So the lint's first run says the fix for most of this is
+*calling what is already written*, and none of it is made here: routing a write
+through `set_fullscreen` changes who takes the player lock, which is a behaviour
+change and `set_speed` carries no `@synchronous` either, so the honest repair is
+both halves at once and belongs in its own commit.
+
+Two things the first run found that hand-reading did not. A reach spelled
+`getattr(playerManager, "_player", None)` carries the handle as a **string**, so
+no `Attribute` node holds it and an AST walk goes straight past — the package
+has one. And writing the declaration list by hand produced **six** keys naming
+functions that do not exist, because the enclosing `def` of a `_act` lambda is
+often a nested one (`toggle_fullscreen.flip`, not `toggle_fullscreen`). The
+stale-key check caught all six on the first run, which is the case it was
+written for.
 
 ### 5.4 Make `_load` check coverage instead of reordering the list
 
@@ -854,6 +945,28 @@ unreachable while reporting a pass"* — applies exactly: a fake or fixture whos
 `grep -rn phud tests/_*.py` finds nothing modelling it.
 `tools/audit_fake_contracts.py` is the existing home for this.
 
+**DONE, and not there — that pointer was wrong.** `audit_fake_contracts.py`
+extracts what production *Python* reaches on a collaborator; `phud.mode` is
+renderer state and never crosses into Python except as the `phud_mode` field of
+the `debug_state` reply, which `tests/integration/test_mpvtk_hud.py` already
+reads. There was nothing for it to audit.
+
+The gap the section names is real, and it was a missing *case* rather than a
+missing field: nothing had ever clicked bare video with HUD mode **off** and
+`mpvtk_mouse` still enabled — the state a lua OSC leaves the renderer in, where
+all three fall-throughs are dead and the buttons go nowhere. That case is now in
+`tests/lua/test_renderer.lua`, next to the HUD-up block it is the negative of,
+and it opens by asserting `phud_mode` is actually false, because a fixture that
+quietly had the mode on would pass every one of its assertions for the wrong
+reason.
+
+Mutation-checked one gate at a time: ungating the click, the double click and
+the right click each fails exactly its own assertion, and publishing
+`phud_mode = true` fails the setup guard. The first draft shared one command log
+across the three presses, so a left click that wrongly paused also answered the
+right click's assertion — three assertions, one of them measuring the others.
+They get a log each.
+
 ### 5.6 A binding-lifetime lint — the one instrument that fits `renderer.lua`
 
 Every `mp.add_forced_key_binding(<key>, '<name>', …)` in `renderer.lua` should
@@ -874,6 +987,27 @@ property mpv's builtin scripts set should have an observer or a declared
 and not `context-menu/open` — one rule, one of two sites, and §3.3 names it as a
 live #737 candidate.
 
+**DONE as the lint; the fix is deliberately not in it, and the measurement
+changed what the fix would have to be.** `PUBLISHED` in the same tool now
+enumerates all four `user-data/mpv/*` properties mpv's scripts set, each either
+observed, declared irrelevant, or recorded as a gap that the test pins so a
+*new* one has to be argued for.
+
+`tools/probe_key_precedence.py` asks the question of a real mpv by pressing the
+key, and it refutes the premise this section was written on. A standing forced
+binding of ours does **not** outrank an overlay that opens after it — the
+overlay wins. The exposure is the third case: we re-bind while it is up, which
+the HUD does on pointer movement, and then the menu is drawn and dead. Same
+answer for the console, so `renderer.lua`'s own comment about why its console
+handler exists was wrong for a release and is corrected. Full table:
+`docs/mpv-backends.md` §5.
+
+The repair is one handler mirroring the console's, and it is not made here: it
+lands on the input arbiter — `docs/do-not-fix.md` F37, the worst regression
+surface in the tree — and #737's fix is still ahead of its own evidence one
+branch below. What is measured is mpv's mechanism. What is **not** measured is
+that a real session reaches the third case, and that is a real-mpv e2e leg.
+
 ### 5.7 Ship the branch's mouse e2e coverage — but know what it does and does not cover
 
 `tests/e2e/test_mouse_routing.py` — real `MBTN_RIGHT` presses at `:358` and
@@ -885,10 +1019,22 @@ for all three, so none of it shipped.
 menus. They do **not** cover A4, which needs right-click **over bare video, with
 `mouse_click_pauses` off, after the HUD auto-hides**. The coverage that would
 have caught #724/#737 is a fourth state in the same file, not one of these three.
+
+**That fourth state exists now**, as two tests rather than one, because the
+cluster turned out to be two properties: the right button reaching the picture
+(A4), and the left button still reaching a tile after a skip segment has come
+and gone (#737). Both mutation-controlled, both green on both backends.
+
+The second one is worth more than a test. Putting the leak back — deleting the
+one `remove_key_binding` line — fails it on the click, which means the
+preemption is now *shown* rather than argued from how mpv ranks bindings. That
+was one of the two things §3.3 could not establish. The other, whether the
+reporter's freeze is this leak, is unchanged: this predicts the freeze on the
+first skip segment and the report says "after a video or two".
 Ship the branch anyway — it is real coverage — but do not let it be mistaken for
 this cluster's guard.
 
-### 5.8 The process rule that actually fires
+### 5.8 The process rule that actually fires — BUILT as `tools/selffix_rate.py`
 
 The daily table in §1 is computable in one command. **A release should not tag
 while the trailing-3-day self-fix rate is above the window's opening rate.** On
@@ -897,6 +1043,30 @@ later. This is CLAUDE.md's stated trigger — *"when a round's findings land mos
 in code that earlier rounds fixed, stop applying them one at a time and run
 `/breakfix-review`"* — with a number attached so it can fire without anyone
 noticing it should.
+
+**`tools/selffix_rate.py --since <ref> --daily` is that command**, and it exits
+non-zero when the gate is failing. Run against this release it says **DO NOT
+TAG**: opening 24.4%, trailing 47.7%.
+
+It reproduces §1's numerators exactly — 56 self-fixes by instrument A, 40 by B —
+and the daily table with them, 20.0% on 2026-09-01 and 78.6% on 2026-09-02. The
+denominators differ on purpose: §1 kept the prose commits in them and excluded
+them only from the numerator, and this drops them from both, so 44.1%/29.9%
+reads here as 46.3%/30.9%. The excluded count is printed on every run so the two
+can be reconciled.
+
+Two corrections came out of building it. **There are six prose-compression
+commits, not four** — `f1127df4` and `775d8d79` are the same batch on the same
+day and the hand count missed them, which is the argument for the filter being
+code. And the AST comparison §1 describes needs **docstrings stripped before
+comparing**: a docstring is an AST node, so a plain `ast.dump` calls a
+prose-only commit a behaviour change. The first version of the tool did that and
+disagreed with §1 by exactly the commits §1 had proved prose-only.
+
+The 0.0% trap has an assertion rather than a warning:
+`tests/test_selffix_rate.py` fails the tool if blame produces no lines at all
+across a non-empty window, because an instrument that reports "no rot" when it
+has measured nothing is worse than no instrument.
 
 ---
 

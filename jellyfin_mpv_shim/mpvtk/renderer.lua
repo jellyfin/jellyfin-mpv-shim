@@ -6903,11 +6903,19 @@ mp.register_script_message('mpvtk-debug', function(json)
     end
 end)
 
--- mpv's console (`) wants the keyboard, but our ENTER and arrow bindings
--- are FORCED and outrank it: typing a command and pressing ENTER summoned
--- the HUD (and toggled pause) instead of running the command, with no way
--- back but ESC. Hand the keys over for as long as the console is up, and
--- take them again when it closes.
+-- mpv's console (`) wants the keyboard, and typing a command and pressing
+-- ENTER summoned the HUD (and toggled pause) instead of running it, with no
+-- way back but ESC. Hand the keys over for as long as the console is up,
+-- and take them again when it closes.
+--
+-- NOT because our bindings "outrank" it, which this said until it was
+-- measured: between two forced sections the LATER one wins, so a console
+-- opened after our ENTER is bound receives the key. What takes it back is a
+-- RE-bind while the console is up -- the HUD re-installs its nav keys on
+-- pointer movement and on every lifecycle event -- and the any_unicode
+-- block claim, which outranks an exact key installed BEFORE it (which is
+-- why ui_resume binds it first; see the note there). Same exposure, same
+-- measurement, at mpv's context menu: tools/audit_key_bindings.py.
 --
 -- Restored from what was actually bound rather than re-derived: which of
 -- the three groups is live depends on browse-vs-HUD, hud_grab_keys and
@@ -6920,9 +6928,10 @@ end)
 -- this chunk is at 192 of LuaJIT's 200 top-level locals, and going over
 -- does not fail at the call, it fails to load the renderer at all.
 --
--- The property is mpv >= 0.38 and reads nil both before the console is
--- first opened and on builds without it. nil is falsy, which is the right
--- answer for "the console is not up" in either case.
+-- The property is mpv >= 0.40 (8669205d92), not 0.38 as this said, and
+-- reads nil both before the console is first opened and on builds without
+-- it. nil is falsy, which is the right answer for "the console is not up"
+-- in either case.
 mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
     if open then
         if state.kb_saved then return end

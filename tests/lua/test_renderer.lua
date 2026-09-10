@@ -3205,6 +3205,49 @@ ok(not did("cycle", "fullscreen"),
    "double-clicking empty library background toggled full screen")
 fake.send("mpvtk-active", "no")
 
+-- ------------- and the state NONE of the three fall-throughs can answer
+--
+-- All three of them -- click, double click and right click on bare video --
+-- open with `state.phud.mode and state.phud.shown`, and `phud.mode` is only
+-- ever true under `osc_style` mpvtk. Give the window to a lua OSC and the
+-- mode never comes on, so with `mpvtk_mouse` still enabled every button
+-- reaches a handler that has no branch for it and stops there: the picture
+-- is unreachable by mouse and mpv's own bindings never see the key.
+--
+-- That is #724 / #726, and the repair is one level up -- the app sends
+-- `mpvtk-active no` so the sections drop to priority -1 and mpv wins the
+-- mouse (asserted above, and `tests/test_classic_osc_mouse.py` pins that the
+-- app actually sends it on the transitions a video goes through). What THIS
+-- pins is why that is load-bearing rather than tidy, and it is the case a
+-- fixture cannot reach if `phud.mode` is set for it: with the mode off, the
+-- fall-throughs are dead code and their absence is silent.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+scene({})                               -- bare video, no node anywhere
+repaint()
+fake.mouse(640, 360)
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_mode ~= true,
+   "the no-HUD case was set up with HUD mode ON, so it proves nothing")
+-- One button per log. `did` scans everything recorded since the last
+-- reset, so sharing a log lets a left click that wrongly paused answer the
+-- RIGHT click's assertion too -- three assertions, one of them measuring
+-- the others. Measured: it happens.
+fake.log.commands = {}
+fake.key("mbtn_left")
+ok(not did("cycle", "pause"),
+   "with no HUD mode a bare-video click reached the pause fall-through")
+fake.log.commands = {}
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "with no HUD mode a bare-video right click reached the fall-through")
+fake.log.commands = {}
+fake.key("mbtn_left_dbl")
+ok(not did("cycle", "fullscreen"),
+   "with no HUD mode a bare-video double click reached the fall-through")
+fake.send("mpvtk-active", "no")
+
 -- ================================================ HUD nav + seek bar
 
 -- Leave HUD mode with a known syncplay answer: `pause_now` hands the
