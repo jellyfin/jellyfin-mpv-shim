@@ -179,18 +179,29 @@ OWNED = [
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def _rel(path):
+    """Repo-relative, spelled with `/` on every platform.
+
+    OWNED spells its owners `sync/manager.py:_uncancel`, so the scan has to
+    answer in the same alphabet. `os.path.relpath` hands back backslashes on
+    Windows, every entry then matched nothing, and this audit reports that
+    as a phantom owner: measured, all six entries "failed" there and none
+    here.
+    """
+    return os.path.relpath(path, os.path.join(ROOT, PKG)).replace(os.sep, "/")
+
+
 def _modules(entry):
     """The repo-relative `.py` files an entry's scope covers, sorted."""
     base = os.path.normpath(os.path.join(ROOT, PKG, entry.scope))
     if base.endswith(".py"):
-        return [os.path.relpath(base, os.path.join(ROOT, PKG))]
+        return [_rel(base)]
     out = []
     for dirpath, dirnames, filenames in os.walk(base):
         dirnames[:] = [d for d in dirnames if d != "__pycache__"]
         for name in sorted(filenames):
             if name.endswith(".py"):
-                out.append(os.path.relpath(os.path.join(dirpath, name),
-                                           os.path.join(ROOT, PKG)))
+                out.append(_rel(os.path.join(dirpath, name)))
     return sorted(out)
 
 

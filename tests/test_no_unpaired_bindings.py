@@ -163,8 +163,12 @@ class MpvUserDataTest(unittest.TestCase):
             src = fh.read()
         src = src.replace("user-data/mpv/console/open",
                           "user-data/mpv/console/open-RENAMED")
+        # encoding, explicitly: renderer.lua has a set-union sign in a
+        # comment and Windows defaults a text write to cp1252, which
+        # cannot encode it -- so the guard died where it means to PASS.
         with tempfile.NamedTemporaryFile("w", suffix=".lua",
-                                         delete=False) as fh:
+                                         delete=False,
+                                         encoding="utf-8") as fh:
             fh.write(src)
             path = fh.name
         self.addCleanup(os.unlink, path)
