@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-09 17:10+0000\n"
+"PO-Revision-Date: 2026-09-11 00:13+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -1827,15 +1827,15 @@ msgstr "صفحة المكتبة ملئ الشاشة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "حظر اختصارات المشغل اثناء الاستعراض"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "ربط مفاتيح الاسهم دائما مع متحكمات المشغل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "مفتاح تفعيل متحكمات المشغل"
 
 # seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1846,19 +1846,19 @@ msgstr "اختيار الكل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "تظليل خلف متحكمات المشغل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "عندما تختفي متحكمات المشغل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "إخفاء متحكمات المشغل بعد (ثواني)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr ""
+msgstr "انكماش متحكمات المشغل على النافذة الضيقة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
@@ -5100,7 +5100,7 @@ msgstr "تفعيل SVP"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "The downloads are already in that folder."
-msgstr ""
+msgstr "الملفات المنزلة موجودة فعلا ذاك المجلد."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
@@ -5132,6 +5132,8 @@ msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
+"ذاك المجلد ليس فارغا. اختر مجدلا فارغا - مجلد المفات المنزلة يدار بواسطة هذا "
+"التطبيق و اي شيء آخر يمكن ازالته او نقله."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
@@ -5146,6 +5148,8 @@ msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
 msgstr ""
+"لا تتوفر مساحة على هذه السواقة لنقل الملفات المنزلة. حرر بعض المساحة و حاول "
+"ثانية - لم يتم نقل شيء."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
@@ -5363,12 +5367,10 @@ msgctxt "guide badge"
 msgid "Repeat"
 msgstr "تكرار"
 
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "تأكيد"
 
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "تأكيد"
@@ -5377,19 +5379,17 @@ msgctxt "subtitle position"
 msgid "Top"
 msgstr "الأعلى"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Top"
-msgstr "الأعلى"
+msgstr "قمة"
 
 msgctxt "subtitle position"
 msgid "Bottom"
 msgstr "الأسفل"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
-msgstr "الأسفل"
+msgstr "اسفل"
 
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "واجهة MPV مع صور مصغرة"
