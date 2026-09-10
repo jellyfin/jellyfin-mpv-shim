@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-06 13:13+0000\n"
+"PO-Revision-Date: 2026-09-10 20:34+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -830,7 +830,7 @@ msgstr "Favorit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "Web"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1399,7 +1399,7 @@ msgstr "Jellyfin UI"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "MPV UI"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
@@ -1732,14 +1732,12 @@ msgid "Window Buttons in the Top Bar"
 msgstr "Fensterbuttons in oberer Leiste"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Window Buttons in the Top Bar"
 msgid "Keep Window Buttons in Full Screen"
-msgstr "Fensterbuttons in oberer Leiste"
+msgstr "Fensterbuttons in Vollbild behalten"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "Desktop Titelleiste verstecken"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
