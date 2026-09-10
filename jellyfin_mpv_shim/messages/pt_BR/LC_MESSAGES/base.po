@@ -5529,6 +5529,40 @@ msgstr "Perfis de reprodução de vídeo"
 msgid "Select Shader Profile"
 msgstr "Selecione o perfil do shader"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Padrão"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Padrão"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Repetir"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Repetir"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Topo"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Topo"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Fundo"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Fundo"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

@@ -5604,6 +5604,40 @@ msgstr "Profili reprodukcije video zapisa"
 msgid "Select Shader Profile"
 msgstr "Odaberite Shader Profil"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Zadano"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Zadano"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Ponovi"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Ponovi"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Gornji rub"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Gornji rub"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Donji rub"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Donji rub"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

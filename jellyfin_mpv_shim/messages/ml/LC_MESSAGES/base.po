@@ -5450,6 +5450,22 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "സ്ഥിരസ്ഥിതി"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "സ്ഥിരസ്ഥിതി"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "ആവർത്തിച്ച്"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "ആവർത്തിച്ച്"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

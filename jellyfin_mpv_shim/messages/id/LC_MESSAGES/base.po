@@ -5584,6 +5584,32 @@ msgstr "Profil Pemutaran Video"
 msgid "Select Shader Profile"
 msgstr "Pilih Profil Shader"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Ulangi"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Ulangi"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Atas"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Atas"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Bawah"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Bawah"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

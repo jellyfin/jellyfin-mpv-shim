@@ -5437,6 +5437,54 @@ msgstr "Perfil de Reproducción de Video"
 msgid "Select Shader Profile"
 msgstr "Seleccionar Perfil de Sombras"
 
+# seeded from jellyfin-web: Default
+msgctxt "setting value"
+msgid "Default"
+msgstr "Predeterminado"
+
+# seeded from jellyfin-web: MediaInfoDefault
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Por defecto"
+
+#, fuzzy
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Repetir"
+
+#, fuzzy
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Repetir"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Confirmar"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Confirmar"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Superior"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Superior"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Inferior"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Inferior"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "Interfaz MPV con miniaturas"
 

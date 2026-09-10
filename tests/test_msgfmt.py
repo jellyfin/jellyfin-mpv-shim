@@ -127,6 +127,20 @@ class TestParsing(unittest.TestCase):
         source = '#~ msgid "Gone"\n#~ msgstr "Parti"\n\nmsgid "Play"\nmsgstr "Jouer"\n'
         self.assertEqual(parse(source), {"Play": "Jouer"})
 
+    def test_a_fuzzy_obsolete_entry_does_not_swallow_the_next_one(self):
+        """msgmerge puts the "#, fuzzy" of an obsolete entry above the "#~".
+
+        Nothing flushes during the "#~" run, because there is no msgstr the
+        parser can see, so that flag used to survive to the next LIVE entry
+        and drop it from the .mo in silence. Latent for as long as obsolete
+        entries were the last thing in every catalog; tools/po_recontext.py
+        writing a new entry after them is what surfaced it, and Weblate or a
+        hand edit could do the same.
+        """
+        source = ('#, fuzzy\n#~| msgid "was"\n#~ msgid "Gone"\n'
+                  '#~ msgstr "Parti"\n\nmsgid "Play"\nmsgstr "Jouer"\n')
+        self.assertEqual(parse(source), {"Play": "Jouer"})
+
     def test_context_is_part_of_the_key(self):
         source = (
             'msgctxt "button"\nmsgid "Record"\nmsgstr "Enregistrer"\n'

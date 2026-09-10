@@ -4895,3 +4895,11 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr ""
+
+msgctxt "setting value"
+msgid "Default"
+msgstr "Taunoa"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Taunoa"

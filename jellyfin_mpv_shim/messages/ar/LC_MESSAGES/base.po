@@ -5345,6 +5345,52 @@ msgstr "ملف تشغيل الفيديو"
 msgid "Select Shader Profile"
 msgstr "تحديد وضع التظليل"
 
+# seeded from jellyfin-web: Default
+msgctxt "setting value"
+msgid "Default"
+msgstr "الافتراضي"
+
+# seeded from jellyfin-web: MediaInfoDefault
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "افتراضي"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "تكرار"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "تكرار"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "تأكيد"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "تأكيد"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "الأعلى"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "الأعلى"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "الأسفل"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "الأسفل"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "واجهة MPV مع صور مصغرة"
 

@@ -5568,6 +5568,32 @@ msgstr "비디오 재생 프로필"
 msgid "Select Shader Profile"
 msgstr "셰이더 프로필 선택"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "반복"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "반복"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "위"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "위"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "밑"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "밑"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

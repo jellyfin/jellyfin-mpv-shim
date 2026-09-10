@@ -567,8 +567,10 @@ class OSDMenu(object):
         self.put_menu(
             _("Select Subtitle Position"),
             [
-                (_("Bottom"), self.sub_settings_handle, "subtitle_position", "bottom"),
-                (_("Top"), self.sub_settings_handle, "subtitle_position", "top"),
+                (_p("subtitle position", "Bottom"),
+                 self.sub_settings_handle, "subtitle_position", "bottom"),
+                (_p("subtitle position", "Top"),
+                 self.sub_settings_handle, "subtitle_position", "top"),
                 (_("Middle"), self.sub_settings_handle, "subtitle_position", "middle"),
             ],
         )

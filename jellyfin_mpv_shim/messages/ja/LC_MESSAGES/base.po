@@ -5595,6 +5595,40 @@ msgstr "動画再生プロファイル"
 msgid "Select Shader Profile"
 msgstr "シェーダープロファイルを選択"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "デフォルト"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "デフォルト"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "リピート"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "リピート"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "上"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "上"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "下"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "下"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

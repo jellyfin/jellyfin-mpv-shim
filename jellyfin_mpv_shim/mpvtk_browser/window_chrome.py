@@ -470,7 +470,7 @@ def banner(b):
             # entirely -- a much bigger switch, and one nobody revisits.
             Button(_("Details\u2026"), id="banner-open",
                    on_click=lambda: b._open_url(b._update["url"])),
-            Button(_("Later"), id="banner-dismiss",
+            Button(_p("update banner", "Later"), id="banner-dismiss",
                    on_click=b._dismiss_update),
             Button(_("Ignore"), id="banner-ignore",
                    tip=_("Do not mention this version again"),

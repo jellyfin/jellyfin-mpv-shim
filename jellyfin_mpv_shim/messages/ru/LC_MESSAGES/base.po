@@ -5563,6 +5563,50 @@ msgstr "Профили воспроизведения видео"
 msgid "Select Shader Profile"
 msgstr "Выбрать профиль шейдера"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "По умолчанию"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "По умолчанию"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Повтор"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Повтор"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Подтвердить"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Подтвердить"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Вверху"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Вверху"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Внизу"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Внизу"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

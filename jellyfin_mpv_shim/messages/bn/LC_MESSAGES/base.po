@@ -5339,6 +5339,32 @@ msgstr "ভিডিও প্লেব্যাক প্রোফাইলস�
 msgid "Select Shader Profile"
 msgstr "শেডার প্রোফাইল নির্বাচন করুন"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "ডিফল্ট"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "ডিফল্ট"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "উপরে"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "উপরে"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "নিচে"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "নিচে"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

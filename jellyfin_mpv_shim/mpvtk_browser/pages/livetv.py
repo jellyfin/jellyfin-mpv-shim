@@ -14,7 +14,7 @@ why the settings dialog saves through the repository and not into
 
 import datetime
 
-from ...i18n import _
+from ...i18n import _, _p
 from ...mpvtk.widgets import (
     Button, Column, Icon, Row, Spacer, Text, VScroll)
 from .. import components, guide_view, live_tv, theme
@@ -398,7 +398,8 @@ class LiveTvPage(Page):
             nav("chevron_left", "lt-prevwin", -step, _("Earlier")),
             Text("%s   %s" % (live_tv.fmt_day(start), live_tv.fmt_time(start)),
                  size="normal", bold=True),
-            nav("chevron_right", "lt-nextwin", step, _("Later")),
+            nav("chevron_right", "lt-nextwin", step,
+                _p("guide navigation", "Later")),
             nav("keyboard_double_arrow_right", "lt-nextday", DAY,
                 _("Next Day")),
             controls.action_btn("schedule", _("Now"), "lt-now",
@@ -827,7 +828,7 @@ class ProgramPage(Page):
         if start is not None:
             parts.insert(0, live_tv.fmt_day(start))
         for field, label in (("IsLive", _("Live")), ("IsPremiere", _("Premiere")),
-                             ("IsRepeat", _("Repeat"))):
+                             ("IsRepeat", _p("guide badge", "Repeat"))):
             if item.get(field):
                 parts.append(label)
         if item.get("OfficialRating"):

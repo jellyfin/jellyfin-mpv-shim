@@ -5500,6 +5500,50 @@ msgstr "Profily přehrávání videa"
 msgid "Select Shader Profile"
 msgstr "Vybrat shader"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Výchozí"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Výchozí"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Opakovat"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Opakovat"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Potvrdit"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Potvrdit"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Nahoře"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Nahoře"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Dole"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Dole"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

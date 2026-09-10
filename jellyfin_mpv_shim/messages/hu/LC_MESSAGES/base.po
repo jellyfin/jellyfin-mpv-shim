@@ -5620,6 +5620,50 @@ msgstr "Videólejátszási profilok"
 msgid "Select Shader Profile"
 msgstr "Árnyalóprofil kiválasztása"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Alapértelmezett"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Alapértelmezett"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Ismétlés"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Ismétlés"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Megerősítés"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Megerősítés"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Felül"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Felül"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Alul"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Alul"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "MPV felület bélyegképekkel"
 

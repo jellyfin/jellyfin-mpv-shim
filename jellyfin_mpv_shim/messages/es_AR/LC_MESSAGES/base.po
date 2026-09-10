@@ -5602,6 +5602,40 @@ msgstr "Perfiles de reproducción de video"
 msgid "Select Shader Profile"
 msgstr "Seleccionar perfil de sombreador"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Predeterminado"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Predeterminado"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Repetir"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Repetir"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Superior"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Superior"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Fondo"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Fondo"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

@@ -5528,6 +5528,32 @@ msgstr "Profily prehrávania videa"
 msgid "Select Shader Profile"
 msgstr "Vyberte profil shadera"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Opakovať"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Opakovať"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Hore"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Hore"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Dole"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Dole"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

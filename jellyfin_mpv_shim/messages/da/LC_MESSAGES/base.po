@@ -5322,6 +5322,50 @@ msgstr "Videoafspilningsprofil"
 msgid "Select Shader Profile"
 msgstr "Vælg shaderprofil"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Standard"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Standard"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Gentag"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Gentag"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Bekræft"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Bekræft"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Top"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Top"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Bund"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Bund"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "MPV brugerflade med miniaturebilleder"
 
