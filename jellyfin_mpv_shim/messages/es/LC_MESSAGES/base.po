@@ -7,8 +7,9 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-08 19:29+0000\n"
-"Last-Translator: Aarón <aaronbascon@gmail.com>\n"
+"PO-Revision-Date: 2026-09-10 16:47+0000\n"
+"Last-Translator: Ignacio Lorenzo Subirá Otal <abertura_higiene_5q@icloud.com>"
+"\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -1354,7 +1355,7 @@ msgstr "BT.2446a"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "Spline"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hable"
@@ -1362,11 +1363,11 @@ msgstr "Habilitar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "Reinhard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Extracto (Sin mapeo de tonos)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1388,7 +1389,7 @@ msgstr "Grande (20 segundos)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Very large (60 seconds)"
-msgstr ""
+msgstr "Muy largo (60 segundos)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1396,7 +1397,7 @@ msgstr "Interfaz de Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "Interfaz de usuario de MPV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
@@ -1500,10 +1501,8 @@ msgstr "Ajustar al ancho"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "Page"
 msgid "Fit Page"
-msgstr "Página"
+msgstr "Ajustar página"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
@@ -1527,7 +1526,7 @@ msgstr "No ocultar mientras esté en pausa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Rellenar los vacíos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
