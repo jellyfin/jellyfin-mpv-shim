@@ -17,6 +17,12 @@ class PlaybackMixin(GatewayCore):
         from ...player import playerManager
         # mpvtk_active tells the player the in-window UI is on screen — it
         # gates the idle-quit and makes `q` return to the library.
+        # Everything the HUD queued belongs to the session that just ended,
+        # and the drain runs AFTER the clears below -- so say so first. It
+        # covers every gear-menu state at once (aspect, deinterlace, the
+        # stats overlay), which is why it is here rather than beside any one
+        # of them. See PlayerManager.end_hud_session.
+        playerManager.end_hud_session()
         playerManager.mpvtk_active = True
         # Logo-free, free-resizing browse window (not force_window()'s menu
         # splash) — removes the Jellyfin icon and stops aspect-ratio snapping.
@@ -52,6 +58,9 @@ class PlaybackMixin(GatewayCore):
         # eventually drops mpv entirely and gives back its memory and GPU
         # context. It comes back on the next play or when the tray reopens
         # the library (see UserInterface.on_mpv_recreated).
+        # The other end of the same statement; see on_browse_enter. Closing
+        # the window comes through HERE and not through there.
+        playerManager.end_hud_session()
         playerManager.mpvtk_active = False
         # The other end of the per-session deinterlace force, and it is not
         # redundant with on_browse_enter: closing the window comes through

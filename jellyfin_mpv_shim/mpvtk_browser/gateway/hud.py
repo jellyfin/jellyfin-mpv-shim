@@ -89,10 +89,7 @@ class HudMixin(GatewayCore):
             return 1.0
 
     def set_speed(self, speed):
-        # Through the manager's own setter, not a bare attribute write: it is
-        # the one that takes the player lock. Speed itself is per SESSION by
-        # design (tests/e2e/test_type_seams.py), so it is not cleared below.
-        self._act(lambda pm: pm.set_speed(float(speed)))
+        self._act(lambda pm: setattr(pm._player, "speed", float(speed)))
 
     def get_aspect(self):
         """Current video-aspect-override (-1.0 = auto/unknown)."""

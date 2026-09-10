@@ -30,6 +30,7 @@ properties on its own (a VO reconfig, a codec's answer), which would make
 the comparison noisy about things nobody wrote.
 """
 
+import contextlib
 import os
 import sys
 import threading
@@ -188,6 +189,33 @@ class RestoresMpvStateTest(_Base):
                       "measuring a failed load")
         return video
 
+    @contextlib.contextmanager
+    def _player_busy(self):
+        """Hold `_lock` the way a playback start holds it.
+
+        The real thing is `_play_media` waiting on `duration`, which this
+        module already drives elsewhere; what the ordering needs is only
+        that `run_action` finds the lock taken, so this borrows it directly
+        rather than staging a second load whose timing it would then have to
+        control.
+        """
+        held = threading.Event()
+        release = threading.Event()
+
+        def hold():
+            with self.pm._lock:
+                held.set()
+                release.wait(10)
+
+        thread = threading.Thread(target=hold, daemon=True)
+        thread.start()
+        self.assertTrue(held.wait(5), "could not take the player lock")
+        try:
+            yield
+        finally:
+            release.set()
+            thread.join(timeout=5)
+
     def _show_a_page(self, zoom=None):
         """A comic page: `show_picture` loads it straight into the VO, which
         is a path `_play_media` never runs, so nothing it writes is undone by
@@ -216,6 +244,72 @@ class RestoresMpvStateTest(_Base):
         self._return_to_the_library()
         self._assert_restored(before, "forcing a 4:3 aspect from the gear "
                                       "menu")
+
+    def test_a_force_deferred_by_a_busy_player_does_not_outlive_the_door(self):
+        """The gear menu pressed while a playback start holds the lock.
+
+        `run_action` defers only when `_lock` is contended, and a start holds
+        it for up to `playback_timeout` -- so the press is still on
+        `evt_queue` when the viewer gives up and goes back. The door clears
+        an override that has not been set yet, and the drain then installs
+        the force onto the library, where the gear menu that would undo it
+        is not reachable. Both gear-menu forces take this route, so both are
+        asserted here rather than one standing in for the rule.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+
+        before = self._baseline()
+        self.play()
+        with self._player_busy():
+            with mock.patch("jellyfin_mpv_shim.player.playerManager",
+                            self.pm):
+                hud = HudMixin()
+                hud.set_aspect("4:3")
+                hud.toggle_deinterlace()
+            self.assertFalse(
+                self.pm.evt_queue.empty(),
+                "nothing was deferred, so this is not exercising the "
+                "ordering it is named after -- the lock was free")
+        self._return_to_the_library()
+        # What the action thread does with what the HUD left behind.
+        self.pm.update()
+        self._assert_restored(before, "a gear-menu force deferred past the "
+                                      "door")
+
+    def test_a_configured_aspect_survives_a_session_that_never_forces_one(
+            self):
+        """Somebody whose own `mpv.conf` carries `video-aspect-override`.
+
+        There is no aspect SETTING, so a value at that property can only be
+        theirs. Writing a default at every item, and again on the way out,
+        is this client overriding a config it was never asked about -- the
+        rule `_render_written` is there to state, at a property that is not
+        one of its own.
+        """
+        self._return_to_the_library()
+        self.pm._player.video_aspect_override = 2.35
+        before = self._snapshot()
+        self.play()
+        self._return_to_the_library()
+        self._assert_restored(before, "playing under a configured aspect")
+
+    def test_clearing_a_force_hands_back_the_configured_value(self):
+        """...and once we HAVE written, -1 is still not what to put back.
+
+        The distinction the branch could not make: `None` meant both "mpv's
+        own answer" and "auto", so the way out of a force was a guess that
+        happened to be right only for a default mpv.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+
+        self._return_to_the_library()
+        self.pm._player.video_aspect_override = 2.35
+        before = self._snapshot()
+        self.play()
+        with mock.patch("jellyfin_mpv_shim.player.playerManager", self.pm):
+            HudMixin().set_aspect("4:3")
+        self._return_to_the_library()
+        self._assert_restored(before, "forcing 4:3 over a configured aspect")
 
     def test_the_gear_menus_deinterlace_force(self):
         """The sibling control that got this right, as the contrast: it has

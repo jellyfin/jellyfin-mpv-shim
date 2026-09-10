@@ -1142,6 +1142,10 @@ def build_player(player_module, video=None):
     # and leaves the whole feature untested and green.
     pm._deinterlace_override = None
     pm._aspect_override = None
+    # `_aspect_pristine` and `_hud_generation` are deliberately NOT seeded
+    # here: PlayerManager carries them as class attributes precisely so the
+    # two dozen stand-ins that skip `__init__` do not each have to learn
+    # about them. See the note beside them in player.py.
     pm._no_deinterlace_auto = False
     pm._render_written = set()
     # The real player snapshots this in `_init_mpv`, which build_player
