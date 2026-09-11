@@ -102,8 +102,7 @@ class HudMixin(GatewayCore):
     def set_aspect(self, value):
         """``value`` is mpv's string form ("-1", "16:9", …) — the
         property parses ratio strings on both backends."""
-        self._act(lambda pm: setattr(
-            pm._player, "video_aspect_override", value))
+        self._act(lambda pm: pm.set_aspect(value))
 
     def toggle_stats(self):
         """Toggle mpv's stats overlay (the gear menu's Playback Data).

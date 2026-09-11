@@ -277,6 +277,32 @@ class DeinterlacePerItemTest(_Base):
             self.assertEqual(self.pm._player.deinterlace, "auto")
         self.assertFalse(self.pm.deinterlace_forced())
 
+    def test_choosing_auto_is_not_a_force(self):
+        """The aspect row's way back, which is a VALUE and not a None.
+
+        `_ASPECTS` sends mpv's own spelling, so Auto arrives as the string
+        "-1". Stored, it made `aspect_forced()` answer yes to the row whose
+        whole job is turning forcing off -- and, with the per-item write,
+        kept re-asserting a number at a property this client owns no default
+        for. Driven through the gateway, because that is where the string
+        comes from.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+
+        self.play()
+        gw = HudMixin()
+        with mock.patch("jellyfin_mpv_shim.player.playerManager", self.pm):
+            gw.set_aspect("4:3")
+            self.assertTrue(self.pm.aspect_forced())
+            self.assertEqual(self.pm._player.video_aspect_override, "4:3")
+            gw.set_aspect("-1")                         # the Auto row
+        self.assertFalse(
+            self.pm.aspect_forced(),
+            "Auto was recorded as a force, so the gear row would offer a "
+            "way back from the setting that IS the way back")
+        self.assertEqual(self.pm._player.video_aspect_override, -1.0,
+                         "and mpv should be back to what it came in with")
+
     def test_the_force_can_turn_deinterlacing_off_as_well_as_on(self):
         """`False` was unreachable: the toggle mapped "off" onto "let the
         setting decide", so with `deinterlace_auto` on there was no way to
