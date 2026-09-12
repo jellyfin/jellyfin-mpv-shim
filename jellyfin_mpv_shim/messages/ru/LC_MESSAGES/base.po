@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-08 15:09+0000\n"
-"Last-Translator: Vahe <vahe61688@gmail.com>\n"
+"PO-Revision-Date: 2026-09-12 21:58+0000\n"
+"Last-Translator: Virenbar <rib.artem@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
 "Language: ru\n"
@@ -38,7 +38,7 @@ msgstr "Страница %d"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% прочитано"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -159,22 +159,16 @@ msgid "Skipped Commercial"
 msgstr "Пропущенная реклама"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Пропустить титры"
+msgstr "Пропустить рекламу"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Пропущенные титры"
+msgstr "Пропустить превью"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Пропущенные титры"
+msgstr "Пропущенное превью"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
