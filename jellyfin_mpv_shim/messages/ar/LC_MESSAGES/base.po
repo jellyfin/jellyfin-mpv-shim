@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-12 01:01+0000\n"
+"PO-Revision-Date: 2026-09-12 21:58+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -1860,35 +1860,31 @@ msgstr "انكماش متحكمات المشغل على النافذة الضي�
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "أزرار الفأرة (Back/Forward) لتخطي الفصول"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "وضع الصوت الخارج"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr ""
+msgstr "جهاز الصوت الخارج"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "خذ الجهاز حصريا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "أوضاع تشغيل الفيديو"
+msgstr "تفعيل ملفات تعريف تشغيل الصوت"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "مجموعة جديدة"
+msgstr "مجموعة ملف التعريف"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr ""
+msgstr "تذكر آخر ملف تعريف تم استخدامه"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
@@ -1896,15 +1892,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
-msgstr ""
+msgstr "عبور خلال AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS"
-msgstr ""
+msgstr "عبور خلال DTS"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through E-AC3"
-msgstr ""
+msgstr "عبور خلال E-AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
@@ -5018,7 +5014,7 @@ msgid "Configure Servers"
 msgstr "إعدادات الخوادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, python-format, fuzzy
+#, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
 msgstr "تنزيل %(name)ات — %(n)d باقي"
 
