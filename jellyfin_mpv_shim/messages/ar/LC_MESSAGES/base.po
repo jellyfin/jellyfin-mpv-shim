@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-12 21:58+0000\n"
+"PO-Revision-Date: 2026-09-13 16:46+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -1888,7 +1888,7 @@ msgstr "تذكر آخر ملف تعريف تم استخدامه"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "رسوم API للظلال"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
@@ -1904,15 +1904,15 @@ msgstr "عبور خلال E-AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
-msgstr ""
+msgstr "عبور خلال DTS-HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through TrueHD"
-msgstr ""
+msgstr "عبور خلال TrueHD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Re-encode Others to AC3"
-msgstr ""
+msgstr "إعادة تشفير الآخرين إلى AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1920,6 +1920,9 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"مع \"إبدأ مصغرا\" و \"ملئ الشاشة\" هذا هدف كلاسيكي للبث: التطبيق ينتظر في "
+"الطريق, بشغل بملئ الشاشة عندما يبدأ بث ما إليه, و يعود للانتظار عندما ينتهي "
+"المقطع أو تضغط على Q."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
