@@ -1105,6 +1105,7 @@ download and the full memory.
 
 - `thumbnail_enable` - Enable trickplay thumbnails: the preview frame shown while you drag the seek bar. Applies to every `osc_style`. Read when MPV is built, so changing it needs a restart. Turning it off also stops the images being downloaded, which is the reason to. (Default: `true`)
 - `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
+- `thumbnail_scale` - How much to enlarge the preview frames when they are drawn, for a HiDPI display where they would otherwise come out small. `null` follows the display: the interface scale in the Jellyfin UI, and the display's HiDPI factor under MPV's own controls or your own OSC. The frames are scaled as they are drawn rather than downloaded bigger, so this costs no memory; it needs MPV 0.38 or newer, and older versions draw them at their own size. Applies the next time previews load. (Default: `null`)
 - `trickplay_fast_mode` - Load every preview frame at once instead of a window around the seek position. Previews never wait, but a long video costs hundreds of megabytes of memory. Turning it *on* applies to the video you are watching, the next time you scrub outside the part already loaded; turning it *off* applies to the next video. (Default: `false`)
 
 `thumbnail_osc_builtin` was removed. It meant "use your own custom OSC but

@@ -123,6 +123,22 @@ class TestRendererLua(unittest.TestCase):
         self._assert_suite_passed(
             self._run("test_thumbfast.lua", target=THUMBFAST))
 
+    def test_the_suites_pass_without_overlay_scaling(self):
+        """An mpv older than 0.38, whose overlay-add takes no display size.
+
+        Both consumers probe `command-list` once and cache the answer, so one
+        process only ever sees one of the two; this is the other. The extra
+        arguments are rejected there rather than ignored, so a frame passed a
+        display size on such an mpv is not drawn at all.
+        """
+        env = dict(os.environ, JMS_TEST_NO_OVERLAY_SCALE="1")
+        self._assert_suite_passed(
+            self._run("test_thumbfast.lua", env=env, target=THUMBFAST))
+        self._assert_suite_passed(
+            self._run("test_renderer.lua",
+                      env=self._session_env(DISPLAY=":0",
+                                            JMS_TEST_NO_OVERLAY_SCALE="1")))
+
     def test_thumbfast_parses_under_this_interpreter(self):
         proc = subprocess.run(
             [LUA, "-e", "assert(loadfile(%r))" % THUMBFAST],

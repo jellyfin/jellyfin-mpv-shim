@@ -389,6 +389,9 @@ the fallback outvote the renderer — see `MpvtkApp.scroll_offsets`.
   `write_bgra` produce premultiplied BGRA.
 - **Never let a crop exceed the source pixels.** Layout refuses to
   stretch images; the renderer clamps crops to iw/ih. Keep it that way.
+  The one bitmap the renderer does scale is the scrub preview's frame,
+  which it draws itself with overlay-add's `dw`/`dh`: `draw_image` maps
+  each clipped piece back to source pixels and clamps *there*.
   The failure mode is version-dependent, and the clamp is required on
   all of them: on the **`&<address>` memory path (libmpv, every mpv
   version)** overlay-add `memcpy_pic`s from the pointer with no bounds

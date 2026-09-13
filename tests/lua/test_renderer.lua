@@ -2398,6 +2398,92 @@ eq(win_ov and tonumber(win_ov[6]), (45 - 40) * 32 * 18 * 4,
    "the overlay offset was not rebased onto the window")
 eq(trickplay_request(), nil, "asked for a window it already had")
 
+-- The frames are decoded at the server's preview width, a PHYSICAL size, so
+-- at 2x the frame is half the size of the bubble drawn around it. The last
+-- argument is `thumbnail_scale` ("auto" follows the UI scale), and mpv 0.38+
+-- scales an overlay on the GPU when handed a display size (dw/dh) -- so the
+-- file, and mpv's copy of the frame, stay the size they were.
+-- `test_renderer_lua.py` runs this file again as an mpv without dw/dh.
+local OLD_OVERLAY = os.getenv("JMS_TEST_NO_OVERLAY_SCALE") ~= nil
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100", "2")
+fake.log.commands = {}
+hud_pointer(907, 672)                   -- still 7:30, frame 45
+pv_paint()
+local sc = preview_overlay()
+ok(sc ~= nil, "a scaled frame was not drawn")
+eq(sc and tonumber(sc[6]), (45 - 40) * 32 * 18 * 4,
+   "scaling moved the frame's offset")
+eq(sc and tonumber(sc[8]), 32, "the frame was not read at its own width")
+eq(sc and tonumber(sc[9]), 18, "the frame was not read at its own height")
+if OLD_OVERLAY then
+    eq(sc and #sc, 10, "passed a display size to an mpv that rejects one")
+    ok(preview().w < 64 + 16, "the bubble grew for a frame drawn at 1x")
+else
+    eq(sc and tonumber(sc[11]), 64, "the frame was not drawn at 2x")
+    eq(sc and tonumber(sc[12]), 36, "the frame height was not drawn at 2x")
+    ok(preview().w >= 64 + 16, "the bubble did not grow around the 2x frame")
+end
+
+-- Partly covered. A floating layer occludes images, so the frame is cut into
+-- pieces in DISPLAY pixels, and each piece's source rectangle is that piece
+-- divided back down. This is the one place a scaled frame can read outside
+-- itself -- past the end of the file on mpv's file path, and a SIGSEGV on
+-- the `&address` memory path (jellyfin_mpv_shim/mpvtk/GUIDE.md section 5) --
+-- so check every
+-- piece against the frame's own 32x18, not only that something was drawn.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "hud-seek", t = "slider", x = 100, y = 660, w = 1080,
+          h = 26, min = 0, max = 600, value = 0, pv = true },
+        -- Down to the bar and no further: the pointer on the bar has to
+        -- stay on the bar, and the frame above it has to be covered across
+        -- its whole height, or a strip below the layer is (correctly)
+        -- drawn full width.
+        { id = "toast", t = "layer", kind = "float",
+          x = 0, y = 0, w = 907, h = 638 } })
+fake.log.commands = {}
+hud_pointer(907, 671)
+pv_paint()
+local frame_base = (45 - 40) * 32 * 18 * 4
+local pieces = 0
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "overlay-add" and c[5] == "/tiles.bin" then
+        pieces = pieces + 1
+        local rel = tonumber(c[6]) - frame_base
+        local w, h, stride = tonumber(c[8]), tonumber(c[9]), tonumber(c[10])
+        local sy, sx = math.floor(rel / stride), (rel % stride) / 4
+        ok(rel >= 0 and sx + w <= 32 and sy + h <= 18,
+           "a piece of the scaled frame reads outside the frame",
+           string.format("src %d,%d %dx%d", sx, sy, w, h))
+        ok(tonumber(c[3]) >= 907 + 2,
+           "a piece of the frame was drawn under the layer covering it",
+           "x=" .. tostring(c[3]))
+        if not OLD_OVERLAY then
+            ok(c[11] and math.abs(tonumber(c[11]) - 2 * w) <= 2,
+               "a covered piece was not scaled with the rest of the frame",
+               string.format("w=%s dw=%s", tostring(w), tostring(c[11])))
+        end
+    end
+end
+ok(pieces >= 1, "the uncovered part of the frame was not drawn at all")
+seek_scene()
+
+-- "auto" is the UI scale: the bubble's padding and type follow it already,
+-- so a frame that did not would shrink inside its own box.
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100", "auto")
+fake.send("mpvtk-scale", fake.token({ s = 2 }))
+fake.log.commands = {}
+hud_pointer(908, 672)
+pv_paint()
+sc = preview_overlay()
+ok(sc ~= nil, "no frame drawn at a 2x UI scale")
+eq(sc and sc[11] and tonumber(sc[11]), (not OLD_OVERLAY) and 64 or nil,
+   "auto did not follow the UI scale")
+fake.send("mpvtk-scale", fake.token({ s = 1 }))
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100")
+
 -- The chapter-image fallback indexes by chapter start instead of a cadence.
 fake.send("shim-trickplay-chapters", "32", "18", "/tiles.bin", "0,120,480")
 hud_pointer(640, 673)

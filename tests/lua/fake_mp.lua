@@ -258,6 +258,21 @@ local clipboard_fetched = false
 --- which does not.
 M.commands_available = { "update-clipboard" }
 
+--- Argument names, for a probe that reads a command's SIGNATURE rather than
+--- whether it exists. overlay-add is in every mpv; what varies is whether it
+--- takes a display size (`dw`/`dh`, 0.38+, 4754bd54c7), and
+--- JMS_TEST_NO_OVERLAY_SCALE models one older than that. An env var and not a
+--- field a test flips, for the reason reset_clipboard gives: the probe is
+--- cached for the life of the script.
+M.command_args = {
+    ["overlay-add"] = { "id", "x", "y", "file", "offset", "fmt", "w", "h",
+                        "stride", "dw", "dh" },
+}
+if os.getenv("JMS_TEST_NO_OVERLAY_SCALE") then
+    M.command_args["overlay-add"] = { "id", "x", "y", "file", "offset", "fmt",
+                                      "w", "h", "stride" }
+end
+
 function M.reset_clipboard()
     M.clipboard_needs_update = false
     clipboard_fetched = false
@@ -307,9 +322,18 @@ function mp.set_property_bool(name, value) M.log.props[name] = value end
 function mp.set_property_number(name, value) M.log.props[name] = value end
 function mp.get_property_native(name, def)
     if name == "command-list" then
-        local out = {}
+        -- Shaped like mpv's (command.c mp_property_commands): each entry is
+        -- {name, args}, and each arg is a map carrying its own `name`.
+        local function entry(n)
+            local args = {}
+            for _, a in ipairs(M.command_args[n] or {}) do
+                args[#args + 1] = { name = a }
+            end
+            return { name = n, args = args }
+        end
+        local out = { entry("overlay-add") }
         for _, n in ipairs(M.commands_available or {}) do
-            out[#out + 1] = { name = n }
+            out[#out + 1] = entry(n)
         end
         return out
     end

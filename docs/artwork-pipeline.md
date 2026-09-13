@@ -620,7 +620,7 @@ instead would be the same bytes off the network and a bigger file.
 
 ### 11.2 The message, and why `first` and `total` are on it
 
-    shim-trickplay-bif  <count> <interval_ms> <w> <h> <path> <first> <total>
+    shim-trickplay-bif  <count> <interval_ms> <w> <h> <path> <first> <total> <scale>
 
 One message, both consumers: `mpvtk/renderer.lua` for the in-window HUD and
 `thumbfast.lua` for the lua OSCs. Neither can be left out, because they read the
@@ -633,6 +633,15 @@ justifies, which is the read past the end of the file above. Outside
 `[first, first + count)` there is no frame: the bubble reserves the box and
 draws a placeholder, rather than drawing frame 0 under a timestamp from
 somewhere else in the film.
+
+`scale` is `thumbnail_scale`, or `auto`, and each consumer resolves `auto`
+against its own drawing: the renderer's UI scale, `display-hidpi-scale` for
+thumbfast. `shim-trickplay-chapters` carries the same argument last. The frames
+stay the size the server made them, in the file and in mpv's copy; overlay-add's
+`dw`/`dh` (mpv 0.38+, `4754bd54c7`) enlarge them on the GPU. **Both consumers
+probe `command-list` for those arguments and pass them only when the size
+actually changes**, because an older mpv rejects the whole command rather than
+ignoring what it does not know — a scaled preview there is no preview.
 
 ### 11.3 The request comes from the OSC, because only it knows where the pointer is
 
