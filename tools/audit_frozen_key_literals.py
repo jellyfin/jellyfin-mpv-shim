@@ -232,7 +232,8 @@ DECLARED = {
     ),
     "renderer.lua:mp.set_key_bindings": (
         OK,
-        "The `mpvtk_thumb` section: `mbtn_back` synthesizes `keypress ESC` "
+        "The `mpvtk_thumb` section: `mbtn_back` and `go_back` synthesize "
+        "`keypress ESC` "
         "rather than reimplementing the app's back ladder, and the comment "
         "above it says so -- \"ESC is still ESC\". The literal is the "
         "thing being deferred TO."

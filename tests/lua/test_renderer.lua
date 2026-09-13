@@ -733,6 +733,35 @@ for _, e in ipairs(fake.log.events) do
 end
 eq(fwd, 1, "the mouse forward button sends one forward event")
 
+-- A multimedia keyboard's browser Back/Forward keys mean the same thing.
+fake.log.commands = {}
+fake.key("go_back")
+sent_esc = false
+for _, c in ipairs(fake.log.commands) do
+    if type(c) == "table" and c[1] == "keypress" and c[2] == "ESC" then
+        sent_esc = true
+    end
+end
+ok(sent_esc, "the keyboard's Back key presses ESC")
+
+fake.reset_events()
+fake.key("go_forward")
+fwd = 0
+for _, e in ipairs(fake.log.events) do
+    if type(e) == "table" and e.t == "forward" then fwd = fwd + 1 end
+end
+eq(fwd, 1, "the keyboard's Forward key sends one forward event")
+
+-- ...but NOT in the shape the mouse buttons use. Their action sits on the
+-- down half because a mouse button's plain handler fires on release; a key's
+-- fires on a bare press as well as on key-down, and Windows delivers these
+-- keys as WM_APPCOMMAND, which mpv feeds as a bare press with no down at all
+-- (w32_common.c handle_appcommand). A down-only handler is dead there.
+eq(fake.log.keybinds_up["go_back"], nil,
+   "the keyboard's Back acts only on key-down, which Windows never sends")
+eq(fake.log.keybinds_up["go_forward"], nil,
+   "the keyboard's Forward acts only on key-down, which Windows never sends")
+
 -- ========================================== client-side title bar
 
 -- `wdrag` marks a node that stands in for a title bar, on a window the
@@ -1758,6 +1787,11 @@ ok(fake.log.sections["mpvtk_thumb"] ~= nil,
 ok((fake.log.sections["mpvtk_thumb"] or {})["mbtn_back"]
    and (fake.log.sections["mpvtk_thumb"] or {})["mbtn_forward"],
    "the thumb buttons are not in mpvtk_thumb")
+-- The keyboard's pair rides the same section, for the same reason: over a
+-- film they are the user's to bind.
+ok((fake.log.sections["mpvtk_thumb"] or {})["go_back"]
+   and (fake.log.sections["mpvtk_thumb"] or {})["go_forward"],
+   "the keyboard's Back/Forward keys are not in mpvtk_thumb")
 ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_back"],
    "mbtn_back is still in the group the HUD keeps enabled")
 ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_forward"],
