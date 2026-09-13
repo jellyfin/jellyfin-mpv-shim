@@ -5056,6 +5056,14 @@ mp.set_key_bindings({
     { 'mbtn_back', function() end,
       function() mp.commandv('keypress', 'ESC') end },
     { 'mbtn_forward', function() end, function() send({ t = 'forward' }) end },
+    -- A multimedia keyboard's browser keys are the same pair, but NOT in the
+    -- same shape: the action is on the plain handler, which fires on a bare
+    -- press as well as on key-down. Windows delivers these keys as
+    -- WM_APPCOMMAND, fed as a bare press with no key-down (w32_common.c
+    -- handle_appcommand), so the mouse buttons' down-only shape never fires
+    -- there. Pinned by tests/e2e/test_input_routing.py.
+    { 'go_back', function() mp.commandv('keypress', 'ESC') end },
+    { 'go_forward', function() send({ t = 'forward' }) end },
 }, 'mpvtk_thumb', 'force')
 mp.set_key_bindings({
     { 'wheel_up', function(e) on_wheel(-1, 'y', e) end },
