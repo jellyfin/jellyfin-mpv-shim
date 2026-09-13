@@ -1095,8 +1095,22 @@ putting our queue into MPV's."
 Upstream thumbfast publishes `{width, height, scale_factor, disabled,
 available, socket, thumbnail, overlay_id}`. `socket` and `thumbnail` are
 artifacts of its second-mpv-instance design — an IPC socket and an output file
-— and the shim has neither, so it does not fake them. `scale_factor` *is*
-sent, always `1`: `width`/`height` already arrive pre-multiplied exactly as
-upstream sends them, so nothing needs it, but an OSC that divides by it to
-recover a logical size gets an arithmetic error on `nil` rather than a
+— and the shim has neither, so it does not fake them. `scale_factor` is the factor
+the frame is drawn at (`thumbnail_scale`, or the display's) with
+`width`/`height` already multiplied by it, which is what upstream's means too:
+its `scale_factor` is the `dw`/`dh` enlargement. It is sent even at `1`, since
+an OSC that divides by it gets an arithmetic error on `nil` rather than a
 thumbnail.
+
+### `thumbfast-render` is not implemented; `shim-thumbfast-render` is
+
+Upstream lets an OSC draw the frame itself: it asks with empty `x`/`y` and its
+script name, and is sent a `thumbfast-render` naming a file that holds **one**
+frame. The shim's file holds a window of them (`docs/artwork-pipeline.md` §11),
+so an OSC following that contract would draw the window's first frame for every
+position — and honouring it faithfully would mean writing a single-frame file
+per frame change. So the same request is answered with
+`shim-thumbfast-render {available, file, offset, frame_width, frame_height,
+width, height, scale_factor, overlay_id}`, once per frame, with
+`available: false` when the position is outside the loaded window. An OSC
+written for upstream never registers that message and simply gets nothing.

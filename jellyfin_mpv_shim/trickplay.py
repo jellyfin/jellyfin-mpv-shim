@@ -56,6 +56,18 @@ def _img_path(seq):
     return conffile.get(APP_NAME, "%s.%d%s" % (IMG_PREFIX, seq, IMG_SUFFIX))
 
 
+def _scale_arg():
+    """`thumbnail_scale` as the last argument of both publish messages.
+
+    "auto" rather than a resolved number: each consumer draws at its own
+    scale, and only it knows which (docs/artwork-pipeline.md section 11.2).
+    """
+    value = settings.thumbnail_scale
+    if value and value > 0:
+        return "%g" % value
+    return "auto"
+
+
 #: Decoded BGRA one window may occupy.
 #:
 #: A frame is ``Width * Height * 4`` bytes. **[iw]**: "if it's in ram I would
@@ -446,6 +458,7 @@ class TrickPlay(threading.Thread):
                             path,
                             str(first),
                             str(total),
+                            _scale_arg(),
                         )
                         # Both consumers now point at `path`; the previous
                         # generation is safe to drop. The consumers are told
@@ -521,6 +534,7 @@ class TrickPlay(threading.Thread):
                     str(bif_meta["height"]),
                     str(path),
                     ",".join(str(x["start"]) for x in chapter_data),
+                    _scale_arg(),
                 )
                 # Not windowed, and it does not need to be: one frame per
                 # chapter is a few dozen at most. Clearing `_window` is what

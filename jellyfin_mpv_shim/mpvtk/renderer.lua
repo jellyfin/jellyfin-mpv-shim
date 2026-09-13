@@ -916,11 +916,18 @@ local function draw_image(node, ex, ey, clip, idx)
     -- Crop the source so only the part inside the clip is shown.
     -- CRITICAL: never let the crop exceed the source pixel size (iw/ih)
     -- — mpv mmaps the file and reading past EOF is a SIGBUS crash.
+    --
+    -- `dw`/`dh` draw the bitmap at another size, which overlay-add scales;
+    -- only the scrub preview asks. Clipping still happens in DISPLAY pixels,
+    -- so each scaled piece's source rectangle is divided back down and
+    -- clamped there -- the same rule, one step removed.
     clip = clip or { x1 = 0, y1 = 0, x2 = state.w, y2 = state.h }
+    local dw, dh = node.dw or node.iw, node.dh or node.ih
+    local scaled = dw ~= node.iw or dh ~= node.ih
     local x1 = math.max(ex, clip.x1)
     local y1 = math.max(ey, clip.y1)
-    local x2 = math.min(ex + math.min(node.w, node.iw), clip.x2)
-    local y2 = math.min(ey + math.min(node.h, node.ih), clip.y2)
+    local x2 = math.min(ex + math.min(node.w, dw), clip.x2)
+    local y2 = math.min(ey + math.min(node.h, dh), clip.y2)
     if x2 - x1 < 1 or y2 - y1 < 1 then return end
     local pieces = { { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } }
     for _, occ in ipairs(occluders) do
@@ -946,9 +953,17 @@ local function draw_image(node, ex, ey, clip, idx)
     for _, p in ipairs(pieces) do
         local px1, py1 = math.floor(p.x1), math.floor(p.y1)
         local px2, py2 = math.floor(p.x2), math.floor(p.y2)
-        if px2 - px1 >= 1 and py2 - py1 >= 1 then
-            local sx = px1 - math.floor(ex)
-            local sy = py1 - math.floor(ey)
+        local sx = px1 - math.floor(ex)
+        local sy = py1 - math.floor(ey)
+        local sw, sh = px2 - px1, py2 - py1
+        if scaled and sw >= 1 and sh >= 1 then
+            local sx2 = math.min(node.iw, math.ceil((sx + sw) * node.iw / dw))
+            local sy2 = math.min(node.ih, math.ceil((sy + sh) * node.ih / dh))
+            sx = math.floor(sx * node.iw / dw)
+            sy = math.floor(sy * node.ih / dh)
+            sw, sh = sx2 - sx, sy2 - sy
+        end
+        if sw >= 1 and sh >= 1 then
             if #overlay_list >= MAX_OVERLAYS then
                 msg.warn('overlay budget exceeded; image dropped: ' ..
                     node.id)
@@ -970,16 +985,22 @@ local function draw_image(node, ex, ey, clip, idx)
                     tonumber(src:sub(2)) + offset)
                 offset = 0
             end
+            local args = {
+                tostring(px1), tostring(py1), src,
+                tostring(offset), 'bgra',
+                tostring(sw), tostring(sh),
+                tostring(stride),
+            }
+            if scaled then
+                -- Only when scaled: an mpv without dw/dh rejects them.
+                args[9] = tostring(px2 - px1)
+                args[10] = tostring(py2 - py1)
+            end
             overlay_list[#overlay_list + 1] = {
                 key = node.id .. '#' .. pidx,
                 v = node.v,
                 x1 = px1, y1 = py1, x2 = px2, y2 = py2,
-                args = {
-                    tostring(px1), tostring(py1), src,
-                    tostring(offset), 'bgra',
-                    tostring(px2 - px1), tostring(py2 - py1),
-                    tostring(stride),
-                },
+                args = args,
             }
         end
     end
@@ -2505,6 +2526,30 @@ render = function()
                 end
             end
         end
+        -- The frame is PHYSICAL pixels and everything around it follows the
+        -- UI scale, so a 2x display drew it half the size of its own bubble.
+        -- `tp.scale` is thumbnail_scale; nil ("auto") is that UI scale. Only
+        -- where overlay-add takes a display size (mpv 0.38+), probed once:
+        -- an older one rejects the whole command, and a frame at its own
+        -- size beats none. docs/artwork-pipeline.md section 11.2.
+        if fw > 0 then
+            local k = tp.scale or state.scale or 1
+            if k ~= 1 and state.ov_scale == nil then
+                state.ov_scale = false
+                for _, c in ipairs(mp.get_property_native('command-list')
+                                   or {}) do
+                    if c.name == 'overlay-add' then
+                        for _, a in ipairs(c.args or {}) do
+                            if a.name == 'dw' then state.ov_scale = true end
+                        end
+                    end
+                end
+            end
+            if k ~= 1 and state.ov_scale then
+                fw = math.floor(fw * k + 0.5)
+                fh = math.floor(fh * k + 0.5)
+            end
+        end
         local cap
         for _, c in ipairs(state.chlist or {}) do
             if (c.time or 0) <= pv_secs and c.title and c.title ~= '' then
@@ -2549,10 +2594,11 @@ render = function()
         if fh > 0 then
             local ix = math.floor(px + (bw - fw) / 2)
             if base then
-                -- Native size: overlay-add does not scale, and the worker
-                -- already decoded these at thumbnail_preferred_size.
+                -- The source is the frame as decoded; fw x fh is the size
+                -- the scaling above settled on, which may be larger.
                 draw_image({ id = 'hud-preview', src = tp.file, base = base,
-                             iw = fw, ih = fh, w = fw, h = fh }, ix, ty)
+                             iw = tp.iw, ih = tp.ih, w = fw, h = fh,
+                             dw = fw, dh = fh }, ix, ty)
             else
                 -- The window this position falls in is still being
                 -- fetched. Something has to occupy the reserved box, or
@@ -6612,12 +6658,17 @@ end)
 -- video's; subtracting `first` reaches the file. Outside
 -- [first, first+count) there is nothing to draw and Python is asked for
 -- that part of the video (the scrub-preview block in render()).
+--
+-- `scale`, last on both, is thumbnail_scale -- or "auto", kept as nil so the
+-- scrub-preview block falls back to the UI scale.
 mp.register_script_message('shim-trickplay-bif',
-    function(count, mult, w, h, path, first, total)
+    function(count, mult, w, h, path, first, total, scale)
+        scale = tonumber(scale)
         state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
                      count = tonumber(count), mult = tonumber(mult),
                      first = tonumber(first) or 0,
-                     total = tonumber(total) or tonumber(count) }
+                     total = tonumber(total) or tonumber(count),
+                     scale = scale and scale > 0 and scale or nil }
         state.tp_asked = nil
         request_render()
     end)
@@ -6625,13 +6676,14 @@ mp.register_script_message('shim-trickplay-bif',
 -- The fallback when the server has no BIF data: one frame per chapter,
 -- indexed by the chapter start times (seconds) rather than by a cadence.
 mp.register_script_message('shim-trickplay-chapters',
-    function(w, h, path, times)
+    function(w, h, path, times, scale)
         local t = {}
         for s in tostring(times or ''):gmatch('[^,]+') do
             t[#t + 1] = tonumber(s)
         end
+        scale = tonumber(scale)
         state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
-                     times = t }
+                     times = t, scale = scale and scale > 0 and scale or nil }
         request_render()
     end)
 
@@ -6888,6 +6940,10 @@ mp.register_script_message('mpvtk-debug', function(json)
             -- when it is not up. It is not a scene node, so this is the
             -- only way anything outside the renderer can see it.
             preview = state.pv_rect,
+            -- whether overlay-add takes a display size (nil until a scaled
+            -- preview first asked), for the test that checks the probe
+            -- against a real mpv's command-list
+            ov_scale = state.ov_scale,
             -- is the HUD taking the arrow keys (keyboard-driven), or
             -- only the pointer (hud_grab_keys off, mouse summon)?
             phud_kbd = state.phud.kbd or false,

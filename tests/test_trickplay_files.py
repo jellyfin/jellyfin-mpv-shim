@@ -550,11 +550,28 @@ class WindowedTrickplayTest(unittest.TestCase):
         # 90s at a 10s cadence is frame 9; a five-frame budget centres on it.
         msg = self._fetch(tp, player, 90)
         self.assertIsNotNone(msg, "the window was never published")
-        kind, count, mult, w, h, path, first, total = msg
+        kind, count, mult, w, h, path, first, total, scale = msg
         self.assertEqual(kind, "shim-trickplay-bif")
         self.assertEqual((int(count), int(first), int(total)), (5, 7, 16))
         self.assertEqual(self._frames(path), [7, 8, 9, 10, 11],
                          "the file does not hold the frames it claims")
+
+    def test_the_message_says_what_size_to_draw_the_frames(self):
+        """`thumbnail_scale` rides the message as its last argument, and
+        anything that is not a positive number is "auto" -- follow the
+        display. The consumers resolve "auto" themselves, because only they
+        know which scale their own drawing uses."""
+        orig = trickplay.settings.thumbnail_scale
+        self.addCleanup(lambda: setattr(trickplay.settings,
+                                        "thumbnail_scale", orig))
+        for value, want in ((None, "auto"), (1.5, "1.5"), (2.0, "2"),
+                            (0.0, "auto"), (-1.0, "auto")):
+            with self.subTest(thumbnail_scale=value):
+                trickplay.settings.thumbnail_scale = value
+                tp, player = self._worker(_BifVideo())
+                msg = self._fetch(tp, player, 90)
+                self.assertIsNotNone(msg, "the window was never published")
+                self.assertEqual(msg[-1], want)
 
     def test_the_tiles_fetched_are_the_ones_the_window_falls_in(self):
         """Tiles are the download unit and do not divide the window: frames
@@ -872,6 +889,19 @@ class WorkerSurvivesAVideoChangeTest(unittest.TestCase):
         while len(player.messages) == before and time.monotonic() < deadline:
             time.sleep(0.005)
         return len(player.messages) > before
+
+    def test_the_chapter_images_say_what_size_to_draw_them(self):
+        """The chapter fallback carries `thumbnail_scale` too, as its last
+        argument -- both consumers take it off whichever message is live."""
+        orig = trickplay.settings.thumbnail_scale
+        self.addCleanup(lambda: setattr(trickplay.settings,
+                                        "thumbnail_scale", orig))
+        trickplay.settings.thumbnail_scale = 1.5
+        player = _WorkerPlayer(_WorkerVideo("only"))
+        tp = self._worker(player)
+        self.assertTrue(self._fetch(tp, player))
+        self.assertEqual(player.messages[-1][0], "shim-trickplay-chapters")
+        self.assertEqual(player.messages[-1][-1], "1.5")
 
     def test_a_video_change_mid_fetch_cancels_the_fetch_not_the_worker(self):
         player = _WorkerPlayer(None)

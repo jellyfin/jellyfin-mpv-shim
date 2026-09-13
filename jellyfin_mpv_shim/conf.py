@@ -798,6 +798,12 @@ class Settings(SettingsBase):
     #: input.conf bindings there.
     browse_block_keys: bool = True
     thumbnail_preferred_size: int = 320
+    #: How much to enlarge trickplay frames as they are drawn. None follows
+    #: the display -- the UI scale in the in-window HUD, display-hidpi-scale
+    #: in thumbfast.lua -- because the server's frames are a PHYSICAL size.
+    #: Enlarged by overlay-add on the GPU rather than decoded bigger:
+    #: docs/artwork-pipeline.md section 11.2.
+    thumbnail_scale: Optional[float] = None
     #: Load every trickplay preview frame at once instead of a window
     #: around where you are seeking.
     #:
