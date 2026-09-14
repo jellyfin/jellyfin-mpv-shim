@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-08-17 17:57+0000\n"
-"Last-Translator: Szilki077 <szilkimappa@gmail.com>\n"
+"PO-Revision-Date: 2026-09-14 11:39+0000\n"
+"Last-Translator: KecskeTech <teonyitas@gmail.com>\n"
 "Language-Team: Hungarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hu/>\n"
 "Language: hu\n"
@@ -5259,7 +5259,7 @@ msgstr "Frissítés érhető el: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Open"
-msgstr "Nyitott"
+msgstr "Nyitva"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Dismiss"
@@ -5659,10 +5659,9 @@ msgctxt "subtitle position"
 msgid "Bottom"
 msgstr "Alul"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
-msgstr "Alul"
+msgstr "Lent"
 
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "MPV felület bélyegképekkel"
