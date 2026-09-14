@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-14 21:31+0000\n"
+"PO-Revision-Date: 2026-09-14 22:30+0000\n"
 "Last-Translator: Daniel Farasiewicz <dan23@onet.pl>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/pl/>\n"
@@ -3240,38 +3240,32 @@ msgstr "Zatrzymać nagrywanie tego serialu?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording cancelled."
-msgstr "Nagrywanie serialu zatrzymane."
+msgstr "Nagrywanie serialu anulowane."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Cancel"
 msgid "Cancel Series"
-msgstr "Anuluj"
+msgstr "Anuluj serial"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The recording could not be cancelled."
-msgstr "Zmiany nie udało się zastosować."
+msgstr "Nagranie nie mogło zostać anulowane."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording settings saved."
-msgstr ""
+msgstr "Ustawienia nagrywania zostały zapisane."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The recording settings could not be saved."
-msgstr "Zmiany nie udało się zastosować."
+msgstr "Nie udało się zapisać ustawień nagrywania."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Usuń z dysku"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3285,13 +3279,12 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s został usunięty."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The PIN could not be removed."
+#, python-format
 msgid "%s could not be deleted."
-msgstr "Nie udało się usunąć kodu PIN."
+msgstr "%s nie został usunięty."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3325,12 +3318,12 @@ msgstr "Otwieranie %s…"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Nothing on this system could open %s."
-msgstr ""
+msgstr "System nie mógł otworzyć %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s is already downloaded."
-msgstr ""
+msgstr "%s został już pobrany."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid ""
