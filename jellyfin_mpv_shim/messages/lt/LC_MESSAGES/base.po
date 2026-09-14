@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-11 13:34+0000\n"
+"PO-Revision-Date: 2026-09-14 11:39+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -1678,10 +1678,8 @@ msgid "Player Controls Style"
 msgstr "Grotuvo valdiklių stilius"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "Įjungti miniatūrų peržiūrą"
+msgstr "Įjungti Trickplay miniatiūrų peržiūrą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
@@ -1769,10 +1767,8 @@ msgid "Player Controls Activation Key"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Selected: %s"
 msgid "Select Key"
-msgstr "Pasirinkta: %s"
+msgstr "Pasirinkti raktą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
@@ -4874,42 +4870,34 @@ msgstr "Vaizdo atkūrimo profilis"
 msgid "Select Shader Profile"
 msgstr "Pasirinkite Shader profilį"
 
-#, fuzzy
 msgctxt "setting value"
 msgid "Default"
 msgstr "Numatytasis"
 
-#, fuzzy
 msgctxt "media stream flag"
 msgid "Default"
 msgstr "Numatytasis"
 
-#, fuzzy
 msgctxt "guide navigation"
 msgid "Later"
 msgstr "Vėliau"
 
-#, fuzzy
 msgctxt "update banner"
 msgid "Later"
 msgstr "Vėliau"
 
-#, fuzzy
 msgctxt "playback control"
 msgid "Repeat"
 msgstr "Kartoti"
 
-#, fuzzy
 msgctxt "guide badge"
 msgid "Repeat"
 msgstr "Kartoti"
 
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "Patvirtinti"
 
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "Patvirtinti"
@@ -4918,7 +4906,6 @@ msgctxt "subtitle position"
 msgid "Top"
 msgstr "Viršuje"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Top"
 msgstr "Viršuje"
@@ -4927,7 +4914,6 @@ msgctxt "subtitle position"
 msgid "Bottom"
 msgstr "Apačioje"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
 msgstr "Apačioje"
