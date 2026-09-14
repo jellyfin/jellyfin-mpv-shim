@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-07-30 14:13+0000\n"
+"PO-Revision-Date: 2026-09-14 11:39+0000\n"
 "Last-Translator: David Wagener <david.wagener@pm.me>\n"
 "Language-Team: Luxembourgish <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/lb/>\n"
@@ -21,23 +21,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Onbekannte Format"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "Säit %(page)d vu(n) %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "Säit %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% gelies"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -61,7 +61,7 @@ msgstr "Setzt Ënnertitelen: {0} ok, {1} feelgeschloen"
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr ""
+msgstr "Setzt synchroniséiert: {0} ok, {1} nëmmen Audio, {2} feelgeschloen"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
@@ -137,15 +137,15 @@ msgstr "Quick Connect konnt net gestart ginn."
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Credits"
-msgstr ""
+msgstr "Credits iwwersprangen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr ""
+msgstr "Credits iwwersprongen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr ""
+msgstr "Probéier, Credits z'iwwersprangen"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -154,19 +154,19 @@ msgstr "Special Episode"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Commercial"
-msgstr ""
+msgstr "Reklamm iwwersprongen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Commercial"
-msgstr ""
+msgstr "Probéier, Reklamm z'iwwersprangen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Preview"
-msgstr ""
+msgstr "Virschau iwwersprangen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Preview"
-msgstr ""
+msgstr "Virschau iwwersprongen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Preview"
@@ -479,16 +479,16 @@ msgstr "Op Updatë préiwen"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Discord Rich Presence"
-msgstr ""
+msgstr "Discord Aktivitéitsstatus"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Intros"
-msgstr ""
+msgstr "Introen iwwersprangen"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr ""
+msgstr "Ofspann iwwersprangen"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -497,67 +497,67 @@ msgstr "Special Episode"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Previews"
-msgstr ""
+msgstr "Virschauen iwwersprachen"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Recaps"
-msgstr ""
+msgstr "Réckblécker iwwersprangen"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
-msgstr ""
+msgstr "Miniaturvirschauen aktivéieren"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Nuetmodus (Automatesch Volumereegelung)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Gespaart"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Luede feelgeschloen. Iwwerpréif d'Verbindung."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Säit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
-msgstr ""
+msgstr "vu(n) %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Éischt Säit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Previous page"
-msgstr ""
+msgstr "Vireg Säit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Nächst Säit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Lescht Säit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "D'Ännerung konnt net duerchgefouert ginn."
 
 # seeded from jellyfin-web: LiveTV
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
@@ -569,7 +569,7 @@ msgstr "Live TV"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Ausgewielt: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
