@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-08-26 19:19+0000\n"
-"Last-Translator: lolomanzanillo <lolomanzanillo@gmail.com>\n"
+"PO-Revision-Date: 2026-09-16 04:55+0000\n"
+"Last-Translator: ern3stoGH <ern3sto@gmail.com>\n"
 "Language-Team: Spanish (Latin America) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-mpv-shim/es_419/>\n"
 "Language: es_419\n"
@@ -1902,86 +1902,80 @@ msgid "Player Controls Activation Key"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Selected: %s"
 msgid "Select Key"
-msgstr "Selecciónado: %s"
+msgstr "Escoja la tecla"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Sombreado detrás de los controles de reproducción"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "Cuando se ocultan los controles de reproducción"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "Ocular los controles de reproducción después de (segundos)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr ""
+msgstr "Encoger los controles de reproducción en una ventana pequeña"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "Botones atrás/adelante del ratón saltea capítulos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "Modo de salida de audio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr ""
+msgstr "Dispositivo de salida de audio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "Toma el dispositivo exclusivamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "Perfiles de Reproducción de Video"
+msgstr "Habilitar perfiles de reproducción de video"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "Nuevo Grupo"
+msgstr "Grupo de perfiles"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr ""
+msgstr "Recordar el último perfil usado"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "API de gráficos para sombreados"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
-msgstr ""
+msgstr "Saltear AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS"
-msgstr ""
+msgstr "Saltear DTS"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through E-AC3"
-msgstr ""
+msgstr "Saltear E-AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
-msgstr ""
+msgstr "Saltear DTS-HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through TrueHD"
-msgstr ""
+msgstr "Saltear TrueHD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Re-encode Others to AC3"
-msgstr ""
+msgstr "Recodificar otros a AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1989,6 +1983,11 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"Con las opciones «Iniciar minimizada» y «Pantalla completa», esta es la "
+"configuración clásica para la transmisión: la aplicación permanece en "
+"segundo plano, se reproduce a pantalla completa cuando se transmite algo a "
+"ella y vuelve al modo de espera cuando termina el vídeo o al pulsar la tecla "
+"Q."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1998,12 +1997,21 @@ msgid ""
 "with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
 "log says so. Any button can be reassigned in your input.conf."
 msgstr ""
+"Muévete con el pad direccional o el joystick izquierdo, busca con el "
+"joystick derecho, usa los botones laterales para pasar página y pulsa «Start"
+"» para acceder al menú. El mando no detecta el foco, por lo que accederá a "
+"esta aplicación incluso cuando haya otra ventana en primer plano. Requiere "
+"un mpv compilado con soporte para mandos de SDL2; si el tuyo no lo tiene, "
+"esta configuración se ignorará y así se indicará en el registro. Cualquier "
+"botón se puede reasignar en tu archivo input.conf."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Turn this on for a controller whose A button is on the right rather than at "
 "the bottom (Switch Pro, most 8BitDo pads)."
 msgstr ""
+"Encienda esta opción para controladores cuyo botón A está a la derecha en "
+"vez de abajo (Switch Pro, most 8BitDo pads)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2012,6 +2020,11 @@ msgid ""
 "no video for them to act on. Turn it off to use your own MPV key bindings "
 "there."
 msgstr ""
+"Impide que los atajos propios de MPV —ajuste de imagen, capturas de "
+"pantalla, cambio de subtítulos y audio— se activen mientras te encuentras en "
+"la biblioteca, donde no hay ningún vídeo sobre el que puedan actuar. "
+"Desactívalo para utilizar tus propias combinaciones de teclas de MPV en ese "
+"lugar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2019,6 +2032,10 @@ msgid ""
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
 msgstr ""
+"Activa lo que esté resaltado, tanto en la biblioteca como en los controles "
+"del reproductor. Es el nombre de una tecla de mpv; al cambiarlo, la tecla «"
+"Intro» vuelve a corresponder a MPV. Le siguen el botón «Confirmar» del mando "
+"de videojuegos y el botón «Seleccionar» del móvil."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2026,11 +2043,17 @@ msgid ""
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
 msgstr ""
+"Déjalos en blanco a menos que las descargas hagan que tus discos se activen "
+"con demasiada frecuencia. Configura las dos primeras opciones juntas: de "
+"este modo, los episodios se descargarán de una sola vez cuando se estén "
+"agotando en una serie, en lugar de uno por uno."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
 msgstr ""
+"El thumbnail de un episodio es un cuadro de un episodio que quizás no hayas "
+"visto aún."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2038,6 +2061,10 @@ msgid ""
 "window, and the right button does whatever your MPV config gives it. Double "
 "click is full screen either way."
 msgstr ""
+"Si se desactiva, se utiliza el comportamiento del ratón propio de MPV: "
+"arrastra el vídeo para mover la ventana, y el botón derecho realiza la "
+"acción que le hayas asignado en la configuración de MPV. En cualquier caso, "
+"al hacer doble clic se pasa a pantalla completa."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
