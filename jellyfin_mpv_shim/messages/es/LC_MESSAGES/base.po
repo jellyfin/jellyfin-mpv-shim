@@ -7,9 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-10 16:47+0000\n"
-"Last-Translator: Ignacio Lorenzo Subirá Otal <abertura_higiene_5q@icloud.com>"
-"\n"
+"PO-Revision-Date: 2026-09-16 16:15+0000\n"
+"Last-Translator: Alejandro Carballo <alex_1280@hotmail.es>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -293,7 +292,7 @@ msgstr "Cambiar el Perfil de Reproducción de Video"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Quit and Mark Unplayed"
-msgstr "Salir y Marcar como No reproducido"
+msgstr "Salir y Marcar como No Visto"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -1530,11 +1529,11 @@ msgstr "Rellenar los vacíos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Centra las celdas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Déjalo en la derecha"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -1620,7 +1619,7 @@ msgstr "Controlador de juegos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Intercambiar botones Confirmar y Atrás"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
@@ -1650,11 +1649,11 @@ msgstr "Cancelar grabación"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Desentrelazar automáticamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Interpolación de movimiento"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Debanding"
@@ -1662,7 +1661,7 @@ msgstr "Eliminación de bandas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "Mapeo de Tonos HDR"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Rendering Quality"
@@ -1670,7 +1669,7 @@ msgstr "Calidad de renderizado"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Búfer de Red"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
@@ -1742,7 +1741,7 @@ msgstr "Botones de ventana en la barra superior"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "Ocultar la Barra de Título del Escritorio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
@@ -1756,7 +1755,7 @@ msgstr "Activar vistas previas en miniatura"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "Cargar todas las vistas previas a la vez"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
@@ -1783,15 +1782,15 @@ msgstr "Tamaño de la portada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
-msgstr ""
+msgstr "Fondos de ancho completo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "12-Hour Clock"
-msgstr ""
+msgstr "Formato de 12 horas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
-msgstr ""
+msgstr "Espaciado de cuadrícula"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
@@ -1833,7 +1832,7 @@ msgstr "Navegador de biblioteca en pantalla completa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "Bloquear atajos de teclado del reproductor al navegar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
@@ -1935,6 +1934,10 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"Con las opciones «Iniciar minimizado» y «Pantalla completa», se obtiene la "
+"configuración clásica de recepción de contenido: la aplicación espera en "
+"segundo plano, se reproduce a pantalla completa cuando recibe una "
+"transmisión y vuelve a esperar cuando el vídeo termina o pulsas la tecla Q."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1944,12 +1947,22 @@ msgid ""
 "with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
 "log says so. Any button can be reassigned in your input.conf."
 msgstr ""
+"Muévete con la cruceta o el joystick izquierdo, desplázate con el derecho, "
+"usa los botones superiores para cambiar de página y Start para el menú. El "
+"mando no depende del foco de la ventana, por lo que controlará esta "
+"aplicación incluso si hay otra ventana en primer plano. Requiere una "
+"compilación de mpv con soporte para mandos SDL2; si la tuya carece de él, "
+"esta opción se ignorará y el registro lo indicará. Cualquier botón puede "
+"reasignarse en el archivo input.conf."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Turn this on for a controller whose A button is on the right rather than at "
 "the bottom (Switch Pro, most 8BitDo pads)."
 msgstr ""
+"Activa esta opción para mandos en los que el botón A se encuentra a la "
+"derecha en lugar de en la parte inferior (Switch Pro, la mayoría de mandos "
+"8BitDo)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1958,6 +1971,11 @@ msgid ""
 "no video for them to act on. Turn it off to use your own MPV key bindings "
 "there."
 msgstr ""
+"Impide que los atajos propios de MPV - ajuste de imagen, capturas de "
+"pantalla y cambio de subtítulos o audio - funcionen mientras estás en la "
+"biblioteca, donde no hay ningún vídeo sobre el que puedan actuar. Desactiva "
+"esta opción si prefieres utilizar tus propias asignaciones de teclas de MPV "
+"en esa sección."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1965,6 +1983,10 @@ msgid ""
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
 msgstr ""
+"Activa el elemento resaltado, tanto en la biblioteca como en los controles "
+"de reproducción. Es un nombre de tecla de mpv; si se cambia, la tecla Intro "
+"vuelve a quedar asignada a MPV. Le siguen el botón de confirmación del mando "
+"de juego y el botón de selección del teléfono."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2007,6 +2029,13 @@ msgid ""
 "player's settings menu, which lasts until you return to the library. Needs "
 "MPV 0.38 or newer."
 msgstr ""
+"Desentrelaza el vídeo si el archivo indica que está entrelazado. Desactivado "
+"por defecto, al igual que en el propio MPV: el indicador no es fiable en "
+"ninguno de los dos sentidos, y desentrelazar un vídeo progresivo suaviza una "
+"imagen que ya se veía bien. Para forzar la activación en un vídeo "
+"entrelazado sin indicarlo, utiliza la opción Desentrelazar en el menú de "
+"configuración del reproductor; este ajuste se mantiene activo hasta que "
+"regresas a la biblioteca. Requiere MPV 0.38 o posterior."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2018,6 +2047,15 @@ msgid ""
 "if you set the deband options in mpv.conf yourself — Off writes nothing at "
 "all, so your values are left alone."
 msgstr ""
+"Suaviza los escalones o bandas visibles en los degradados (como en cielos, "
+"escenas oscuras o transiciones). La animación y el anime son los que más se "
+"benefician, ya que los degradados planos ocupan gran parte de la imagen; el "
+"contenido de imagen real apenas se ve afectado, aunque un ajuste intenso "
+"podría suavizar detalles muy finos. Consume recursos de la GPU "
+"independientemente del contenido, algo a tener en cuenta en equipos pequeños "
+"o antiguos. Mantén la opción desactivada si configuras manualmente las "
+"opciones de deband en mpv.conf - Off no escribe nada, así que deja los "
+"valores sin alterar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2027,6 +2065,12 @@ msgid ""
 "is the reference curve, and Clip is what to try if highlights look grey "
 "rather than bright."
 msgstr ""
+"Determina cómo se adapta el vídeo HDR a una pantalla SDR. No tiene efecto "
+"cuando la señal HDR se transmite directamente a una pantalla HDR, ya que no "
+"se aplica ningún mapeo de tonos. Déjala en Automático a menos que las "
+"películas HDR no se vean correctamente; BT.2390 es la curva de referencia, y "
+"Clip es la opción que conviene probar si las zonas más brillantes se ven "
+"grisáceas en lugar de luminosas."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2035,6 +2079,11 @@ msgid ""
 "files and does not use up your shader profile, so it is the thing to try "
 "before the shader pack below."
 msgstr ""
+"La opción de alta calidad aplica los mismos ajustes que el propio preajuste "
+"de alta calidad de MPV: mejor escalado y gestión de HDR consumiendo más "
+"recursos de GPU. No requiere archivos de sombreado ni utiliza tu perfil de "
+"sombreado, por lo que es la opción que deberías probar antes de recurrir al "
+"paquete de sombreado que aparece más abajo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2043,6 +2092,12 @@ msgid ""
 "this if playback keeps stopping for buffering. Larger buffers use more "
 "memory and make the first few seconds of a file slower to start."
 msgstr ""
+"Define con cuánta antelación respecto a la reproducción se deben leer los "
+"datos. El valor predeterminado de MPV es un segundo, lo cual resulta "
+"insuficiente para servidores a los que se accede por Internet o conexiones "
+"lentas; aumentar si la reproducción se interrumpe constantemente por el "
+"almacenamiento en búfer. Los búferes de mayor tamaño consumen más memoria y "
+"hacen que el inicio de la reproducción de un archivo sea más lento."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2051,6 +2106,11 @@ msgid ""
 "display. May cause dropped frames if your displays have mismatched frame "
 "rates."
 msgstr ""
+"Mezcla de fotogramas (combina fotogramas entre sí; no es lo mismo que SVP, "
+"DLSS o la generación de fotogramas). Reduce los tirones causados por una "
+"discrepancia en la tasa de fotogramas entre el contenido y la pantalla. "
+"Puede provocar la pérdida de fotogramas si las pantallas tienen tasas de "
+"refresco diferentes."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -5134,10 +5194,8 @@ msgid "Playback Data"
 msgstr "Datos de reproducción"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Transcodificar)"
+msgstr "Transcodificar"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 msgid "Use the default"
