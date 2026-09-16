@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-13 16:46+0000\n"
+"PO-Revision-Date: 2026-09-16 22:21+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -28,7 +28,7 @@ msgstr "تهيئة مجهولة"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr "صفحة %(page)d من %(total)ات"
+msgstr "صفحة %(page)ات of %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -1932,12 +1932,19 @@ msgid ""
 "with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
 "log says so. Any button can be reassigned in your input.conf."
 msgstr ""
+"حرك بواسطة لوحة الاتجاهات أو العصا اليسرى, ابحث بوساطة العصا اليمنى, أزرة "
+"الكتف للصفحة, إبدأ للائحة. المتحكم ليس مدعاة للتركيز, و عليه سيصل إلى هذا "
+"التطبيق حتى بوجود نافذة اخرى في المقدمة. تحتاج لبناء mpv مع دعم لوحة لعب "
+"SDL2; إن كانت اللوحة لديك تفتقر إلى هذا الاعداد فسيتم تجاهله. أي زر يمكن "
+"إعادة تعيينه في input.conf."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Turn this on for a controller whose A button is on the right rather than at "
 "the bottom (Switch Pro, most 8BitDo pads)."
 msgstr ""
+"شغل هذا للمتحكم الذي به زر A على الجهة اليمنى بدلا من الاسفل (Switch Pro, أغلب "
+"لوحات 8BitDo)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -5019,7 +5026,7 @@ msgstr "إعدادات الخوادم"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr "تنزيل %(name)ات — %(n)d باقي"
+msgstr "تحميل %(name)ات — %(n)d باقي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
@@ -5218,6 +5225,9 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"GNOME لن يرسم شسئا على صينية النظام بمفرده. نصّب ملحق \"دعم AppIndicator و "
+"KStatusNotifierItem\" للحصول على احدها, أو شعّل \"السماح في الخلفية\" من "
+"الاعدادات للتشغيل دون نافذة على اي حال."
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
