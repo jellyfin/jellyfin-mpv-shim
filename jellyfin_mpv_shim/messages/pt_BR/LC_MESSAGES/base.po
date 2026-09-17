@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-08-31 01:08+0000\n"
+"PO-Revision-Date: 2026-09-18 00:38+0000\n"
 "Last-Translator: alison2033 <a23030485@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/pt_BR/>\n"
@@ -531,7 +531,7 @@ msgstr "Modo noturno (ajuste automático de volume)"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Bloqueado"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
@@ -651,36 +651,33 @@ msgstr "Trocar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "PIN incorreto."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Servidor:"
+msgstr "Definir PIN para %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "PIN atual"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "Novo PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Confirm"
-msgstr ""
+msgstr "Confirmar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Exigir este PIN na inicialização"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Remover servidor"
+msgstr "Remover PIN"
 
 # seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -690,23 +687,23 @@ msgstr "Salvar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "O PIN atual está incorreto."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Insira um novo PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "Os PINs não coincidem."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "Não foi possível remover o PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "Não foi possível salvar o PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -715,7 +712,7 @@ msgstr "Adicionar servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Conectar ao Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Previously added servers"
@@ -723,43 +720,37 @@ msgstr "Servidores adicionados anteriormente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Usar"
 
 # seeded from jellyfin-web: QuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
-msgstr "Conexão rápida"
+msgstr "Conexão Rápida"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "Insira este código no aplicativo Jellyfin ou cliente web:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "Configurações SVP"
+msgstr "Solicitando…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Server URL"
 msgstr "URL do servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Usuário:"
+msgstr "Nome de usuário"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Senha:"
+msgstr "Senha"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use Quick Connect"
-msgstr "Usar Quick Connect"
+msgstr "Usar Conexão Rápida"
 
 # seeded from jellyfin-web: Connect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -768,7 +759,7 @@ msgstr "Conectar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "Insira primeiro a URL do servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Contacting the server…"
@@ -776,34 +767,28 @@ msgstr "Conectando ao servidor…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "Aguardando aprovação…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "Conexão Rápida não foi aprovado."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr ""
+msgstr "Conectando…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Não foi possível adicionar o servidor.\n"
-"Por favor verifique os dados da conexão."
+msgstr "Não foi possível conectar. Por favor, verifique seus dados."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "Conectando ao seu servidor…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
+msgstr "Trabalhar offline"
 
 # seeded from jellyfin-web: ButtonSignIn
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -812,28 +797,28 @@ msgstr "Entrar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "Não há nada baixado para navegar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Couldn't reach your saved server(s)."
-msgstr ""
+msgstr "Não foi possível conectar ao(s) servidor(es) salvo(s)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Digite seu PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s está bloqueado."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
-msgstr ""
+msgstr "Desbloquear"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Or switch to another user"
-msgstr ""
+msgstr "Ou mude para outro usuário"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 msgid "Ready to cast"
@@ -858,16 +843,12 @@ msgstr "Download"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "Remover servidor"
+msgstr "Remover download"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Sair e marcar como não visto"
+msgstr "Assistido"
 
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -878,7 +859,7 @@ msgstr "Favorito"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "Web"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -895,10 +876,8 @@ msgstr "Áudio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Tamanho da legenda: {0}"
+msgstr "Subtítulo"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -916,10 +895,8 @@ msgid "Container"
 msgstr "Formato"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "Normal"
+msgstr "Formatar"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -938,10 +915,8 @@ msgstr "Sim"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "Nenhum"
+msgstr "Não"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -967,10 +942,8 @@ msgid "Codec tag"
 msgstr "Marcador do codec"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "Novo grupo"
+msgstr "Perfil"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -984,9 +957,8 @@ msgstr "Resolução"
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Aspect ratio"
-msgstr "Proporção da tela"
+msgstr "Proporção de tela"
 
 # seeded from jellyfin-web: MediaInfoAnamorphic
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1018,7 +990,7 @@ msgstr "Canais"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d ch"
-msgstr ""
+msgstr "%d canais"
 
 # seeded from jellyfin-web: LabelBitrate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1028,7 +1000,7 @@ msgstr "Bitrate"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d kbps"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1038,7 +1010,7 @@ msgstr "Taxa da amostra"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d Hz"
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1048,23 +1020,19 @@ msgstr "Profundidade de bits"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d bit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "Preferências de vídeo"
+msgstr "Alcance de vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "Subtipo de perfil de vídeo"
+msgstr "Tipo de faixa de vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color space"
-msgstr ""
+msgstr "Espaço de cores"
 
 # seeded from jellyfin-web: ColorTransfer
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1098,10 +1066,8 @@ msgid "Default"
 msgstr "Padrão"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " Forçado"
+msgstr "Forçado"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1111,27 +1077,22 @@ msgstr "Externa"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Timestamp"
-msgstr "Hora"
+msgstr "Carimbo de data/hora"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "DV title"
-msgstr "Tamanho da legenda: {0}"
+msgstr "Título do DV"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version major"
-msgstr "Versão"
+msgstr "Versão principal do DV"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version minor"
-msgstr "Versão"
+msgstr "Versão menor do DV"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1167,13 +1128,11 @@ msgstr "ID de compatibilidade do sinal DV bl"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f Mbps"
-msgstr ""
+msgstr "%.1f Mbps"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "Caminhos diretos"
+msgstr "Reprodução direta"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1317,11 +1276,11 @@ msgstr "O tipo de intervalo do vídeo não é compatível"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "Este dispositivo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Entrada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
