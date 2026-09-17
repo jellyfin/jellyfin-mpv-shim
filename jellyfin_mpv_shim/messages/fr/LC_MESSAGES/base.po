@@ -7,9 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-17 17:40+0000\n"
-"Last-Translator: tristoooou "
-"<116801324+Potaaaaaaaaaaaato@users.noreply.github.com>\n"
+"PO-Revision-Date: 2026-09-18 00:38+0000\n"
+"Last-Translator: Pierre Montroeul <pierre.montroeul@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -1083,12 +1082,12 @@ msgstr "Indicateur de préréglage DV 'rpu'"
 # seeded from jellyfin-web: MediaInfoElPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV el preset flag"
-msgstr "Indicateur de préréglage DV 'el'"
+msgstr "Indicateur de préréglage DV 'el' (couche d'amélioration)"
 
 # seeded from jellyfin-web: MediaInfoBlPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV bl preset flag"
-msgstr "Indicateur de préréglage DV 'bl'"
+msgstr "Indicateur de préréglage DV 'bl' (couche de base)"
 
 # seeded from jellyfin-web: MediaInfoDvBlSignalCompatibilityId
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1097,20 +1096,18 @@ msgstr "ID de compatibilité du signal DV 'bl'"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy, python-format
+#, python-format
 msgid "%.1f Mbps"
 msgstr "%.1f Mbps"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "Chemins directs"
+msgstr "Lecture en direct"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Direct streaming"
-msgstr "Streaming direct"
+msgstr "Diffusion en direct"
 
 # seeded from jellyfin-web: Remuxing
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
