@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-17 13:40+0000\n"
+"PO-Revision-Date: 2026-09-17 15:42+0000\n"
 "Last-Translator: Pierre Montroeul <pierre.montroeul@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -145,7 +145,7 @@ msgstr "Générique ignoré"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr "Avancer pour passer les crédits"
+msgstr "Avancer pour passer le générique"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
@@ -184,8 +184,6 @@ msgid "Seek to Skip Recap"
 msgstr "Avancer pour passer le résumé"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
 msgstr "Passer l'introduction"
 
@@ -293,8 +291,6 @@ msgstr "Changer le profil de lecture de la vidéo"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
 msgstr "Quitter et marquer comme non lu"
 
