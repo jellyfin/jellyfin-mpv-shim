@@ -8,8 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
 "PO-Revision-Date: 2026-09-17 17:40+0000\n"
-"Last-Translator: tristoooou "
-"<116801324+Potaaaaaaaaaaaato@users.noreply.github.com>\n"
+"Last-Translator: Pierre Montroeul <pierre.montroeul@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -322,11 +321,11 @@ msgstr "Fermer le menu"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Audio Track"
-msgstr "Choisir une piste audio"
+msgstr "Choisir la piste audio"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Subtitle Track"
-msgstr "Choisir une piste de sous-titres"
+msgstr "Choisir la piste de sous-titres"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -359,7 +358,7 @@ msgstr "Audio japonais avec sous-titres anglais"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Manual by Track Index (Less Reliable)"
-msgstr "Index manuel par piste (moins fiable)"
+msgstr "Manuel par index de piste (moins fiable)"
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -453,7 +452,7 @@ msgstr "Sous-type de profil vidéo"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Auto Play"
-msgstr "Lire automatiquement"
+msgstr "Lecture automatique"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Auto Fullscreen"
@@ -486,11 +485,9 @@ msgstr "Passer les introductions"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Ignorer les crédits"
+msgstr "Ignorer le générique"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Specials"
 msgid "Skip Commercials"
 msgstr "Passer les publicités"
 
@@ -500,7 +497,7 @@ msgstr "Passer les aperçus"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Recaps"
-msgstr "Passer les récapitulatifs"
+msgstr "Passer les résumés"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -528,7 +525,7 @@ msgstr "Page"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy, python-format
+#, python-format
 msgid "of %d"
 msgstr "sur %d"
 
@@ -602,13 +599,12 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
-"Impossible de redémarrer automatiquement — quittez et relancez l’application "
+"Impossible de redémarrer automatiquement — quitter et relancer l’application "
 "pour appliquer vos modifications."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
 msgid "Still can't reach the server."
-msgstr "Toujours impossible de joindre le serveur"
+msgstr "Toujours impossible de joindre le serveur."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -676,7 +672,6 @@ msgid "Enter a new PIN."
 msgstr "Entrez un nouveau code PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "The PINs don't match."
 msgstr "Les codes PIN ne correspondent pas."
 
@@ -732,7 +727,7 @@ msgstr "Mot de passe"
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use Quick Connect"
-msgstr "Utiliser la connexion rapide"
+msgstr "Utiliser la Connexion Rapide"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect"
@@ -751,17 +746,16 @@ msgid "Waiting for approval…"
 msgstr "En attente d'approbation…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Quick Connect was not approved."
-msgstr "Quick Connect n’a pas été approuvé."
+msgstr "La Connexion Rapide n’a pas été approuvée."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr "Connexion…"
+msgstr "Connexion en cours…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Could not connect. Please check your details."
-msgstr "Échec de la connection. Merci de vérifier vos informations."
+msgstr "Échec de la connexion. Merci de vérifier vos informations."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -808,7 +802,7 @@ msgstr "Prêt à diffuser"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Choisissez votre média dans Jellyfin et jouez-le ici."
+msgstr "Choisissez votre média dans Jellyfin et consultez-le ici."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Cast & Crew"
@@ -828,7 +822,7 @@ msgstr "Supprimer le téléchargement"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Watched"
-msgstr "Déjà lu"
+msgstr "Déjà vu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -837,13 +831,11 @@ msgid "Favorite"
 msgstr "Favoris"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
 msgid "Web"
 msgstr "Web"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Video"
 msgstr "Vidéo"
 
@@ -855,8 +847,6 @@ msgstr "Audio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
 msgstr "Sous-titre"
 
@@ -970,7 +960,7 @@ msgstr "Chaînes"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d ch"
-msgstr ""
+msgstr "%d ch"
 
 # seeded from jellyfin-web: LabelBitrate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -978,7 +968,7 @@ msgid "Bitrate"
 msgstr "Débit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy, python-format
+#, python-format
 msgid "%d kbps"
 msgstr "%d kbps"
 
@@ -1003,16 +993,12 @@ msgid "%d bit"
 msgstr "%d bit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "Préférences vidéo"
+msgstr "Plage vidéo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "Sous-type de profil vidéo"
+msgstr "Sous-type de plage vidéo"
 
 # seeded from jellyfin-web: ColorSpace
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1050,10 +1036,8 @@ msgid "Default"
 msgstr "Par défaut"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " Forcé"
+msgstr "Forcé"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1063,27 +1047,22 @@ msgstr "Externe"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Timestamp"
-msgstr "Heure"
+msgstr "Horodatage"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "DV title"
-msgstr "Taille des sous-titres : {0}"
+msgstr "Titre DV"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version major"
-msgstr "Version"
+msgstr "Version principale DV"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version minor"
-msgstr "Version"
+msgstr "Version mineure DV"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
