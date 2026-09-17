@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-17 10:09+0000\n"
+"PO-Revision-Date: 2026-09-17 13:40+0000\n"
 "Last-Translator: Pierre Montroeul <pierre.montroeul@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -129,7 +129,7 @@ msgstr "Impossible de se connecter au serveur."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr "La Connexion Rapide n'est pas activé sur ce serveur."
+msgstr "La Connexion Rapide n'est pas activée sur ce serveur."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
@@ -141,7 +141,7 @@ msgstr "Passer le générique"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr "Crédits ignorés"
+msgstr "Générique ignoré"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
@@ -156,8 +156,6 @@ msgid "Skipped Commercial"
 msgstr "Publicité passée"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
 msgstr "Avancer pour passer la publicité"
 
@@ -170,25 +168,18 @@ msgid "Skipped Preview"
 msgstr "Aperçu ignoré"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
 msgstr "Avancer pour passer l'aperçu"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Recap"
 msgstr "Passer le résumé"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
 msgstr "Résumé ignoré"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
 msgstr "Avancer pour passer le résumé"
 
