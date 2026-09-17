@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-17 16:00+0000\n"
+"PO-Revision-Date: 2026-09-17 17:40+0000\n"
 "Last-Translator: tristoooou "
 "<116801324+Potaaaaaaaaaaaato@users.noreply.github.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
@@ -495,16 +495,12 @@ msgid "Skip Commercials"
 msgstr "Passer les publicités"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
 msgstr "Passer les aperçus"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Crédits ignorés"
+msgstr "Passer les récapitulatifs"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -532,9 +528,9 @@ msgstr "Page"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, python-format
+#, fuzzy, python-format
 msgid "of %d"
-msgstr ""
+msgstr "sur %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
@@ -572,7 +568,7 @@ msgstr "TV en direct"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Sélectionné : %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -606,15 +602,18 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Impossible de redémarrer automatiquement — quittez et relancez l’application "
+"pour appliquer vos modifications."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#, fuzzy
 msgid "Still can't reach the server."
-msgstr ""
+msgstr "Toujours impossible de joindre le serveur"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Passer à %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
@@ -631,15 +630,14 @@ msgstr "Annuler"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Changer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
 msgstr "Code PIN incorrect."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
 msgstr "Définir le code PIN pour %s"
 
@@ -658,7 +656,7 @@ msgstr "Confirmer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Exiger ce code PIN au démarrage"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Remove PIN"
@@ -671,7 +669,7 @@ msgstr "Sauvegarder"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "Le code PIN actuel est incorrect."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
@@ -680,15 +678,15 @@ msgstr "Entrez un nouveau code PIN."
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
 msgid "The PINs don't match."
-msgstr "Les codes PINs ne correspondent pas."
+msgstr "Les codes PIN ne correspondent pas."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "Impossible de supprimer le code PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "Impossible d’enregistrer le code PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -705,7 +703,7 @@ msgstr "Serveurs ajoutés précédemment"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Utiliser"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
@@ -717,7 +715,7 @@ msgstr "Entrez ce code dans l'application Jellyfin ou le client web :"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Requesting…"
-msgstr ""
+msgstr "Demande en cours…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Server URL"
@@ -741,21 +739,21 @@ msgid "Connect"
 msgstr "Connexion"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Enter the server URL first."
 msgstr "Entrez l'URL du serveur d'abord."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Contacting the server…"
-msgstr ""
+msgstr "Connexion au serveur…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
 msgstr "En attente d'approbation…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#, fuzzy
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "Quick Connect n’a pas été approuvé."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
@@ -768,11 +766,11 @@ msgstr "Échec de la connection. Merci de vérifier vos informations."
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "Connexion à votre serveur…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
+msgstr "Travailler hors ligne"
 
 # seeded from jellyfin-web: ButtonSignIn
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -801,7 +799,6 @@ msgid "Unlock"
 msgstr "Déverrouiller"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Or switch to another user"
 msgstr "Ou changer pour un autre utilisateur"
 
@@ -840,14 +837,15 @@ msgid "Favorite"
 msgstr "Favoris"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#, fuzzy
 msgid "Web"
-msgstr ""
+msgstr "Web"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
 msgid "Video"
-msgstr "Vidéos"
+msgstr "Vidéo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -860,7 +858,7 @@ msgstr "Audio"
 #, fuzzy
 #| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Taille des sous-titres : {0}"
+msgstr "Sous-titre"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -878,10 +876,8 @@ msgid "Container"
 msgstr "Conteneur"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "Normal"
+msgstr "Format"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -900,10 +896,8 @@ msgstr "Oui"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "Aucun"
+msgstr "Non"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -929,10 +923,8 @@ msgid "Codec tag"
 msgstr "Étiquette du codec"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "Nouveau groupe"
+msgstr "Profil"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -946,8 +938,6 @@ msgstr "Résolution"
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Aspect Ratio"
 msgid "Aspect ratio"
 msgstr "Format d'image"
 
@@ -957,10 +947,8 @@ msgid "Anamorphic"
 msgstr "Anamorphique"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Interface"
 msgid "Interlaced"
-msgstr "Interface"
+msgstr "Entrelacé"
 
 # seeded from jellyfin-web: Framerate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -990,9 +978,9 @@ msgid "Bitrate"
 msgstr "Débit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, python-format
+#, fuzzy, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d kbps"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1002,7 +990,7 @@ msgstr "Taux d’échantillonnage"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d Hz"
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1012,7 +1000,7 @@ msgstr "Profondeur de bit"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d bit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
@@ -1033,7 +1021,7 @@ msgstr "Espace colorimétrique"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color transfer"
-msgstr ""
+msgstr "Transfert de couleurs"
 
 # seeded from jellyfin-web: ColorPrimaries
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1129,9 +1117,9 @@ msgstr "ID de compatibilité du signal DV 'bl'"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, python-format
+#, fuzzy, python-format
 msgid "%.1f Mbps"
-msgstr ""
+msgstr "%.1f Mbps"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
@@ -1281,7 +1269,7 @@ msgstr "Le type de plage de la vidéo n'est pas pris en charge"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "Cet appareil"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
