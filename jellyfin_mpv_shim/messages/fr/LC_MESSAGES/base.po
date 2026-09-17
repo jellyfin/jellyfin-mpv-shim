@@ -7,8 +7,9 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-17 15:42+0000\n"
-"Last-Translator: Pierre Montroeul <pierre.montroeul@gmail.com>\n"
+"PO-Revision-Date: 2026-09-17 16:00+0000\n"
+"Last-Translator: tristoooou "
+"<116801324+Potaaaaaaaaaaaato@users.noreply.github.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -479,7 +480,6 @@ msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Intros"
 msgstr "Passer les introductions"
 
@@ -492,7 +492,7 @@ msgstr "Ignorer les crédits"
 #, fuzzy
 #| msgid "Specials"
 msgid "Skip Commercials"
-msgstr "Spéciaux"
+msgstr "Passer les publicités"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
