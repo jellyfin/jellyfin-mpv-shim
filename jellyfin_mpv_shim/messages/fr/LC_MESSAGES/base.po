@@ -1537,7 +1537,7 @@ msgstr "Ne jamais cacher lors d'une pause"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Elargir les écarts"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
