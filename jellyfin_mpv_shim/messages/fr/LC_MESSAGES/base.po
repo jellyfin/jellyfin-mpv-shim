@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-18 13:13+0000\n"
+"PO-Revision-Date: 2026-09-18 13:44+0000\n"
 "Last-Translator: Pierre Montroeul <pierre.montroeul@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -5176,45 +5176,64 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"Il n'est pas possible de modifier le dossier de téléchargement tant qu'un "
+"téléchargement est en cours. Attendez qu'il soit terminé, puis réessayez."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "That folder is inside the current download folder. Choose one outside it."
 msgstr ""
+"Ce dossier se trouve dans le dossier de téléchargement actuel. Choisissez-en "
+"un qui se trouve en dehors de celui-ci."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't read that folder. Check the path and its permissions."
 msgstr ""
+"Impossible d'accéder à ce dossier. Vérifiez son chemin d'accès et ses droits "
+"d'accès."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
 msgstr ""
+"Ce dossier contient déjà des fichiers téléchargés. Choisissez un dossier "
+"vide."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
+"Ce dossier n'est pas vide. Choisissez un dossier vide : le dossier de "
+"téléchargement est géré par cette application et tout autre élément qu'il "
+"contient peut être déplacé ou supprimé."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
 msgstr ""
+"Impossible de créer ce dossier. Vérifiez le chemin d'accès et ses droits "
+"d'accès."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
 msgstr ""
+"Le téléchargement n'est pas encore terminé. Attendez qu'il se termine, puis "
+"réessayez."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
 msgstr ""
+"Il n'y a pas assez d'espace sur ce disque pour y déplacer les fichiers "
+"téléchargés. Libérez de l'espace et réessayez — rien n'a été déplacé."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"Le déplacement des fichiers téléchargés a échoué. Ils sont restés à leur "
+"emplacement d'origine ; le dossier de téléchargement n'a pas été modifié."
 
 #: jellyfin_mpv_shim/syncplay.py
 msgid "The specified SyncPlay group does not exist."
@@ -5233,8 +5252,7 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "L'accès à la médiathèque SyncPlay a été refusé."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0}'s Group"
+#, python-brace-format
 msgid "{0}'s group"
 msgstr "Groupe de {0}"
 
@@ -5271,10 +5289,9 @@ msgid "{0} has left."
 msgstr "{0} a quitté."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} est en train de charger."
+msgstr "{0} est en train de charger…"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
@@ -5282,16 +5299,23 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"GNOME n'affiche pas automatiquement de barre d'état système. Pour en obtenir "
+"une, installez l'extension « AppIndicator and KStatusNotifierItem Support », "
+"ou activez l'option « Autoriser l'exécution en arrière-plan » dans les "
+"Paramètres afin que l'application s'exécute sans fenêtre."
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
+"Aucune icône de barre d'état système n'est active sur ce bureau. Activez "
+"l'option « Autoriser l'exécution en arrière-plan » dans les Paramètres pour "
+"que l'application s'exécute quand même sans fenêtre."
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr ""
+msgstr "Afficher le navigateur de bibliothèque"
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Console"
@@ -5312,23 +5336,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
-msgstr ""
+msgstr "(par default)"
 
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Nouvel utilisateur"
 
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Passez à un autre utilisateur avant de supprimer celui-ci."
 
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Au moins un utilisateur est requis."
 
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "L'utilisateur est introuvable."
 
 #: jellyfin_mpv_shim/utils.py
 msgid "Unkn"
@@ -5372,40 +5396,37 @@ msgstr "Anime4K x2 Perceptual + Deblur (Pour HD)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN (Denoise + Sharpen)"
-msgstr ""
+msgstr "ArtCNN (réduction du bruit + accentuation)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN High (C4F32)"
-msgstr ""
+msgstr "ArtCNN High (C4F32)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Default (all media)"
-msgstr ""
+msgstr "Par défaut (tous les médias)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "Cette médiathèque"
 
 # seeded from jellyfin-web: Series
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
 msgid "This Series"
-msgstr "Séries"
+msgstr "Cette série"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "Non défini"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr ""
+msgstr "{0}   <-- en vigueur"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Video Playback Profile"
-msgstr "Profils de lecture vidéo"
+msgstr "Profil de lecture vidéo"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
@@ -5427,12 +5448,10 @@ msgctxt "guide badge"
 msgid "Repeat"
 msgstr "Répéter"
 
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "Confirmer"
 
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "Confirmer"
@@ -5441,7 +5460,6 @@ msgctxt "subtitle position"
 msgid "Top"
 msgstr "Haut"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Top"
 msgstr "Haut"
@@ -5450,7 +5468,6 @@ msgctxt "subtitle position"
 msgid "Bottom"
 msgstr "Bas"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
 msgstr "Bas"
