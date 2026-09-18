@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-18 06:19+0000\n"
+"PO-Revision-Date: 2026-09-18 06:30+0000\n"
 "Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
@@ -813,16 +813,12 @@ msgstr "下載"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Remove Download"
-msgstr "自動播放"
+msgstr "刪走下載"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "離開兼標記做未睇"
+msgstr "已睇過"
 
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -837,7 +833,6 @@ msgstr ""
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Video"
 msgstr "影片"
 
@@ -849,10 +844,8 @@ msgstr "音訊"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "字幕大細：{0}"
+msgstr "字幕"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -870,10 +863,8 @@ msgid "Container"
 msgstr "影片容器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "正常"
+msgstr "格式"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -892,10 +883,8 @@ msgstr "是"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "無"
+msgstr "否"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -921,10 +910,8 @@ msgid "Codec tag"
 msgstr "編碼標籤"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "新群組"
+msgstr "個人檔案"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
