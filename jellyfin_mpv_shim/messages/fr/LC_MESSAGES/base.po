@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-18 12:49+0000\n"
+"PO-Revision-Date: 2026-09-18 12:57+0000\n"
 "Last-Translator: Pierre Montroeul <pierre.montroeul@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -4728,33 +4728,37 @@ msgstr "Ces paramètres n'ont pas pu être chargés depuis votre serveur."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Try Again"
-msgstr ""
+msgstr "Réessayer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These settings are stored on your server and shared with Jellyfin Web."
 msgstr ""
+"Ces paramètres sont enregistrés sur votre serveur et partagés avec Jellyfin "
+"Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Sections"
-msgstr "Supprimer le serveur"
+msgstr "Sections"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
 msgstr ""
+"Les lignes affichées sur l'écran d'accueil, dans l'ordre. Les sections que "
+"cette application ne peut pas afficher sont laissées telles que votre "
+"navigateur web les a définies."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Set to “%s” in Jellyfin Web, which this app does not display."
 msgstr ""
+"Réglé sur « %s » dans Jellyfin Web, ce que cette application n'affiche pas."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Section %d"
-msgstr ""
+msgstr "Section %d"
 
 # seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -4768,28 +4772,29 @@ msgid ""
 "Off by default: the show's artwork is used instead, because an episode image "
 "can spoil the episode you have not watched yet."
 msgstr ""
+"Désactivée par défaut : c'est l'illustration de la série qui s'affiche à la "
+"place, car une image d'épisode pourrait vous dévoiler l'intrigue d'un "
+"épisode que vous n'avez pas encore vu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Could not load the home screen settings."
-msgstr ""
+msgstr "Impossible de charger les paramètres de l'écran d'accueil."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "Home screen settings saved."
-msgstr "La modification n'a pas pu être appliquée."
+msgstr "Les paramètres de l'écran d'accueil ont été enregistrés."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Could not save the home screen settings."
-msgstr ""
+msgstr "Impossible d'enregistrer les paramètres de l'écran d'accueil."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr ""
+msgstr "La disposition de l'écran d'accueil a été enregistrée."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Could not save the home screen layout."
-msgstr ""
+msgstr "Impossible d'enregistrer la disposition de l'écran d'accueil."
 
 # seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -4802,10 +4807,8 @@ msgid "Browse"
 msgstr "Parcourir"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "URL du serveur : "
+msgstr "Serveurs & utilisateurs"
 
 # seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -4814,10 +4817,8 @@ msgid "Logs"
 msgstr "Journaux"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Search settings…"
-msgstr "Paramètres SVP"
+msgstr "Rechercher dans les paramètres…"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4826,28 +4827,24 @@ msgstr "Copier"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
-msgstr ""
+msgstr "Aucune sortie de journal n'a encore été enregistrée."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
-msgstr ""
+msgstr "Aucun élément à copier pour le moment."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "Copied %d log lines."
-msgstr ""
+msgstr "%d lignes de journaux copiées."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Nom d'utilisateur : "
+msgstr "Nouveau nom d'utilisateur…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Add Server"
 msgid "Add User"
-msgstr "Ajouter un serveur"
+msgstr "Ajouter un utilisateur"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
