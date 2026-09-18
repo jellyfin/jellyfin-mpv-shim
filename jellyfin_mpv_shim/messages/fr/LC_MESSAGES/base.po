@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-18 10:12+0000\n"
+"PO-Revision-Date: 2026-09-18 10:20+0000\n"
 "Last-Translator: Pierre Montroeul <pierre.montroeul@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -1541,27 +1541,27 @@ msgstr "Elargir les écarts"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Centrer les titres"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Le laisser sur la droite"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Thème par défaut"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Extra compact"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Compact"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Moyen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Large"
@@ -1585,7 +1585,7 @@ msgstr "OpenGL (compatibilité)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default (auto)"
-msgstr ""
+msgstr "Défaut (auto)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Force Stereo"
@@ -1593,45 +1593,44 @@ msgstr "Forcer la stéréo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Optical Surround"
-msgstr ""
+msgstr "Son surround optique"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDMI Passthrough"
-msgstr ""
+msgstr "Passage HDMI"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
-msgstr ""
+msgstr "Non défini"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (shows only)"
-msgstr ""
+msgstr "Doublé (séries seulement)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (shows only)"
-msgstr ""
+msgstr "Sous-titré (séries seulement)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (all)"
-msgstr ""
+msgstr "Doublé (tout)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
-msgstr ""
+msgstr "Sous-titré (tout)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
-msgstr ""
+msgstr "Personnalisé (définir dans la configuration)"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Game Controller"
-msgstr "Nombre de lectures"
+msgstr "Contrôleur de jeux"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Intervertir les boutons Confirmer et Retour"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
@@ -1639,30 +1638,28 @@ msgstr "Répertoire de téléchargement"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
-msgstr ""
+msgstr "Préférer les copies téléchargées"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Clic gauche met en pause la lecture"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Afficher les affiches sur les pages de détail"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Afficher les vignettes des épisodes sur les pages de détails"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cancel Recording"
 msgid "Hardware Decoding"
-msgstr "Annuler l'enregistrement"
+msgstr "Décodage matériel"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Désentralacer automatiquement"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
