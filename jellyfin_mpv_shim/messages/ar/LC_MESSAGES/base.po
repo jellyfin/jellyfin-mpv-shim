@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-16 22:21+0000\n"
+"PO-Revision-Date: 2026-09-18 22:30+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -2410,7 +2410,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4ك"
 
 # seeded from jellyfin-web: Option3D
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2424,25 +2424,24 @@ msgstr "DVD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "ISO"
-msgstr ""
+msgstr "بلو-راي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
-#| msgid "Remove Server"
+msgid "ISO"
+msgstr "ISO"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Add to Playlist"
-msgstr "حذف الخادم"
+msgstr "اضف إلى قائمة التشغيل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "لا توجد قائمة تشغيل بعد."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "اسم قائمة التشغيل الجديد…"
 
 # seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2451,7 +2450,7 @@ msgstr "تكوين"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
-msgstr ""
+msgstr "خاص (فقط انت يمكنك رؤيته)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Collections…"
@@ -2465,10 +2464,8 @@ msgid "Close"
 msgstr "غلق"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Collection"
-msgstr "حذف الخادم"
+msgstr "اضف إلى المجموعة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No collections yet."
@@ -2488,14 +2485,12 @@ msgid "Back"
 msgstr "رجوع"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "unknown"
 msgid "Unknown"
 msgstr "مجهول"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No media information is available."
-msgstr ""
+msgstr "لا تتوفر معلومات عن الوسائط."
 
 # seeded from jellyfin-web: MoreMediaInfo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -5115,17 +5110,13 @@ msgstr ""
 "اخرى."
 
 #: jellyfin_mpv_shim/sync/manager.py
-#, fuzzy
-#| msgid "That folder already contains downloads. Choose an empty folder."
 msgid ""
 "That folder is inside the current download folder. Choose one outside it."
-msgstr "هذا المجلد يحتوي على ملفات منزلة. اختر ملجد فارغ."
+msgstr "هذا المجلد موجود في مجلد التحميلات الحالية. اختر مجلدا خارجه."
 
 #: jellyfin_mpv_shim/sync/manager.py
-#, fuzzy
-#| msgid "Can't create that folder. Check the path and its permissions."
 msgid "Can't read that folder. Check the path and its permissions."
-msgstr "تعذر تكون هذا المجلد. افحص المسار و تصاريحه."
+msgstr "تعذرت قراءة هذا المجلد. افحص المسار و تصاريحاته."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
