@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-14 11:39+0000\n"
-"Last-Translator: Jacky He <hekinghung@gmail.com>\n"
+"PO-Revision-Date: 2026-09-18 06:19+0000\n"
+"Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
 "Language: zh_Hant_HK\n"
@@ -1051,10 +1051,8 @@ msgid "Default"
 msgstr "預設（自動）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " 強制"
+msgstr "強制"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1141,7 +1139,7 @@ msgstr "重新封裝"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Transcoding"
-msgstr "轉緊碼..."
+msgstr "轉緊碼"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1259,10 +1257,8 @@ msgid "The audio stream info is unknown"
 msgstr "搵唔到呢段音訊串流嘅資訊"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "There was an error starting direct playback"
-msgstr "冇已下載嘅內容可供瀏覽。"
+msgstr "啟動直接播放時發生錯誤"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1291,10 +1287,8 @@ msgid "Library Browser"
 msgstr "媒體櫃瀏覽器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Transcoding"
 msgid "Reading"
-msgstr "轉緊碼..."
+msgstr "讀取緊"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1716,10 +1710,8 @@ msgid "Motion Interpolation"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Transcoding"
 msgid "Debanding"
-msgstr "轉緊碼..."
+msgstr "去色帶 (Debanding)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
@@ -2193,10 +2185,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Discord 狀態顯示 (Rich Presence)"
+msgstr "Discord 狀態顯示 (Rich Presence)。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2517,10 +2507,8 @@ msgid "Private (only you can see it)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Collections…"
-msgstr "自動播放"
+msgstr "合集…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2536,16 +2524,12 @@ msgid "Add to Collection"
 msgstr "自動播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "No collections yet."
-msgstr "自動播放"
+msgstr "仲未有合集。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "使用者名稱： "
+msgstr "新合集名稱…"
 
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2832,10 +2816,9 @@ msgid "The position could not be saved."
 msgstr "無法儲存 PIN 碼。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} 入咗嚟。"
+msgstr "%s 已加入"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -2844,10 +2827,8 @@ msgid "Group"
 msgstr "新群組"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "新群組"
+msgstr "冇活躍緊嘅群組。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -3215,10 +3196,8 @@ msgstr "上一個"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "成功加入伺服器。"
+msgstr "上一章"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
@@ -3290,9 +3269,8 @@ msgstr "無法套用變更。"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Cancel recording?"
-msgstr "取消錄影"
+msgstr "取消錄影？"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3357,17 +3335,15 @@ msgid "%s was deleted."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The PIN could not be removed."
+#, python-format
 msgid "%s could not be deleted."
-msgstr "無法移除 PIN 碼。"
+msgstr "無法刪走 %s。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "自動播放"
+msgstr "要刪走已下載嘅 %s 副本？"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3416,16 +3392,14 @@ msgid "%s has not been downloaded."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The PIN could not be saved."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr "無法儲存 PIN 碼。"
+msgstr "無法下載 %s。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Downloading %s…"
-msgstr "自動播放"
+msgstr "下載緊 %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
@@ -3440,10 +3414,8 @@ msgid "Series Options"
 msgstr "劇集選項"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Transcoding"
 msgid "Recording"
-msgstr "轉緊碼..."
+msgstr "錄影緊"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3816,23 +3788,18 @@ msgid "Open Externally"
 msgstr "外部"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Downloading…"
-msgstr "自動播放"
+msgstr "下載緊…"
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Progress…"
-msgstr "節目"
+msgstr "進度…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing here."
-msgstr "伺服器設定"
+msgstr "呢度乜都冇。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, fuzzy
@@ -4095,10 +4062,8 @@ msgid "Channels %(from)d-%(to)d of %(total)d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "成功加入伺服器。"
+msgstr "過往頻道"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
@@ -4124,10 +4089,8 @@ msgid "Recording Folders"
 msgstr "打開設定檔資料夾"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "伺服器設定"
+msgstr "仲未有任何錄影。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
@@ -4155,10 +4118,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch"
-msgstr "離開兼標記做未睇"
+msgstr "觀看"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -4226,10 +4187,9 @@ msgid "Instant mix"
 msgstr "即時混播"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "揀邊條聲軌"
+msgstr "%d 首音軌"
 
 # seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -4344,10 +4304,9 @@ msgid "Delete Playlist"
 msgstr "自動播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "自動播放"
+msgstr "要刪走播放清單 %s？"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4410,10 +4369,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid "Could not connect to the server."
 msgid "Could not copy"
-msgstr "無法連線至伺服器。"
+msgstr "無法複製"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4456,10 +4413,9 @@ msgid "Type in the search box above."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "伺服器："
+msgstr "「%s」嘅搜尋結果"
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4515,9 +4471,9 @@ msgstr "現正播放"
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "近排新增"
+msgstr "近排新增至 {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4614,10 +4570,9 @@ msgid "watched"
 msgstr "離開兼標記做未睇"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "自動播放"
+msgstr "要刪走 %s 內已觀看嘅下載項目？"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -4815,10 +4770,8 @@ msgid "Browse"
 msgstr "瀏覽"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "伺服器連結： "
+msgstr "伺服器同使用者"
 
 # seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -4827,10 +4780,8 @@ msgid "Logs"
 msgstr "日誌"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Search settings…"
-msgstr "SVP 設定"
+msgstr "搜尋設定…"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4851,10 +4802,8 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "使用者名稱： "
+msgstr "新使用者名稱…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -4863,10 +4812,8 @@ msgid "Add User"
 msgstr "加入伺服器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "伺服器設定"
+msgstr "仲未設定任何伺服器。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -4881,10 +4828,9 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "伺服器："
+msgstr "%s 嘅伺服器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -5151,20 +5097,16 @@ msgid "Playback Data"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (轉碼)"
+msgstr "轉碼"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 msgid "Use the default"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "已啟用「一齊睇」。"
+msgstr "已啟用「一齊睇」"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -5315,10 +5257,9 @@ msgid "{0} has left."
 msgstr "{0} 離開咗。"
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} 緩衝緊。"
+msgstr "{0} 緩衝緊…"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
