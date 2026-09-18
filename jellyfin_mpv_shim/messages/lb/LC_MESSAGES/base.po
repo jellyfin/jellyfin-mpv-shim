@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-14 11:39+0000\n"
+"PO-Revision-Date: 2026-09-18 06:30+0000\n"
 "Last-Translator: David Wagener <david.wagener@pm.me>\n"
 "Language-Team: Luxembourgish <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/lb/>\n"
@@ -49,9 +49,9 @@ msgid "{0}: No Subtitles"
 msgstr "{0}: Keng Ënnertitelen"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "{0}: Fail"
-msgstr "{0}: Echec"
+msgstr "{0}: Feeler"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
@@ -148,9 +148,8 @@ msgid "Seek to Skip Credits"
 msgstr "Probéier, Credits z'iwwersprangen"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Special Episode"
+msgstr "Reklamm iwwersprangen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Commercial"
