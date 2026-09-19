@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-19 11:40+0000\n"
+"PO-Revision-Date: 2026-09-19 11:53+0000\n"
 "Last-Translator: SIMBA <pontusosterlindh@gmail.com>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sv/>\n"
@@ -37,7 +37,7 @@ msgstr "Sida %d"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr "%d%% läst"
+msgstr "%d%% läs"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -599,8 +599,8 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
-"Kunde inte starta om automatiskt – avsluta och starta appen igen för att "
-"tillämpa ändringarna."
+"Kunde inte starta om automatiskt - avsluta och starta appen igen för att "
+"applicera ändringar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Still can't reach the server."
@@ -627,16 +627,16 @@ msgstr "Avbryt"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr "Växla"
+msgstr "Ändra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr "Felaktig PIN-kod."
+msgstr "Inkorrekt PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Set PIN for %s"
-msgstr "Ange PIN-kod för %s"
+msgstr "Ställ in PIN för %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
@@ -653,7 +653,7 @@ msgstr "Bekräfta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr "Kräv denna PIN-kod vid start"
+msgstr "Kräv denna PIN vid uppstart"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Remove PIN"
@@ -743,7 +743,7 @@ msgstr "Ange server-URL:en först."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Contacting the server…"
-msgstr "Kontaktar servern…"
+msgstr "Ansluter till servern…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -759,9 +759,7 @@ msgstr "Ansluter…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Det gick inte att ansluta. \n"
-"Vänligen kontrollera dina uppgifter."
+msgstr "Det gick inte att ansluta. Vänligen kontrollera dina uppgifter."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -1123,7 +1121,7 @@ msgstr "Direktströmning"
 # seeded from jellyfin-web: Remuxing
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Remuxing"
-msgstr "Ommultiplexering"
+msgstr "Remuxar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
