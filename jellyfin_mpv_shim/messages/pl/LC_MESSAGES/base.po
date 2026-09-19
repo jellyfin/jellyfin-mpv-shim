@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-19 06:26+0000\n"
+"PO-Revision-Date: 2026-09-19 07:18+0000\n"
 "Last-Translator: Kityn <kitynska@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/pl/>\n"
@@ -960,7 +960,7 @@ msgstr "Kanały"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d ch"
-msgstr ""
+msgstr "%d kan."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bitrate"
@@ -989,7 +989,7 @@ msgstr "Głębia bitowa"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d bity"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Video range"
@@ -1011,7 +1011,7 @@ msgstr "Transfer kolorów"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color primaries"
-msgstr ""
+msgstr "Kolory podstawowe"
 
 # seeded from jellyfin-web: MediaInfoPixelFormat
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1273,10 +1273,8 @@ msgid "Downloads"
 msgstr "Pobrane"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Download Tuning"
-msgstr "Usuń serwer"
+msgstr "Dostosowanie pobierania"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls"
@@ -1329,13 +1327,12 @@ msgstr "Wyłączone"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Płynny ruch"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Blend Frames"
-msgstr "Klatki referencyjne"
+msgstr "Łączenie klatek"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
