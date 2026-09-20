@@ -746,6 +746,10 @@ episodes are fetched for you automatically.
   config directory)
   - Change this from *Settings → Browse → Downloads*, not by hand: moving the store copies the files and
     updates the catalog. Editing the path directly leaves the existing downloads behind.
+  - The folder must be **empty**, and this app then owns it — it will move and remove things inside
+    it. An existing empty folder is fine, as is one on another drive.
+  - Pasting a path is safe: surrounding quotes and spaces are ignored, so Windows Explorer's
+    *Copy as path* can be pasted straight in.
 - `prefer_downloaded` - Play the downloaded copy when one exists, instead of streaming. Default: `true`
 - `work_offline` - Browse only downloaded media and don't contact the server. Default: `false`
   - Applied live when toggled, so you don't need to restart.
@@ -784,6 +788,15 @@ nothing is playing.
   - Only applies to automatic downloads. Ones you asked for are never counted against it and are
     never deleted automatically.
 - `auto_download_delete_watched` - Delete automatic downloads once watched. Default: `true`
+- `auto_download_keep_watched_hours` - Keep a watched automatic download for this many hours
+  before deleting it. `0` deletes it on the next check. Default: `24`
+  - The clock starts the first time this app sees the item as watched, so it works with the
+    server away. An episode you finished elsewhere while this machine was off starts its window
+    when the machine next looks.
+  - Retention only. If the storage budget above is reached, watched downloads are still removed
+    before their time is up — otherwise a full budget would stop automatic downloading for the
+    length of the window. *Reached*, not exceeded: a budget sitting exactly full evicts too,
+    because that is the state a capped folder settles into.
 - `auto_download_keep_days` - Delete unwatched automatic downloads after this many days. `0` means
   never expire on age alone. Default: `30`
 - `auto_download_interval_mins` - How often to check. Default: `60`

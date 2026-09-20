@@ -2663,11 +2663,22 @@ all**.
   same mechanism `origin` and `completed_at` used) is written by
   `SyncManager._add_row` at download time — a path already doing network I/O,
   and keyed on the series so a season costs one request rather than one per
-  file. `SyncDB.library_id` answers for an item id *or* a series id.
+  file. `SyncDB.library_id` answers for an item id *or* a series id, **scoped
+  to one Jellyfin server** — item ids are derived from the media's path, so
+  two servers over one library hand out the same ones
+  (`docs/jellyfin-api-notes.md` 13b).
   Consulted **first, online too**: a downloaded item's library is
   authoritative, free, and answerable with the server away, which is exactly
   the case that was reaching for the previous item's client to ask a server
   it already knew was unreachable.
+
+  > **Corrected 2026-09-11.** It did not record it. The column was in the
+  > schema and in the migration, `_add_row` resolved the value and passed it
+  > to `upsert` — and `COLUMNS`, which is the whole `INSERT`, did not list
+  > it, so it was discarded on every write and the column was `NULL` for
+  > everyone. The library scope for downloaded media has never once
+  > resolved offline. Fixed on `sync-and-lifecycle-fixes`; the rule that
+  > keeps it fixed is in `docs/offline-sync.md` §5.
 * **The play path reads caches only.** `apply_for_item` runs inside
   `_play_media`, which holds the player `_lock` for the whole of a playback
   start — and `run_action`'s non-blocking fast path is built on that lock
