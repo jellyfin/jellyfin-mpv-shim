@@ -9,8 +9,10 @@ when the server is not there.
 So watching a downloaded episode online left the catalog saying unwatched at
 position 0 — which is what you were shown next time you opened it on a
 train — and silently broke "delete watched downloads", which reads
-`userdata_json` with no server fallback (unlike the auto-download reaper,
-which pays a round trip per row precisely to work around this).
+`userdata_json` with no server fallback. The auto-download reaper used to pay
+a round trip per row precisely to work around this; that was deleted and
+made the reaper read the catalog these writers keep current, which is what
+puts the weight on them.
 
 Multi-step by the repo's standing rule: state feeding back into the input
 that produced it is the bug shape here, so the tests drive several reports
@@ -36,6 +38,14 @@ from unittest import mock
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
 
+#: `MirrorsWhileOnlineTest` configures no credentials, so nothing can name
+#: a person and every write there lands under the unattributed sentinel.
+#: That is the honest key for it: it pins the *mirror rule*, and attribution
+#: is pinned in tests/test_catalog_actor_scope.py. The pull suite does name
+#: an account, because the sweep's scope is keyed on one.
+from jellyfin_mpv_shim.sync.db import NO_ACTOR, filing_state
+
+
 class FakeDb:
     """Enough of sync.db for the mirror: advance-only userdata per item.
 
@@ -53,15 +63,69 @@ class FakeDb:
     """
 
     def __init__(self, held=None):
-        self.userdata = {}
+        # Keyed on (item_id, ServerId, UserId) like the real table, so a
+        # test can tell one person's progress from another's -- which is the
+        # property the per-actor split exists for and which an item-keyed
+        # fake could not express.
+        self.by_actor = {}
         self.playstate = []
         self.held = held
 
-    def update_userdata(self, item_id, played=None, position_ticks=None):
+    def userdata_of(self, item_id, user_id=None):
+        """What one actor holds. Named apart from the real `userdata` read
+        so a test cannot reach it by accident on a real SyncDB.
+
+        Keyed on (item, server, person) like the real table. It used to drop
+        the server on the ground that this fake could not compute it; it can
+        now, because the rule is a pure function of the row's server and the
+        acting pair."""
+        return self.by_actor.get(
+            self._key(item_id, (self.SERVER, user_id)) or (), {})
+
+    #: The server this fake's rows belong to. **Not None**: a row with no
+    #: content server is an orphan, which is a separate contract (it never
+    #: syncs), so a fake that left this NULL would quietly run every mirror
+    #: test down the orphan path.
+    SERVER = "srv-mirror"
+
+    def get(self, item_id):
+        if self.held is not None and item_id not in self.held:
+            return None
+        return {"item_id": item_id, "content_server_id": self.SERVER,
+                "runtime_ticks": None}
+
+    def _key(self, item_id, actor):
+        """The physical key, through the production rule rather than a
+        second copy of it -- the disagreement between a write's key and a
+        read's is the defect this whole batch is about, and a fake that
+        computes its own cannot show it."""
+        state, key = filing_state(self.SERVER, actor)
+        return None if key is None else (item_id,) + key
+
+    def update_userdata(self, item_id, *, actor, played=None,
+                        position_ticks=None, allow_retreat=False):
+        """Modelled including the retreat, deliberately.
+
+        `allow_retreat` is what the sweep passes and nothing else does, so a
+        fake that merely accepted and ignored the keyword would report a
+        pass for every pull test in this file while the rule it names went
+        untested. The queue check is the same one the real store makes: a
+        `played=1` entry for this actor and item, not merely a pending row.
+        """
         if self.held is not None and item_id not in self.held:
             return False
-        data = self.userdata.setdefault(item_id, {})
+        key = self._key(item_id, actor)
+        if key is None:
+            return False
+        data = self.by_actor.setdefault(key, {})
         changed = False
+        if (allow_retreat and played is not None and not played
+                and data.get("Played")
+                and not any(a == tuple(actor) and i == item_id
+                            and kw.get("played")
+                            for a, i, kw in self.playstate)):
+            data["Played"] = False
+            changed = True
         if played:
             if not data.get("Played"):
                 data["Played"] = True
@@ -75,8 +139,26 @@ class FakeDb:
                 changed = True
         return changed
 
-    def upsert_playstate(self, server_uuid, item_id, **kw):
-        self.playstate.append((server_uuid, item_id, kw))
+    def set_watched(self, item_id, played, *, actor):
+        if self.held is not None and item_id not in self.held:
+            return False
+        key = self._key(item_id, actor)
+        if key is None:
+            return False
+        data = self.by_actor.setdefault(key, {})
+        before = dict(data)
+        data.update({"Played": bool(played),
+                     "PlaybackPositionTicks": 0,
+                     "PlayCount": 1 if played else 0})
+        return data != before
+
+    def upsert_playstate(self, item_id, *, actor, **kw):
+        server_id, user_id = actor
+        # Recorded as (actor, item, values). The queue is keyed on the
+        # person, not the login: one person can hold several logins for one
+        # server, and an entry filed under the wrong one cannot be drained
+        # through the right one.
+        self.playstate.append(((server_id, user_id), item_id, kw))
 
 
 class _RecordingWake:
@@ -108,6 +190,11 @@ def _video(online=True):
     v = offline_media.OfflineVideo.__new__(offline_media.OfflineVideo)
     v.item_id = "ep1"
     v._server_uuid = "srv"
+    # Built with __new__, so every attribute __init__ would have set has to
+    # be set here. Omitting this one does not fail loudly: `_mirror_locally`
+    # catches broadly, so the AttributeError became "no progress recorded"
+    # and read as a behaviour bug.
+    v._content_server_id = None
     v.client = mock.Mock() if online else None
     return v
 
@@ -120,13 +207,26 @@ class MirrorsWhileOnlineTest(unittest.TestCase):
         patcher = mock.patch.object(offline_media, "syncManager")
         self.sm = patcher.start()
         self.addCleanup(patcher.stop)
+        from jellyfin_mpv_shim.sync.manager import SyncManager
+
         self.sm.db = self.db
+        # Modelled, not left auto-mocked: an auto-mock answers with a Mock
+        # object, which is a perfectly good dict key, so every write would
+        # land under a key no assertion names and the fake would look empty.
+        #
+        # Autospecced rather than a bare `return_value`, because a plain
+        # Mock accepts every keyword: a call site regressing to the old
+        # `server_uuid=` -- the row's downloader -- would go on answering a
+        # person here while production answered nobody. That is the shape
+        # that hid three findings in the 2026-09-12 round.
+        self.sm.actor_of = mock.create_autospec(
+            SyncManager.actor_of, return_value=(NO_ACTOR, NO_ACTOR))
 
     def test_progress_reaches_the_catalog_with_a_server_present(self):
         v = _video(online=True)
         v.record_offline_progress(5 * 10_000_000)
         self.assertEqual(
-            self.db.userdata["ep1"]["PlaybackPositionTicks"], 50_000_000)
+            self.db.userdata_of("ep1", NO_ACTOR)["PlaybackPositionTicks"], 50_000_000)
 
     def test_and_it_tracks_across_several_reports(self):
         """The one-step version passes against an implementation that
@@ -135,32 +235,32 @@ class MirrorsWhileOnlineTest(unittest.TestCase):
         for secs in (5, 60, 900):
             v.record_offline_progress(secs * 10_000_000)
         self.assertEqual(
-            self.db.userdata["ep1"]["PlaybackPositionTicks"], 9_000_000_000)
+            self.db.userdata_of("ep1", NO_ACTOR)["PlaybackPositionTicks"], 9_000_000_000)
 
     def test_finishing_online_marks_it_watched_locally(self):
         v = _video(online=True)
         v.record_offline_progress(9_000_000_000, finished=True)
-        self.assertTrue(self.db.userdata["ep1"]["Played"])
+        self.assertTrue(self.db.userdata_of("ep1", NO_ACTOR)["Played"])
         # ...and leaves no resume point, matching the server: absent and 0
         # are the same thing here, and a finish on a fresh row never writes
         # one in the first place (update_userdata's played branch wins).
         self.assertFalse(
-            self.db.userdata["ep1"].get("PlaybackPositionTicks"))
+            self.db.userdata_of("ep1", NO_ACTOR).get("PlaybackPositionTicks"))
 
     def test_finishing_clears_a_resume_point_that_was_there(self):
         """The half the row above cannot show: it is the *clearing* that
         matters, or the browser offers "Resume from the very end"."""
         v = _video(online=True)
         v.record_offline_progress(60 * 10_000_000)
-        self.assertTrue(self.db.userdata["ep1"]["PlaybackPositionTicks"])
+        self.assertTrue(self.db.userdata_of("ep1", NO_ACTOR)["PlaybackPositionTicks"])
         v.record_offline_progress(9_000_000_000, finished=True)
         self.assertEqual(
-            self.db.userdata["ep1"]["PlaybackPositionTicks"], 0)
+            self.db.userdata_of("ep1", NO_ACTOR)["PlaybackPositionTicks"], 0)
 
     def test_marking_watched_online_reaches_the_catalog(self):
         v = _video(online=True)
         v.set_played(True)
-        self.assertTrue(self.db.userdata["ep1"]["Played"])
+        self.assertTrue(self.db.userdata_of("ep1", NO_ACTOR)["Played"])
         v.client.jellyfin.item_played.assert_called_once()
 
     def test_the_replay_queue_stays_offline_only(self):
@@ -173,7 +273,7 @@ class MirrorsWhileOnlineTest(unittest.TestCase):
         v = _video(online=False)
         v.record_offline_progress(5 * 10_000_000)
         self.assertEqual(
-            self.db.userdata["ep1"]["PlaybackPositionTicks"], 50_000_000)
+            self.db.userdata_of("ep1", NO_ACTOR)["PlaybackPositionTicks"], 50_000_000)
         self.assertEqual(len(self.db.playstate), 1)
 
     def test_a_catalog_failure_never_breaks_playback_reporting(self):
@@ -184,18 +284,77 @@ class MirrorsWhileOnlineTest(unittest.TestCase):
     def test_unwatching_online_does_not_mark_it_watched(self):
         v = _video(online=True)
         v.set_played(False)
-        self.assertFalse(self.db.userdata.get("ep1", {}).get("Played"))
+        self.assertFalse(self.db.userdata_of("ep1", NO_ACTOR).get("Played"))
 
 
-class PullFromTheServerTest(unittest.TestCase):
-    """The other half: what was watched on *another* device."""
+class PullFixture(unittest.TestCase):
+    """The sweep's fixture: one account, two doors to its server, one more
+    server, and a `db.list` the test supplies.
 
-    def _manager(self, items, rows=None, held=None):
+    A base class rather than a mixin so the two suites below share it without
+    either inheriting the other's tests -- subclassing a TestCase runs its
+    cases again under the subclass's name, which reports one failure twice
+    and doubles the module's count.
+    """
+
+    #: A second content server, for the grouping tests. The sweep groups by
+    #: this rather than by the login it was downloaded through, so two
+    #: logins on one server are one group and one request -- observed on the
+    #: QA server, where one ServerId sits behind two addresses and two
+    #: accounts.
+    OTHER = "srv-other"
+
+    #: The person signed in. A real account, not the unattributed
+    #: sentinel: the sweep's scope is *this account's rows plus anything on
+    #: a server it fetches unattended for*, so a fixture whose credential
+    #: named nobody would make every row's attribution match by accident --
+    #: NO_ACTOR on both sides of the same comparison.
+    IZZIE = "u-izzie"
+
+    #: login uuid -> (ServerId, UserId), the shape a saved credential gives.
+    #: Patched onto the real userManager rather than stubbed onto the
+    #: manager: the login-to-account translation is what decides both the
+    #: grouping and the scope now, and a stand-in for it would make them
+    #: untestable. `srv` and `srv-b` are two doors to one server, so they
+    #: are one account.
+    LOGINS = {"srv": (FakeDb.SERVER, IZZIE),
+              "srv-b": (FakeDb.SERVER, IZZIE),
+              "srv2": (OTHER, IZZIE)}
+
+    def _row(self, item_id, login="srv", content=None, asked_by=None):
+        """One catalog row as `db.list` answers it.
+
+        `requested_*` is not decoration: the sweep asks about the signed-in
+        account's own rows (plus everything on a server it auto-downloads
+        from), so a row attributed to nobody is deliberately skipped -- and a
+        fixture that left it out would make every test here measure a sweep
+        with nothing to do. Defaults to this account on the row's own server.
+        """
+        content = content or FakeDb.SERVER
+        asked_by = asked_by or (content, self.IZZIE)
+        return {"item_id": item_id, "server_uuid": login,
+                "content_server_id": content,
+                "requested_server_id": asked_by[0],
+                "requested_user_id": asked_by[1]}
+
+    def _manager(self, items, rows=None, held=None, connected=("srv",),
+                 auto_download=()):
         from jellyfin_mpv_shim.sync.manager import SyncManager
+        from jellyfin_mpv_shim.users import userManager
+
+        patch = mock.patch.object(userManager, "users", [{
+            "id": "local",
+            "auto_download": [list(a) for a in auto_download],
+            "credentials": [
+                {"uuid": uuid, "Id": account[0], "UserId": account[1]}
+                for uuid, account in self.LOGINS.items()]}])
+        self.addCleanup(patch.stop)
+        patch.start()
 
         m = SyncManager.__new__(SyncManager)
         m.db = FakeDb(held=held)
         m._stop = False
+        m._answered_accounts = set()
         m._notify_change = mock.Mock()
         # The real manager always has this (it is built in __init__); the
         # sweep waits on it between requests so that stopping does not have
@@ -204,32 +363,43 @@ class PullFromTheServerTest(unittest.TestCase):
         # this file put together, and what is worth asserting is *that* the
         # requests were spaced, not that the process was idle for it.
         m._wake = _RecordingWake()
+        # `content_server_id` is not decoration here: the sweep skips a row
+        # it cannot attribute, because an orphan has no account to ask as
+        # and nowhere to file the answer. A stand-in that omitted it would
+        # make every row in this suite invisible to the thing under test.
         m.db.list = lambda status=None: rows if rows is not None else [
-            {"item_id": "ep1", "server_uuid": "srv"},
-            {"item_id": "ep2", "server_uuid": "srv"},
-        ]
+            self._row("ep1"), self._row("ep2")]
         api = mock.Mock()
         api.get_items.return_value = {"Items": items}
-        m.get_client = lambda uuid: (mock.Mock(jellyfin=api)
-                                     if uuid == "srv" else None)
+        client = mock.Mock(jellyfin=api)
+        m.get_client = lambda uuid: (client if uuid in connected else None)
+        m.get_clients = lambda: {uuid: client for uuid in connected}
         m._api = api
         return m
 
+
+class PullFromTheServerTest(PullFixture):
+    """The other half: what was watched on *another* device."""
+
     def test_it_stores_what_the_server_says(self):
+        """The sweep asks one server as one login, so what it brings back is
+        that login's account -- unlike the push tests above, where the actor
+        is named in the message itself."""
         m = self._manager([{"Id": "ep1", "UserData": {"Played": True}}])
         m._refresh_userdata()
-        self.assertTrue(m.db.userdata["ep1"]["Played"])
+        self.assertTrue(
+            m.db.userdata_of("ep1", self.IZZIE)["Played"])
 
     def test_it_asks_in_one_batch_rather_than_per_item(self):
-        """The auto-download reaper pays a round trip per row to work around
-        the stale snapshot; this exists so it does not have to."""
+        """The reaper used to pay a round trip per row to work around the
+        stale snapshot; this is what let that be deleted."""
         m = self._manager([])
         m._refresh_userdata()
         self.assertEqual(m._api.get_items.call_count, 1)
 
     def test_a_long_catalog_is_split(self):
         from jellyfin_mpv_shim.sync import manager as mgr
-        rows = [{"item_id": "e%d" % i, "server_uuid": "srv"}
+        rows = [self._row("e%d" % i)
                 for i in range(mgr.USERDATA_BATCH * 2 + 1)]
         m = self._manager([], rows=rows)
         m._refresh_userdata()
@@ -237,7 +407,11 @@ class PullFromTheServerTest(unittest.TestCase):
         self.assertEqual(m._api.get_items.call_count, 3)
 
     def test_an_unreachable_server_is_skipped_not_failed(self):
-        m = self._manager([], rows=[{"item_id": "x", "server_uuid": "gone"}])
+        """Unreachable is a property of the *server*: nobody is signed in
+        who could answer for it. The row's own login is not consulted -- it
+        names whoever downloaded the copy, who may well have been reachable
+        through an address nothing is using now."""
+        m = self._manager([], rows=[self._row("x", content=self.OTHER)])
         m._refresh_userdata()
         self.assertEqual(m._api.get_items.call_count, 0)
 
@@ -274,7 +448,7 @@ class PullFromTheServerTest(unittest.TestCase):
         """A few hundred downloads is several requests, and nothing is
         waiting on them; they go out spread rather than as a burst."""
         from jellyfin_mpv_shim.sync import manager as mgr
-        rows = [{"item_id": "e%d" % i, "server_uuid": "srv"}
+        rows = [self._row("e%d" % i)
                 for i in range(mgr.USERDATA_BATCH * 3)]
         m = self._manager([], rows=rows)
         m._refresh_userdata()
@@ -291,20 +465,47 @@ class PullFromTheServerTest(unittest.TestCase):
         self.assertEqual(m._wake.waits, [])
 
     def test_two_servers_are_spaced_from_each_other_too(self):
-        """Neither server sees a burst, but this machine's uplink does."""
-        m = self._manager([], rows=[{"item_id": "a", "server_uuid": "srv"},
-                                    {"item_id": "b", "server_uuid": "srv2"}])
-        api = m._api
-        m.get_client = lambda uuid: mock.Mock(jellyfin=api)
+        """Neither server sees a burst, but this machine's uplink does.
+
+        Two *servers*, so two content ids -- the same two rows under one
+        content id are one group and one request, which is the case below.
+        """
+        m = self._manager([], connected=("srv", "srv2"),
+                          rows=[self._row("a"),
+                                self._row("b", login="srv2",
+                                          content=self.OTHER)])
         m._refresh_userdata()
-        self.assertEqual(api.get_items.call_count, 2)
+        self.assertEqual(m._api.get_items.call_count, 2)
         self.assertEqual(len(m._wake.waits), 1)
+
+    def test_two_doors_to_one_server_are_one_sweep(self):
+        """The two-door case, observed on the QA server: one ServerId behind
+        `http://127.0.0.1:8096` and `http://192.168.3.129:8096`.
+
+        Grouped by the row's saved login this was two groups, and only the
+        one whose address happened to win the connection race was ever
+        refreshed -- the other half of the catalog silently stopped being
+        swept, with a live client sitting right there. `_connect_all` groups
+        credentials by ServerId into one fallback chain, so exactly one of
+        the two doors is ever connected and the losing one answers no client
+        at all.
+        """
+        m = self._manager([], connected=("srv-b",),
+                          rows=[self._row("a"),
+                                self._row("b", login="srv-b")])
+        m._refresh_userdata()
+        self.assertEqual(m._api.get_items.call_count, 1,
+                         "one server, so one request")
+        self.assertEqual(sorted(m._api.get_items.call_args.args[0]),
+                         ["a", "b"],
+                         "the row downloaded through the other door was "
+                         "left unswept")
 
     def test_stopping_during_the_pause_ends_the_sweep(self):
         """Shutdown must not wait out the spacing, and must not keep
         asking after the catalog has been told to close."""
         from jellyfin_mpv_shim.sync import manager as mgr
-        rows = [{"item_id": "e%d" % i, "server_uuid": "srv"}
+        rows = [self._row("e%d" % i)
                 for i in range(mgr.USERDATA_BATCH * 3)]
         m = self._manager([], rows=rows)
 
@@ -318,6 +519,112 @@ class PullFromTheServerTest(unittest.TestCase):
         # One request went out, the pause after it observed the stop, and
         # the third batch was never asked for.
         self.assertEqual(m._api.get_items.call_count, 1)
+
+
+class TheSweepIsScopedToWhoAskedTest(PullFixture):
+    """R16 in the narrow form, with R21's union as the rule: the expensive
+    pull runs for **the account that downloaded the item**, plus **every row
+    on a server that account fetches unattended for**.
+
+    What it stops paying for is a shared machine sweeping the whole catalog
+    as whoever happens to be signed in -- a request per batch, and a second
+    account's userdata row written for every item somebody else downloaded.
+    Push is untouched and stays universal: another person's watches still
+    reach their server through their own queue drain.
+    """
+
+    SAM = "u-sam"
+
+    def test_a_row_somebody_else_downloaded_is_not_asked_about(self):
+        m = self._manager([], rows=[
+            self._row("mine"),
+            self._row("theirs", asked_by=(FakeDb.SERVER, self.SAM))])
+        m._refresh_userdata()
+        self.assertEqual(m._api.get_items.call_args.args[0], ["mine"])
+
+    def test_unless_this_account_fetches_from_that_server_unattended(self):
+        """The other half of the union. Auto-download on for the server is
+        ongoing interest in its whole catalog, which is the case R21 kept
+        when it removed the opt-in's UI."""
+        m = self._manager([], auto_download=[(FakeDb.SERVER, self.IZZIE)],
+                          rows=[self._row("mine"),
+                                self._row("theirs",
+                                          asked_by=(FakeDb.SERVER, self.SAM))])
+        m._refresh_userdata()
+        self.assertEqual(sorted(m._api.get_items.call_args.args[0]),
+                         ["mine", "theirs"])
+
+    def test_auto_download_elsewhere_does_not_widen_this_server(self):
+        """The negative control for the pair above: the allow-list is keyed
+        on the account, so having it on for another server is not interest in
+        this one."""
+        m = self._manager([], auto_download=[(self.OTHER, self.IZZIE)],
+                          rows=[self._row("theirs",
+                                          asked_by=(FakeDb.SERVER, self.SAM))])
+        m._refresh_userdata()
+        self.assertEqual(m._api.get_items.call_count, 0)
+
+    def test_nothing_of_this_accounts_means_no_request_at_all(self):
+        """The saving R16 asked for, stated as the thing that is *not* sent."""
+        m = self._manager([], rows=[
+            self._row("theirs", asked_by=(FakeDb.SERVER, self.SAM))])
+        m._refresh_userdata()
+        self.assertEqual(m._api.get_items.call_count, 0)
+
+    def test_but_the_account_still_counts_as_answered(self):
+        """Or the reaper holds for a sweep that is out of scope, and waits
+        out REAP_SWEEP_HOLD every session on a shared machine. `_sweep_owed`
+        reads this set."""
+        m = self._manager([], rows=[
+            self._row("theirs", asked_by=(FakeDb.SERVER, self.SAM))])
+        m._refresh_userdata()
+        self.assertEqual(m._answered_accounts,
+                         {(FakeDb.SERVER, self.IZZIE)})
+
+    def test_a_row_nobody_can_claim_is_swept_by_whoever_is_here(self):
+        """The clause the e2e leg found missing, and it is a hole in the
+        requirement rather than a slip: R16 says "scoped to whoever
+        downloaded the file" and says nothing about a row where that cannot
+        be named.
+
+        R19 writes the pair at enqueue and the backfill fills old rows, so an
+        unattributed row is one whose enqueuing login is gone entirely.
+        Scoping it to nobody means its watched state can never refresh again
+        for anybody -- so it goes to whoever is signed in, which is the same
+        answer `_client_for_row` gives the download queue for the same case.
+        The `theirs` row is the control: this clause must not widen the scope
+        to rows that *do* name somebody else.
+        """
+        m = self._manager([], rows=[
+            self._row("orphaned", asked_by=(FakeDb.SERVER, NO_ACTOR)),
+            self._row("blank", asked_by=("", "")),
+            self._row("theirs", asked_by=(FakeDb.SERVER, self.SAM))])
+        m._refresh_userdata()
+        self.assertEqual(sorted(m._api.get_items.call_args.args[0]),
+                         ["blank", "orphaned"])
+
+    def test_an_unreadable_allow_list_narrows_rather_than_widens(self):
+        """Cannot say is not everybody. A registry that will not answer must
+        not turn the scoped pull back into the whole catalog."""
+        from jellyfin_mpv_shim.users import userManager
+
+        m = self._manager([], auto_download=[(FakeDb.SERVER, self.IZZIE)],
+                          rows=[self._row("mine"),
+                                self._row("theirs",
+                                          asked_by=(FakeDb.SERVER, self.SAM))])
+        with mock.patch.object(userManager, "auto_download_accounts",
+                               side_effect=RuntimeError("no registry")):
+            m._refresh_userdata()
+        self.assertEqual(m._api.get_items.call_args.args[0], ["mine"])
+
+    def test_a_second_door_to_one_server_is_the_same_account(self):
+        """Attribution is a pair, so a row downloaded through the LAN address
+        is in scope when the remote one is what reconnected. Keyed on the
+        login this was the F48 shape again, one layer up."""
+        m = self._manager([], connected=("srv-b",),
+                          rows=[self._row("lan", login="srv")])
+        m._refresh_userdata()
+        self.assertEqual(m._api.get_items.call_args.args[0], ["lan"])
 
 
 class PushedUserDataTest(unittest.TestCase):
@@ -343,15 +650,28 @@ class PushedUserDataTest(unittest.TestCase):
         return m
 
     @staticmethod
-    def _event(*entries):
-        return {"UserId": "u", "ServerId": "s",
+    def _event(*entries, server_id=FakeDb.SERVER):
+        # The ServerId has to be the one the rows belong to, or the push is
+        # correctly refused: a payload naming another server is about that
+        # server's different film with the same id, and filing it here is
+        # the corrupting write this batch closes.
+        return {"UserId": "u", "ServerId": server_id,
                 "UserDataList": list(entries)}
+
+    def test_a_push_naming_another_server_is_not_applied(self):
+        """N4: the payload announces both halves and the code took only the
+        person, filing another server's account onto this row -- a pair that
+        describes nobody, on a film that account has never opened."""
+        m = self._manager()
+        m.apply_userdata_event(self._event(
+            {"ItemId": "ep1", "Played": True}, server_id="somewhere-else"))
+        self.assertEqual(m.db.userdata_of("ep1", "u"), {})
 
     def test_a_push_reaches_the_catalog(self):
         m = self._manager()
         m.apply_userdata_event(self._event(
             {"ItemId": "ep1", "Played": True, "PlaybackPositionTicks": 0}))
-        self.assertTrue(m.db.userdata["ep1"]["Played"])
+        self.assertTrue(m.db.userdata_of("ep1", "u")["Played"])
 
     def test_it_asks_the_server_for_nothing(self):
         """The point of the whole change: the values are in the message."""
@@ -366,7 +686,7 @@ class PushedUserDataTest(unittest.TestCase):
         m = self._manager(held=("ep1",))
         m.apply_userdata_event(self._event(
             {"ItemId": "some-series", "Played": True}))
-        self.assertEqual(m.db.userdata, {})
+        self.assertEqual(m.db.by_actor, {})
         m._notify_change.assert_not_called()
 
     def test_a_position_from_another_client_lands(self):
@@ -375,7 +695,7 @@ class PushedUserDataTest(unittest.TestCase):
             {"ItemId": "ep1", "Played": False,
              "PlaybackPositionTicks": 4500000000}))
         self.assertEqual(
-            m.db.userdata["ep1"]["PlaybackPositionTicks"], 4500000000)
+            m.db.userdata_of("ep1", "u")["PlaybackPositionTicks"], 4500000000)
 
     def test_a_push_that_changed_nothing_does_not_redraw(self):
         m = self._manager()
@@ -399,11 +719,11 @@ class PushedUserDataTest(unittest.TestCase):
         for ticks in (1000, 5000, 9000):
             m.apply_userdata_event(self._event(
                 {"ItemId": "ep1", "PlaybackPositionTicks": ticks}))
-        self.assertEqual(m.db.userdata["ep1"]["PlaybackPositionTicks"], 9000)
+        self.assertEqual(m.db.userdata_of("ep1", "u")["PlaybackPositionTicks"], 9000)
         # ...and a late duplicate of an earlier one does not rewind it.
         m.apply_userdata_event(self._event(
             {"ItemId": "ep1", "PlaybackPositionTicks": 5000}))
-        self.assertEqual(m.db.userdata["ep1"]["PlaybackPositionTicks"], 9000)
+        self.assertEqual(m.db.userdata_of("ep1", "u")["PlaybackPositionTicks"], 9000)
 
     def test_an_enormous_list_is_swept_instead_of_walked(self):
         """This runs on the websocket thread. A bulk mark is one message
@@ -415,7 +735,7 @@ class PushedUserDataTest(unittest.TestCase):
                    for i in range(mgr.USERDATA_EVENT_MAX + 1)]
         m.apply_userdata_event(self._event(*entries))
         m.request_userdata_refresh.assert_called_once()
-        self.assertEqual(m.db.userdata, {})
+        self.assertEqual(m.db.by_actor, {})
 
     def test_a_list_at_the_limit_is_still_applied_inline(self):
         from jellyfin_mpv_shim.sync import manager as mgr
@@ -453,12 +773,21 @@ class TheEventHandlerFeedsItTest(unittest.TestCase):
         from jellyfin_mpv_shim import event_handler as eh
         from jellyfin_mpv_shim.sync import manager as mgr
 
+        from jellyfin_mpv_shim import clients as clients_mod
+
         handler = eh.EventHandler()
         handler.user_data_changed = None
         payload = {"UserDataList": [{"ItemId": "ep1", "Played": True}]}
-        with mock.patch.object(mgr.syncManager, "apply_userdata_event") as ap:
-            handler.user_data_change(mock.Mock(), "UserDataChanged", payload)
-        ap.assert_called_once_with(payload)
+        client = mock.Mock()
+        # The login the push arrived on has to travel with it: the payload's
+        # own ServerId is a claim the message makes about itself and can be
+        # absent, while the socket cannot.
+        with mock.patch.object(clients_mod.clientManager, "uuid_for_client",
+                               return_value="uuid-a"), \
+                mock.patch.object(mgr.syncManager,
+                                  "apply_userdata_event") as ap:
+            handler.user_data_change(client, "UserDataChanged", payload)
+        ap.assert_called_once_with(payload, "uuid-a")
 
     def test_a_catalog_failure_does_not_cost_the_browser_its_nudge(self):
         """A stale row is cosmetic; a dropped event is a screen that never
@@ -655,7 +984,8 @@ class StreamingSomethingYouAlsoHoldTest(unittest.TestCase):
             return_value={"PositionTicks": 9_000_000_000})
         pm.send_timeline_stopped(finished=False, client=None)
         self.assertEqual(
-            self.db.userdata.get("ep1", {}).get("PlaybackPositionTicks"),
+            self.db.userdata_of("ep1", NO_ACTOR).get(
+                "PlaybackPositionTicks"),
             9_000_000_000,
             "streaming an item you also have downloaded left the catalog "
             "at zero, so offline resume started it over")
@@ -665,14 +995,15 @@ class StreamingSomethingYouAlsoHoldTest(unittest.TestCase):
         pm.get_timeline_options = mock.Mock(
             return_value={"PositionTicks": 9_000_000_000})
         pm.send_timeline_stopped(finished=True, client=None)
-        self.assertTrue(self.db.userdata.get("ep1", {}).get("Played"))
+        self.assertTrue(self.db.userdata_of("ep1", NO_ACTOR).get("Played"))
 
     def test_closing_the_window_records_it_too(self):
         pm, video = self._reporter()
         pm._video = None       # the state this path actually runs in
         pm._report_stopped_offline(video)
         self.assertEqual(
-            self.db.userdata.get("ep1", {}).get("PlaybackPositionTicks"),
+            self.db.userdata_of("ep1", NO_ACTOR).get(
+                "PlaybackPositionTicks"),
             9_000_000_000)
 
     def test_an_item_with_no_download_writes_nothing(self):
@@ -683,7 +1014,7 @@ class StreamingSomethingYouAlsoHoldTest(unittest.TestCase):
         pm.get_timeline_options = mock.Mock(
             return_value={"PositionTicks": 9_000_000_000})
         pm.send_timeline_stopped(finished=False, client=None)
-        self.assertEqual(self.db.userdata, {})
+        self.assertEqual(self.db.by_actor, {})
 
     def test_it_tracks_across_several_reports(self):
         """Multi-step, per the repo rule: the stored position must follow
@@ -692,7 +1023,7 @@ class StreamingSomethingYouAlsoHoldTest(unittest.TestCase):
         for ticks in (1_000_000_000, 4_000_000_000, 9_000_000_000):
             pm._record_progress(pm._video, ticks)
         self.assertEqual(
-            self.db.userdata["ep1"]["PlaybackPositionTicks"], 9_000_000_000)
+            self.db.userdata_of("ep1", NO_ACTOR)["PlaybackPositionTicks"], 9_000_000_000)
 
     def test_a_catalog_failure_never_breaks_the_stop_report(self):
         from jellyfin_mpv_shim.sync import manager as mgr
@@ -740,9 +1071,19 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
     what that column ends up holding.
     """
 
+    #: The one saved login these fixtures use, and the person behind it.
+    #: Spelled out rather than left to fall through to the unattributed
+    #: sentinel: with no credential every write here would land under
+    #: NO_ACTOR and the suite would pass whether attribution worked or not.
+    SERVER_ID = "SRV"
+    USER_ID = "U1"
+
     def setUp(self):
         import tempfile
+        from unittest import mock
+
         from jellyfin_mpv_shim.sync.db import COLUMNS, SyncDB, STATUS_COMPLETE
+        from jellyfin_mpv_shim.users import userManager
 
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -750,6 +1091,12 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         self.addCleanup(self.db.close)
         self.COLUMNS = COLUMNS
         self.STATUS_COMPLETE = STATUS_COMPLETE
+        users = [{"id": "local", "credentials": [
+            {"uuid": "srv", "Id": self.SERVER_ID, "UserId": self.USER_ID}]}]
+        for attr, value in (("users", users), ("active_id", "local")):
+            patch = mock.patch.object(userManager, attr, value)
+            self.addCleanup(patch.stop)
+            patch.start()
 
     def row(self, item_id, userdata=None, **overrides):
         row = {c: None for c in self.COLUMNS}
@@ -757,16 +1104,43 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         row["server_uuid"] = "srv"
         row["status"] = self.STATUS_COMPLETE
         row["runtime_ticks"] = 100 * 10_000_000
+        row["content_server_id"] = self.SERVER_ID
         row["userdata_json"] = json.dumps(
             userdata if userdata is not None
             else {"Played": False, "PlaybackPositionTicks": 0})
         row.update(overrides)
         self.db.upsert(row)
+        # Seed the per-actor table too. Watched state moved out of the blob,
+        # so a fixture that only writes `userdata_json` seeds a column
+        # nothing reads any more -- and every "was it already like this"
+        # assertion would then measure an empty row.
+        data = json.loads(row["userdata_json"] or "{}")
+        self.db._conn.execute(
+            "INSERT OR REPLACE INTO item_userdata (item_id, server_id, "
+            "user_id, played, position_ticks, play_count, updated_at) "
+            "VALUES (?,?,?,?,?,?,0)",
+            (item_id, self.SERVER_ID, self.USER_ID,
+             1 if data.get("Played") else 0,
+             data.get("PlaybackPositionTicks") or 0,
+             data.get("PlayCount") or 0))
+        self.db._conn.commit()
         return row
 
-    def stored(self, item_id):
-        row = self.db.get(item_id) or {}
-        return json.loads(row.get("userdata_json") or "{}")
+    def stored(self, item_id, user_id=None):
+        """What the catalog holds for one person.
+
+        Watched state moved out of `downloads.userdata_json` and into the
+        per-actor `item_userdata` table; the old key names are kept here so
+        these tests keep asserting the *rule* rather than the storage.
+        Pass `user_id` to ask about somebody else -- which is the whole
+        point of the move, and what `test_the_other_account_...` checks.
+        """
+        got = self.db.userdata(item_id, actor=(None, user_id or self.USER_ID))
+        return {"Played": got["played"],
+                "PlaybackPositionTicks": got["position_ticks"],
+                "PlayCount": got["play_count"],
+                "IsFavorite": got["is_favorite"],
+                "LastPlayedDate": got["last_played_date"]}
 
     def manager(self):
         from jellyfin_mpv_shim.sync.manager import SyncManager
@@ -781,7 +1155,7 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
     def test_marking_watched_stores_it_and_clears_the_resume_point(self):
         self.row("ep1", {"Played": False,
                          "PlaybackPositionTicks": 42 * 10_000_000})
-        self.assertTrue(self.db.set_watched("ep1", True))
+        self.assertTrue(self.db.set_watched("ep1", True, actor=(None, self.USER_ID)))
         self.assertEqual(self.stored("ep1")["Played"], True)
         self.assertEqual(self.stored("ep1")["PlaybackPositionTicks"], 0)
 
@@ -790,7 +1164,7 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         `played=False` meant "leave it alone", so this was unreachable."""
         self.row("ep1", {"Played": True, "PlayCount": 3,
                          "PlaybackPositionTicks": 42 * 10_000_000})
-        self.assertTrue(self.db.set_watched("ep1", False))
+        self.assertTrue(self.db.set_watched("ep1", False, actor=(None, self.USER_ID)))
         stored = self.stored("ep1")
         self.assertEqual(stored["Played"], False)
         self.assertEqual(stored["PlaybackPositionTicks"], 0)
@@ -802,14 +1176,14 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         the next sweep reads back as a change and the catalog flickers."""
         self.row("ep1", {"Played": False, "PlayCount": 0,
                          "LastPlayedDate": "2020-01-01T00:00:00Z"})
-        self.db.set_watched("ep1", True)
+        self.db.set_watched("ep1", True, actor=(None, self.USER_ID))
         self.assertGreaterEqual(self.stored("ep1")["PlayCount"], 1)
-        self.db.set_watched("ep1", False)
+        self.db.set_watched("ep1", False, actor=(None, self.USER_ID))
         self.assertIsNone(self.stored("ep1")["LastPlayedDate"])
 
     def test_a_stale_percentage_cannot_shadow_the_new_state(self):
         self.row("ep1", {"Played": True, "PlayedPercentage": 100})
-        self.db.set_watched("ep1", False)
+        self.db.set_watched("ep1", False, actor=(None, self.USER_ID))
         self.assertNotIn("PlayedPercentage", self.stored("ep1"))
 
     def test_it_tracks_rather_than_latching(self):
@@ -818,24 +1192,24 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         self.row("ep1")
         seen = []
         for played in (True, False, True, False):
-            self.db.set_watched("ep1", played)
+            self.db.set_watched("ep1", played, actor=(None, self.USER_ID))
             seen.append(self.stored("ep1")["Played"])
         self.assertEqual(seen, [True, False, True, False])
 
     def test_nothing_moving_is_reported_as_nothing_moving(self):
         self.row("ep1", {"Played": True, "PlayCount": 1,
                          "PlaybackPositionTicks": 0})
-        self.assertFalse(self.db.set_watched("ep1", True),
+        self.assertFalse(self.db.set_watched("ep1", True, actor=(None, self.USER_ID)),
                          "an unchanged row asked the browser to redraw")
 
     def test_an_item_we_hold_no_copy_of_is_left_alone(self):
-        self.assertFalse(self.db.set_watched("nothing-here", True))
+        self.assertFalse(self.db.set_watched("nothing-here", True, actor=(None, self.USER_ID)))
 
     def test_playback_is_still_advance_only(self):
         """The guard on the change: `update_userdata` is the playback rule
         and must not have acquired this one."""
         self.row("ep1", {"Played": True})
-        self.db.update_userdata("ep1", played=False)
+        self.db.update_userdata("ep1", played=False, actor=(None, self.USER_ID))
         self.assertTrue(self.stored("ep1")["Played"])
 
     # -- the fan-out -------------------------------------------------------
@@ -856,6 +1230,38 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         self.manager().mirror_watched("s1", True)
         self.assertTrue(self.stored("ep1")["Played"])
         self.assertFalse(self.stored("ep2")["Played"])
+
+    def test_a_mark_made_on_another_server_leaves_this_ones_rows_alone(self):
+        """The online counterpart of the offline cross-server case, and the
+        fan-out is where it bites: a series id from server B matched every
+        episode of the same series downloaded from server A, and the mark
+        was then filed under an account that exists on neither -- a pair no
+        reader will ever match, written without an error.
+        """
+        from jellyfin_mpv_shim.users import userManager
+
+        self.row("ep1", series_id="show")
+        with mock.patch.object(userManager, "users", [
+                {"id": "local", "credentials": [
+                    {"uuid": "srv", "Id": self.SERVER_ID,
+                     "UserId": self.USER_ID},
+                    {"uuid": "other", "Id": "OTHER", "UserId": "U2"}]}]):
+            self.assertEqual(
+                self.manager().mirror_watched("show", True,
+                                              server_uuid="other"), 0)
+        self.assertFalse(self.stored("ep1")["Played"])
+        self.assertEqual(self.db.userdata_actors("ep1"),
+                         [(self.SERVER_ID, self.USER_ID)],
+                         "another server's account acquired state on this "
+                         "server's row")
+
+    def test_and_the_owning_login_still_marks_it(self):
+        """The symmetric direction, so the scope above is a scope and not a
+        fan-out that stopped working."""
+        self.row("ep1", series_id="show")
+        self.assertEqual(
+            self.manager().mirror_watched("show", True, server_uuid="srv"), 1)
+        self.assertTrue(self.stored("ep1")["Played"])
 
     def test_an_item_with_nothing_downloaded_is_a_no_op(self):
         """Called for every mark, downloaded or not -- which is what keeps
@@ -911,14 +1317,16 @@ class TheUiMarksGoThroughItTest(unittest.TestCase):
     def test_marking_watched_online_writes_the_catalog_too(self):
         self.assertTrue(self.controller.set_watched("srv", "ep1", True))
         self.client.jellyfin.item_played.assert_called_once_with("ep1", True)
-        self.sm.mirror_watched.assert_called_once_with("ep1", True)
+        self.sm.mirror_watched.assert_called_once_with(
+            "ep1", True, server_uuid="srv")
 
     def test_marking_unwatched_online_does(self):
         """The case that could not previously reach the catalog at all: the
         socket announces it, and every path the announcement takes is
         advance-only."""
         self.assertTrue(self.controller.set_watched("srv", "ep1", False))
-        self.sm.mirror_watched.assert_called_once_with("ep1", False)
+        self.sm.mirror_watched.assert_called_once_with(
+            "ep1", False, server_uuid="srv")
 
     def test_a_server_that_refused_does_not_move_the_catalog(self):
         self.client.jellyfin.item_played.side_effect = RuntimeError("no")
@@ -949,9 +1357,18 @@ class TheUiMarksGoThroughItTest(unittest.TestCase):
         video = media.Video.__new__(media.Video)
         video.item_id = "ep1"
         video.client = mock.Mock()
+        # Registered, so the mark can be attributed: `set_played` asks
+        # clientManager which login this client is, and an unregistered one
+        # answers None -- which would file the mark under nobody.
+        from jellyfin_mpv_shim import clients
+        reg = mock.patch.object(clients.clientManager, "clients",
+                                {"srv": video.client})
+        reg.start()
+        self.addCleanup(reg.stop)
         video.set_played(False)
         video.client.jellyfin.item_played.assert_called_once_with("ep1", False)
-        self.sm.mirror_watched.assert_called_once_with("ep1", False)
+        self.sm.mirror_watched.assert_called_once_with(
+            "ep1", False, server_uuid="srv")
 
     def test_a_catalog_failure_does_not_break_the_player_s_mark(self):
         from jellyfin_mpv_shim import media
@@ -1266,26 +1683,57 @@ class ReplayAcknowledgesOnlyWhatItSentTest(unittest.TestCase):
     """
 
     SERVER = "srv-uuid"
+    SERVER_ID = "SRV"
+    USER_ID = "U1"
+
+    def setUp(self):
+        # A credential behind the login, so the replay has somebody to send
+        # as. The queue is keyed on the person and drains through whichever
+        # live login speaks for them; a manager with a client and no
+        # credential behind it can queue nothing and send nothing.
+        from unittest import mock
+
+        from jellyfin_mpv_shim.users import userManager
+        for attr, value in (
+                ("users", [{"id": "local", "credentials": [
+                    {"uuid": self.SERVER, "Id": self.SERVER_ID,
+                     "UserId": self.USER_ID}]}]),
+                ("active_id", "local")):
+            patch = mock.patch.object(userManager, attr, value)
+            self.addCleanup(patch.stop)
+            patch.start()
 
     def _manager(self, db, client):
         from jellyfin_mpv_shim.sync import manager as sync_manager
         mgr = sync_manager.SyncManager.__new__(sync_manager.SyncManager)
         mgr.db = db
         mgr.get_client = lambda uuid: client
+        mgr.get_clients = lambda: {self.SERVER: client}
         return mgr
 
-    def _db(self):
+    def _db(self, item_id="ep1"):
         import tempfile, shutil
-        from jellyfin_mpv_shim.sync.db import SyncDB
+        from jellyfin_mpv_shim.sync.db import (COLUMNS, STATUS_COMPLETE,
+                                               SyncDB)
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
         db = SyncDB(os.path.join(tmp, "catalog.db"))
         self.addCleanup(db.close)
+        # The catalog used to be left empty here and the queue took entries
+        # for an item it held no row for -- which the queue's own docstring
+        # says can never be drained. It is refused now, so the row the
+        # replay is about has to exist, homed to the server the actor is on.
+        row = {c: None for c in COLUMNS}
+        row.update({"item_id": item_id, "status": STATUS_COMPLETE,
+                    "type": "Episode", "name": item_id,
+                    "file_path": "%s/f.mkv" % item_id,
+                    "content_server_id": self.SERVER_ID})
+        db.upsert(row)
         return db
 
     def test_a_report_during_the_upload_is_not_acknowledged_away(self):
         db = self._db()
-        db.upsert_playstate(self.SERVER, "ep1", position_ticks=10)
+        db.upsert_playstate("ep1", actor=(self.SERVER_ID, self.USER_ID), position_ticks=10)
         pushed = []
         test = self
 
@@ -1293,7 +1741,7 @@ class ReplayAcknowledgesOnlyWhatItSentTest(unittest.TestCase):
             def get_userdata_for_item(self, item_id):
                 # The window: playback writes newer progress while the replay
                 # is still talking to the server about the old value.
-                db.upsert_playstate(test.SERVER, "ep1",
+                db.upsert_playstate("ep1", actor=(test.SERVER_ID, test.USER_ID),
                                     position_ticks=100, played=True)
                 return {}
 
@@ -1320,7 +1768,7 @@ class ReplayAcknowledgesOnlyWhatItSentTest(unittest.TestCase):
         that never drains -- that would re-push the same mark on every
         reconnect, forever."""
         db = self._db()
-        db.upsert_playstate(self.SERVER, "ep1", played=True)
+        db.upsert_playstate("ep1", actor=(self.SERVER_ID, self.USER_ID), played=True)
 
         class Api:
             def get_userdata_for_item(self, item_id):
@@ -1342,7 +1790,7 @@ class ReplayAcknowledgesOnlyWhatItSentTest(unittest.TestCase):
         first sweep and must still leave the queue on a later one rather than
         being replayed forever."""
         db = self._db()
-        db.upsert_playstate(self.SERVER, "ep1", position_ticks=10)
+        db.upsert_playstate("ep1", actor=(self.SERVER_ID, self.USER_ID), position_ticks=10)
         pushed = []
         test = self
         state = {"disturb": True}
@@ -1351,7 +1799,7 @@ class ReplayAcknowledgesOnlyWhatItSentTest(unittest.TestCase):
             def get_userdata_for_item(self, item_id):
                 if state["disturb"]:
                     state["disturb"] = False
-                    db.upsert_playstate(test.SERVER, "ep1",
+                    db.upsert_playstate("ep1", actor=(test.SERVER_ID, test.USER_ID),
                                         position_ticks=100, played=True)
                 return {}
 
@@ -1501,3 +1949,148 @@ class ExplicitMarksLandAfterTheStopReportTest(unittest.TestCase):
                 "queue_played_mark", src,
                 "%s no longer marks at all -- if that is deliberate, this "
                 "test should go with it" % name)
+
+
+class AnOrphanSyncsInNeitherDirectionTest(unittest.TestCase):
+    """[iw]'s policy table, 11c: an orphan plays, records locally, deletes --
+    and never pulls or pushes.
+
+    The push half is `upsert_playstate`'s refusal, which landed with the
+    filing predicate. This is the other two: the sweep must not ask about a
+    row it cannot attribute, and an entry queued *before* that refusal
+    existed must not be delivered now.
+    """
+
+    SERVER_ID, USER_ID = "SRV", "U1"
+
+    def setUp(self):
+        import shutil
+        import tempfile
+        import threading as _threading
+        from jellyfin_mpv_shim.sync.db import (COLUMNS, STATUS_COMPLETE,
+                                               SyncDB)
+        self._threading = _threading
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.db = SyncDB(os.path.join(self.tmp, "cat.db"))
+        self.addCleanup(self.db.close)
+        for item_id, server in (("homed", self.SERVER_ID), ("orphan", None)):
+            row = {c: None for c in COLUMNS}
+            row.update({"item_id": item_id, "status": STATUS_COMPLETE,
+                        "type": "Movie", "name": item_id,
+                        "file_path": "%s/f.mkv" % item_id,
+                        "content_server_id": server,
+                        # The homed row is this account's, so the sweep's
+                        # scope includes it and what is left to observe is
+                        # the orphan being skipped. The orphan is
+                        # deliberately unattributed: there is no account to
+                        # ask as, which is the contract under test.
+                        "requested_server_id": server or "",
+                        "requested_user_id": self.USER_ID if server else ""})
+            self.db.upsert(row)
+
+    def _manager(self, asked):
+        from jellyfin_mpv_shim.sync import manager as sync_manager
+
+        class Api:
+            @staticmethod
+            def get_items(ids, fields=""):
+                asked.extend(ids)
+                return {"Items": []}
+
+        class Client:
+            jellyfin = Api()
+
+        from jellyfin_mpv_shim.users import userManager
+        patch = mock.patch.object(userManager, "users", [{
+            "id": "local", "credentials": [
+                {"uuid": "login", "Id": self.SERVER_ID,
+                 "UserId": self.USER_ID}]}])
+        self.addCleanup(patch.stop)
+        patch.start()
+
+        m = sync_manager.SyncManager.__new__(sync_manager.SyncManager)
+        m.db = self.db
+        m._stop = False
+        m._answered_accounts = set()
+        m._wake = self._threading.Event()
+        m.get_client = lambda uuid: Client()
+        m.get_clients = lambda: {"login": Client()}
+        m._notify_change = lambda: None
+        return m
+
+    def test_the_sweep_does_not_ask_about_a_row_with_no_server(self):
+        """**"Cannot attribute" means two different things and only one of
+        them stops the sweep**, which is why this test was renamed rather
+        than left with the shorter name.
+
+        A row with no *content server* is never asked about: there is no
+        account to ask as and nowhere to file the answer. A row with no
+        *account* -- `requested_user_id` empty or `NO_ACTOR` -- **is** asked
+        about, by whoever is signed in, because otherwise its state could
+        never refresh again (see `TheSweepIsScopedToWhoAskedTest`). Reading
+        the second as the first is a plausible way to break the pull.
+        """
+        asked = []
+        self._manager(asked)._refresh_userdata()
+        self.assertIn("homed", asked)
+        self.assertNotIn("orphan", asked,
+                         "there is no account to ask as, and the answer "
+                         "could not be filed if there were")
+
+    def test_an_entry_queued_before_the_refusal_is_not_delivered(self):
+        """`_sync_playstate` never consults the download row, so a row
+        stored by an older build -- or carried in by an existing catalog --
+        is still drained through any matching client. The refusal at the
+        door cannot reach what is already inside."""
+        self.db._conn.execute(
+            "INSERT INTO pending_playstate "
+            "(server_id, user_id, item_id, position_ticks, played, "
+            "created_at) VALUES (?,?,?,?,?,?)",
+            (self.SERVER_ID, self.USER_ID, "orphan", 500, 1, 0))
+        self.db._conn.commit()
+        self.assertTrue(self.db.list_playstate())
+        self.assertEqual(self.db.drop_unsyncable_playstate(), 1)
+        self.assertEqual(self.db.list_playstate(), [])
+
+    def test_deleting_the_download_does_not_discard_what_we_owe_the_server(self):
+        """The queued mark outlives the file, and the prune must agree.
+
+        `SyncDB.delete` keeps `pending_playstate` on purpose -- *"what you owe
+        a server is about the item there, not about the local file"* -- and the
+        prune then removed it on the next launch, because it read "no download
+        row" as "there is no server to send to". The entry carries its own
+        ``(server_id, user_id)``: the server did not go anywhere, only the copy
+        did. Watch something offline, delete it, relaunch still offline, and the
+        server never heard.
+
+        Queued offline progress is the one thing in this catalog the server does
+        not already have, so this is the only kind of loss here that is not a
+        re-download away.
+        """
+        self.db._conn.execute(
+            "INSERT INTO pending_playstate "
+            "(server_id, user_id, item_id, position_ticks, played, "
+            "created_at) VALUES (?,?,?,?,?,?)",
+            (self.SERVER_ID, self.USER_ID, "homed", 500, 1, 0))
+        self.db._conn.commit()
+        self.db.delete("homed")          # the user deletes the download
+        self.assertIsNone(self.db.get("homed"))
+        self.assertEqual(
+            self.db.drop_unsyncable_playstate(), 0,
+            "the entry names its own server and account; the row's absence "
+            "says nothing about whether it can be sent")
+        self.assertEqual(len(self.db.list_playstate()), 1)
+
+    def test_an_entry_for_another_servers_copy_is_still_dropped(self):
+        """The half that must keep working: ids collide across servers, so an
+        entry whose server is not the row's is a report about somebody else's
+        film."""
+        self.db._conn.execute(
+            "INSERT INTO pending_playstate "
+            "(server_id, user_id, item_id, position_ticks, played, "
+            "created_at) VALUES (?,?,?,?,?,?)",
+            ("some-other-server", self.USER_ID, "homed", 500, 1, 0))
+        self.db._conn.commit()
+        self.assertEqual(self.db.drop_unsyncable_playstate(), 1)
+        self.assertEqual(self.db.list_playstate(), [])

@@ -52,12 +52,8 @@ def _server_uuid_of(video):
     """The uuid of the server a playing item came from, or None."""
     try:
         from .clients import clientManager
-        client = getattr(video, "client", None)
-        if client is None:
-            return None
-        for uuid, candidate in clientManager.clients.items():
-            if candidate is client:
-                return uuid
+
+        return clientManager.uuid_for_client(getattr(video, "client", None))
     except Exception:
         log.debug("could not resolve the playing item's server",
                   exc_info=True)
@@ -481,9 +477,12 @@ class ReportingMixin:
                 return
             from .sync.manager import syncManager
 
+            # The login that is playing, so the progress is filed under the
+            # person watching rather than under whoever downloaded the copy.
             syncManager.mirror_playstate(
                 getattr(video, "item_id", None), position_ticks,
-                played=True if finished else None)
+                played=True if finished else None,
+                server_uuid=_server_uuid_of(video))
         except Exception:
             log.warning("Could not record playback progress locally.",
                         exc_info=True)

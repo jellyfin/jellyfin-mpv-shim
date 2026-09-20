@@ -34,16 +34,21 @@ class UserDataMixin(GatewayCore):
             # is advance-only, so an un-watch never arrived by it -- and a
             # change made right here should not be waiting on a socket in
             # either direction. Costs nothing when nothing is downloaded.
-            self._mirror_watched_locally(item_id, bool(watched))
+            self._mirror_watched_locally(item_id, bool(watched),
+                                         server_uuid)
             return True
         return self._queue_offline_watched(server_uuid, item_id, watched)
 
     @staticmethod
-    def _mirror_watched_locally(item_id, watched):
-        """Write a deliberate mark straight into the sync catalog."""
+    def _mirror_watched_locally(item_id, watched, server_uuid=None):
+        """Write a deliberate mark straight into the sync catalog.
+
+        ``server_uuid`` is the login the person is browsing as, which is who
+        the mark belongs to -- not whoever downloaded the copy."""
         from ...sync.manager import syncManager
         try:
-            syncManager.mirror_watched(item_id, watched)
+            syncManager.mirror_watched(item_id, watched,
+                                       server_uuid=server_uuid)
         except Exception:
             log.debug("could not mirror the watched mark for %s", item_id,
                       exc_info=True)
@@ -63,13 +68,26 @@ class UserDataMixin(GatewayCore):
                         item_id)
             return False
         try:
-            targets = db.watched_targets(item_id, server_uuid)
+            targets = db.watched_targets(
+                item_id, server_id=syncManager.content_id_for(server_uuid))
             for target_id, target_server in targets:
-                db.upsert_playstate(target_server, target_id, played=True)
-                # The browser overlay and the watched-based delete read
-                # userdata_json, not the pending queue — without this the
+                # One resolution per target, used for both writes: the queue
+                # says what this person owes the server, and the local copy
+                # says what they have seen. Splitting them would be two
+                # answers to one question.
+                #
+                # `server_uuid` is the login being browsed as, which is the
+                # person marking -- offline it is the pseudo-server, which
+                # names nobody, and the row's own server is then what finds
+                # the active profile's account. It is never the row's login:
+                # that is whoever downloaded the copy.
+                actor = syncManager.actor_of(acting_login=server_uuid,
+                                             server_id=target_server)
+                db.upsert_playstate(target_id, actor=actor, played=True)
+                # The browser overlay and the watched-based delete read the
+                # per-actor table, not the pending queue -- without this the
                 # mark is invisible until the server syncs.
-                db.set_watched(target_id, True)
+                db.set_watched(target_id, True, actor=actor)
             if not targets:
                 log.warning("Nothing downloaded matches %s; watched mark "
                             "not queued.", item_id)
@@ -110,7 +128,9 @@ class UserDataMixin(GatewayCore):
         db = getattr(syncManager, "db", None)
         if db is not None:
             try:
-                db.set_reading_position(item_id, int(ticks))
+                actor = syncManager.actor_of(acting_login=server_uuid,
+                                             server_id=db.owner_of(item_id))
+                db.set_reading_position(item_id, int(ticks), actor=actor)
             except Exception:
                 log.debug("could not record the reading position locally",
                           exc_info=True)
@@ -121,8 +141,10 @@ class UserDataMixin(GatewayCore):
         try:
             # is_complete, because the queue is keyed on the catalog and an
             # entry for something not downloaded would sit there forever.
-            if db.is_complete(item_id):
-                db.upsert_playstate(server_uuid, item_id,
+            if syncManager.is_complete(item_id, server_uuid):
+                actor = syncManager.actor_of(acting_login=server_uuid,
+                                             server_id=db.owner_of(item_id))
+                db.upsert_playstate(item_id, actor=actor,
                                     position_ticks=int(ticks))
         except Exception:
             log.debug("could not queue the reading position", exc_info=True)
