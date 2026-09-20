@@ -18,12 +18,23 @@ A 10.11 container alongside a 12.0 source build is two commands —
 
     ./stdjflib.py serve ~/Desktop/std-jf-lib --live-tv            # 12.0
     ./stdjflib.py container ~/Desktop/std-jf-lib --port 8097 \
+        --image docker.io/jellyfin/jellyfin:10.11.11 \
         --keep-running --server-name "stdjflib QA 10.11"          # 10.11
 
-and the differences are not hypothetical: `Filters=IsUnplayed,IsPlayed`
-is **HTTP 400 on 12.0 and an empty result on 10.11**, and the audio
-language picker has options on 12.0 and none on 10.11. Unset, that leg
-skips and everything else is unchanged.
+**`--image` is load-bearing, not decoration.** `jellyfin/jellyfin:latest` is
+12.0 now, so without it the container is 12.0 *calling itself* "stdjflib QA
+10.11" — and the ALT leg spent some unknown time comparing 12.0 with itself
+and passing. `test_filter_matrix` refuses two servers reporting the same
+major.minor for that reason; the server name proves nothing.
+
+The differences the leg exists for are not hypothetical:
+`Filters=IsUnplayed,IsPlayed` is **HTTP 400 on 12.0 and an empty result on
+10.11**, and the audio language picker has options on 12.0 and none on 10.11.
+Unset, that leg skips and everything else is unchanged.
+
+Servers bind to 127.0.0.1 only. Add `--listen 192.168.122.1` to `serve` or
+`container` for a run from the Windows VM, which also needs
+`JMS_E2E_ADMIN_PASSWORD` — see `tests/e2e/README.md`.
 
 Every module runs once per mpv backend, in a fresh interpreter with
 `JMS_TEST_BACKEND` set — player.py picks its backend at import time and wires

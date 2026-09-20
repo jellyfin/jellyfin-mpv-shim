@@ -41,12 +41,20 @@ import _harness as h  # noqa: E402
 
 from test_mpvtk_browser import _spawn_handle  # noqa: E402
 
+from jellyfin_mpv_shim.sync.db import NO_ACTOR  # noqa: E402
+
 SERVER = "srv-home"
+#: The Jellyfin server the fixture rows belong to, and the person this
+#: machine is signed in as. Offline, the row's server is the only thing that
+#: can name who is watching, so a fixture without one resolves to nobody.
+SERVER_ID = "srv-id"
+USER_ID = "user-1"
 
 
 def _row(item_id, name, path, **kw):
     row = {
-        "item_id": item_id, "server_uuid": SERVER, "server_id": "s1",
+        "item_id": item_id, "server_uuid": SERVER,
+        "content_server_id": SERVER_ID,
         "name": name, "type": "Movie", "status": "complete",
         "file_path": os.path.basename(path),
         "size_bytes": os.path.getsize(path),
@@ -54,8 +62,6 @@ def _row(item_id, name, path, **kw):
         "item_json": json.dumps({"Id": item_id, "Name": name,
                                  "Type": "Movie", "ProductionYear": 2020,
                                  "RunTimeTicks": 2 * 10000000}),
-        "userdata_json": json.dumps({"Played": False,
-                                     "PlaybackPositionTicks": 0}),
     }
     row.update(kw)
     return row
@@ -216,8 +222,20 @@ class OfflineEndToEndTest(unittest.TestCase):
         """The whole offline promise: play a local file with no server, and
         the position survives in the catalog."""
         db = self._reopen_catalog()
-        db.upsert_playstate(SERVER, "m1", position_ticks=15 * 10000000)
-        db.update_userdata("m1", position_ticks=15 * 10000000)
+        # Only the local write. The replay queue is what the server has not
+        # been told; what the library view reads back is the catalog's own
+        # copy, and conflating the two is what this test exists to catch.
+        # `SERVER_ID`, not `SERVER`. The actor's first half is the **content
+        # server**; `SERVER` is this row's `server_uuid`, a login handle. Since
+        # the actor became an assertion to be checked rather than a key
+        # (a89f253f), a pair naming a different server than the row is
+        # *refused* -- correctly -- so passing the uuid here wrote nothing and
+        # the read found None. The two constants sit four lines apart and this
+        # test is the one that proves the offline promise, so it went red and
+        # stayed red: the integration matrix is ten minutes and no CI job runs
+        # it.
+        db.update_userdata("m1", position_ticks=15 * 10000000,
+                           actor=(SERVER_ID, NO_ACTOR))
 
         # Re-read through the source the UI actually uses.
         from jellyfin_mpv_shim.mpvtk_browser.repository import (
@@ -235,21 +253,55 @@ class OfflineEndToEndTest(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser.repository import (
             OfflineLibrarySource)
 
+        from unittest import mock
+
+        from jellyfin_mpv_shim.users import userManager
+
         db = self._reopen_catalog()
-        real = sync_manager.syncManager
-        sync_manager.syncManager = type("SM", (), {"db": db})()
-        self.addCleanup(lambda: setattr(sync_manager, "syncManager", real))
+        # A REAL SyncManager and a REAL saved credential. `actor_of` used to
+        # be stubbed here to answer with a person whatever it was handed,
+        # which asserted the plumbing while replacing the broken part: the
+        # resolver answered NOBODY for this call in production, the queue
+        # refused the entry by its own guard, and three findings in the
+        # 2026-09-12 round reached review behind this double.
+        for attr, value in (
+                ("users", [{"id": "local", "credentials": [
+                    {"uuid": SERVER, "Id": SERVER_ID, "UserId": USER_ID}]}]),
+                ("active_id", "local")):
+            patch = mock.patch.object(userManager, attr, value)
+            self.addCleanup(patch.stop)
+            patch.start()
+        mgr = sync_manager.SyncManager.__new__(sync_manager.SyncManager)
+        mgr.db = db
+        patch = mock.patch.object(sync_manager, "syncManager", mgr)
+        self.addCleanup(patch.stop)
+        patch.start()
 
         ok = browser_gw.PlayerGateway._queue_offline_watched(
             SERVER, "m1", True)
         self.assertTrue(ok, "the offline mark was refused")
 
         # On disk, in the pending queue AND in the userdata the view reads.
-        self.assertEqual([p["item_id"] for p in db.list_playstate()], ["m1"])
-        fresh = OfflineLibrarySource(self.catalog)
+        self.assertEqual([(p["server_id"], p["user_id"], p["item_id"])
+                          for p in db.list_playstate()],
+                         [(SERVER_ID, USER_ID, "m1")])
+        # Built the way the browser builds it -- `userManager.actor_on`,
+        # not a lambda naming the answer. A source with nobody behind it
+        # reads somebody else's shelf, which is the whole reason watched
+        # state stopped being machine-global.
+        fresh = OfflineLibrarySource(self.catalog,
+                                     actor_on=userManager.actor_on)
         item = fresh.get_item(SERVER, "m1")
         self.assertTrue((item.get("UserData") or {}).get("Played"),
                         "the mark is not visible in the offline library")
+
+        # ...and not on anybody else's.
+        other = OfflineLibrarySource(self.catalog,
+                                     actor_on=lambda _srv: "user-2")
+        self.assertFalse(
+            ((other.get_item(SERVER, "m1") or {}).get("UserData")
+             or {}).get("Played"),
+            "one account's watched mark showed up on another's shelf")
 
     def test_the_offline_item_resolves_to_the_real_file_on_disk(self):
         """The offline playback primitive: OfflineVideo turns a catalog row
@@ -291,6 +343,10 @@ class OfflineEndToEndTest(unittest.TestCase):
 
 @h.require_real_mpv
 class SyncBackAfterReconnectTest(unittest.TestCase):
+    #: The saved login SERVER stands for, and the person behind it.
+    SERVER_ID = "srv-id"
+    USER_ID = "user-1"
+
     """Marks made offline reach the server once it returns.
 
     The Jellyfin client is the only fake — there is no server here. Below
@@ -311,6 +367,23 @@ class SyncBackAfterReconnectTest(unittest.TestCase):
         clip = os.path.join(self.tmp, "m1.mp4")
         h.make_test_clip(clip, duration=1)
         self.db.upsert(_row("m1", "Alpha", clip))
+
+        # A saved login with a person behind it. The queue is keyed on the
+        # actor and refuses an entry nobody can be named for -- there would
+        # be no account to send it as -- and the replay picks its route by
+        # person, so a manager with a client and no credential can neither
+        # queue anything nor deliver it.
+        from unittest import mock
+
+        from jellyfin_mpv_shim.users import userManager
+        for attr, value in (
+                ("users", [{"id": "local", "credentials": [
+                    {"uuid": SERVER, "Id": self.SERVER_ID,
+                     "UserId": self.USER_ID}]}]),
+                ("active_id", "local")):
+            patch = mock.patch.object(userManager, attr, value)
+            self.addCleanup(patch.stop)
+            patch.start()
 
     class _Client:
         def __init__(self, server_state=None):
@@ -334,10 +407,11 @@ class SyncBackAfterReconnectTest(unittest.TestCase):
         mgr = sync_manager.SyncManager.__new__(sync_manager.SyncManager)
         mgr.db = self.db
         mgr.get_client = lambda uuid: client
+        mgr.get_clients = lambda: ({SERVER: client} if client else {})
         sync_manager.SyncManager._sync_playstate(mgr)
 
     def test_an_offline_mark_reaches_the_server_and_is_cleared(self):
-        self.db.upsert_playstate(SERVER, "m1", played=True)
+        self.db.upsert_playstate("m1", actor=(self.SERVER_ID, self.USER_ID), played=True)
         client = self._Client()
         self._sync(client)
         self.assertEqual(client.pushed, [("m1", {"Played": True})])
@@ -350,7 +424,7 @@ class SyncBackAfterReconnectTest(unittest.TestCase):
         reopen from disk, then sync."""
         from jellyfin_mpv_shim.sync.db import SyncDB
 
-        self.db.upsert_playstate(SERVER, "m1", played=True)
+        self.db.upsert_playstate("m1", actor=(self.SERVER_ID, self.USER_ID), played=True)
         self.db.close()
 
         self.db = SyncDB(self.catalog)
@@ -361,7 +435,7 @@ class SyncBackAfterReconnectTest(unittest.TestCase):
         self.assertEqual(client.pushed, [("m1", {"Played": True})])
 
     def test_it_never_walks_the_server_backwards(self):
-        self.db.upsert_playstate(SERVER, "m1", position_ticks=100)
+        self.db.upsert_playstate("m1", actor=(self.SERVER_ID, self.USER_ID), position_ticks=100)
         client = self._Client(server_state={
             "m1": {"Played": True, "PlaybackPositionTicks": 9999}})
         self._sync(client)
@@ -369,11 +443,12 @@ class SyncBackAfterReconnectTest(unittest.TestCase):
                          "overwrote newer server progress with older local")
 
     def test_a_still_offline_server_keeps_the_backlog(self):
-        self.db.upsert_playstate(SERVER, "m1", played=True)
+        self.db.upsert_playstate("m1", actor=(self.SERVER_ID, self.USER_ID), played=True)
         from jellyfin_mpv_shim.sync import manager as sync_manager
         mgr = sync_manager.SyncManager.__new__(sync_manager.SyncManager)
         mgr.db = self.db
         mgr.get_client = lambda uuid: None
+        mgr.get_clients = lambda: {}
         sync_manager.SyncManager._sync_playstate(mgr)
         self.assertEqual([p["item_id"] for p in self.db.list_playstate()],
                          ["m1"])
