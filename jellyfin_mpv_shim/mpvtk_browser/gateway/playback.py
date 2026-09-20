@@ -230,8 +230,15 @@ class PlaybackMixin(GatewayCore):
             # starting a playlist partway through is the common case.
             first = (item_ids[start_index]
                      if 0 <= start_index < len(item_ids) else None)
+            # Unscoped deliberately, and now said so: there is no connected
+            # client, so there is no second server whose id could collide
+            # with this one, and the catalog is the only source of items
+            # there is. One of the two structurally-unscoped callers the
+            # amendment-1 classification found; the other is
+            # `servers.has_downloads`.
+            from ...sync.db import ANY_SERVER
             if not (first and syncManager.db
-                    and syncManager.db.is_complete(first)):
+                    and syncManager.is_complete(first, ANY_SERVER)):
                 log.warning("mpvtk play: no connected client for %s and no "
                             "local copy of %s", server_uuid, first)
                 return
