@@ -357,6 +357,56 @@ class MovesThatMustWorkTest(RelocateTestCase):
                          "the first destination still holds a catalog, so two "
                          "folders now claim to be the download folder")
 
+    def _default_root(self):
+        """Where `start()` puts the store when the setting is empty.
+
+        Resolved through the same two calls the app makes rather than spelled
+        out here, because the point of these two tests is that `relocate` and
+        `start` agree about it. The integration harness primes `--config` with
+        a throwaway directory at import, so this is inside the temp config and
+        not the developer's own.
+        """
+        from jellyfin_mpv_shim.conffile import confdir
+        from jellyfin_mpv_shim.constants import APP_NAME
+        return os.path.join(confdir(APP_NAME), "offline")
+
+    def test_clearing_the_setting_moves_it_back_to_the_default(self):
+        """Emptying the field is how a person asks for the default back, and
+        it has to land on the path the *next launch* will look in.
+
+        `start()` reads `normalize_root(settings.sync_path) or <confdir>/offline`
+        and `relocate` computes the same fallback for a falsy argument. If those
+        two ever disagree the downloads end up in a folder nothing opens, which
+        is indistinguishable from having lost them -- and the existing coverage
+        was `normalize_root("") is None`, which is the first half of that
+        sentence and not the second.
+        """
+        default = self._default_root()
+        # Both tests here move into the SAME folder -- it is the one path in
+        # this module the test cannot choose -- so each leaves it empty again.
+        # Without this they pass or fail on alphabetical order.
+        self.addCleanup(shutil.rmtree, default, ignore_errors=True)
+        self.assertFalse(os.path.exists(os.path.join(default, "catalog.db")),
+                         "the default folder already holds a store, so this "
+                         "would be testing the refusal instead")
+        m = self.make_store(root=os.path.join(self.tmp, "somewhere-else"))
+        ok, message = m.relocate("")
+        self.assertTrue(ok, message)
+        self.assert_store_is_usable(m, default)
+
+    def test_and_then_asking_again_says_it_is_already_there(self):
+        """The follow-on, because "already there" is reported as success with
+        a message and a dead Move button once read as a working one."""
+        self.addCleanup(shutil.rmtree, self._default_root(), ignore_errors=True)
+        m = self.make_store(root=os.path.join(self.tmp, "somewhere-else-2"))
+        ok, _message = m.relocate("")
+        self.assertTrue(ok)
+        ok, message = m.relocate(None)
+        self.assertTrue(ok)
+        self.assertTrue(message, "a move that did not happen reported no "
+                                 "message, so the caller claims one did")
+        self.assert_store_is_usable(m, self._default_root())
+
 
 class GuardsThatMustRefuseTest(RelocateTestCase):
     """Every one of these has to leave the store exactly where it was. The
