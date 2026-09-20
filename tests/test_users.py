@@ -159,6 +159,239 @@ class UserLifecycleTest(UserManagerTestBase):
         self.assertEqual(um.get(kid["id"])["name"], "Children")
 
 
+class RegistryDurabilityTest(UserManagerTestBase):
+    """R12 -- "if there is a way it can get corrupted we need to fix that".
+
+    `users.json` is the one file whose loss starts the whole chain: without a
+    registry nothing can say who a queued offline viewing belongs to. Ruling
+    R12 asked for three things and the file had none of them -- the write was
+    atomic but not durable, there was no copy of the last good bytes, and the
+    only thing resembling a restore path rescued the *corrupt* bytes.
+
+    """
+
+    def a_saved_registry(self, name="Casper"):
+        """One user holding one credential, saved the ordinary way.
+
+        **cred.json is removed afterwards, and that is the point.** Left in
+        place it is a second way for a credential to come back -- `load`
+        falls through to the legacy migration whenever the registry has no
+        users -- so a test named after the backup passes without one. The
+        `{}` case below did exactly that against the unfixed code.
+        """
+        self.write_cred_json([{"Name": name, "Id": "srv1", "uuid": "u1"}])
+        um = self.fresh()
+        um.save()
+        os.remove(os.path.join(self.tmp, "cred.json"))
+        return um
+
+    def backup_path(self):
+        return os.path.join(self.tmp, "users.json.bak")
+
+    def test_the_bytes_are_flushed_before_the_rename_and_the_directory_after(
+            self):
+        """The whole point of the change, and not observable any other way
+        short of cutting the power: `os.replace` is atomic with respect to
+        readers and says nothing about the contents having reached the disk.
+        Ordering is the assertion because either fsync on its own leaves a
+        window."""
+        import os as real_os
+
+        journal = []
+        true_fsync, true_replace = real_os.fsync, real_os.replace
+
+        def note_fsync(fd):
+            journal.append("fsync")
+            return true_fsync(fd)
+
+        def note_replace(src, dst):
+            journal.append("replace:" + os.path.basename(dst))
+            return true_replace(src, dst)
+
+        self.write_cred_json([{"Name": "Casper", "Id": "srv1", "uuid": "u1"}])
+        um = UserManager()
+        um.load()
+        journal.clear()
+        with mock.patch("os.fsync", note_fsync), \
+                mock.patch("os.replace", note_replace):
+            um.save()
+
+        first = journal.index("replace:users.json")
+        self.assertIn("fsync", journal[:first],
+                      "the temp file was renamed over users.json before its "
+                      "bytes were flushed, so a power cut can leave an "
+                      "atomically renamed empty file")
+        self.assertIn("fsync", journal[first + 1:],
+                      "the directory entry was never flushed, so the rename "
+                      "itself need not survive a power cut")
+
+    def test_a_save_leaves_a_backup_of_what_it_wrote(self):
+        um = self.a_saved_registry()
+        self.assertTrue(os.path.exists(self.backup_path()))
+        with open(self.backup_path(), encoding="utf-8") as f:
+            self.assertEqual(json.load(f), self.read_users_json())
+        um.add_user("Second")
+        with open(self.backup_path(), encoding="utf-8") as f:
+            self.assertEqual(
+                json.load(f), self.read_users_json(),
+                "the backup did not follow the save that came after it")
+
+    def test_a_torn_primary_is_restored_from_the_backup(self):
+        """The power-cut case R12 names. A zero-length users.json is what
+        ext4 can leave behind after an atomic rename with no fsync, which is
+        exactly the state this branch shipped."""
+        self.a_saved_registry()
+        with open(os.path.join(self.tmp, "users.json"), "w",
+                  encoding="utf-8"):
+            pass                                    # truncate to nothing
+
+        um = UserManager()
+        um.load()
+        self.assertFalse(
+            um.load_failed,
+            "a registry restored from its backup must not report itself "
+            "unreadable -- that withholds the catalog's actor resolver and "
+            "strands every queued offline viewing")
+        self.assertEqual(
+            ["u1"], [c["uuid"] for c in um.users[0]["credentials"]],
+            "the saved login did not come back")
+        self.assertEqual(
+            um.users[0]["credentials"],
+            self.read_users_json()["users"][0]["credentials"],
+            "the recovered registry was not written back, so the next "
+            "launch would restore it again")
+
+    def test_a_registry_emptied_without_a_parse_error_is_restored_too(self):
+        """`{}` parses. Treated as a first run it would migrate cred.json
+        over the top and then overwrite the backup with the result -- the
+        loss the backup exists to prevent, arrived at through the recovery
+        path itself."""
+        self.a_saved_registry()
+        with open(os.path.join(self.tmp, "users.json"), "w",
+                  encoding="utf-8") as f:
+            f.write("{}")
+
+        um = UserManager()
+        um.load()
+        self.assertFalse(um.load_failed)
+        self.assertEqual(["u1"],
+                         [c["uuid"] for c in um.users[0]["credentials"]])
+
+    def test_with_no_usable_backup_the_refusal_stands(self):
+        """The backup is an addition, not a replacement: with nothing to
+        restore from, an unreadable registry still says so rather than
+        reporting an empty one, because `_actor_resolver` reads that flag to
+        decide whether the catalog may attribute anything."""
+        self.a_saved_registry()
+        for name in ("users.json", "users.json.bak"):
+            with open(os.path.join(self.tmp, name), "w",
+                      encoding="utf-8") as f:
+                f.write("{ this is not json")
+
+        um = UserManager()
+        um.load()
+        self.assertTrue(um.load_failed)
+        self.assertTrue(
+            any(n.startswith("users.json.unreadable-")
+                for n in os.listdir(self.tmp)),
+            "the corrupt bytes were not kept aside")
+
+    def test_a_missing_primary_is_restored_from_the_backup(self):
+        """**The recovery path opens this window itself.** `_set_aside`
+        renames the damaged primary before `save()` rewrites it, so an
+        interruption or a failed write between those two leaves only the
+        backup on disk. The guard that consults the backup sat under
+        `if os.path.exists(path)`, so the next launch skipped it, took the
+        first-run path, and `save()` overwrote the one remaining copy of the
+        user's servers -- the loss the backup exists to prevent, reached
+        through the recovery path, which is the same shape as the `{}` case
+        two tests above.
+        """
+        self.a_saved_registry()
+        os.remove(os.path.join(self.tmp, "users.json"))
+
+        um = UserManager()
+        um.load()
+        self.assertFalse(
+            um.load_failed,
+            "a registry restored from its backup must not report itself "
+            "unreadable")
+        self.assertEqual(
+            ["u1"], [c["uuid"] for c in um.users[0]["credentials"]],
+            "the saved login did not come back from the backup")
+        self.assertEqual(
+            ["u1"],
+            [c["uuid"] for c in
+             self.read_users_json()["users"][0]["credentials"]],
+            "the recovered registry was not written back")
+
+    def test_a_registry_that_parses_to_nobody_is_damage_not_a_first_run(self):
+        """The second damage case the block's own comment names, and
+        `load_failed` was set only for the first.
+
+        `{"users": []}` parses, so it reached neither the restore branch nor
+        the `data is None` refusal: it fell through to the first-run
+        migration, and `save()` rewrote `users.json` **and** its backup with a
+        default profile. `load_failed` stayed False, so
+        `sync.manager._registry_unreadable()` answered False and
+        `SyncManager.start()` migrated the catalog with a resolver that
+        answers None for every login -- the precise condition R12 and
+        `_actor_resolver`'s "cannot ask, so has not been told nobody"
+        distinction exist to make unreachable.
+        """
+        self.a_saved_registry()
+        for name in ("users.json", "users.json.bak"):
+            with open(os.path.join(self.tmp, name), "w",
+                      encoding="utf-8") as f:
+                f.write('{"active": null, "users": []}')
+
+        um = UserManager()
+        um.load()
+        self.assertTrue(
+            um.load_failed,
+            "a registry that parses to nobody reported itself readable, so "
+            "the catalog would migrate with a resolver that names nobody")
+        self.assertTrue(
+            any(n.startswith("users.json.unreadable-")
+                for n in os.listdir(self.tmp)),
+            "the damaged registry was not kept aside")
+
+    def test_a_first_run_with_neither_file_is_still_a_first_run(self):
+        """The negative control the two above need. "Damaged" is about a file
+        that is *there* and unusable; no registry at all is the ordinary
+        first launch, and it must still migrate `cred.json` rather than
+        refusing to start."""
+        self.write_cred_json([{"Name": "Casper", "Id": "srv1", "uuid": "u1"}])
+        um = UserManager()
+        um.load()
+        self.assertFalse(um.load_failed, "a first run reported itself broken")
+        self.assertEqual(["u1"],
+                         [c["uuid"] for c in um.users[0]["credentials"]])
+
+    def test_a_primary_that_could_not_be_written_does_not_advance_the_backup(
+            self):
+        """The invariant the two writes exist to keep: never both bad. If the
+        real file did not land, the copy must still hold the payload that
+        did."""
+        self.a_saved_registry()
+        with open(self.backup_path(), encoding="utf-8") as f:
+            before = json.load(f)
+
+        um = UserManager()
+        um.load()
+        um.add_user("Second")                       # saves; still fine
+        with mock.patch.object(UserManager, "_write_durably",
+                               return_value=False):
+            um.add_user("Third")
+
+        with open(self.backup_path(), encoding="utf-8") as f:
+            after = json.load(f)
+        self.assertEqual(
+            2, len(after["users"]),
+            "the backup advanced past a save that never landed")
+        self.assertNotEqual(before, after)          # the good save did land
+
+
 class KnownServersTest(UserManagerTestBase):
     def test_known_servers_deduped_across_users(self):
         self.write_cred_json([
@@ -184,6 +417,49 @@ class KnownServersTest(UserManagerTestBase):
         um = self.fresh()
         self.assertEqual(um.public_state()["known_servers"],
                          [{"address": "http://s", "name": "S"}])
+
+
+class ServerNameTest(UserManagerTestBase):
+    """What to call a server on screen, from any saved credential.
+
+    Exists for one caller: two servers can hold a playlist with the same id
+    **and the same name**, because Jellyfin derives the id from the name, so
+    the offline library's two tiles need telling apart by something.
+    """
+
+    def test_the_credentials_name_wins(self):
+        self.write_cred_json([{"uuid": "a", "Id": "SRV",
+                               "address": "http://home:8096", "Name": "Home"}])
+        self.assertEqual(self.fresh().server_name_for("SRV"), "Home")
+
+    def test_the_address_is_the_fallback(self):
+        """A server that never told us a name still has somewhere it lives."""
+        self.write_cred_json([{"uuid": "a", "Id": "SRV",
+                               "address": "http://home:8096"}])
+        self.assertEqual(self.fresh().server_name_for("SRV"),
+                         "http://home:8096")
+
+    def test_an_unknown_server_is_none_and_not_its_id(self):
+        """A raw ServerId on a tile is worse than an unqualified one, so the
+        caller is handed nothing to put there rather than the id."""
+        self.write_cred_json([{"uuid": "a", "Id": "SRV", "Name": "Home"}])
+        um = self.fresh()
+        self.assertIsNone(um.server_name_for("SOMEWHERE-ELSE"))
+        self.assertIsNone(um.server_name_for(None))
+
+    def test_it_spans_profiles(self):
+        """Like `server_id_for`, and for its reason: the download catalog is
+        one store per machine, so a row can belong to a server only another
+        local profile has a login for."""
+        self.write_cred_json([{"uuid": "a", "Id": "MINE", "Name": "Mine"}])
+        um = self.fresh()
+        kid = um.add_user("Kids")
+        um.set_active(kid["id"])
+        um.set_active_credentials([{"uuid": "b", "Id": "THEIRS",
+                                    "Name": "Theirs"}])
+        self.assertEqual(um.server_name_for("MINE"), "Mine",
+                         "the other profile's server could not be named")
+        self.assertEqual(um.server_name_for("THEIRS"), "Theirs")
 
 
 class PinTest(UserManagerTestBase):
