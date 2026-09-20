@@ -49,6 +49,9 @@ AGNOSTIC = [
     "tests.integration.test_clients_concurrency",
     "tests.integration.test_sync_manager_races",
     "tests.integration.test_download_relocate",
+    # The startup sweep, where it really deletes: what survives on disk when
+    # the download folder also holds files the user put there.
+    "tests.integration.test_store_sweep",
     "tests.integration.test_syncplay_generation",
     "tests.integration.test_single_instance_multiproc",
 ]

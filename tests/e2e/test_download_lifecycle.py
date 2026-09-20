@@ -277,5 +277,80 @@ class TwoAccountsDoNotLeakTest(_DownloadCase):
         self.assertIn((self.server_id, self.bob), actors)
 
 
+@_e2e.require_server
+class MusicDownloadsToolTest(_DownloadCase):
+    """Audio is the other download shape, and it was the one with no
+    end-to-end coverage at all.
+
+    It is not a video with a different extension. `Played` on a track is the
+    only progress signal Jellyfin gives for music -- the server declines to
+    count a short track as a play, so `PlayCount` and the resume position are
+    legitimately zero on something finished many times -- and a download that
+    keyed "does this have progress" on either would make every music download
+    invisible to it. The download path itself has no such quirk, which is
+    exactly why it is worth asserting rather than assuming.
+    """
+
+    def setUp(self):
+        # Deliberately not `_DownloadCase.setUp`'s smallest *video*.
+        unittest.TestCase.setUp(self)
+        self.root = tempfile.mkdtemp(prefix="jms-e2e-dl-audio-")
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.m = SyncManager()
+        self.m.root = self.root
+        self.m.db = SyncDB(os.path.join(self.root, "catalog.db"))
+        self.addCleanup(self.m.db.close)
+        self.m.get_client = lambda uuid: self.session.client
+        self.item = self._smallest_track()
+
+    def _smallest_track(self):
+        best = None
+        for lib in ("Music", "Bulk Music"):
+            try:
+                items = self.session.find_all(library=lib, item_type="Audio",
+                                              fields="MediaSources")
+            except Exception:
+                continue
+            for it in items:
+                src = (it.get("MediaSources") or [{}])[0]
+                size = src.get("Size") or 0
+                if size and (best is None or size < best[0]):
+                    best = (size, it)
+        if best is None:
+            self.skipTest("no audio track with a declared size")
+        return best[1]
+
+    def test_a_track_downloads_and_the_row_agrees_with_the_file(self):
+        row = self._download_it()
+        self.assertEqual(row["status"], "complete", "the track did not download")
+        path = os.path.join(self.root, row["file_path"])
+        self.assertTrue(os.path.exists(path))
+        self.assertEqual(os.path.getsize(path), row["size_bytes"])
+        self.assertGreater(row["size_bytes"], 0)
+
+    def test_it_keeps_the_container_the_server_served(self):
+        """A track that lands without its extension is one the desktop cannot
+        route and mpv has to sniff."""
+        row = self._download_it()
+        served = ((self.item.get("MediaSources") or [{}])[0]
+                  .get("Container") or "").split(",")[0]
+        if not served:
+            self.skipTest("the server declared no container for this track")
+        self.assertEqual((row["ext"] or "").lower(), served.lower())
+        self.assertTrue(row["file_path"].lower().endswith(served.lower()))
+
+    def test_the_track_is_held_for_its_own_server(self):
+        self._download_it()
+        self.assertTrue(self.m.db.is_complete(self.item["Id"],
+                                              server_id=self.server_id))
+
+    def test_deleting_a_track_takes_its_bytes(self):
+        row = self._download_it()
+        path = os.path.join(self.root, row["file_path"])
+        self.m.delete(self.item["Id"])
+        self.assertIsNone(self.m.db.get(self.item["Id"]))
+        self.assertFalse(os.path.exists(path))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
