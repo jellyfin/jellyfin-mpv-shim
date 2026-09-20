@@ -118,6 +118,13 @@ CONTRACT = [
     # cannot disagree with, because a fake is written from the same reading
     # of the API the code is.
     "tests.e2e.test_books",
+    # A downloaded *video* -- the case the whole feature is about, and the
+    # one no other module covered. The bytes off the real endpoint, the
+    # local copy standing in for a stream while the server is still
+    # reachable (which needs a live client, so the unit tests structurally
+    # cannot ask it), two real accounts not leaking watched state into each
+    # other, and a delete that takes the files with the row.
+    "tests.e2e.test_download_lifecycle",
     # The audiobook resume rule, which is a different rule from the video
     # one and is stated in MINUTES -- so a book under ten minutes can hold
     # no position at all. Pinned because reading it wrong looks exactly
