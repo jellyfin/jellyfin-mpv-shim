@@ -32,8 +32,8 @@ owns the state too -- by adding it to `owners` with the reason.
 listed here that does not touch the attribute pre-authorises the very second
 owner this audit exists to catch: the day that method does reach the state,
 nothing is reported, because the name is already on the list.
-`tests/test_no_second_owner.py` fails on any such name -- `_active_item`
-shipped with two.
+`tests/test_no_second_owner.py` fails on any such name -- the download
+claim shipped with two.
 
 **A `scope` is a file or a directory, and it has to be as wide as the object
 is.** `SyncManager` is one class in one file, so the file is the whole of it.
@@ -99,16 +99,62 @@ OWNED = [
     ),
     Owned(
         scope="sync/manager.py",
-        attr="_active_item",
+        attr="_active",
         owners=("sync/manager.py:__init__",
-                "sync/manager.py:_download",
-                "sync/manager.py:_cancel_if_active",
-                "sync/manager.py:relocate"),
-        why="Which item the worker owns. A second writer means a delete "
-            "either yanks files out from under an open write or misses the "
-            "in-flight item entirely. A reader wanting "
+                # Takes and gives up one worker's claim. Both require
+                # `_active_lock` because they sit inside larger critical
+                # sections.
+                "sync/manager.py:_claim_active",
+                "sync/manager.py:_release_active",
+                # The two readers, which take the lock themselves. Nothing
+                # else may ask: `relocate` wants "is anything live" and
+                # `_open_and_run` wants "which items are live", and both
+                # used to read the state and get it wrong in their own way
+                # while two workers were running.
+                "sync/manager.py:_active_ids",
+                "sync/manager.py:_cancel_if_active"),
+        why="Which item each live worker owns, keyed by generation. A "
+            "second writer means a delete either yanks files out from under "
+            "an open write or misses the in-flight item entirely -- and it "
+            "was one slot, which could not represent the two live workers "
+            "`relocate`'s refusal path creates. A reader wanting "
             "\"what is downloading\" asks the catalog, as `state` does "
             "(`STATUS_DOWNLOADING`), rather than reaching in here.",
+    ),
+    Owned(
+        scope="clients.py",
+        attr="_server_on_lan",
+        owners=("clients.py:__init__",
+                # The only writer, and it runs on a probe thread rather than
+                # on the connect that asked, so a reader reaching past
+                # `server_is_local` is reading state a background worker is
+                # writing.
+                "clients.py:_finish_lan_probe",
+                # Forgets the answer with the credential, and with the
+                # profile. The one place all three per-uuid dicts are dropped,
+                # so their lifetimes cannot drift apart again.
+                "clients.py:_forget_server_state",
+                "clients.py:server_is_local"),
+        why="Whether a server is on this machine's own network. Three "
+            "answers, not two -- absent means nobody has asked -- so a "
+            "reader that treats a missing entry as False tells a LAN user "
+            "their server is on the internet. Anyone wanting the answer "
+            "asks `server_is_local`; anyone wanting it *resolved* must not "
+            "reach for the resolver, which is unbounded (see "
+            "`utils.resolved_host_is_private`).",
+    ),
+    Owned(
+        scope="clients.py",
+        attr="_lan_probe",
+        owners=("clients.py:__init__",
+                "clients.py:_start_lan_probe",
+                "clients.py:_finish_lan_probe",
+                "clients.py:_forget_server_state"),
+        why="Which locality lookup is outstanding, as (token, address). It "
+            "is doing two jobs at once and both break quietly if a fourth "
+            "site writes it: presence is what stops N reconnects against a "
+            "stuck resolver leaving N threads, and the token is how a slow "
+            "answer from an older connect learns it has been superseded.",
     ),
     Owned(
         scope="mpvtk_browser/thumbnails.py",
@@ -131,16 +177,19 @@ OWNED = [
         scope="mpvtk_browser/",
         attr="_sync_path",
         owners=("mpvtk_browser/app.py:__init__",
+                "mpvtk_browser/app.py:_drop_abandoned_sync_path",
                 "mpvtk_browser/settings/general.py:_setting_row"),
         why="The download folder the settings form is showing, mirrored off "
-            "the widget so the row can read it back. It is never cleared, "
-            "and it WINS over the saved setting the visible field was drawn "
-            "from -- so a second reader anywhere in the browser is reading a "
-            "value the user may have abandoned, and acting on it moves the "
-            "download store recursively. Scoped to the whole browser "
-            "because it is one `self` across a dozen mixin modules. "
-            "`docs/do-not-fix.md` F42 is this dict, and states why the "
-            "obvious repair is wrong.",
+            "the widget so the row can read it back, and it WINS over the "
+            "saved setting the visible field was drawn from -- so a second "
+            "reader anywhere in the browser is reading a value the user may "
+            "have abandoned, and acting on it moves the download store. "
+            "Scoped to the whole browser because it is one `self` across a "
+            "dozen mixin modules. It used never to be cleared at all "
+            "(`docs/do-not-fix.md` F42); `_drop_abandoned_sync_path` is now "
+            "the single clearer and is listed here so it stays single -- a "
+            "second one would have to decide the same thing on a different "
+            "cadence, which is the shape the entry was written about.",
     ),
     Owned(
         scope="mpvtk_browser/",
@@ -150,15 +199,20 @@ OWNED = [
                 "mpvtk_browser/auth.py:_use_known_server",
                 "mpvtk_browser/auth.py:_quick_connect_to",
                 "mpvtk_browser/auth.py:_start_quick_connect",
-                "mpvtk_browser/auth.py:_do_login"),
+                "mpvtk_browser/auth.py:_do_login",
+                "mpvtk_browser/auth.py:show_login"),
         why="The Add Server form's three fields, `pass` among them, held in "
-            "cleartext for as long as the process runs: three sites set it "
-            "and none clears it, so the form re-seeds with the last "
+            "cleartext for as long as the process runs: the sites that set "
+            "it mostly do not clear it, so the form re-seeds with the last "
             "password typed. Contrast `_pin`, whose one dict IS cleared "
             "(`auth.py` sets `_pin['pin'] = ''`) -- the same rule, written "
             "at one of two sites, which is this repo's recurring shape. "
-            "Six owners is a weak scope and it is the honest one: the "
-            "check here is that a SEVENTH reader of a cleartext password "
+            "`show_login` is the exception and the pattern to copy: opening "
+            "the form to re-authenticate a server seeds the address and the "
+            "username and blanks `pass`, so that one entrance cannot show a "
+            "password carried over from another server's login. "
+            "Seven owners is a weak scope and it is the honest one: the "
+            "check here is that an EIGHTH reader of a cleartext password "
             "has to say so out loud.",
     ),
     Owned(

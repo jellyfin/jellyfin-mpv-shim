@@ -48,6 +48,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
 AGNOSTIC = [
     "tests.integration.test_clients_concurrency",
     "tests.integration.test_sync_manager_races",
+    "tests.integration.test_download_relocate",
     "tests.integration.test_syncplay_generation",
     "tests.integration.test_single_instance_multiproc",
 ]

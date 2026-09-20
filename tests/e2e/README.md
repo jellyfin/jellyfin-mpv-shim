@@ -114,6 +114,28 @@ not mean right-click is covered everywhere; see `_interact`.
 
 ## Things that are easy to get wrong
 
+**A whole suite that fails on timing, against a server that answers
+correctly: run the `Optimize database` scheduled task.** Until it has run,
+SQLite has no statistics, picks a bad plan, and **every query whose result
+contains a folder costs ~4s instead of ~0.03s** — Series, Season, BoxSet and
+MusicAlbum alike. Measured 2026-09-11 on a freshly built QA server; running
+the task takes about a second and fixes all of them.
+
+The shape is distinctive enough to recognise without re-deriving it. The cost
+is flat, so one folder and twenty cost the same; it is absent from queries
+returning only leaf items (eight episodes, 10-40ms); `EnableUserData=false`
+removes it entirely; the server bills the time to itself in
+`X-Response-Time-ms`; and it reproduces on every build against the same
+library while never appearing on a server that has been up a while. That last
+part is because the task runs itself within six hours, so this only ever bites
+a server somebody just built.
+
+A series screen asks two such questions in sequence, so it takes ~8.5s to
+arrive, which is what turns a ten-second wait sized for a *repaint* into a
+failure that names the mouse. `stdjflib` now runs the task on spin-up, so a
+server from a current checkout will not show this; a server provisioned some
+other way still can. Do not go looking in the client.
+
 **The two readers sit in different tiers, and it is not arbitrary.** An epub
 page is *drawn* — Pillow makes a bitmap, the browser pushes it like a tile
 strip — so `test_route_walk` opens one with no player in the process. A comic
@@ -344,6 +366,24 @@ epoch, nothing depends on wall-clock time or `hash()`).
 | `One frame` | Test Media | duration rounds to zero; progress bars divide by it |
 | `Bulk *` | — | ~1000 items each: paging, virtual scroll, thumbnail pressure |
 
-Twelve test accounts (password `stdjflib`, except `qa-nopassword`) cover the
-policy paths — `qa-restricted`, `qa-nodownload`, `qa-noplayback`, `qa-kid`,
-`qa-onesession` and the rest. `./stdjflib.py accounts` explains each one.
+Twelve test accounts cover the policy paths — `qa-restricted`,
+`qa-nodownload`, `qa-noplayback`, `qa-kid`, `qa-onesession` and the rest.
+`./stdjflib.py accounts` explains each one.
+
+**Passwords are no longer one constant, and `qa-admin`'s is not guessable.**
+An administrator can install plugins, which is code execution on the host, and
+Jellyfin answers any origin and checks no `Host` header — so a QA server
+sitting on a developer's machine with a known admin password was a way into
+that machine for any page a local browser happened to load. stdjflib now
+randomises `qa-admin`'s password per server state, publishes it in a mode-0600
+file keyed by port (`$TMPDIR/stdjflib-$UID/servers/<port>.json`), and binds to
+127.0.0.1 only. Everybody else is still `stdjflib`, and `qa-nopassword` still
+has none.
+
+Nothing in the suite spells a password: `tests/e2e/_accounts.py:password_for`
+reads that file, and `Session` calls it once its address is known — which
+server is being asked is half the answer, since the filter matrix holds
+sessions to two at once on different ports. A run that cannot see the file
+(the Windows VM reaches the server over the network) passes
+`JMS_E2E_ADMIN_PASSWORD`; the rest resolve from the constants. Serve with
+`--listen 192.168.122.1` to let that VM reach it at all.
