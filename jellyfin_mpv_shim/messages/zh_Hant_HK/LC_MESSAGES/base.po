@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-18 06:30+0000\n"
-"Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
+"PO-Revision-Date: 2026-09-20 07:38+0000\n"
+"Last-Translator: Jacky He <hekinghung@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
 "Language: zh_Hant_HK\n"
@@ -1397,7 +1397,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "削峰 (無色調映射)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1702,7 +1702,7 @@ msgstr "去色帶 (Debanding)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "HDR 色調映射"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -2050,6 +2050,9 @@ msgid ""
 "is the reference curve, and Clip is what to try if highlights look grey "
 "rather than bright."
 msgstr ""
+"將HDR影片適配到SDR顯示器嘅方法。當HDR訊號傳輸到HDR顯示器時，此設定無效，因為"
+"此時唔會進行色調映射變更。除非您覺得HDR影片睇起來有問題，否則請保持「自動」設"
+"定；BT.2390係參考曲線，「削峰」選項用於處理高光部分睇起來發灰而非明亮嘅情況。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2719,11 +2722,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
-msgstr ""
+msgstr "無法複製至剪貼板。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pasting from the clipboard is not available."
-msgstr ""
+msgstr "無法從剪貼板黏貼。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
