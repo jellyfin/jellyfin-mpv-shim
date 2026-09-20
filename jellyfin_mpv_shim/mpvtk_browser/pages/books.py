@@ -544,7 +544,7 @@ class BookPage(Page):
             # time because it stats a file, and render runs per frame.
             state = (None, None)
             try:
-                state = self.ctx.player.book_download_state(iid)
+                state = self.ctx.player.book_download_state(iid, srv)
             except Exception:
                 log.debug("book download state unavailable", exc_info=True)
             return {"item": item, "state": state}
@@ -573,7 +573,11 @@ class BookPage(Page):
         if not item.get("Id"):
             return
         try:
-            data["state"] = self.ctx.player.book_download_state(item["Id"])
+            # The route's server, not the item's `ServerId`: this hook can
+            # fire while the browser is on a different server, and the state
+            # being refreshed is the one this screen drew.
+            data["state"] = self.ctx.player.book_download_state(
+                item["Id"], self.route.get("server") or self.ctx.server)
         except Exception:
             log.debug("book download state unavailable", exc_info=True)
 

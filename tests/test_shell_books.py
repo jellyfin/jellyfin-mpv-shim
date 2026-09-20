@@ -1692,7 +1692,7 @@ class TestFinishedBookStillDownloads(unittest.TestCase):
         calls = []
 
         class Ctl:
-            def book_download_state(self, _iid):
+            def book_download_state(self, _iid, _server):
                 return (None, None)
 
             def download_enqueue(self, server, iid, kind,
