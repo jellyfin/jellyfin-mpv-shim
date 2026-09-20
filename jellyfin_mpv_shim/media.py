@@ -1054,7 +1054,12 @@ class Video(object):
         try:
             from .sync.manager import syncManager
 
-            syncManager.mirror_watched(self.item_id, watched)
+            from .clients import clientManager
+
+            # Whose mark it is: the login this item is playing from.
+            syncManager.mirror_watched(
+                self.item_id, watched,
+                server_uuid=clientManager.uuid_for_client(self.client))
         except Exception:
             log.debug("Could not mirror the watched mark for %s",
                       self.item_id, exc_info=True)
