@@ -50,7 +50,9 @@ INTERNAL = {
     "music_volume",          # persisted playback volume, per media kind
     "video_volume",
     "language_config",       # structured; has its own prose section
-    "auto_download_servers", # managed from the Downloads settings UI
+    # Legacy: adopted into users.json at load and cleared (R14). The live
+    # control is the per-server checkbox in the Servers tab.
+    "auto_download_servers",
 }
 
 # Settings documented as a group rather than one entry each, because the

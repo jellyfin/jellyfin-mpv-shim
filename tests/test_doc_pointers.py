@@ -36,6 +36,11 @@ CITE = re.compile(r'(?<![\w./-])((?:[A-Za-z_][\w-]*/)+[A-Za-z_][\w.-]*\.md)')
 #: were reached by nothing, on the strength of the bare-prose reading the
 #: comment above used to carry.
 NAMED_AS_GONE = {"HEADLESS.md"}
+# `HANDOFF_REVIEW_2026-09-11.md` was excused here too. Its only citation was
+# in the 2026-09-12 postmortem, and the round documents left the tree on
+# 2026-09-20 (`.git/diagnose/postmortems/`), so the exemption stopped covering
+# anything -- which is exactly what the inverse test is for, and it is what
+# caught this rather than anybody noticing.
 
 #: Documents belonging to ANOTHER repository, named with the repo they
 #: live in. Not ours to keep in step, and their absence here is not rot.

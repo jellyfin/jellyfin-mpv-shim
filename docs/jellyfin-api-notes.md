@@ -694,6 +694,42 @@ offers one that 403s.
 **An absent policy key means an older server with no such setting — fail
 open.**
 
+## 13b. An item id is a hash of the path, and nothing else
+
+**Two servers indexing the same filesystem path hand out byte-identical item
+ids.** Not a rule of thumb — the derivation, measured against 12.0.0 on four
+item types (Movie, Episode, Season, Photo):
+
+```python
+import hashlib
+
+def item_id(dotnet_type, path):
+    d = hashlib.md5((dotnet_type + path).encode("utf-16-le")).digest()
+    # .NET lays a Guid's first three fields out little-endian, so the hex
+    # string is not the plain digest. This is the whole trick.
+    return (d[3::-1] + d[5:3:-1] + d[7:5:-1] + d[8:]).hex()
+
+item_id("MediaBrowser.Controller.Entities.Movies.Movie", "/media/Some Film.mkv")
+```
+
+The type names are the .NET class names: `...Entities.Movies.Movie`,
+`...Entities.TV.Episode`, `...Entities.TV.Season`, `...Entities.Photo`.
+
+**There is no server, library or install component in it.** So two servers
+over one NAS mount, or two Docker instances both using `/media`, produce the
+same ids — and in the second case for *different files*. Which is why the
+download catalog only answers "we have this" for the server that owns the
+row: an unscoped answer can serve one server's film for another's.
+`docs/offline-sync.md` 3b for the rule, `docs/do-not-fix.md` F43 for what
+is still not possible.
+
+Two consequences worth keeping separate:
+
+- **Same path, same bytes** (a shared mount) — the collision is benign in
+  content and wrong only in bookkeeping.
+- **Same path, different bytes** (two installs with the same internal mount
+  point) — the collision serves the wrong film, silently.
+
 ## 14. Item types, sorting, pagination and other shapes
 
 - **`Type` depends on which resolver ran; `MediaType` is the stable axis.** The
