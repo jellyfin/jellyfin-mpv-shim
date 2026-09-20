@@ -4,7 +4,11 @@ from .conf import settings
 from . import conffile
 from .users import userManager
 from getpass import getpass
-from .constants import CAPABILITIES, CLIENT_VERSION, USER_APP_NAME, USER_AGENT, APP_NAME
+from .constants import (CAPABILITIES, CLIENT_VERSION, USER_APP_NAME,
+                        USER_AGENT, APP_NAME, CONNECT_BUSY,
+                        CONNECT_SIGNED_OUT, CONNECT_UNREACHABLE,
+                        REAUTH_WRONG_SERVER)
+from .utils import resolved_host_is_private
 from .i18n import _
 
 import os.path
@@ -177,8 +181,31 @@ class ClientManager(object):
         # Server uuids the user removed. A health-check tick that captured the
         # credentials list before the removal could otherwise re-register the
         # deleted server (a zombie session that outlives its credential).
-        # Cleared on an explicit re-login with the same uuid (force_unique).
+        # Cleared by a re-login that keeps the uuid (`replacing_uuid`), and
+        # by a profile switch.
         self._removed_uuids = set()
+        # uuid -> why the last connect attempt failed, one of the
+        # CONNECT_* constants. The registry answers "is this server
+        # connected"; this answers the question the UI has to put to the
+        # user, which is what to press. There is no third state: a uuid
+        # absent from here has either connected or not been tried, and both
+        # mean "nothing to report".
+        self._connect_failures = {}
+        #: uuid -> is this server on our own network? Filled in when a
+        #: connect succeeds, because that is the moment the answer is both
+        #: cheap (the name was resolved a moment ago, so it is in the OS
+        #: cache) and *true* -- a laptop that moves between home and away
+        #: gets a different answer, and it gets it on the connect that the
+        #: move forces anyway. Absent means unknown, which the UI falls back
+        #: from rather than guesses at.
+        self._server_on_lan = {}
+        #: uuid -> (token, address) of the locality lookup whose answer we
+        #: will accept. Present means one is in flight, which is what keeps
+        #: reconnects against a stuck resolver from leaving a thread each;
+        #: the token is what lets a slow answer from an older connect
+        #: recognise that it has been superseded. See _start_lan_probe.
+        self._lan_probe = {}
+        self._lan_seq = 0
         # Set on stop(); lets reconnect/retry sleeps end immediately instead
         # of holding shutdown hostage for up to their full backoff interval.
         self._stop_event = threading.Event()
@@ -234,25 +261,45 @@ class ClientManager(object):
                 return cred
         return None
 
+    @staticmethod
+    def _abandon(client):
+        """Tear down a client we built and are not going to keep.
+
+        A `JellyfinClient` owns a `requests.Session` from construction, and a
+        Quick Connect exchange has been talking over it -- so a refusal that
+        simply returns leaks one per attempt, on exactly the paths a user
+        retries. Safe on a client that never started anything: the websocket,
+        the session and the ping poller each no-op when absent, and
+        `client_factory` passes `allow_multiple_clients`, so this cannot reach
+        the apiclient's process-wide websocket stop.
+        """
+        try:
+            client.stop()
+        except Exception:
+            log.debug("could not stop an abandoned client", exc_info=True)
+
     def _update_account(self, server: str, username: str, password: str):
-        """Update an existing account by re-authenticating with new credentials."""
+        """Sign a saved account back in from the CLI, keeping its identity.
+
+        **Not remove-then-add**, which is what this was: it deleted the
+        credential and saved that *before* trying the password, so a typo
+        destroyed a working login -- and a success minted a fresh uuid, the key
+        the download catalog's `server_uuid` column and the auto-download
+        allow-list are written in. `reauthenticate` is the same gesture done
+        properly, and the browser has used it since it existed; this was the
+        last site on the old path. CX4.
+
+        False is a log line and nothing else: `cli_connect` clears
+        `cli_creds` either way, so a failed update does **not** fall through to
+        adding the server -- which is the point, since the credential it would
+        have added is the one that is already there.
+        """
         existing = self._find_existing_credential(server, username)
         if existing is None:
             return False
-
-        # Disconnect the old client
-        self._disconnect_client(uuid=existing["uuid"])
-        # Remove the old credential. Rebuild-and-rebind under the switch lock:
-        # an unlocked filter racing another thread's append would drop the
-        # appended server from the rebound list.
-        with self._switch_lock:
-            self.credentials = [
-                c for c in self.credentials if c["uuid"] != existing["uuid"]
-            ]
-            self.save_credentials()
-
-        # Re-login with updated credentials
-        return self.login(server, username, password)
+        ok, _reason = self.reauthenticate(existing["uuid"], username, password,
+                                          address=server)
+        return ok
 
     def _cli_quick_connect(self, server: str):
         """Run a Quick Connect login from the terminal, printing the code."""
@@ -543,9 +590,76 @@ class ClientManager(object):
 
         return "".join(filter(bool, (protocol, ipv6_host, ipv4_host, port, path)))
 
+    @staticmethod
+    def _answering_server(client):
+        """The server dict a connect has just filled in, or ``{}``.
+
+        ``connect_to_address`` fetches ``/System/Info/Public`` and writes
+        ``Id``, ``Name`` and ``Version`` into the credential store, so which
+        server is on the other end is known before any password or Quick
+        Connect code is exchanged. The same dict ``_finalize_login`` reads
+        later, which is what keeps the early and late checks comparing the
+        same thing.
+        """
+        try:
+            return (client.auth.credentials.get_credentials()
+                    .get("Servers") or [{}])[0]
+        except Exception:
+            log.debug("could not read the server that answered",
+                      exc_info=True)
+            return {}
+
+    @staticmethod
+    def _replaces_the_same_server(replacing_uuid, server, credentials):
+        """Whether re-authenticating ``replacing_uuid`` reached the server
+        that uuid already stands for.
+
+        The re-auth form lets the address be edited -- deliberately, because
+        a server that moved is what it is for -- so the answer can come from
+        a different server entirely. The uuid is what the download catalog's
+        ``server_uuid`` column and the auto-download allow-list are written
+        in, and what ``UserManager.server_id_for`` resolves to the catalog's
+        content scope, so handing it over attributes every download from the
+        old server to one that never had it.
+
+        One rule, one function, three application points, and the ranking
+        between them matters. The call inside ``_finalize_login`` is the
+        **authority**: it is the one holding the switch lock, the one that
+        knows which user the credential is being filed under, and the one
+        standing between the answer and the write. Searching the *active*
+        user's list there is what refused legitimate re-auths and got the
+        first attempt reverted, because a login that outlived a user switch
+        is filed under its initiator.
+
+        The two calls in the re-auth entry points run earlier, against the
+        credential those already looked up, and exist for what happens
+        before the write rather than to protect it: they keep a password or
+        a Quick Connect approval from being spent on a server that is about
+        to be refused, and they are where the refusal can say *why*.
+
+        Says yes whenever it cannot prove otherwise -- the credential is
+        gone, or either side records no ``Id``. Refusing there would lock a
+        user out of a server with no way back except remove-and-re-add,
+        which mints a fresh uuid: the loss this whole path exists to
+        prevent. The replacement writes the ``Id``, so a credential saved
+        before it was kept becomes checkable after one re-auth.
+        """
+        prior = next((c for c in credentials or ()
+                      if c.get("uuid") == replacing_uuid), None)
+        if prior is None:
+            return True
+        old_id, new_id = prior.get("Id"), server.get("Id")
+        if not old_id or not new_id or old_id == new_id:
+            return True
+        log.error(
+            "Refusing to sign back in to %s: that address answered as server "
+            "%s, not %s. Add it as a new server instead.",
+            replacing_uuid, new_id, old_id)
+        return False
+
     def _finalize_login(
-        self, client: "JellyfinClient", username: str, force_unique: bool = False,
-        owner_id=None,
+        self, client: "JellyfinClient", username: str,
+        owner_id=None, replacing_uuid=None,
     ):
         """Stash a freshly-authenticated client into our credential store.
 
@@ -554,22 +668,53 @@ class ClientManager(object):
         ``owner_id`` is the local user who initiated the login; if the active
         user changed while the (slow) login ran, the credential is filed under
         that user instead of leaking into whoever is active now.
+
+        ``replacing_uuid`` re-authenticates a server that is already saved: the
+        new token replaces the old credential *in place*, under the identity
+        the rest of the app has written down (see ``reauthenticate``). Shared
+        with the add-a-server path rather than written beside it, because
+        everything else this does -- the user-switch handover, the removed-uuid
+        interaction, tearing the client down again if a switch slipped in --
+        applies identically and is not obvious from either call site.
         """
         credentials = client.auth.credentials.get_credentials()
         server = credentials["Servers"][0]
-        if force_unique:
-            server["uuid"] = server["Id"]
+        if replacing_uuid:
+            # Checked below, once the owner is known -- see
+            # _replaces_the_same_server. It cannot be checked here: which
+            # credential this replaces depends on which user it is filed
+            # under, and that is not decided until the switch lock is held.
+            server["uuid"] = replacing_uuid
         else:
+            # **Always a fresh uuid4.** There used to be a `force_unique`
+            # branch here that reused the server's own `Id`, and its removal
+            # is what makes "a credential uuid names exactly one profile and
+            # one login" true rather than merely likely: nothing passed it, but
+            # four comments across the tree reasoned from the possibility of a
+            # collision it could mint.
             server["uuid"] = str(uuid.uuid4())
         server["username"] = username
-        if force_unique and server["Id"] in self.clients:
-            return True
         with self._switch_lock:
-            if owner_id is not None and owner_id != userManager.active_id:
-                # The user switched while we were logging in. Persist the
-                # credential to the initiating user (it connects next time
-                # they're active) and don't register a live client under the
-                # wrong user's session.
+            # Did the user switch while we were logging in? If so the
+            # credential belongs to whoever started it, and that is also the
+            # list the re-auth check below has to read. Both re-auth entry
+            # points (password and Quick Connect) pass owner_id, so this
+            # covers both.
+            handed_off = (owner_id is not None
+                          and owner_id != userManager.active_id)
+            if replacing_uuid and not self._replaces_the_same_server(
+                    replacing_uuid, server,
+                    userManager.credentials_of(owner_id) if handed_off
+                    else self.credentials):
+                # The entrance stops the client -- `login`,
+                # `reauthenticate` and `quick_connect_wait` each tear down the
+                # one they built. This used to claim there was nothing to tear
+                # down, which was wrong about the session it is holding open.
+                return False
+            if handed_off:
+                # Persist the credential to the initiating user (it connects
+                # next time they're active) and don't register a live client
+                # under the wrong user's session.
                 log.warning(
                     "Login finished after a user switch; filing the server "
                     "under the original user."
@@ -577,13 +722,32 @@ class ClientManager(object):
                 return userManager.append_credentials_for(
                     owner_id, clean_credentials_for_save([server])[0]
                 )
-            # An explicit login supersedes any earlier removal of this uuid
-            # (force_unique reuses the server Id as uuid across add/remove
-            # cycles).
+            # An explicit login supersedes any earlier removal of this
+            # uuid, which a re-authentication keeps (`replacing_uuid`).
             with self._client_lock:
                 self._removed_uuids.discard(server["uuid"])
-            self.credentials.append(server)
+            replaced = False
+            if replacing_uuid:
+                # In place, keeping the list position: the Servers tab draws
+                # in this order and a re-auth is not a reordering. Appending
+                # instead left TWO credentials under one uuid -- and the
+                # duplicate is invisible in the switcher, which keys by uuid,
+                # while every save writes both and every connect races them.
+                for index, cred in enumerate(self.credentials):
+                    if cred.get("uuid") == replacing_uuid:
+                        self.credentials[index] = server
+                        replaced = True
+                        break
+            if not replaced:
+                self.credentials.append(server)
             self.save_credentials()
+        if replacing_uuid:
+            # The old client is still registered under this uuid, and
+            # `connect_client` answers True for an already-registered one
+            # without looking at the credential -- so the stale handle, with
+            # the token the server has stopped accepting, would survive the
+            # re-authentication that was supposed to replace it.
+            self._disconnect_client(uuid=replacing_uuid)
         self.connect_client(server)
         if owner_id is not None:
             with self._switch_lock:
@@ -595,19 +759,24 @@ class ClientManager(object):
                     self._disconnect_client(server=server)
         return True
 
-    def login(
-        self, server: str, username: str, password: str, force_unique: bool = False
-    ):
+    def login(self, server: str, username: str, password: str):
+        """Add a server under a **new** identity. `reauthenticate` is the one
+        that signs back in to a server already saved, keeping its uuid."""
         server = self._normalize_server(server)
         owner_id = userManager.active_id
 
         client = self.client_factory()
-        client.auth.connect_to_address(server)
-        result = client.auth.login(server, username, password)
-        if "AccessToken" in result:
-            return self._finalize_login(client, username, force_unique,
-                                        owner_id=owner_id)
-        return False
+        try:
+            client.auth.connect_to_address(server)
+            result = client.auth.login(server, username, password)
+            if "AccessToken" not in result:
+                return False
+            return self._finalize_login(client, username, owner_id=owner_id)
+        finally:
+            # Spent either way: this client only ever carried the token as far
+            # as the credential store, and the one that goes in the registry is
+            # built by `connect_client`. CR11.
+            self._abandon(client)
 
     def quick_connect_initiate(self, server: str):
         """Start a Quick Connect request against ``server``.
@@ -619,28 +788,51 @@ class ClientManager(object):
         """
         server = self._normalize_server(server)
         client = self.client_factory()
-        client.auth.connect_to_address(server)
-        servers = client.auth.credentials.get_credentials().get("Servers")
-        if not servers:
-            raise QuickConnectError(_("Could not connect to the server."))
-        address = servers[0]["address"]
-        session = client.auth.session
+        try:
+            client.auth.connect_to_address(server)
+            servers = client.auth.credentials.get_credentials().get("Servers")
+            if not servers:
+                raise QuickConnectError(_("Could not connect to the server."))
+            address = servers[0]["address"]
+            session = client.auth.session
 
-        if not client.auth.API.quick_connect_enabled(address, session):
-            raise QuickConnectError(_("Quick Connect is not enabled on this server."))
+            if not client.auth.API.quick_connect_enabled(address, session):
+                raise QuickConnectError(
+                    _("Quick Connect is not enabled on this server."))
 
-        data = client.auth.API.quick_connect_initiate(address, session)
-        if not data:
-            raise QuickConnectError(_("Could not start Quick Connect."))
+            data = client.auth.API.quick_connect_initiate(address, session)
+            if not data:
+                raise QuickConnectError(_("Could not start Quick Connect."))
+        except Exception:
+            # The caller never sees this client -- the refusal is an exception
+            # -- so nobody else can tear it down. CR11.
+            self._abandon(client)
+            raise
 
         return client, data["Secret"], data["Code"]
 
-    def quick_connect_wait(self, client, secret: str, should_cancel=None):
+    def quick_connect_wait(self, client, secret: str, should_cancel=None,
+                           replacing_uuid=None):
         """Poll until the Quick Connect request is authorized, then log in.
 
         Returns True on success, False on timeout/cancellation/failure.
         ``should_cancel`` is an optional callable polled between attempts.
+        ``replacing_uuid`` re-authenticates a server already saved under that
+        identity rather than adding a new one -- see ``_finalize_login``.
+
+        **Takes ownership of ``client``**: it is torn down here whatever
+        happens, because the credential is what the caller wanted and the
+        registry's client is built by `connect_client`. A wait the user walked
+        away from ran for up to five minutes on that session. CR11.
         """
+        try:
+            return self._quick_connect_wait(client, secret, should_cancel,
+                                            replacing_uuid)
+        finally:
+            self._abandon(client)
+
+    def _quick_connect_wait(self, client, secret, should_cancel,
+                            replacing_uuid):
         address = client.auth.credentials.get_credentials()["Servers"][0]["address"]
         session = client.auth.session
         # The poll below can run for minutes; remember who started it so the
@@ -668,7 +860,8 @@ class ClientManager(object):
             return False
 
         return self._finalize_login(client, result["User"]["Name"],
-                                    owner_id=owner_id)
+                                    owner_id=owner_id,
+                                    replacing_uuid=replacing_uuid)
 
     def login_with_quick_connect(self, server: str, code_callback=None, should_cancel=None):
         """High-level Quick Connect login.
@@ -678,8 +871,14 @@ class ClientManager(object):
         failure; returns True/False from the wait phase.
         """
         client, secret, code = self.quick_connect_initiate(server)
-        if code_callback is not None:
-            code_callback(code)
+        try:
+            if code_callback is not None:
+                code_callback(code)
+        except Exception:
+            # `quick_connect_wait` owns the tear-down, and we are not going to
+            # reach it. CR11.
+            self._abandon(client)
+            raise
         return self.quick_connect_wait(client, secret, should_cancel=should_cancel)
 
     def validate_client(self, client: "JellyfinClient", dry_run=False, server=None):
@@ -896,12 +1095,255 @@ class ClientManager(object):
     def remove_client(self, uuid: str):
         with self._client_lock:
             self._removed_uuids.add(uuid)
+            self._forget_server_state(uuid)
         with self._switch_lock:
             self.credentials = [
                 server for server in self.credentials if server["uuid"] != uuid
             ]
             self.save_credentials()
         self._disconnect_client(uuid=uuid)
+
+    def _forget_server_state(self, uuid=None):
+        """Drop the per-uuid answers about a server: why its last connect
+        failed, whether it is on this network, and any locality lookup in
+        flight. With `uuid`, that one server; without, all of them.
+
+        One place because the three have one lifetime -- they are answers
+        *about a credential*, and the Servers tab reads all three in the window
+        between a credential list changing and the next connect landing. One of
+        them surviving that is the tab saying something untrue about a server
+        nothing has tried: "Signed out", with Sign In Again emphasised, or the
+        wrong home/away icon. CR9.
+
+        A removed-and-re-added server does get a fresh uuid, which would hide
+        the first of those -- but that is a property of `_finalize_login` and
+        not one to depend on from here, and it does nothing for the profile
+        switch, where the uuids come back.
+
+        The caller holds `_client_lock`.
+        """
+        if uuid is None:
+            self._connect_failures.clear()
+            self._server_on_lan.clear()
+            self._lan_probe.clear()
+            return
+        self._connect_failures.pop(uuid, None)
+        self._server_on_lan.pop(uuid, None)
+        self._lan_probe.pop(uuid, None)
+
+    def _record_connect_failure(self, uuid, client, server):
+        """Work out *why* a connect failed, and remember it for the UI.
+
+        The apiclient cannot be asked. `connect_to_server` answers
+        `Unavailable` both when the address does not respond and when it
+        responds and refuses our token -- the revoked-token branch
+        (`validate_authentication_token` returning nothing) falls into the
+        same return as a socket error. So the two are told apart here, by
+        asking the one endpoint that needs no credential: if the server
+        answers `/System/Info/Public`, it is up, and what it rejected was
+        the saved login.
+
+        Unauthenticated and on the apiclient's own session, so this adds no
+        request path of its own and no place for a token to leak into
+        (`docs/auth-headers.md`).
+        """
+        reason = CONNECT_UNREACHABLE
+        try:
+            if client.auth.API.get_public_info(server.get("address"),
+                                               client.auth.session):
+                reason = CONNECT_SIGNED_OUT
+        except Exception:
+            # Any failure here means we could not establish that the server
+            # is up, which is exactly what "unreachable" claims. Wrong in
+            # the direction that offers Retry rather than demanding a
+            # password the user may not need to type.
+            log.debug("Could not probe %s for a reachability verdict.",
+                      server.get("address"), exc_info=True)
+        with self._client_lock:
+            self._connect_failures[uuid] = reason
+        log.info("Server %s did not connect (%s).",
+                 server.get("Name") or server.get("address"), reason)
+
+    def connection_problem(self, uuid):
+        """Why this server is not connected, or None if nothing is wrong with
+        it as far as we know. See the CONNECT_* constants.
+
+        `CONNECT_BUSY` is answered from live state rather than from the ledger:
+        a connect in flight is not a failure, and storing it would leave the
+        verdict standing if that connect never came back. `_connecting` is the
+        same reservation that refuses the second caller, so the two answers
+        cannot disagree.
+        """
+        with self._client_lock:
+            if uuid in self.clients:
+                return None
+            if uuid in self._connecting:
+                return CONNECT_BUSY
+            return self._connect_failures.get(uuid)
+
+    def uuid_for_client(self, client):
+        """Our uuid for a live `JellyfinClient`, or None.
+
+        The registry is uuid -> client, so this is the reverse read. It is
+        the only way back from an object the media layer is holding to the
+        server it came from, and `None` for a client we do not have
+        registered -- including the fully-offline case, where there is no
+        client at all.
+        """
+        if client is None:
+            return None
+        with self._client_lock:
+            for uuid, candidate in self.clients.items():
+                if candidate is client:
+                    return uuid
+        return None
+
+    def server_is_local(self, uuid):
+        """Is this server on our own network? ``True``/``False``, or ``None``
+        when we have not connected to it and so have not asked.
+
+        Resolved rather than read off the URL, which is the only way to be
+        right about split-horizon DNS: a self-hoster's own domain answers
+        with a LAN address at home and a public one from a hotel, and the
+        address the user typed is identical in both.
+        """
+        with self._client_lock:
+            return self._server_on_lan.get(uuid)
+
+    def reauthenticate(self, uuid, username, password, address=None):
+        """Sign back in to a server we already have, keeping its identity.
+
+        **The uuid has to survive**, which is why this exists at all instead
+        of "remove it and add it again" -- the only route there was. That
+        route mints a fresh uuid, and the uuid is what the download catalog's
+        `server_uuid` column and the auto-download allow-list are written in:
+        re-adding a signed-out server therefore orphaned every download made
+        from it, from the user's point of view by deleting them, while they
+        were doing the one thing the UI offered.
+
+        Returns ``(ok, reason)``, the shape ``retry_server`` already uses: on
+        failure ``reason`` is a ``REAUTH_*`` constant or None, and it is what
+        lets the form say the address named a different server rather than
+        blaming the password.
+        """
+        with self._switch_lock:
+            existing = next((c for c in self.credentials
+                             if c.get("uuid") == uuid), None)
+        if existing is None:
+            return False, None
+        address = self._normalize_server(address or existing.get("address"))
+        owner_id = userManager.active_id
+        client = self.client_factory()
+        try:
+            client.auth.connect_to_address(address)
+            # Before the password goes out. The connect has already asked the
+            # address who it is, so a server we are going to refuse need never
+            # be handed the user's credentials on the way to being refused.
+            if not self._replaces_the_same_server(
+                    uuid, self._answering_server(client), [existing]):
+                return False, REAUTH_WRONG_SERVER
+            result = client.auth.login(address, username, password)
+            if "AccessToken" not in result:
+                return False, None
+            return bool(self._finalize_login(client, username,
+                                             owner_id=owner_id,
+                                             replacing_uuid=uuid)), None
+        finally:
+            # As in `login`, and these are the paths a user retries: a wrong
+            # address and a mistyped password. CR11.
+            self._abandon(client)
+
+    def reauthenticate_with_quick_connect(self, uuid, code_callback=None,
+                                          should_cancel=None, address=None):
+        """The passwordless half of `reauthenticate`, with the same promise
+        about the uuid and the same ``(ok, reason)`` return."""
+        with self._switch_lock:
+            existing = next((c for c in self.credentials
+                             if c.get("uuid") == uuid), None)
+        if existing is None:
+            return False, None
+        client, secret, code = self.quick_connect_initiate(
+            address or existing.get("address"))
+        # Before the code is shown, for a stronger reason than the password
+        # case: approving a Quick Connect request is something the user goes
+        # and does in that server's own web session, so a code we mean to
+        # refuse sends them somewhere else entirely to do nothing.
+        if not self._replaces_the_same_server(
+                uuid, self._answering_server(client), [existing]):
+            # Before `quick_connect_wait`, which is what would otherwise own
+            # the tear-down. CR11.
+            self._abandon(client)
+            return False, REAUTH_WRONG_SERVER
+        try:
+            if code_callback is not None:
+                code_callback(code)
+        except Exception:
+            self._abandon(client)
+            raise
+        return bool(self.quick_connect_wait(client, secret,
+                                            should_cancel=should_cancel,
+                                            replacing_uuid=uuid)), None
+
+    @staticmethod
+    def _spawn(target, name, args=()):
+        """Start a detached worker. The one place a thread is started for
+        background work here, so a test about the *decision* such a worker
+        makes can run it inline instead of racing the scheduler; the tests
+        about the concurrency itself use the real one.
+        """
+        threading.Thread(target=target, args=args, name=name,
+                         daemon=True).start()
+
+    def _start_lan_probe(self, uuid, address):
+        """Ask, off this thread, whether `address` is on our own network.
+
+        **Never on the connect path.** `getaddrinfo` takes no timeout and
+        cannot be given one -- `socket.setdefaulttimeout` does not reach it
+        on glibc and is process-global besides -- so a stalled resolver
+        asked inline holds a client that is already registered and usable,
+        keeps the uuid's in-flight reservation occupied so every other
+        connector for that server is turned away, and delays every later
+        address in the same `_connect_all` chain. To choose an icon.
+
+        One outstanding lookup per (server, address), so N reconnects
+        against a stuck resolver leave one thread rather than N. A different
+        address is a different question -- a server that moved -- so it gets
+        its own token, and the older probe finds itself superseded rather
+        than answering for an address this server no longer has.
+        """
+        with self._client_lock:
+            current = self._lan_probe.get(uuid)
+            if current is not None and current[1] == address:
+                return
+            self._lan_seq += 1
+            token = self._lan_seq
+            self._lan_probe[uuid] = (token, address)
+
+        def work():
+            self._finish_lan_probe(uuid, address, token,
+                                   resolved_host_is_private(address))
+
+        self._spawn(work, "lan-probe")
+
+    def _finish_lan_probe(self, uuid, address, token, on_lan):
+        """Record a locality answer, if it is still the one being waited on.
+
+        Two ways it may not be. The lookup can be **superseded** -- a later
+        connect for the same server at a different address -- which the
+        token settles. Or the server can be **gone**: stop, removal and a
+        user switch all take the client out of the registry, so asking
+        whether it is still there covers the three with one question.
+        """
+        with self._client_lock:
+            if self._lan_probe.get(uuid) != (token, address):
+                return
+            del self._lan_probe[uuid]
+            if uuid not in self.clients:
+                return
+            if on_lan is None:
+                self._server_on_lan.pop(uuid, None)
+            else:
+                self._server_on_lan[uuid] = on_lan
 
     def connect_client(self, server, do_retries=True):
         uuid = server["uuid"]
@@ -929,6 +1371,10 @@ class ClientManager(object):
             state = client.authenticate({"Servers": [server]}, discover=False)
             server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
             if not server["connected"]:
+                self._record_connect_failure(uuid, client, server)
+                # The verdict is read off the client first, then the client
+                # goes -- nothing registers it, so nothing else would. CR11.
+                self._abandon(client)
                 return False
 
             # Register the client immediately; the cast/remote-control session
@@ -957,8 +1403,21 @@ class ClientManager(object):
                 # would expose it under the new user, in the server list and
                 # on the home screen. Don't resurrect a client nothing can
                 # see, that was just deleted, or that is no longer ours.
+                #
+                # **No verdict recorded, deliberately.** All three of those
+                # take the server out of the UI that could ask -- the app is
+                # closing, the credential is gone, or the profile changed (and
+                # `switch_user` clears the ledger anyway). A reason filed here
+                # would be about a server nothing is looking at, keyed by a
+                # uuid another profile may hold. CR10.
                 client.stop()
                 return False
+            with self._client_lock:
+                self._connect_failures.pop(uuid, None)
+            # Off this thread: the connect is finished and the client is
+            # usable, and the only thing left is an unbounded name lookup
+            # deciding an icon. See _start_lan_probe.
+            self._start_lan_probe(uuid, server.get("address"))
             return True
         finally:
             with self._client_lock:
@@ -1029,14 +1488,21 @@ class ClientManager(object):
                 # Swap identity + credentials to the target user.
                 userManager.set_active(user_id)
                 self._adopt_active_user()
-                # A fresh user starts with a clean removal ledger; stale uuids
-                # from the previous user must not suppress its (possibly
-                # uuid-colliding) reconnects.
+                # A fresh profile starts with clean per-uuid state: a
+                # removal ledger that would suppress its reconnects, and every
+                # answer about a server from before the switch.
                 with self._client_lock:
                     self._removed_uuids.clear()
+                    self._forget_server_state()
             finally:
                 self._switching.clear()
 
+        # `connect_all` is also the catalog sweep's trigger for the new
+        # profile: it refills the connected set with this profile's uuids and
+        # the sync worker reads that edge. There was an explicit
+        # `syncManager.request_profile_sweep()` here; D1 deleted it, and the
+        # note where it used to live says why each of its three effects was
+        # unnecessary or deliberately dropped.
         self.connect_all()
         return True
 
