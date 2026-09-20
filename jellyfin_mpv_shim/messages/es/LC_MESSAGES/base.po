@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-16 16:15+0000\n"
-"Last-Translator: Alejandro Carballo <alex_1280@hotmail.es>\n"
+"PO-Revision-Date: 2026-09-21 00:20+0000\n"
+"Last-Translator: Arnau Balanzá Guerra <arnau.balanza.guerra@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -1552,10 +1552,8 @@ msgid "Medium"
 msgstr "Medio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Grande"
+msgstr "Extra grande"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
@@ -1643,9 +1641,8 @@ msgstr "Mostrar miniaturas de episodios en las páginas de detalles"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Hardware Decoding"
-msgstr "Cancelar grabación"
+msgstr "Decodificación por hardware"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
@@ -1692,10 +1689,8 @@ msgid "Storage Limit for Automatic Downloads (GB)"
 msgstr "Límite de espacio para las descargas automáticas (GB)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Eliminar servidor"
+msgstr "Elimina las descargas automáticas una vez visualizadas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
