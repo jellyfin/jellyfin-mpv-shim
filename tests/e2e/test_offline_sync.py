@@ -68,6 +68,7 @@ import shutil
 import sys
 import tempfile
 import time
+import types
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -79,6 +80,13 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 SERVER_UUID = "srv-e2e"
+#: Fallback content key, for an item the server handed out with no
+#: ``ServerId``. **Not the normal path** -- see `content_server_of`. A
+#: synthetic id used to be fine here, because the actor was resolved from
+#: the credential and only had to agree with itself. It is not fine now: the
+#: store refuses a write whose actor does not match the row, so a synthetic
+#: id is refused by every real socket and routed to by no sweep.
+SERVER_ID = "srv-e2e-id"
 
 #: Well inside the server's resume band and nowhere near either end, so a
 #: value that comes back changed has been changed by something this suite
@@ -88,17 +96,114 @@ LATER = 9 * 10_000_000
 EARLIER = 2 * 10_000_000
 
 
-def _catalog_row(item, path="x.mp4"):
+def register_credential(test, session, server_id):
+    """Make SERVER_UUID a saved login for `server_id`, owned by a real person.
+
+    The replay queue is keyed on the actor and drains through whichever live
+    login speaks for them, and `_connected_routes` builds its content-server ->
+    client map out of `content_id_for`, which reads this registry. A manager
+    with a client but no credential behind it therefore has nobody to send
+    anything as *and* no route to sweep. Returns the actor.
+
+    Separate from `register_login` because a test that controls **when** the
+    client appears owns `get_clients` itself and must not have it replaced.
+    """
+    from unittest import mock
+
+    from jellyfin_mpv_shim.users import userManager
+
+    actor = (server_id, session.user_id)
+    patch = mock.patch.object(userManager, "users", [{
+        "id": "local-e2e", "credentials": [
+            {"uuid": SERVER_UUID, "Id": server_id,
+             "UserId": session.user_id}]}])
+    patch.start()
+    test.addCleanup(patch.stop)
+    active = mock.patch.object(userManager, "active_id", "local-e2e")
+    active.start()
+    test.addCleanup(active.stop)
+    return actor
+
+
+def register_login(test, session, mgr, server_id):
+    """`register_credential`, plus a client that is simply live throughout."""
+    actor = register_credential(test, session, server_id)
+    mgr.get_clients = lambda: {SERVER_UUID: session.client}
+    return actor
+
+
+def stored_userdata(db, item_id):
+    """The catalog's watched state and resume position for one item.
+
+    Watched state lives in the per-actor `item_userdata` table now, so
+    "what does the catalog hold for this item" is only a question once you
+    say for whom. **These tests each have exactly one writer**, so this
+    reads whichever actor row exists and asserts there is at most one --
+    which keeps them asserting the plumbing they are about (does a mark, a
+    push or a sweep reach the catalog at all) without every class having to
+    reproduce the app's actor resolution.
+
+    Attribution itself is pinned where it can be driven precisely, with two
+    accounts on one machine: tests/test_catalog_actor_scope.py, and the
+    push tests in tests/test_playstate_mirror.py.
+
+    Old key names, so the assertions read as behaviour rather than storage.
+    """
+    actors = db.userdata_actors(item_id)
+    assert len(actors) <= 1, (
+        "%s has state under %d actors; this helper cannot say which one the "
+        "test meant" % (item_id, len(actors)))
+    if not actors:
+        return {}
+    # The row's OWN server, not the module constant: reading under a
+    # different one silently answers "nothing stored" for state that is
+    # sitting right there, which is the failure this helper exists to see.
+    server_id, user_id = actors[0]
+    got = db.userdata(item_id, actor=(server_id, user_id))
+    return {"Played": got["played"],
+            "PlaybackPositionTicks": got["position_ticks"],
+            "PlayCount": got["play_count"],
+            "IsFavorite": got["is_favorite"],
+            "LastPlayedDate": got["last_played_date"]}
+
+
+def content_server_of(item):
+    """The content key `_add_row` would write for this item in production.
+
+    Every fixture here and the credential `register_credential` files must
+    take it from the same place, or the row and the acting account name
+    different servers and the store correctly refuses the write.
+    """
+    return item.get("ServerId") or SERVER_ID
+
+
+def _catalog_row(item, path="x.mp4", user_id=None):
     """A complete download row for a real server item.
 
-    `userdata_json` starts at the download-time snapshot -- unwatched, at
-    zero -- which is the state every one of these tests has to move away
-    from for its assertion to mean anything.
+    It carries **no** watched state, which is the state every one of these
+    tests has to move away from for its assertion to mean anything: nothing is
+    in `item_userdata` until somebody plays or a sweep answers.
+
+    **`user_id` is what makes the sweep look at the row**, and leaving it out
+    is not neutral: the pull is scoped to the account that asked for the
+    download (R19/R21), so an unattributed row is swept only by the clause
+    that exists for rows whose login is *gone*. Every fixture here omitted it
+    once, and seven tests then asserted against a pull that was correctly
+    asking about nothing. Pass the session's user id -- that is what a real
+    enqueue writes.
     """
     return {
         "item_id": item["Id"],
         "server_uuid": SERVER_UUID,
-        "server_id": item.get("ServerId") or "s1",
+        # The CONTENT key: offline, the row's server is the only thing that
+        # can find the person at the keyboard, so a row without one resolves
+        # to nobody and nothing is ever queued.
+        "content_server_id": content_server_of(item),
+        # The account that asked for it. Same server half as the row by
+        # construction: an account is (ServerId, UserId), so building it here
+        # rather than at the call sites keeps the two from disagreeing.
+        "requested_server_id": content_server_of(item) if user_id else "",
+        "requested_user_id": user_id or "",
         "name": item.get("Name") or "",
         "type": item.get("Type") or "Movie",
         "status": "complete",
@@ -107,8 +212,6 @@ def _catalog_row(item, path="x.mp4"):
         "downloaded_bytes": 1,
         "runtime_ticks": item.get("RunTimeTicks") or 0,
         "item_json": json.dumps(item),
-        "userdata_json": json.dumps({"Played": False,
-                                     "PlaybackPositionTicks": 0}),
     }
 
 
@@ -141,7 +244,7 @@ class OfflineStateSyncTest(unittest.TestCase):
         self.db = SyncDB(os.path.join(self.tmp, "catalog.db"))
         self.addCleanup(self.db.close)
         for item in self.items:
-            self.db.upsert(_catalog_row(item))
+            self.db.upsert(_catalog_row(item, user_id=self.session.user_id))
 
         # A real manager, constructed rather than started: `start()` would
         # put a worker thread on the same catalog, and every assertion here
@@ -152,6 +255,8 @@ class OfflineStateSyncTest(unittest.TestCase):
         self.mgr.root = self.tmp
         self.mgr.get_client = lambda uuid: (
             self.session.client if uuid == SERVER_UUID else None)
+        self.actor = register_login(self, self.session, self.mgr,
+                                    content_server_of(self.items[0]))
 
         self.ids = [i["Id"] for i in self.items]
         self.addCleanup(self.session.reset_played, *self.ids)
@@ -160,9 +265,7 @@ class OfflineStateSyncTest(unittest.TestCase):
     # -- helpers -----------------------------------------------------------
 
     def stored(self, item_id):
-        """The catalog's copy of this item's userdata, off disk."""
-        row = self.db.get(item_id) or {}
-        return json.loads(row.get("userdata_json") or "{}")
+        return stored_userdata(self.db, item_id)
 
     def elsewhere(self, item_id, **userdata):
         """Make a change the way another client would."""
@@ -172,13 +275,13 @@ class OfflineStateSyncTest(unittest.TestCase):
 
     def test_a_mark_made_offline_reaches_the_server(self):
         item_id = self.ids[0]
-        self.db.upsert_playstate(SERVER_UUID, item_id, played=True)
+        self.db.upsert_playstate(item_id, actor=(self.actor[0], self.actor[1]), played=True)
         self.mgr._sync_playstate()
         self.assertTrue(self.session.user_data(item_id).get("Played"))
 
     def test_a_position_reached_offline_reaches_the_server(self):
         item_id = self.ids[0]
-        self.db.upsert_playstate(SERVER_UUID, item_id, position_ticks=POSITION)
+        self.db.upsert_playstate(item_id, actor=(self.actor[0], self.actor[1]), position_ticks=POSITION)
         self.mgr._sync_playstate()
         self.assertEqual(
             self.session.user_data(item_id).get("PlaybackPositionTicks"),
@@ -189,7 +292,7 @@ class OfflineStateSyncTest(unittest.TestCase):
         off for a week, and the phone is further ahead than we are."""
         item_id = self.ids[0]
         self.elsewhere(item_id, PlaybackPositionTicks=LATER)
-        self.db.upsert_playstate(SERVER_UUID, item_id,
+        self.db.upsert_playstate(item_id, actor=(self.actor[0], self.actor[1]),
                                  position_ticks=EARLIER)
         self.mgr._sync_playstate()
         self.assertEqual(
@@ -201,7 +304,7 @@ class OfflineStateSyncTest(unittest.TestCase):
         queue never draining: every later pass would re-push a stale value
         and undo whatever had happened since."""
         item_id = self.ids[0]
-        self.db.upsert_playstate(SERVER_UUID, item_id, position_ticks=POSITION)
+        self.db.upsert_playstate(item_id, actor=(self.actor[0], self.actor[1]), position_ticks=POSITION)
         self.mgr._sync_playstate()
         self.assertEqual(self.db.list_playstate(), [],
                          "the queue still holds a change already sent")
@@ -213,8 +316,46 @@ class OfflineStateSyncTest(unittest.TestCase):
             self.session.user_data(item_id).get("PlaybackPositionTicks"),
             LATER)
 
+    def test_a_mark_made_as_the_pseudo_server_drains_on_reconnect(self):
+        """The state a real offline session is actually in.
+
+        Every other push test here queues by calling `upsert_playstate`
+        with an actor already in hand. The downloads screen has no login to
+        hand: it browses the pseudo-server `"offline"`, and who the mark
+        belongs to is resolved from the row's server and the active local
+        profile. That resolution used to answer nobody — `upsert_playstate`
+        refuses an unattributed entry by its own guard — so nothing was
+        queued, the reconnect below had nothing to drain, and no test here
+        noticed because none of them went in this way.
+        """
+        from unittest import mock
+
+        from jellyfin_mpv_shim.mpvtk_browser import gateway as browser_gw
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import deps as gw_deps
+        from jellyfin_mpv_shim.sync import manager as sync_manager
+
+        item_id = self.ids[0]
+        with mock.patch.object(gw_deps, "clientManager",
+                               types.SimpleNamespace(clients={})), \
+                mock.patch.object(sync_manager, "syncManager", self.mgr):
+            self.assertTrue(
+                browser_gw.PlayerGateway()._queue_offline_watched(
+                    "offline", item_id, True),
+                "marking watched from the downloads screen was refused")
+        self.assertEqual(
+            [(p["server_id"], p["user_id"]) for p in self.db.list_playstate()],
+            [self.actor],
+            "the mark was not queued on behalf of the person browsing")
+        self.assertTrue(self.stored(item_id).get("Played"),
+                        "and is invisible on the shelf that made it")
+        self.mgr._sync_playstate()
+        self.assertTrue(self.session.user_data(item_id).get("Played"))
+        self.assertEqual(self.db.list_playstate(), [],
+                         "the queue was not cleared, so every reconnect "
+                         "re-pushes it")
+
     def test_only_the_queued_item_is_touched(self):
-        self.db.upsert_playstate(SERVER_UUID, self.ids[0], played=True)
+        self.db.upsert_playstate(self.ids[0], actor=(self.actor[0], self.actor[1]), played=True)
         self.mgr._sync_playstate()
         self.assertFalse(self.session.user_data(self.ids[1]).get("Played"))
 
@@ -261,7 +402,7 @@ class OfflineStateSyncTest(unittest.TestCase):
         cannot see it -- it needs the third pass to diverge.
         """
         item_id = self.ids[0]
-        self.db.upsert_playstate(SERVER_UUID, item_id, position_ticks=POSITION)
+        self.db.upsert_playstate(item_id, actor=(self.actor[0], self.actor[1]), position_ticks=POSITION)
         for _ in range(3):
             self.mgr._sync_playstate()
             self.mgr._refresh_userdata()
@@ -318,7 +459,13 @@ class PushedUserDataReachesTheCatalogTest(unittest.TestCase):
         self.addCleanup(self.db.close)
         self.item = self.items[0]
         self.item_id = self.item["Id"]
-        self.db.upsert(_catalog_row(self.item))
+        # The watcher's account: this class has two sessions and no
+        # `self.session`, and the row belongs to whoever the socket speaks
+        # for. Both are qa-user, so the pair is the same either way -- named
+        # explicitly rather than left blank, because a blank one lands in the
+        # sweep's "nobody can claim this" clause and this row is claimed.
+        self.db.upsert(_catalog_row(self.item,
+                                    user_id=self.watcher.user_id))
 
         self.mgr = SyncManager()
         self.mgr.db = self.db
@@ -346,8 +493,7 @@ class PushedUserDataReachesTheCatalogTest(unittest.TestCase):
             self.handler.user_data_change(self.watcher.client, name, data)
 
     def stored(self):
-        row = self.db.get(self.item_id) or {}
-        return json.loads(row.get("userdata_json") or "{}")
+        return stored_userdata(self.db, self.item_id)
 
     def test_a_mark_elsewhere_reaches_the_catalog_over_the_socket(self):
         self.actor.api.item_played(self.item_id, True)
@@ -595,12 +741,14 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         self.db = SyncDB(os.path.join(self.tmp, "catalog.db"))
         self.addCleanup(self.db.close)
         for item in self.items:
-            self.db.upsert(_catalog_row(item))
+            self.db.upsert(_catalog_row(item, user_id=self.session.user_id))
 
         self.mgr = SyncManager()
         self.mgr.db = self.db
         self.mgr.get_client = lambda uuid: (
             self.session.client if uuid == SERVER_UUID else None)
+        register_login(self, self.session, self.mgr,
+                       content_server_of(self.items[0]))
         patcher = mock.patch.object(mgr, "syncManager", self.mgr)
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -621,8 +769,7 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         self.session.reset_played(*self.ids)
 
     def stored(self, item_id):
-        row = self.db.get(item_id) or {}
-        return json.loads(row.get("userdata_json") or "{}")
+        return stored_userdata(self.db, item_id)
 
     def mark(self, item_id, watched):
         self.assertTrue(self.gw.set_watched(SERVER_UUID, item_id, watched),
@@ -759,7 +906,7 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
         for ep in eps:
             # The columns the fan-out is resolved from: a downloader writes
             # them, `_catalog_row` (a movie row) does not.
-            row = _catalog_row(ep)
+            row = _catalog_row(ep, user_id=self.session.user_id)
             row["series_id"] = ep.get("SeriesId")
             row["season_id"] = ep.get("SeasonId")
             self.db.upsert(row)
@@ -824,6 +971,202 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
             self.session.api.get_userdata_for_item(item_id).get("Played"))
 
 
+def _ports_second_door(base):
+    """Another address this machine's own kernel says that port is bound to.
+
+    Read from `/proc/net/tcp` rather than guessed from the host's addresses:
+    the QA container binds 127.0.0.1 and the libvirt bridge, and **neither
+    the hostname's address nor the default route's is one of them** -- both
+    answer 192.168.3.129 here, where nothing is listening. Measured that way
+    round because a guess that finds no door is indistinguishable from a
+    server that has only one.
+
+    Returns a base URL or None. The caller still has to ask the second door
+    who it is: two addresses on one port are only this case if they answer
+    with the same ServerId, and that is the claim being tested.
+    """
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(base)
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    here = parts.hostname
+    try:
+        with open("/proc/net/tcp", encoding="ascii") as tcp:
+            lines = tcp.read().splitlines()[1:]
+    except OSError:
+        return None
+    for line in lines:
+        cols = line.split()
+        if len(cols) < 4 or cols[3] != "0A":        # 0A = LISTEN
+            continue
+        raw, _, hex_port = cols[1].rpartition(":")
+        if int(hex_port, 16) != port:
+            continue
+        # Little-endian hex, so the octets come back reversed.
+        host = ".".join(str(b) for b in reversed(bytes.fromhex(raw)))
+        if host in (here, "0.0.0.0"):
+            continue
+        return "%s://%s:%d" % (parts.scheme, host, port)
+    return None
+
+
+def _server_id_at(base):
+    """The ServerId one address answers with, or None."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(base + "/System/Info/Public",
+                                    timeout=5) as resp:
+            return (json.load(resp) or {}).get("Id")
+    except Exception:
+        return None
+
+
+@_e2e.require_server
+class OneServerAtTwoAddressesTest(unittest.TestCase):
+    """F48's case, against the only configuration that really exhibits it.
+
+    The whole entry rests on a claim about a real server: that one box
+    reached at two addresses is **two saved logins and one ServerId**. Every
+    unit test of it answers that claim from a fixture that was written from
+    the same reading of it, so the claim itself was never checked until here.
+
+    `clients._connect_all` groups a server's credentials by ServerId into one
+    fallback chain and keeps the first address that answers, registering the
+    client under *that* credential's uuid -- and which one wins depends on
+    the subnet the machine is on. So a download queued at home carried the
+    LAN uuid, the remote credential is what came back on the trip, and
+    `get_client(row["server_uuid"])` answered None for a row with a working
+    route open beside it.
+
+    Skips, saying which half is missing, when this machine offers the server
+    only one door.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        base = _e2e.SERVER
+        alt = os.environ.get("JMS_E2E_SERVER_ALT")
+        for candidate in (alt, base):
+            if not candidate:
+                continue
+            candidate = candidate.rstrip("/")
+            door = _ports_second_door(candidate)
+            if not door:
+                continue
+            first, second = (_server_id_at(candidate), _server_id_at(door))
+            if first and first == second:
+                cls.base, cls.door, cls.server_id = candidate, door, first
+                break
+        else:
+            raise unittest.SkipTest(
+                "no server here answers on two addresses with one ServerId "
+                "(set JMS_E2E_SERVER_ALT to one that does; the 12.0 QA "
+                "container binds loopback only)")
+        cls.lan = _e2e.Session("qa-user", address=cls.base)
+        cls.wan = _e2e.Session("qa-user", address=cls.door,
+                               device_id=_e2e.DEVICE_PREFIX + "qa-user-door")
+        cls.items = cls.lan.find_all(library="Movies", item_type="Movie")[:1]
+        if not cls.items:
+            raise unittest.SkipTest("need a movie in the QA library")
+
+    @classmethod
+    def tearDownClass(cls):
+        for session in (getattr(cls, "lan", None), getattr(cls, "wan", None)):
+            if session is not None:
+                session.stop()
+
+    LAN_UUID, WAN_UUID = "srv-e2e-lan", "srv-e2e-wan"
+
+    def setUp(self):
+        from unittest import mock
+
+        from jellyfin_mpv_shim.sync.db import SyncDB
+        from jellyfin_mpv_shim.sync.manager import SyncManager
+        from jellyfin_mpv_shim.users import userManager
+
+        self.item = self.items[0]
+        self.item_id = self.item["Id"]
+        self.tmp = tempfile.mkdtemp(prefix="jms-e2e-doors-")
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(self.db.close)
+
+        # Queued through the LAN door, and attributed to the account -- which
+        # is the pair the two credentials share.
+        row = dict(_catalog_row(self.item, user_id=self.lan.user_id),
+                   server_uuid=self.LAN_UUID)
+        row["content_server_id"] = self.server_id
+        row["requested_server_id"] = self.server_id
+        row["status"] = "pending"
+        self.db.upsert(row)
+
+        # Two logins, one account: exactly what the registry holds after
+        # adding the same server twice for two addresses.
+        patch = mock.patch.object(userManager, "users", [{
+            "id": "local-e2e", "credentials": [
+                {"uuid": self.LAN_UUID, "Id": self.server_id,
+                 "UserId": self.lan.user_id, "address": self.base},
+                {"uuid": self.WAN_UUID, "Id": self.server_id,
+                 "UserId": self.wan.user_id, "address": self.door},
+            ]}])
+        patch.start()
+        self.addCleanup(patch.stop)
+        active = mock.patch.object(userManager, "active_id", "local-e2e")
+        active.start()
+        self.addCleanup(active.stop)
+
+        # Only the second door answered, which is the state after the trip.
+        self.live = {self.WAN_UUID: self.wan.client}
+        self.mgr = SyncManager()
+        self.mgr.db = self.db
+        self.mgr.root = self.tmp
+        self.mgr.get_client = lambda uuid: self.live.get(uuid)
+        self.mgr.get_clients = lambda: dict(self.live)
+
+        self.addCleanup(self.lan.reset_played, self.item_id)
+        self.lan.reset_played(self.item_id)
+
+    def test_the_two_addresses_really_are_one_server(self):
+        """The claim the rest of this rests on, asked of the server itself."""
+        self.assertEqual(_server_id_at(self.base), _server_id_at(self.door))
+        self.assertNotEqual(self.base, self.door)
+        self.assertEqual(self.lan.user_id, self.wan.user_id,
+                         "the same account should come back with one id "
+                         "through either address")
+
+    def test_the_login_on_the_row_has_no_client_at_all(self):
+        """The precondition, stated so the tests below cannot pass by the
+        old path still working: nothing answers for the uuid the row
+        carries."""
+        self.assertIsNone(self.mgr.get_client(self.LAN_UUID))
+
+    def test_a_download_queued_at_home_runs_through_the_other_door(self):
+        self.assertIs(self.mgr._client_for_row(self.db.get(self.item_id)),
+                      self.wan.client)
+        runnable = self.mgr._next_runnable()
+        self.assertIsNotNone(runnable, "the row was stranded")
+        self.assertEqual(runnable["item_id"], self.item_id)
+
+    def test_the_index_names_the_door_that_answered(self):
+        route = self.mgr.routes_for(self.server_id)
+        self.assertIsNotNone(route)
+        self.assertEqual(route[0], self.WAN_UUID)
+
+    def test_the_sweep_covers_the_row_through_the_other_door(self):
+        """The pull half, and it is a second question: the sweep groups by the
+        row's content server and asks as the connected login's account, so
+        this is what says the row is in that account's scope."""
+        self.db.update(self.item_id, status="complete")
+        self.wan.api.update_userdata_for_item(self.item_id, {"Played": True})
+        self.mgr._refresh_userdata()
+        self.assertTrue(stored_userdata(self.db, self.item_id)["Played"],
+                        "the sweep did not reach a row queued through the "
+                        "other address")
+        self.assertIn((self.server_id, self.wan.user_id),
+                      self.mgr._answered_accounts)
+
+
 @_e2e.require_server
 class TheFirstSweepOfASessionTest(unittest.TestCase):
     """When the sweep runs at launch, against a real registry.
@@ -859,7 +1202,8 @@ class TheFirstSweepOfASessionTest(unittest.TestCase):
         self.db = SyncDB(os.path.join(self.tmp, "catalog.db"))
         self.addCleanup(self.db.close)
         self.item_id = self.items[0]["Id"]
-        self.db.upsert(_catalog_row(self.items[0]))
+        self.db.upsert(_catalog_row(self.items[0],
+                                    user_id=self.session.user_id))
 
         self.mgr = SyncManager()
         self.mgr.db = self.db
@@ -868,13 +1212,16 @@ class TheFirstSweepOfASessionTest(unittest.TestCase):
         self.mgr.get_client = lambda uuid: self.clients.get(uuid)
         self.start = 40_000.0           # monotonic counts from boot
         self.mgr._started_at = self.start
+        # Credential only: `run_session` decides which tick the client shows
+        # up on, so `get_clients` above must stay this test's own.
+        register_credential(self, self.session,
+                            content_server_of(self.items[0]))
 
         self.addCleanup(self.session.reset_played, self.item_id)
         self.session.reset_played(self.item_id)
 
     def stored(self):
-        row = self.db.get(self.item_id) or {}
-        return json.loads(row.get("userdata_json") or "{}")
+        return stored_userdata(self.db, self.item_id)
 
     def login(self):
         self.clients[SERVER_UUID] = self.session.client

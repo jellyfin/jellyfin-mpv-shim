@@ -11,20 +11,195 @@ import glob
 import json
 import logging
 import os
+import sys
 
 from .. import conf
 from ..conf import settings
 from ..language_config import apply as apply_language_config
 from ..media import Intro, Video, PLAY_DIRECT
-from .manager import syncManager
+from .db import ANY_SERVER
+from .manager import SyncManager, syncManager
 
 log = logging.getLogger("sync.offline_media")
+
+
+def _asking_server(parent):
+    """The content scope the caller is playing from: a ``ServerId``,
+    ``ANY_SERVER``, or ``None``.
+
+    Two hops, kept together because neither is useful alone: the live client
+    gives our saved-login uuid, and the credential behind that uuid gives the
+    server. The catalog scopes content by the server, so that a second
+    account on the same box is not told the machine lacks a film it holds.
+
+    **Resolved through `content_id_for`, not through `server_id_for`.** It is
+    the one place a login becomes a server id, and reaching past it is how
+    this file ended up holding a second copy of the rule -- which then kept
+    the old two-way convention after the one place had grown a third answer.
+    Fully offline there is no client and no uuid, so the answer is
+    `ANY_SERVER`: nothing to confuse the row with, and the catalog is the
+    only source of items there is. A uuid the registry cannot place answers
+    `None`, and `None` now means no row matches.
+
+    **Not the substitution gate, and it cannot be.** This answers
+    `ANY_SERVER` both when nothing asked and when the lookup raised, so the
+    two are indistinguishable in its return value; `_may_substitute` decides
+    on `parent.client` first and only then asks this for the identity.
+
+    **On the class, not on the module-level instance.** It is a static
+    function of the saved-login registry and holds no manager state, and a
+    test that swaps a stand-in in for `syncManager` must not be able to take
+    the scoping rule out with it -- which is precisely what a fake without
+    this method did: the lookup raised, the fallback answered unscoped, and
+    the test named "another server's item does not play the local file"
+    watched it play.
+    """
+    try:
+        from ..clients import clientManager
+
+        uuid = clientManager.uuid_for_client(getattr(parent, "client", None))
+        return SyncManager.content_id_for(uuid)
+    except Exception:
+        log.debug("could not resolve the asking server", exc_info=True)
+        return ANY_SERVER
+
+
+def _may_substitute(item_id, parent, db):
+    """May the downloaded copy of ``item_id`` stand in for what was asked?
+
+    **A different question from "do we hold it", and it gets a stricter
+    answer.** The catalog's content reads are deliberately permissive -- an
+    unattributed row answers, because a download that cannot be shown to be
+    somebody else's must stay visible and deletable rather than becoming an
+    invisible file on disk. That is the right answer for *visibility*. Handing
+    the same permission to substitution is what let one server's file play for
+    another server's item, since Jellyfin derives an item id from the media's
+    path with no server component in it (docs/jellyfin-api-notes.md 13b).
+
+    So: **substitution requires an identical item id and an identical server
+    id**, and nothing else counts -- not `ANY_SERVER`, not a login that
+    resolves to no server, not a row with no server recorded.
+
+    **Keyed on whether a client is asking, not on the scope value.**
+    `_asking_server` answers `ANY_SERVER` for two different situations -- no
+    client at all, and a client whose login lookup *raised* -- so a rule
+    reading its answer cannot tell "nothing asked" from "I could not establish
+    who asked", and would grant the second the ungated treatment meant for the
+    first.
+
+    Ungated when nothing asked (R-D): the item id came out of the catalog row
+    itself, so there is no second candidate to confuse it with. `work_offline`
+    counts as nothing asked -- it is the offline switch, and it is tested here
+    beside `client is None` because "client present, working offline" is a
+    state this code already expects; gating it would refuse the local copy and
+    fall back to *streaming*, against the setting the user just turned on.
+
+    """
+    if getattr(parent, "client", None) is None or settings.work_offline:
+        return True
+    owner = _asking_server(parent)
+    if owner is ANY_SERVER or not owner:
+        # A real ServerId or nothing. `ANY_SERVER` here means the lookup could
+        # not be made, which is less evidence of ownership than a completed
+        # one, not more.
+        return False
+    if db.owner_of(item_id) != owner:
+        return False
+    if not _in_group():
+        return True
+    return _size_agrees_with_server(item_id, parent, db)
+
+
+def _in_group():
+    """Is a SyncPlay group in progress? Never raises, and never imports the
+    player to find out.
+
+    **Asked through `sys.modules`, deliberately.** `player.py` builds its
+    manager at module scope and its `__init__` ends with `_init_mpv()`, so
+    *importing* it opens a real mpv window -- which a lazy import here would do
+    inside any test that exercises substitution. If the player was never
+    imported, there is no group.
+    """
+    try:
+        player = sys.modules.get("jellyfin_mpv_shim.player")
+        if player is None:
+            return False
+        return bool(player.playerManager.syncplay.in_group())
+    except Exception:
+        log.debug("could not tell whether a SyncPlay group is running",
+                  exc_info=True)
+        return False
+
+
+def _size_agrees_with_server(item_id, parent, db):
+    """Does the downloaded file match what the server holds *now*, by size?
+
+    **Only asked inside a SyncPlay group, and that is the whole point.** An
+    identical item id means an identical media path, so a matching id is
+    unlikely to name a *different video* -- which is why ordinary playback does
+    not pay for this. It could still be a different *file*: the server's copy
+    may have been replaced since the download, and a different cut or encode
+    has a different duration. Alone that is a cosmetic surprise; in a group,
+    where every member's position is shared against one timeline, it desyncs
+    everybody.
+
+    **An answer that cannot be established counts as disagreement.** In a group
+    there is by definition a server to stream from, so refusing costs a
+    fallback rather than the film -- and an unverified file is exactly what a
+    group cannot afford.
+    """
+    row = db.get(item_id) or {}
+    local = row.get("size_bytes") or 0
+    if not local:
+        return False
+    source_id = row.get("media_source_id")
+    try:
+        item = parent.client.jellyfin.get_item(item_id) or {}
+        for source in item.get("MediaSources") or []:
+            if source_id and source.get("Id") != source_id:
+                continue
+            remote = source.get("Size") or 0
+            if remote:
+                return int(remote) == int(local)
+    except Exception:
+        log.debug("could not ask %s for its current media size", item_id,
+                  exc_info=True)
+        return False
+    return False
+
+
+def still_substitutable(video):
+    """Is the local file ``video`` is playing still an acceptable stand-in?
+
+    **The same rule as `_may_substitute`, asked again later.** The factory
+    decides once, when playback starts; this is for the things that can change
+    *during* playback and make the earlier answer wrong. Joining a SyncPlay
+    group is the case that exists: the size check does not apply until there is
+    a group, so a film that began as a local copy can become one a group must
+    not watch.
+
+    Answers True for anything that is not a local substitution, so a caller can
+    ask without knowing what it is holding -- and True when there is no catalog
+    to check against, because this decides whether to *interrupt* playback and
+    an unanswerable question is not grounds for that.
+    """
+    if not isinstance(video, OfflineVideo):
+        return True
+    db = syncManager.db
+    if db is None:
+        return True
+    return _may_substitute(video.item_id, video.parent, db)
 
 
 def offline_video_factory(item_id, parent, aid=None, sid=None, srcid=None,
                           explicit_tracks=False):
     db = syncManager.db
-    if db is None or not db.is_complete(item_id):
+    # Two questions, deliberately separate: do we hold a finished copy at all,
+    # and may it stand in for what was asked. The first is a content read and
+    # is permissive by design; the second is `_may_substitute`, which is not.
+    if db is None or not db.is_complete(item_id, server_id=ANY_SERVER):
+        return None
+    if not _may_substitute(item_id, parent, db):
         return None
     # Use local when there's no live client (fully offline), or by preference.
     if getattr(parent, "client", None) is None or settings.work_offline \
@@ -64,7 +239,12 @@ class OfflineVideo(Video):
             raise ValueError("No local download for %s" % item_id)
         self.item = json.loads(row.get("item_json") or "{}")
         self._source = json.loads(row.get("source_json") or "{}")
-        self._server_uuid = row.get("server_uuid")
+        # The Jellyfin server, which is what identifies a person together
+        # with their account. The row's `server_uuid` is deliberately NOT
+        # kept: it names whoever downloaded the copy, and every use of it
+        # here was a viewing filed against the wrong person. See
+        # `_acting_login`.
+        self._content_server_id = row.get("content_server_id")
         self._local_path = os.path.join(syncManager.root, row["file_path"])
         self._item_dir = os.path.dirname(self._local_path)
         self._subs_dir = os.path.join(self._item_dir, "subs")
@@ -209,6 +389,23 @@ class OfflineVideo(Video):
         if user_sid is not None and self.sid is None:
             self.sid = user_sid
 
+    def _acting_login(self):
+        """The saved login this playback is happening *under*, or None.
+
+        Deliberately not the row's own ``server_uuid``, which is why that
+        is no longer read at all: it is the login that *downloaded* the
+        copy, and on a shared machine that is a different person from the
+        one watching. Offline there is no client and so no login at all:
+        the right answer, because the actor is then resolved from the row's
+        server and the active profile.
+        """
+        try:
+            from ..clients import clientManager
+            return clientManager.uuid_for_client(self.client)
+        except Exception:
+            log.debug("could not resolve the acting login", exc_info=True)
+            return None
+
     def set_played(self, watched=True):
         # The local catalog gets it either way -- see _mirror_locally.
         self._mirror_locally(played=watched or None)
@@ -222,8 +419,11 @@ class OfflineVideo(Video):
         # Offline: only queue advances (watched), never un-watches.
         if watched:
             try:
-                syncManager.db.upsert_playstate(self._server_uuid, self.item_id,
-                                                played=True)
+                actor = syncManager.actor_of(
+                    acting_login=self._acting_login(),
+                    server_id=self._content_server_id)
+                syncManager.db.upsert_playstate(
+                    self.item_id, actor=actor, played=True)
                 # The stored userdata was already updated above, online or
                 # off -- this branch is only the replay queue.
             except Exception:
@@ -242,8 +442,8 @@ class OfflineVideo(Video):
         watching a downloaded episode online left the catalog saying
         unwatched at position 0, and that is what you were shown the next
         time you opened it on a train. It also silently broke "delete
-        watched downloads", which reads `userdata_json` with no server
-        fallback (unlike the auto-download reaper, which has one).
+        watched downloads", which reads the catalog with no server fallback
+        (unlike the auto-download reaper, which has one).
 
         **The replay queue is still offline-only**, because that is what it
         is for: a list of changes the server has not been told about. Adding
@@ -254,8 +454,11 @@ class OfflineVideo(Video):
         if self.client is not None:
             return  # online: the timeline has already told the server
         try:
+            actor = syncManager.actor_of(
+                acting_login=self._acting_login(),
+                server_id=self._content_server_id)
             syncManager.db.upsert_playstate(
-                self._server_uuid, self.item_id,
+                self.item_id, actor=actor,
                 position_ticks=position_ticks,
                 played=True if finished else None)
             # As above: the stored userdata is _mirror_locally's job now,
@@ -275,7 +478,16 @@ class OfflineVideo(Video):
         if played is None and position_ticks is None:
             return
         try:
-            syncManager.db.update_userdata(self.item_id, played=played,
+            # Whoever is playing -- see `_acting_login`. Offline there is
+            # no client to name them, so `actor_of` falls back to the active
+            # local profile's account on this row's server, and to NO_ACTOR
+            # when even that is missing, which records locally and never
+            # queues.
+            actor = syncManager.actor_of(
+                acting_login=self._acting_login(),
+                server_id=self._content_server_id)
+            syncManager.db.update_userdata(self.item_id, actor=actor,
+                                           played=played,
                                            position_ticks=position_ticks)
         except Exception:
             log.debug("Failed to mirror playstate into the catalog",
