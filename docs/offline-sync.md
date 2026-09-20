@@ -5,14 +5,15 @@ held. This file covers the part that is not obvious from the code: **who is allo
 to write watched state, in which direction, and what schedule the catalog is kept
 fresh on**.
 
-## 0. The four principles everything here is a consequence of
+## 0. The five principles everything here is a consequence of
 
 **What this feature is for is `docs/offline-sync-goals.md`, G1 to G5, in the
 owner's words.** Read that first; it is shorter than this and it is the
 authority. This section is the layer underneath it: how those goals resolve
 when two of them pull against each other, worked out one case at a time over
 thirty-two rulings and stated here so the next case can be *derived* instead of
-adjudicated again.
+adjudicated again. The fifth is not about what to do at all; it is the one that
+says how much a question is worth.
 
 Most of the rules below look arbitrary on their own, and several look like
 defects. A change that satisfies a rule while breaking the principle under it
@@ -68,6 +69,24 @@ records the account that asked for it; and the acting identity reaches the
 filing authority **unnormalized**, because a resolver that substitutes a
 plausible account one frame earlier produces a record that is consistent and
 wrong — which no check downstream can catch.
+
+**5. This store is a clone, and the effort owed to a failure is bounded by what
+it actually costs somebody.** G4 and G3's test, and the one that decides when
+to *stop* rather than what to do. Two questions, in order: **what was lost that
+the server does not have?** — a downloaded file, a playlist grouping, cached
+artwork, a tombstone are all clones, recoverable by re-syncing, and queued
+offline progress is the only state on this machine that is not one — and then
+**would anyone file it?** A severe-sounding outcome with no population is a
+sentence in a document, not a mechanism.
+
+The absence of this one is not hypothetical. The tiebreak in principle 2 was
+ruled five times (R2, R15, R24, R31, R32) over a case whose exposure is close
+to nil: every download row carries a DTO naming its server (measured 2000/2000
+on 12.0.0, 14/14 on a real catalog), so an orphan needs a catalog loss, a
+manifest written before `_home_row` stamped ServerId into it, a viewing while
+orphaned, and a re-home — to cost one resume position on one item. The original
+hedge, *"leaning towards discard"*, was correctly calibrated. Four of the five
+rounds were not, and nothing in the rules said so.
 
 Each is drawn from the decisions in `docs/rulings-log.md`, which records every
 one with the case it was ruled on. Where a rule below cites a ruling, that is
