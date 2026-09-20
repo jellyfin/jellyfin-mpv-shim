@@ -83,16 +83,18 @@ def row_size(row):
 
 
 def row_watched(row):
-    """Whether a downloaded item has been played.
+    """Whether a downloaded item has been played by anyone on this machine.
 
-    The catalog stores the server's UserData blob verbatim; nothing was
-    reading Played out of it, so the downloads panel could neither mark a
-    watched item nor tell whether "Remove Watched" would delete anything.
+    Reads a key the gateway stamps on, not the row's own columns: watched
+    state lives in the per-actor table now, and answering it here would be
+    a query per row and per group total. **Any** actor, deliberately, so
+    this agrees with what Remove Watched will delete -- one file on disk,
+    one decision (docs/offline-sync.md section 1).
+
+    False for a row nobody stamped, which is the honest answer for a caller
+    that did not go through the gateway.
     """
-    try:
-        return bool(json.loads(row.get("userdata_json") or "{}").get("Played"))
-    except (ValueError, TypeError):
-        return False
+    return bool(row.get("played"))
 
 
 def audiobook_group(row):
@@ -196,8 +198,14 @@ def group_downloads(rows, playlists, playlist_items, owned):
           "size", "count", "children": [...]}]
 
     ``rows`` is the flat catalog, ``playlists`` the playlist records,
-    ``playlist_items(playlist_id)`` yields a playlist's rows, and ``owned``
-    maps item_id -> playlist_id.
+    ``playlist_items(playlist_id, server_id)`` yields one playlist's rows, and
+    ``owned`` maps item_id -> (playlist_id, server_id).
+
+    **A playlist is identified by (id, server), not by id.** Jellyfin hashes a
+    playlist id from its *name*, so two servers hand out the same one for
+    "Example Playlist" -- measured, not hypothetical. The entry carries
+    ``server_id`` so the delete gesture can name which of them the user is
+    looking at.
 
     Playlists come first. A *music* playlist is listed collapsed — hundreds
     of tracks nobody wants enumerated — but a video playlist is a handful of
@@ -209,11 +217,11 @@ def group_downloads(rows, playlists, playlist_items, owned):
     # playlist (deleted, or its members all removed), and skipping those rows
     # unconditionally made the downloads invisible AND undeletable — disk used
     # with no way to reclaim it. Only skip what a LIVE playlist group shows.
-    live = {pl["playlist_id"] for pl in playlists}
+    live = {(pl["playlist_id"], pl.get("server_id")) for pl in playlists}
 
     out = []
     for pl in playlists:
-        items = playlist_items(pl["playlist_id"])
+        items = playlist_items(pl["playlist_id"], pl.get("server_id"))
         # An all-video playlist lists its items; anything else (music, or
         # mixed — one video in a 400-song playlist must not unfold the whole
         # thing) stays collapsed.
@@ -222,6 +230,9 @@ def group_downloads(rows, playlists, playlist_items, owned):
         out.append({
             "kind": "playlist",
             "id": pl["playlist_id"],
+            # Which server's playlist this is, for the delete gesture. Two
+            # can share an id.
+            "server_id": pl.get("server_id"),
             "title": pl.get("name") or _("Playlist"),
             "size": sum(row_size(r) for r in items),
             "count": len(items),

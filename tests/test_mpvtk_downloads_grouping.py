@@ -61,7 +61,7 @@ class TestGrouping(unittest.TestCase):
     def test_loose_items_land_in_one_movies_group(self):
         tree = group_downloads(
             [row("a", "Zeta", size_bytes=2), row("b", "Alpha", size_bytes=3)],
-            [], lambda pid: [], {})
+            [], lambda pid, sid: [], {})
         self.assertEqual(kinds(tree), ["movies"])
         self.assertEqual([c["title"] for c in tree[0]["children"]],
                          ["Alpha", "Zeta"], "not sorted by title")
@@ -75,7 +75,7 @@ class TestGrouping(unittest.TestCase):
             row("e1", "Ep1", series_id="s1", series_name="Show",
                 season_id="sea1", parent_index=1, index_number=1),
         ]
-        tree = group_downloads(rows, [], lambda pid: [], {})
+        tree = group_downloads(rows, [], lambda pid, sid: [], {})
         self.assertEqual(kinds(tree), ["series"])
         show = tree[0]
         self.assertEqual(show["count"], 2)
@@ -91,7 +91,7 @@ class TestGrouping(unittest.TestCase):
             row("y", "Ep1", series_id="s1", series_name="S", season_id="a",
                 parent_index=1, index_number=1),
         ]
-        tree = group_downloads(rows, [], lambda pid: [], {})
+        tree = group_downloads(rows, [], lambda pid, sid: [], {})
         season = tree[0]["children"][0]
         self.assertEqual([e["title"] for e in season["children"]],
                          ["Ep1", "Bonus"])
@@ -99,7 +99,7 @@ class TestGrouping(unittest.TestCase):
     def test_playlists_come_first(self):
         pls = [{"playlist_id": "p1", "name": "Mix"}]
         tree = group_downloads([row("m", "Movie")], pls,
-                               lambda pid: [row("t", "Track", type="Audio")],
+                               lambda pid, sid: [row("t", "Track", type="Audio")],
                                {})
         self.assertEqual(kinds(tree), ["playlist", "movies"])
 
@@ -107,14 +107,14 @@ class TestGrouping(unittest.TestCase):
         """Hundreds of tracks nobody wants enumerated."""
         pls = [{"playlist_id": "p1", "name": "Mix"}]
         items = [row("t%d" % i, "T%d" % i, type="Audio") for i in range(300)]
-        tree = group_downloads([], pls, lambda pid: items, {})
+        tree = group_downloads([], pls, lambda pid, sid: items, {})
         self.assertEqual(tree[0]["children"], [])
         self.assertEqual(tree[0]["count"], 300, "the count is still shown")
 
     def test_a_video_playlist_expands(self):
         pls = [{"playlist_id": "p1", "name": "Films"}]
         items = [row("v1", "A", type="Movie"), row("v2", "B", type="Episode")]
-        tree = group_downloads([], pls, lambda pid: items, {})
+        tree = group_downloads([], pls, lambda pid, sid: items, {})
         self.assertEqual([c["title"] for c in tree[0]["children"]], ["A", "B"])
 
     def test_one_song_in_a_video_playlist_keeps_it_collapsed(self):
@@ -124,13 +124,13 @@ class TestGrouping(unittest.TestCase):
         for bad in ({"type": "Audio"}, {"type": None}, {}):
             with self.subTest(bad=bad):
                 items = [row("v1", "A", type="Movie"), row("v2", "B", **bad)]
-                tree = group_downloads([], pls, lambda pid: items, {})
+                tree = group_downloads([], pls, lambda pid, sid: items, {})
                 self.assertEqual(tree[0]["children"], [])
 
     def test_a_playlists_items_are_not_also_listed_below(self):
         rows = [row("v1", "A", type="Movie")]
         pls = [{"playlist_id": "p1", "name": "Films"}]
-        tree = group_downloads(rows, pls, lambda pid: rows, {"v1": "p1"})
+        tree = group_downloads(rows, pls, lambda pid, sid: rows, {"v1": ("p1", None)})
         self.assertEqual(kinds(tree), ["playlist"],
                          "the item was counted twice")
 
@@ -139,12 +139,12 @@ class TestGrouping(unittest.TestCase):
         unconditionally made the download invisible AND undeletable — disk
         used with no way to reclaim it."""
         rows = [row("v1", "A", type="Movie")]
-        tree = group_downloads(rows, [], lambda pid: [], {"v1": "gone"})
+        tree = group_downloads(rows, [], lambda pid, sid: [], {"v1": ("gone", None)})
         self.assertEqual(kinds(tree), ["movies"])
         self.assertEqual(tree[0]["children"][0]["id"], "v1")
 
     def test_an_empty_catalog_is_an_empty_tree(self):
-        self.assertEqual(group_downloads([], [], lambda pid: [], {}), [])
+        self.assertEqual(group_downloads([], [], lambda pid, sid: [], {}), [])
 
 
 class TestSeasonTitle(unittest.TestCase):
@@ -171,18 +171,24 @@ class TestWatchedRollup(unittest.TestCase):
 
     @staticmethod
     def _row(item_id, played, **kw):
-        import json as _json
-        return row(item_id, userdata_json=_json.dumps({"Played": played}),
-                   **kw)
+        """A row as the gateway hands it over.
+
+        Watched state is no longer on the row: it lives in the per-actor
+        table, and the gateway stamps the aggregate answer on as `played`
+        before the panel ever sees it. So that is what a fixture for these
+        pure functions has to supply."""
+        return row(item_id, played=played, **kw)
 
     def test_an_item_carries_its_watched_flag(self):
         tree = group_downloads([self._row("m1", True)], [],
-                               lambda pid: [], {})
+                               lambda pid, sid: [], {})
         self.assertTrue(tree[0]["children"][0]["watched"])
 
-    def test_unparsable_userdata_is_unwatched_rather_than_a_crash(self):
-        tree = group_downloads([row("m1", userdata_json="{{{")], [],
-                               lambda pid: [], {})
+    def test_a_row_nobody_stamped_is_unwatched_rather_than_a_crash(self):
+        """The gateway is what fills `played` in. A row that reached the
+        panel some other way must read as unwatched rather than raise --
+        the same floor the old unparseable-blob case had."""
+        tree = group_downloads([row("m1")], [], lambda pid, sid: [], {})
         self.assertFalse(tree[0]["children"][0]["watched"])
 
     def test_a_series_counts_its_watched_episodes(self):
@@ -190,13 +196,13 @@ class TestWatchedRollup(unittest.TestCase):
                           season_id="a", parent_index=1, index_number=1),
                 self._row("e2", False, series_id="s1", series_name="S",
                           season_id="a", parent_index=1, index_number=2)]
-        tree = group_downloads(rows, [], lambda pid: [], {})
+        tree = group_downloads(rows, [], lambda pid, sid: [], {})
         self.assertEqual(tree[0]["watched_count"], 1)
         self.assertEqual(tree[0]["children"][0]["watched_count"], 1)
 
     def test_a_group_with_nothing_watched_reports_zero(self):
         tree = group_downloads([self._row("m1", False)], [],
-                               lambda pid: [], {})
+                               lambda pid, sid: [], {})
         self.assertEqual(tree[0]["watched_count"], 0)
 
     def test_every_group_carries_the_key(self):
@@ -206,7 +212,7 @@ class TestWatchedRollup(unittest.TestCase):
                 self._row("m1", False)]
         pls = [{"playlist_id": "p1", "name": "Mix"}]
         tree = group_downloads(rows, pls,
-                               lambda pid: [self._row("t1", True,
+                               lambda pid, sid: [self._row("t1", True,
                                                       type="Movie")], {})
         for g in tree:
             self.assertIn("watched_count", g, g["kind"])
@@ -240,7 +246,7 @@ class TestStatusText(unittest.TestCase):
         to compute a percentage."""
         tree = group_downloads(
             [row("m1", "M", downloaded_bytes=5, size_bytes=9)], [],
-            lambda pid: [], {})
+            lambda pid, sid: [], {})
         entry = tree[0]["children"][0]
         self.assertEqual((entry["done"], entry["total"]), (5, 9))
 
@@ -278,11 +284,11 @@ class TestTheShapeTheViewExpects(unittest.TestCase):
         import json as _json
         rows = [row("e1", "Ep1", series_id="s1", series_name="S",
                     season_id="a", parent_index=1, index_number=1,
-                    userdata_json=_json.dumps({"Played": True})),
+                    played=True),
                 row("m1", "A Movie")]
         pls = [{"playlist_id": "p1", "name": "Mix"}]
         return group_downloads(rows, pls,
-                               lambda pid: [row("t1", "T", type="Movie")], {})
+                               lambda pid, sid: [row("t1", "T", type="Movie")], {})
 
     def test_every_group_carries_the_keys_the_view_reads(self):
         for g in self._tree():
@@ -314,7 +320,7 @@ class AutoSubtreeTest(unittest.TestCase):
     ones: they are what changes without the user doing anything."""
 
     def _tree(self, rows):
-        return group_downloads(rows, [], lambda pid: [], {})
+        return group_downloads(rows, [], lambda pid, sid: [], {})
 
     def test_each_source_is_its_own_group(self):
         tree = self._tree([
@@ -388,7 +394,7 @@ class QualifiedTitleTest(unittest.TestCase):
         tree = group_downloads(
             [row("a", name="Chapter Four", origin=ORIGIN_AUTO_NEXT_UP,
                  type="Episode", series_name="Show", parent_index=1,
-                 index_number=4)], [], lambda pid: [], {})
+                 index_number=4)], [], lambda pid, sid: [], {})
         self.assertEqual(tree[0]["children"][0]["title"],
                          "Show - S01E04 - Chapter Four")
 
@@ -398,7 +404,7 @@ class QualifiedTitleTest(unittest.TestCase):
         tree = group_downloads(
             [row("u", name="Chapter Four", origin=ORIGIN_USER, type="Episode",
                  series_id="s1", series_name="Show", parent_index=1,
-                 index_number=4)], [], lambda pid: [], {})
+                 index_number=4)], [], lambda pid, sid: [], {})
         self.assertEqual(
             tree[0]["children"][0]["children"][0]["title"], "Chapter Four")
 
@@ -413,7 +419,7 @@ class EntryNumberingTest(unittest.TestCase):
         tree = group_downloads(
             [row("a", name="Chapter Four", origin=origin, type="Episode",
                  series_id="s1", series_name="Show", parent_index=1,
-                 index_number=4)], [], lambda pid: [], {})
+                 index_number=4)], [], lambda pid, sid: [], {})
         group = tree[0]
         # series groups nest a season; auto groups are flat
         child = group["children"][0]
@@ -442,7 +448,7 @@ class TestBookSections(unittest.TestCase):
         tree = group_downloads(
             [row("m", "A Film", type="Movie"),
              row("b", "A Novel", type="Book")],
-            [], lambda pid: [], {})
+            [], lambda pid, sid: [], {})
         self.assertEqual(kinds(tree), ["books", "movies"])
         self.assertEqual([c["title"] for c in tree[0]["children"]],
                          ["A Novel"])
@@ -456,7 +462,7 @@ class TestBookSections(unittest.TestCase):
             row("c1", "Chapter 01", type="AudioBook", index_number=1,
                 size_bytes=3, item_json=json.dumps({"Album": "The Account"})),
         ]
-        tree = group_downloads(rows, [], lambda pid: [], {})
+        tree = group_downloads(rows, [], lambda pid, sid: [], {})
         self.assertEqual(kinds(tree), ["audiobooks"])
         section = tree[0]
         self.assertEqual(section["count"], 2)
@@ -475,7 +481,7 @@ class TestBookSections(unittest.TestCase):
             row("b", "Chapter 01", type="AudioBook",
                 item_json=json.dumps({"Album": "Book B"})),
         ]
-        tree = group_downloads(rows, [], lambda pid: [], {})
+        tree = group_downloads(rows, [], lambda pid, sid: [], {})
         self.assertEqual([b["title"] for b in tree[0]["children"]],
                          ["Book A", "Book B"])
 
@@ -485,7 +491,7 @@ class TestBookSections(unittest.TestCase):
         # a shared "Ungrouped" heading would be worse than useless.
         tree = group_downloads(
             [row("x", "The Lantern Keeper", type="AudioBook")],
-            [], lambda pid: [], {})
+            [], lambda pid, sid: [], {})
         self.assertEqual([b["title"] for b in tree[0]["children"]],
                          ["The Lantern Keeper"])
 
@@ -495,7 +501,7 @@ class TestBookSections(unittest.TestCase):
         tree = group_downloads(
             [row("b", "A Novel", type="Book"),
              row("a", "Ch 1", type="AudioBook")],
-            [], lambda pid: [], {})
+            [], lambda pid, sid: [], {})
         self.assertEqual(kinds(tree), ["audiobooks", "books"])
 
     def test_an_automatic_book_still_belongs_to_the_scheduler(self):
@@ -504,18 +510,18 @@ class TestBookSections(unittest.TestCase):
         # book filed by type would be invisible to it.
         tree = group_downloads(
             [row("b", "A Novel", type="Book", origin=ORIGIN_AUTO_NEXT_UP)],
-            [], lambda pid: [], {})
+            [], lambda pid, sid: [], {})
         self.assertEqual(kinds(tree), ["auto"])
 
     def test_watched_counts_reach_the_section(self):
         rows = [
             row("a", "Ch 1", type="AudioBook",
                 item_json=json.dumps({"Album": "B"}),
-                userdata_json=json.dumps({"Played": True})),
+                played=True),
             row("b", "Ch 2", type="AudioBook",
                 item_json=json.dumps({"Album": "B"})),
         ]
-        tree = group_downloads(rows, [], lambda pid: [], {})
+        tree = group_downloads(rows, [], lambda pid, sid: [], {})
         self.assertEqual(tree[0]["watched_count"], 1)
         self.assertEqual(tree[0]["children"][0]["watched_count"], 1)
 

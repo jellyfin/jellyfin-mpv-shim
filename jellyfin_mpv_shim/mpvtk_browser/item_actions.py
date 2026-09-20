@@ -66,8 +66,14 @@ class ItemActions:
         self._edit_ok = None
         #: Cached recording-capability probe; see can_record.
         self._record_ok = None
-        #: item_id -> name for books whose download was started by a Read
-        #: press and which should be opened when it lands. See read_book.
+        #: item_id -> (name, server_uuid) for books whose download was
+        #: started by a Read press and which should be opened when it lands.
+        #: See read_book.
+        #:
+        #: **The server is part of the value, not derivable from the key**:
+        #: item ids collide across servers, so `flush_pending_reads` has to ask
+        #: the catalog about the server this book was pressed on or it can open
+        #: another server's file (CX7).
         self._pending_reads: dict = {}
 
     # -- plumbing ----------------------------------------------------------
@@ -623,7 +629,16 @@ class ItemActions:
         elif kind == "Season":
             ctl.delete_download(series_id=item.get("SeriesId"), season_id=iid)
         elif kind == "Playlist":
-            ctl.delete_download(playlist_id=iid)
+            # Two servers can hold a playlist with this id, so the delete needs
+            # both halves. The offline library spells them as one id and the
+            # catalog wants them apart; `split_offline_playlist_id` answers an
+            # online id unchanged, so this is one path for both.
+            from ..constants import split_offline_playlist_id
+
+            real_id, offline_scope = split_offline_playlist_id(iid)
+            ctl.delete_download(
+                playlist_id=real_id,
+                playlist_server_id=offline_scope or item.get("ServerId"))
         else:
             ctl.delete_download(item_id=iid)
 
@@ -722,7 +737,7 @@ class ItemActions:
         name = item.get("Name") or ""
 
         def work():
-            status, path = ctl.book_download_state(iid)
+            status, path = ctl.book_download_state(iid, server)
             if path:
                 # Already on disk. Read opens it; Download has nothing left
                 # to do and says so rather than silently doing nothing.
@@ -754,7 +769,7 @@ class ItemActions:
         def done(result):
             what, _extra = result
             if what == "open":
-                ok, _method = ctl.open_downloaded_file(iid)
+                ok, _method = ctl.open_downloaded_file(iid, server)
                 self.services.set_status(
                     _("Opening %s…") % name if ok else
                     _("Nothing on this system could open %s.") % name)
@@ -771,7 +786,7 @@ class ItemActions:
                     _("%s has not been downloaded.") % name)
             else:
                 if then_open:
-                    self._pending_reads[iid] = name
+                    self._pending_reads[iid] = (name, server)
                 self.services.set_status(
                     self.downloading_message(name))
             # However it ended, the catalog may now say something different
@@ -827,9 +842,9 @@ class ItemActions:
         ctl = self.services.controller
         if ctl is None:
             return
-        for iid, name in list(self._pending_reads.items()):
+        for iid, (name, server) in list(self._pending_reads.items()):
             try:
-                status, path = ctl.book_download_state(iid)
+                status, path = ctl.book_download_state(iid, server)
             except Exception:
                 log.debug("could not read download state for %s", iid,
                           exc_info=True)
@@ -842,7 +857,7 @@ class ItemActions:
                 # launch the user's reader application twice for one book.
                 if self._pending_reads.pop(iid, None) is None:
                     continue
-                ok, _method = ctl.open_downloaded_file(iid)
+                ok, _method = ctl.open_downloaded_file(iid, server)
                 self.services.set_status(
                     _("Opening %s…") % name if ok else
                     _("Nothing on this system could open %s.") % name)

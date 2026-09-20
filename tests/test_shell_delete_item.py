@@ -322,10 +322,18 @@ class DeletingAContainerTakesItsDownloadsTest(unittest.TestCase):
             self._delete({"Id": "se1", "Type": "Season", "SeriesId": "s1"}),
             {"series_id": "s1", "season_id": "se1"})
 
-    def test_a_playlist_is_deleted_by_playlist_id(self):
+    def test_a_playlist_is_deleted_by_playlist_id_and_its_server(self):
+        """Both, because two servers can hold a playlist with one id -- a
+        playlist id is a hash of its name. A DTO with no `ServerId` (the
+        offline library, which is one pseudo-server) names the unscoped row,
+        which is the one the catalog holds for it."""
+        self.assertEqual(
+            self._delete({"Id": "p1", "Type": "Playlist",
+                          "ServerId": "srv-a"}),
+            {"playlist_id": "p1", "playlist_server_id": "srv-a"})
         self.assertEqual(
             self._delete({"Id": "p1", "Type": "Playlist"}),
-            {"playlist_id": "p1"})
+            {"playlist_id": "p1", "playlist_server_id": None})
 
     def test_an_episode_is_deleted_by_item_id(self):
         self.assertEqual(

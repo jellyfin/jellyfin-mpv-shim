@@ -38,8 +38,16 @@ sys.argv = [sys.argv[0]]      # importing the browser reaches args.get_args()
 
 from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
     BOOKS_COLLECTION, OfflineLibrarySource)
-from jellyfin_mpv_shim.sync.db import (COLUMNS, STATUS_COMPLETE,  # noqa: E402
-                                       SyncDB)
+from jellyfin_mpv_shim.sync.db import (COLUMNS, NO_ACTOR,  # noqa: E402
+                                       STATUS_COMPLETE, SyncDB)
+
+
+#: The Jellyfin ServerId these fixtures' rows belong to. Set deliberately:
+#: a downloads row with no content server is an ORPHAN, and the orphan path
+#: is a distinct contract (docs/offline-sync.md section 1).
+#: A fixture that omits this silently tests the orphan path under another
+#: name -- which is what every row in this file used to do.
+CONTENT_SERVER = "srv-content"
 
 
 def row(item_id, dto, **overrides):
@@ -49,6 +57,7 @@ def row(item_id, dto, **overrides):
     record["type"] = dto["Type"]
     record["name"] = dto["Name"]
     record["file_path"] = "%s/%s" % (item_id, dto.get("_file", "file.bin"))
+    record["content_server_id"] = dto.get("ServerId", CONTENT_SERVER)
     record["item_json"] = json.dumps(dto)
     record.update(overrides)
     return record
@@ -56,11 +65,13 @@ def row(item_id, dto, **overrides):
 
 def book(item_id, name, **extra):
     return {"Id": item_id, "Name": name, "Type": "Book",
+            "ServerId": CONTENT_SERVER,
             "Path": "/library/%s.epub" % name, "UserData": {}, **extra}
 
 
 def chapter(item_id, name, album, index=None, **extra):
     dto = {"Id": item_id, "Name": name, "Type": "AudioBook",
+           "ServerId": CONTENT_SERVER,
            "Album": album, "AlbumArtist": "A Reader",
            "Path": "/library/%s.m4b" % name, "UserData": {}, **extra}
     if index is not None:
@@ -69,18 +80,30 @@ def chapter(item_id, name, album, index=None, **extra):
 
 
 class BooksShelfTest(unittest.TestCase):
-    def source(self, dtos):
+    def source(self, dtos, played=()):
+        """The offline source over a catalog holding these DTOs.
+
+        ``played`` records a **viewing**, which is not the same as putting
+        `UserData` in the DTO: `item_json` is what the server said about
+        whoever downloaded the file, and since 2026-09-19 nobody inherits it
+        -- an actor with nothing recorded reads as never-opened. So a fixture
+        that expresses "this was finished" through the snapshot is expressing
+        it in the one place no reader answers from. Filed under the key this
+        source reads with no `actor_on`: the row's server and the sentinel.
+        """
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         catalog = os.path.join(tmp.name, "catalog.db")
         db = SyncDB(catalog)
         for dto in dtos:
             db.upsert(row(dto["Id"], dto))
+        for item_id in played:
+            db.set_watched(item_id, True, actor=(CONTENT_SERVER, NO_ACTOR))
         db.close()
         return OfflineLibrarySource(catalog)
 
-    def shelf(self, dtos):
-        src = self.source(dtos)
+    def shelf(self, dtos, played=()):
+        src = self.source(dtos, played=played)
         items, total = src.get_library_items("offline", "offline:books")
         self.assertEqual(total, len(items))
         return src, items
@@ -222,11 +245,9 @@ class BooksShelfTest(unittest.TestCase):
         as never-opened — the same reason the synthesized Series aggregates.
         """
         _src, items = self.shelf([
-            chapter("c1", "One", "The Crossing", index=1,
-                    UserData={"Played": True}),
-            chapter("c2", "Two", "The Crossing", index=2,
-                    UserData={"Played": True}),
-        ])
+            chapter("c1", "One", "The Crossing", index=1),
+            chapter("c2", "Two", "The Crossing", index=2),
+        ], played=["c1", "c2"])
         self.assertTrue(items[0]["UserData"]["Played"])
         self.assertEqual(items[0]["UserData"]["UnplayedItemCount"], 0)
 
