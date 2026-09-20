@@ -346,6 +346,11 @@ class FilterMatrixPrimaryTest(_FilterMatrix, unittest.TestCase):
     SERVER_ENV = "JMS_E2E_SERVER"
 
 
+def _major_minor(version):
+    """"10.11.11" -> "10.11". Empty stays empty."""
+    return ".".join((version or "").split(".")[:2])
+
+
 class FilterMatrixAltTest(_FilterMatrix, unittest.TestCase):
     """A second server, for the version differences.
 
@@ -355,6 +360,20 @@ class FilterMatrixAltTest(_FilterMatrix, unittest.TestCase):
     users, so set it.
     """
     SERVER_ENV = "JMS_E2E_SERVER_ALT"
+
+    @classmethod
+    def setUpClass(cls):
+        super(FilterMatrixAltTest, cls).setUpClass()
+        primary = _major_minor(_e2e.public_version(_e2e.SERVER))
+        alt = _major_minor(cls.version)
+        if primary and alt and primary == alt:
+            raise AssertionError(
+                "both servers report %s, so this leg is comparing one "
+                "version with itself and every difference it exists to "
+                "catch is unobservable. `jellyfin/jellyfin:latest` is 12.0 "
+                "now, so a container started without --image is 12.0 "
+                "whatever it calls itself: start the ALT server with "
+                "--image docker.io/jellyfin/jellyfin:10.11.11." % alt)
 
 
 if __name__ == "__main__":

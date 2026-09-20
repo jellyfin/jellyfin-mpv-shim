@@ -516,10 +516,43 @@ class MouseRoutingTest(unittest.TestCase):
         self.browser.navigate(dict(route))
         self.assertEqual(self.browser.route.get("kind"), route["kind"],
                          "%s did not become the current route" % label)
-        self._wait(lambda: not self.browser.route.get("_loading"),
+        self._wait(self._page_has_arrived,
                    "%s never finished loading, so its scene is a spinner "
-                   "and a right click would land on nothing" % label)
+                   "and a right click would land on nothing" % label,
+                   # A server round trip, not a repaint, so it is sized for
+                   # one. A server whose `Optimize database` task has not
+                   # run yet answers any query returning a FOLDER in seconds
+                   # rather than milliseconds (measured 2026-09-11: 3.6s,
+                   # and a series page asks two such questions in
+                   # sequence). That clears itself within six hours, or at
+                   # once if you run the task by hand -- but a wait sized
+                   # for a repaint turns it into a failure that names the
+                   # mouse.
+                   timeout=40.0)
         self._repaint()
+
+    def _page_has_arrived(self):
+        """Has this route got something to draw yet?
+
+        **Not `not route["_loading"]`**, which is what this asked for and is
+        the reason the test above spent a release racing the load. That key
+        is the PAGING guard: `pagination`, `grid`, `music` and `livetv` set
+        it, and a detail or series page never does -- so on exactly the
+        screens this test uses, the wait returned on its first poll and the
+        scroll then hunted for a tile in a scene that was still a spinner.
+        A guard that cannot fire reads as a guard that passed.
+
+        The shell's own "this route has nothing" test is the honest one
+        (`app.py`, the `_data is None and not _items and not _error` branch
+        that decides whether to load at all), so this mirrors it rather than
+        inventing a second answer.
+        """
+        r = self.browser.route
+        if r.get("_error"):
+            return True          # arrived at a failure; the caller will say so
+        if r.get("_loading"):
+            return False
+        return r.get("_data") is not None or bool(r.get("_items"))
 
     def _scroll_to(self, prefix, label):
         """Wheel down until a `prefix` tile has an aim point on screen.
