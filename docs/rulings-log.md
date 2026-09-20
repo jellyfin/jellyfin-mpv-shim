@@ -874,9 +874,11 @@ reasonable thing with what is there; and a thing belongs to the account that did
 the connection it arrived on. They are written up, with the reason the second one resolves the way
 it does, in `docs/offline-sync.md` section 0.
 
-Four entries do not reduce to them and are worth knowing as exceptions: R8 (security), R30 (an
-action does what it says and no more), R1 and R16 (do not over-specify; cost). The P-series below
-is process rather than product and never did.
+Two entries do not reduce to them and are worth knowing as exceptions: R8 (security overriding a
+real user want) and R30 (an action does what it says and no more). R1 and R16 were counted as
+exceptions until the fifth principle was written down on 2026-09-20; "the layout is not a
+requirement" and "the resource cost is the real reason" are both instances of it, not outliers to
+it. The P-series below is process rather than product and never did.
 
 *Why it matters that this was written down late:* the tiebreak inside the second principle — lose
 the state rather than misattribute it — was rediscovered in R2, R15, R24, R31 and R32, five
