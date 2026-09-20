@@ -44,11 +44,17 @@ from jellyfin_mpv_shim.mpvtk_browser.settings import (  # noqa: E402
 #: all three; and ``_settings_display``, which never appeared here because
 #: the Display tab post-dated the split and has since been folded into the
 #: Home Screen tab.
+#:
+#: One acknowledged **removal**: ``_auto_dl_servers``, which parsed the
+#: comma-separated `auto_download_servers` config key. The allow-list moved
+#: into `users.json` keyed on the account (R14), so the page asks the
+#: gateway per row instead of holding a set of ids; there is no renamed
+#: member to point this at.
 BEFORE_SPLIT = {
     "DL_POLL_SECS", "INDENT", "LOG_POLL_SECS", "LOG_ROW_H", "ROUTES",
     "SETTINGS_TABS", "_add_user", "_after_users_changed",
     "_apply_audio_settings", "_apply_work_offline", "_auto_dl_on",
-    "_auto_dl_scope_name", "_auto_dl_servers", "_config", "_copy_logs",
+    "_auto_dl_scope_name", "_config", "_copy_logs",
     "_delete_download", "_delete_user", "_dl_delete_cb", "_dl_group",
     "_dl_group_item_ids", "_dl_item_row", "_dl_key", "_dl_row",
     "_dl_toggle", "_dynamic_note", "_invalidate_home", "_load_downloads",

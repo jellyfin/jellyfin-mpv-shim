@@ -17,6 +17,7 @@ does everything with state or a thread behind it — ``set_status``,
 registered in the browser's daemon table by attribute name.
 """
 
+import logging
 import time
 
 from ..i18n import _, _p
@@ -37,6 +38,9 @@ from ..mpvtk.widgets import (
     TextBox,
 )
 from . import theme
+from .components import server_icon
+
+log = logging.getLogger("mpvtk_browser.chrome")
 
 
 def toast_node(b, w, h):
@@ -103,11 +107,44 @@ def chrome(b, w):
 
 
 def chrome_lists(b):
-    try:
-        servers = b.source.servers()
-    except Exception:
-        servers = []
+    """The switcher's two lists, read once per frame (see ``chrome``).
+
+    Servers come from the **credential list** rather than from the source
+    while there is a live source to come back to. A server that did not answer
+    is not in the source, so it used to vanish from the switcher entirely: the
+    machine looked like it had one server, and there was nowhere to press to
+    get the other one back. Listing it greyed, with the reconnect behind
+    selecting it, is what makes that recoverable without going to Settings.
+
+    Not while offline. There the source *is* the answer to every server being
+    away -- the connecting screen and the offline banner own the retry -- and
+    an entry that cannot be browsed is worse than none.
+    """
+    servers = None
+    if not b._offline and b.controller is not None:
+        try:
+            servers = b.controller.switcher_servers()
+        except Exception:
+            log.debug("switcher_servers failed", exc_info=True)
+            servers = None
+    if not servers:
+        try:
+            servers = b.source.servers()
+        except Exception:
+            servers = []
     return servers, b._users()
+
+
+def _server_label(sv):
+    """A switcher entry's text. Offline ones say so in words as well as by
+    their icon: the icon is the half that survives a narrow bar, since the
+    label ellipsizes from the end and takes "(offline)" with it, but the icon
+    is a glyph nobody has to have learned and the word is what makes it one
+    the first time."""
+    name = sv.get("name") or "?"
+    if sv.get("connected", True):
+        return name
+    return _("%s (offline)") % name
 
 
 #: The three buttons a title bar has, in the order every desktop puts them.
@@ -281,9 +318,23 @@ def chrome_bar(b, compact, probe=False, servers=None,
         # sized to its content within bounds (so long names count in
         # the fit probe); overlong labels ellipsize renderer-side
         right.append(Dropdown(
-            "nav-server", [s["name"] for s in servers],
+            "nav-server", [_server_label(s) for s in servers],
             selected=cur, min_w=110, tip=_("Server"),
-            max_w=150 if compact else 260,
+            max_w=170 if compact else 300,
+            # The open list is not the closed box. The box has a top bar to
+            # share with Search and the nav buttons; the list has the whole
+            # window, and it is where the choice is actually made -- so a
+            # name that has to ellipsize on the bar can still be read in
+            # full at the moment it matters. A ceiling, not a width: a list
+            # of short names stays the size of the control.
+            popup_w=460,
+            # A server that did not answer is listed (see chrome_lists) and
+            # the entry is the door back to it: picking one tries to
+            # reconnect and says what happened. Said in the label as well as
+            # by the glyph, because the list is where the choice is made and
+            # a row that looks available and then refuses is worse than one
+            # that says so first.
+            icons=[server_icon(s) for s in servers],
             on_select=lambda i, v: b._switch_server(servers[i]["uuid"])))
     if users is None:
         users = b._users()
@@ -296,7 +347,15 @@ def chrome_bar(b, compact, probe=False, servers=None,
             "nav-user",
             [u.get("name", "?") for u in users],
             selected=cur, min_w=100, tip=_("User"),
-            max_w=130 if compact else 200, force=True,
+            # Wider than it was. A dropdown is sized to its content within
+            # these bounds, and the bounds were set against short names --
+            # but the *default* user is literally called "(default)", and the
+            # box also carries a leading icon and a chevron, so the two names
+            # every install has out of the box ("(default)", and anything as
+            # long as "testuser") both ellipsized. A picker that cannot show
+            # its own entries is asking the user to guess.
+            max_w=190 if compact else 280, force=True,
+            popup_w=380,     # see the server picker above
             icons=["lock" if u.get("locked") else "person" for u in users],
             on_select=lambda i, v: b._switch_user(users[i])))
     right += [

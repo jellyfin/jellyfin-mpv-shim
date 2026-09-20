@@ -25,8 +25,13 @@ log = logging.getLogger("mpvtk_browser.config")
 # every exit — editing them in a form the app then overwrites is a setting
 # that appears not to work. The preference that governs them,
 # remember_window_size, stays visible.
+# auto_download_servers is the legacy allow-list, adopted into users.json on
+# the first load after the upgrade and then always empty -- editing it under
+# Advanced would be a text field that does nothing. The live control is the
+# per-server Auto-download checkbox in the Servers tab.
 _HIDDEN = {"language_config", "client_uuid", "config_version",
-           "window_width", "window_height", "window_maximized"}
+           "window_width", "window_height", "window_maximized",
+           "auto_download_servers"}
 
 # Passthrough toggles, in the order they should appear, paired with the mpv
 # codec name that decides whether the current audio mode offers them at all.
@@ -224,6 +229,11 @@ TAB_SECTIONS = {
                           "auto_download_next_up_limit",
                           "auto_download_lookahead", "auto_download_max_gb",
                           "auto_download_delete_watched",
+                          # Under the toggle it qualifies, not beside the
+                          # other number: it is a modifier on "once
+                          # watched", and next to "Delete Unwatched After"
+                          # the two read as a pair of independent timers.
+                          "auto_download_keep_watched_hours",
                           "auto_download_keep_days",
                           "auto_download_interval_mins"]),
         # Behind the disclosure, directly under the settings they qualify
@@ -644,6 +654,8 @@ LABEL_OVERRIDES = {
     "auto_download_lookahead": _("Episodes to Keep Ahead (0 = off)"),
     "auto_download_max_gb": _("Storage Limit for Automatic Downloads (GB)"),
     "auto_download_delete_watched": _("Delete Automatic Downloads Once Watched"),
+    "auto_download_keep_watched_hours": _(
+        "Keep Watched Downloads For (hours, 0 = delete right away)"),
     "auto_download_keep_days": _("Delete Unwatched After (days, 0 = never)"),
     "auto_download_interval_mins": _("Check Every (minutes)"),
     "auto_download_lookahead_min": _("Top Up When Fewer Than (episodes)"),
@@ -783,6 +795,15 @@ NOTES = {
                        "changing it hands Enter back to MPV. The game "
                        "controller's Confirm button and a phone's Select "
                        "follow it."),
+    # "grace", "household" and "rewatch" are all words somebody types into
+    # the search box looking for this, and none of them is in the label.
+    # The second sentence is the one that stops it reading as a bug report:
+    # a full download folder still evicts inside the window.
+    "auto_download_keep_watched_hours": _(
+        "A grace period after you finish something: it stays downloaded for "
+        "this long, so you can rewatch it or somebody else in the house can "
+        "catch up, instead of going on the next check. Running out of "
+        "storage still removes watched downloads before the time is up."),
     # A blank numeric field meaning "use the setting above" is not
     # guessable from a label, and these three are the ones where leaving
     # them alone is the right answer for almost everybody.

@@ -124,6 +124,14 @@ pipeline as the Tk UI and the OSC via the shared `svgpath` module;
 compose with Text in a Row for labelled buttons). `Dropdown` and
 `Menu` take per-item `icons=` name lists.
 
+**An `icons=` list indents every row in the open list, whether or not that
+row's entry is set** — the gutter is a column, not a per-item decoration. So
+a list that marks only the exceptional entries charges the width to all of
+them and gives their labels an ellipsis in return. Mark every item, or none.
+(The closed control is the other way: it indents only for the *selected*
+item's icon, and its natural width budgets for that, so a picker with icons
+does not shorten its own label to make room.)
+
 Floating: `Menu` (context menu at a point; `on_select`/`on_dismiss`),
 `Dialog` (centered modal, grabs all input, ESC/click-away →
 `on_dismiss`), `Float` (positioned toast/banner, no grab). All floating

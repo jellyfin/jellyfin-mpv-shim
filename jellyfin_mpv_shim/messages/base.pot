@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 12:00-0400\n"
+"POT-Creation-Date: 2026-09-19 18:03-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -866,6 +866,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Retry"
@@ -996,10 +997,28 @@ msgstr ""
 msgid "The PIN could not be saved."
 msgstr ""
 
+#. Button, and the title of the screen it opens. Signs back in to a server
+#. that is already saved, because the stored login stopped working -- not
+#. adding a new one. "Again" is the load-bearing word.
+#: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+msgid "Sign In Again"
+msgstr ""
+
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Add Server"
+msgstr ""
+
+#. Explanation at the top of the Sign In Again form. %s is the server's
+#. name. The second sentence is there to say this is not the same as
+#. removing the server and adding it back, which loses its downloads.
+#: jellyfin_mpv_shim/mpvtk_browser/auth.py
+#, python-format
+msgid ""
+"Your saved login for %s is no longer accepted. Signing in again keeps its "
+"downloads and settings."
 msgstr ""
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
@@ -1064,6 +1083,12 @@ msgstr ""
 msgid "Use Quick Connect"
 msgstr ""
 
+#. Button on the startup screen that opens the sign-in page. An imperative
+#. verb.
+#: jellyfin_mpv_shim/mpvtk_browser/auth.py
+msgid "Sign In"
+msgstr ""
+
 #. Button on the sign-in page that signs in with the details typed above.
 #. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1092,9 +1117,26 @@ msgstr ""
 msgid "Quick Connect was not approved."
 msgstr ""
 
+#. Error shown on the Sign In Again page when the address typed there
+#. belongs to a different Jellyfin server than the saved one being signed
+#. back in to. Their password may well be correct, so the message must point
+#. at the address field rather than at the password. "Add it as a new server"
+#. names the other button on the servers screen.
+#: jellyfin_mpv_shim/mpvtk_browser/auth.py
+msgid ""
+"That address is a different server. To sign in to it, add it as a new server "
+"instead."
+msgstr ""
+
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
+msgstr ""
+
+#. Error under the Sign In Again form when the server refused the username
+#. or password.
+#: jellyfin_mpv_shim/mpvtk_browser/auth.py
+msgid "Could not sign in. Please check your details."
 msgstr ""
 
 #. Error on the sign-in page when signing in failed, most often a wrong
@@ -1114,12 +1156,6 @@ msgstr ""
 #. device instead of waiting for the server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
-
-#. Button on the startup screen that opens the sign-in page. An imperative
-#. verb.
-#: jellyfin_mpv_shim/mpvtk_browser/auth.py
-msgid "Sign In"
 msgstr ""
 
 #. Shown when Work Offline was pressed but nothing has been downloaded to
@@ -2435,6 +2471,13 @@ msgstr ""
 msgid "Delete Automatic Downloads Once Watched"
 msgstr ""
 
+#. Settings label, Browse tab, Downloads group. A number of hours an
+#. automatically downloaded episode is kept after you finish watching it,
+#. before it is deleted to save space.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
+msgstr ""
+
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2818,6 +2861,17 @@ msgid ""
 "Activates whatever is highlighted, in the library and on the player "
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
+msgstr ""
+
+#. Help text under the setting above. "Grace period" and "rewatch" are
+#. also the words people search the settings box for, so keep whatever the
+#. equivalents are in your language.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"A grace period after you finish something: it stays downloaded for this "
+"long, so you can rewatch it or somebody else in the house can catch up, "
+"instead of going on the next check. Running out of storage still removes "
+"watched downloads before the time is up."
 msgstr ""
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
@@ -5898,9 +5952,31 @@ msgstr ""
 msgid "TV Shows"
 msgstr ""
 
+#. A library tile in the offline (downloads) browser, holding downloaded
+#. items whose Jellyfin server this app could not determine -- their stored
+#. manifest named none. They are still playable and deletable; they are
+#. simply not known to belong to any of the user's servers, so they are
+#. listed apart from Movies/TV rather than under one of them. "Orphaned" in
+#. the sense of "has no parent server", not "damaged".
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+msgid "Orphaned Items"
+msgstr ""
+
 #. Name of the offline library holding downloaded playlists.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlists"
+msgstr ""
+
+#. A downloaded playlist's tile label in the offline library, qualified by
+#. which server it came from. Only used when two servers hold a playlist of
+#. the SAME name -- Jellyfin derives a playlist's id from its name, so the
+#. duplicate ids and the duplicate labels arrive together. %(name)s is the
+#. playlist's own name ("Music"); %(server)s is the server's name as the user
+#. configured it, or its address. Reorder or re-bracket freely; both
+#. placeholders are named, so they can swap.
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, python-format
+msgid "%(name)s (%(server)s)"
 msgstr ""
 
 #. Heading of the offline home-screen row listing films on this device.
@@ -6283,6 +6359,23 @@ msgstr ""
 msgid "Copied %d log lines."
 msgstr ""
 
+#. State beside a server in Settings: the application can reach it.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+msgid "Connected"
+msgstr ""
+
+#. One-word status in the Servers list: this server answered, but it no
+#. longer accepts the saved login, so the user has to sign in again. The
+#. other two states are "Connected" and "Offline".
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+msgid "Signed out"
+msgstr ""
+
+#. State beside a server in Settings: the application cannot reach it.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+msgid "Offline"
+msgstr ""
+
 #. Placeholder in the empty field where the name of a new local profile is
 #. typed, in the Users settings. These are this application's own profiles,
 #. each with its own servers, not Jellyfin accounts.
@@ -6360,22 +6453,6 @@ msgstr ""
 msgid "active"
 msgstr ""
 
-#. State beside a server in Settings: the application can reach it.
-#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-msgid "Connected"
-msgstr ""
-
-#. State beside a server in Settings: the application cannot reach it.
-#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-msgid "Offline"
-msgstr ""
-
-#. Checkbox beside a server in Settings, letting that server's new episodes
-#. be fetched automatically.
-#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-msgid "Auto-download"
-msgstr ""
-
 #. Question in the dialog that forgets a server. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -6385,6 +6462,56 @@ msgstr ""
 #. Title of the dialog that forgets a server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
+msgstr ""
+
+#. Checkbox beside a server in Settings, letting that server's new episodes
+#. be fetched automatically.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+msgid "Auto-download"
+msgstr ""
+
+#. Status message when a reconnect to a server is already under way: the user
+#. pressed Retry a second time, or something else (the periodic health check)
+#. was already connecting to it.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+msgid "Already reconnecting."
+msgstr ""
+
+#. Status message after a manual retry succeeded. %s is the server's name.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, python-format
+msgid "Connected to %s."
+msgstr ""
+
+#. Status message while a manual retry is running. %s is the server's name.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, python-format
+msgid "Connecting to %s…"
+msgstr ""
+
+#. Body of the dialog shown when a server could not be reached. %s is the
+#. server's name. This is the version for a server that IS reachable and
+#. refused the login.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, python-format
+msgid ""
+"%s answered, but it no longer accepts the saved login. Signing in again "
+"keeps its downloads and settings."
+msgstr ""
+
+#. Body of the same dialog, for a server that did not respond at all. %s is
+#. the server's name.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, python-format
+msgid ""
+"%s did not answer. It may be switched off, or this machine may not be able "
+"to reach it right now."
+msgstr ""
+
+#. Title of that dialog. %s is the server's name.
+#: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, python-format
+msgid "Couldn't connect to %s"
 msgstr ""
 
 #. Status message when forgetting a server failed.
@@ -6515,6 +6642,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search"
+msgstr ""
+
+#. An entry in the server picker in the top bar, for a saved server that is
+#. not connected. %s is the server's name; picking it tries to reconnect.
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, python-format
+msgid "%s (offline)"
 msgstr ""
 
 #. Tooltip of the window button that hides the window to the taskbar.
@@ -6750,6 +6884,15 @@ msgstr ""
 msgid "Enable SVP"
 msgstr ""
 
+#. Shown in the Downloads settings when the user presses the button that
+#. moves the download folder, and the move is refused. The saved logins
+#. file could not be read at startup, so the download catalog was never
+#. opened and there is nothing to move. "the saved logins" means the
+#. accounts the user has signed in to their Jellyfin servers with.
+#: jellyfin_mpv_shim/sync/manager.py
+msgid "Downloads are unavailable: the saved logins could not be read."
+msgstr ""
+
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "The downloads are already in that folder."
@@ -6794,6 +6937,14 @@ msgstr ""
 msgid "Can't create that folder. Check the path and its permissions."
 msgstr ""
 
+#. Shown after choosing a new download folder the app cannot write into --
+#. another account's folder, or a read-only disk. Nothing has been moved.
+#: jellyfin_mpv_shim/sync/manager.py
+msgid ""
+"This app isn't allowed to write to that folder. Pick one you own, or change "
+"its permissions, and try again."
+msgstr ""
+
 #. Error when the download folder was changed while a transfer is still
 #. ending.
 #: jellyfin_mpv_shim/sync/manager.py
@@ -6806,6 +6957,14 @@ msgstr ""
 msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
+msgstr ""
+
+#. The same problem, discovered part way through the move rather than
+#. before it started. Past tense for that reason. Nothing was lost.
+#: jellyfin_mpv_shim/sync/manager.py
+msgid ""
+"This app wasn't allowed to write to that folder. The downloads were left in "
+"place; check the folder's permissions and try again."
 msgstr ""
 
 #. Error when relocating the downloads did not finish, saying nothing was

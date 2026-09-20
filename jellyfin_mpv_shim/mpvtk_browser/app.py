@@ -444,7 +444,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._spinner_timer = None
         # Re-read loop for the Live TV routes; see _poll_live_tv.
         self._livetv_poll = None
-        # live text of the download-folder field
+        # Live text of the download-folder field, dropped the moment that
+        # field stops being drawn. See _drop_abandoned_sync_path.
         self._sync_path = {}
         self.status = ""
         self._size = None         # last window size seen by build()
@@ -1794,6 +1795,29 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         except Exception:
             log.warning("page close failed", exc_info=True)
 
+    def _drop_abandoned_sync_path(self):
+        """Forget a download-folder path typed into a field that is no longer
+        on screen.
+
+        The renderer drops a textbox's text when its node leaves the scene, so
+        a field revisited later draws the **stored** setting again -- while
+        this dict went on holding whatever was typed at it, for the life of
+        the browser. The Move button reads the dict in preference to the value
+        the field is showing (deliberately: an emptied field is a real request
+        for the default folder, which `get("path") or val` cannot express), so
+        the two together moved the store to a path nobody could see. This is
+        the app's one Tier-1 destructive text field; `docs/do-not-fix.md` F42
+        is the report.
+
+        Mirroring the renderer's own prune rather than clearing on a
+        navigation is what makes it complete: a tab change, a search that
+        filters the row out, a yield to playback and leaving Settings
+        altogether are four different events and one fact, which is that the
+        row was not drawn. The row stamps itself when it is.
+        """
+        if not self._sync_path.pop("drawn", False):
+            self._sync_path.pop("path", None)
+
     def _claim_page_keys(self, route):
         """Push this route's key claim to the renderer (see
         ``MpvtkApp.claim_keys``).
@@ -2818,7 +2842,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 # The unpack stays inside the guard: a controller that cannot
                 # answer (no sync db, or a stub) returns None, and that must
                 # leave the badges alone rather than raise on a pool thread.
-                self.tiles.set_downloaded(*self.controller.downloaded_ids())
+                self.tiles.set_downloaded(
+                    *self.controller.downloaded_ids(self.server))
             except Exception:
                 # Guarded, NOT returned from. This used to bail out of the
                 # whole function, so a badge read that failed silently
@@ -2873,6 +2898,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 and self.load.spinner_due()):
             return self.load.loading_scene(size)
         if not self._browsing:
+            self._drop_abandoned_sync_path()
             if self.hud.shown:
                 # Summoned playback HUD over the video (see hud.py; the
                 # renderer owns the summon/auto-hide lifecycle).
@@ -2894,6 +2920,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # drew, and unconditional so that leaving the page drops the claim.
         self._claim_page_keys(route)
         self._retire_page(route)
+        self._drop_abandoned_sync_path()
         children = []
         if route["kind"] not in CHROME_FREE:
             children.append(window_chrome.chrome(self, w))
@@ -3077,21 +3104,65 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _switch_server(self, uuid):
         if uuid == self.server:
             return
-        # A SyncPlay group belongs to the server it was joined on, and this
-        # UI only ever talks to the selected one — so leaving the server
-        # means leaving the group, or it stays joined with no way to reach
-        # it from here.
+        # The switcher lists servers that are not connected (see
+        # window_chrome.chrome_lists), so picking one is as often "get this
+        # one back" as it is "show me that one". Navigating to a server the
+        # source does not hold would draw an empty library with no
+        # explanation, so the reconnect happens first and the failure says
+        # what to press -- which is the whole reason the entry is offered.
         old = self.server
-        if old and self.controller is not None:
-            try:
-                if self.controller.sync_active():
-                    self._client_call(lambda c: c.sync_leave(old))
-            except Exception:
-                log.debug("syncplay leave on server switch failed",
-                          exc_info=True)
+        if not self._server_is_browsable(uuid):
+            # The reconnect may fail, and leaving the group for a switch that
+            # did not happen would be worse than the thing being avoided --
+            # so the handover is on the success path, with the old server
+            # captured here because `set_source` will have moved `self.server`
+            # by the time it runs.
+            def arrived():
+                self._leave_syncplay_on(old)
+                self._remember_server(uuid)
+
+            self.reconnect_server(uuid, on_success=arrived)
+            return
+        self._leave_syncplay_on(old)
         self.server = uuid
         self._remember_server(uuid)
         self.navigate({"kind": "home", "server": uuid}, reset=True)
+
+    def _leave_syncplay_on(self, uuid):
+        """Leave the SyncPlay group held on ``uuid``, if there is one.
+
+        A group belongs to the server it was joined on, and this UI only ever
+        talks to the selected one — so leaving that server means leaving the
+        group, or it stays joined with no way to reach it from here.
+
+        One function because there are now two ways off a server: the direct
+        switch, and the reconnect that picking an offline entry performs. The
+        second arrived without this and left the group standing, which is the
+        multi-site shape this repo keeps producing.
+        """
+        if not uuid or self.controller is None:
+            return
+        try:
+            if self.controller.sync_active():
+                self._client_call(lambda c: c.sync_leave(uuid))
+        except Exception:
+            log.debug("syncplay leave on server switch failed", exc_info=True)
+
+    def _server_is_browsable(self, uuid):
+        """Does the live source hold this server?
+
+        The source, not the credential list: a saved server is browsable
+        exactly when the source has a connection for it, and that is the
+        thing every route load is about to ask. Fails **open** -- a source
+        that will not answer gets the old behaviour rather than a reconnect
+        the user did not ask for.
+        """
+        try:
+            return any(s.get("uuid") == uuid
+                       for s in (self.source.servers() or []))
+        except Exception:
+            log.debug("could not list the source's servers", exc_info=True)
+            return True
 
     def _open_queue(self):
         self.navigate({"kind": "queue", "server": self.server,
