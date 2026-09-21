@@ -26,8 +26,9 @@ A local `def build(test=None, **kw)` forwarding to `build_player` satisfies the
 call-site rule -- the keyword is right there -- while letting every caller of
 the *wrapper* omit its case and get None. That is the opt-in this file exists
 to close, reopened one level up where a rule reading only call sites cannot
-see it. So a function that forwards `test=` to `build_player` may not give its
-own `test` parameter a default.
+see it. So a function that forwards one of its own **defaulted parameters** as
+`build_player`'s `test=` is the finding -- whatever that parameter is called,
+and regardless of what else the function does with a name spelled `test`.
 
 A finding is not automatically a bug -- a call site with no case to hand over
 (a module-level fixture built once for a whole file) is legitimate and belongs
@@ -79,10 +80,19 @@ def _defaulted_params(fn):
 
 
 def _forwarding_wrappers(tree, bare_counts):
-    """Line numbers of functions that forward a DEFAULTED `test` onward.
+    """Line numbers of functions that forward a DEFAULTED parameter as `test`.
 
     See the wrapper paragraph above: the call inside one of these looks
     correct to `_calls`, so the hole is only visible from the definition.
+
+    The question is about the **value**, not about either spelling. Asking
+    whether the wrapper has a parameter literally called `test` misses
+    `def build(case=None): ... build_player(mod, test=case)`, which is the
+    same hole one rename away; asking only whether the *keyword* is `test`
+    flags `build_player(mod, test=self)` inside a method that happens to
+    have a `test=None` parameter it does not forward. Both were real: this
+    file had one of each, and each is now a case in
+    `tests/test_no_unwatched_players.py`.
     """
     found = []
     for node in ast.walk(tree):
@@ -90,7 +100,8 @@ def _forwarding_wrappers(tree, bare_counts):
             continue
         if node.name == "build_player":
             continue
-        if "test" not in _defaulted_params(node):
+        defaulted = _defaulted_params(node)
+        if not defaulted:
             continue
         for inner in ast.walk(node):
             if not isinstance(inner, ast.Call):
@@ -102,7 +113,12 @@ def _forwarding_wrappers(tree, bare_counts):
                 named = func.id == "build_player" and bare_counts
             else:
                 named = False
-            if named and any(kw.arg == "test" for kw in inner.keywords):
+            if not named:
+                continue
+            if any(kw.arg == "test"
+                   and isinstance(kw.value, ast.Name)
+                   and kw.value.id in defaulted
+                   for kw in inner.keywords):
                 found.append(node.lineno)
                 break
     return found

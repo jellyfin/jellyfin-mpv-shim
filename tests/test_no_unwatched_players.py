@@ -96,6 +96,34 @@ class TheAuditReadsTheCallAndNotTheNameTest(unittest.TestCase):
 
         self.assertEqual([], offenders)
 
+    def test_a_wrapper_that_renamed_its_case_parameter_is_still_found(self):
+        """The rule is about the forwarded value, not the parameter's name.
+
+        Keying on a parameter literally called `test` made the whole rule one
+        rename away from silent: this wrapper is the same hole -- every caller
+        may omit its case -- spelled `case`.
+        """
+        offenders, _checked = self._audit(
+            "def build(case=None, **kw):\n"
+            "    return h.build_player(mod, test=case, **kw)\n")
+
+        self.assertEqual(1, len(offenders),
+                         "a forwarding wrapper escaped by renaming the "
+                         "parameter it defaults")
+        self.assertIn("DEFAULTED", offenders[0][1])
+
+    def test_a_case_forwarded_from_something_else_is_not_the_wrapper_hole(self):
+        """The other face. `test=self` hands over a real case, so there is
+        no hole -- even in a method that also has a `test=None` parameter it
+        does not forward. Flagging it would make the escape hatch the way to
+        silence a rule that fires on correct code."""
+        offenders, _checked = self._audit(
+            "class T:\n"
+            "    def helper(self, test=None):\n"
+            "        return h.build_player(mod, test=self)\n")
+
+        self.assertEqual([], offenders)
+
     def test_a_function_that_defaults_test_but_forwards_nothing_is_ignored(self):
         """`test=None` is an ordinary parameter name. Only forwarding it to
         build_player makes it this audit's business."""
