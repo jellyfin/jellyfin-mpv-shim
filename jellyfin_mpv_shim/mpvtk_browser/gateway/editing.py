@@ -101,6 +101,32 @@ class EditingMixin(GatewayCore):
         """
         self._edit(server_uuid, lambda jf: jf.delete_item(item_id))
 
+    def refresh_item(self, server_uuid, item_id):
+        """Ask the server to re-read this item's metadata. RAISES on failure.
+
+        A raw call, because the apiclient has no helper for
+        `POST /Items/{id}/Refresh`.
+
+        **A full refresh that replaces nothing**, which is the middle of the
+        three strengths jellyfin-web's refresh dialog offers: look for
+        metadata and artwork that are missing or have changed, and keep what
+        is already there. The strongest option discards everything the server
+        holds, hand-edited fields included, and that is not something to put
+        one press away on a context menu with no dialog in between.
+
+        `Recursive`, so refreshing a series or a season reaches the episodes
+        under it -- which is the case somebody reaches for this in: one
+        episode whose metadata never landed.
+        """
+        self._edit(server_uuid, lambda jf: jf.items(
+            "/%s/Refresh" % item_id, "POST", params={
+                "Recursive": True,
+                "MetadataRefreshMode": "FullRefresh",
+                "ImageRefreshMode": "FullRefresh",
+                "ReplaceAllMetadata": False,
+                "ReplaceAllImages": False,
+            }))
+
     def playlist_update(self, server_uuid, playlist_id, name=None,
                         is_public=None):
         self._edit(server_uuid,
