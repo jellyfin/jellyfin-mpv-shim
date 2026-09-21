@@ -92,6 +92,12 @@ CONTRACT = [
     # suite can only assume, because it builds the DTO it then reads.
     "tests.e2e.test_music_playlist",
     "tests.e2e.test_items_endpoint",
+    # Discovery against a server that really answers the UDP broadcast. The
+    # unit suite draws the login screen from dicts this repo wrote, so the
+    # exchange it is named after -- broadcast, reply, parse -- was assumed by
+    # both sides. Skips unless the QA server was started `--autodiscovery`,
+    # and unless the installed apiclient has the module (1.19.0+).
+    "tests.e2e.test_server_discovery_live",
     # The server-truth backing for batch 4 -- CanDelete absent unless
     # asked, TranscodeReasons in the TranscodingUrl, StartItemId
     # inclusive, the shader library-scope lookup. It was added to
