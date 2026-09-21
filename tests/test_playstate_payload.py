@@ -111,6 +111,77 @@ AUDIOBOOK = {"Name": "The Lantern Keeper", "Type": "AudioBook",
              "Album": "The Lantern Keeper"}
 
 
+class _RefusingPlayer:
+    """An mpv that will not take the resume seek.
+
+    A bare `SystemError` because that is what libmpv raises with nothing
+    loaded (-12) -- it is in neither backend's error tuple, which is why
+    `_apply_resume_offset` catches `Exception` rather than `_mpv_errors`.
+    """
+
+    def __init__(self):
+        self.commands = []
+
+    def command(self, *args):
+        self.commands.append(args)
+        raise SystemError("no file loaded")
+
+
+class _AcceptingPlayer(_RefusingPlayer):
+    def command(self, *args):
+        self.commands.append(args)
+
+
+class TestAFailedResumeStillReportsItsPosition(unittest.TestCase):
+    """`last_seek` is set BEFORE the seek, and that is deliberate.
+
+    A review asked for the assignment to move below the `command`, so that a
+    resume which never happened is not recorded as a position reached. It must
+    not: `last_seek` is `None` for the first item of a session, and the stop
+    report reads `int((self.last_seek or 0) * 10000000)`
+    (`player_reporting.py:643`) -- so a failed resume would report position
+    ZERO and destroy the user's place, which is worse than reporting the
+    position they asked to return to. `get_timeline_options` calls that case
+    "a resume position invented out of nothing".
+
+    [iw]: "the resume position ideally, and the resume seek shouldn't silently
+    fail it should show an error message asking to retry otherwise it loses
+    the user's watch progress". The error message is a separate feature (todo
+    17); this pins the half that is settled.
+    """
+
+    RESUME = 2700.0
+
+    def _apply(self, player):
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.last_seek = None
+        pm._last_ui_seek_time = 0.0
+        pm._player = player
+        PlayerManager._apply_resume_offset(pm, self.RESUME)
+        return pm
+
+    def test_a_refused_seek_keeps_the_resume_position(self):
+        pm = self._apply(_RefusingPlayer())
+
+        self.assertEqual(self.RESUME, pm.last_seek)
+        # The reporter's own expression, so the consequence is asserted and
+        # not just the attribute: `or 0` is what turns None into position 0.
+        self.assertEqual(self.RESUME, pm.last_seek or 0)
+
+    def test_the_seek_was_actually_attempted(self):
+        """The control: a method that returned early would pass the test
+        above while resuming nothing."""
+        pm = self._apply(_RefusingPlayer())
+
+        self.assertEqual([("set", "playback-time", str(self.RESUME))],
+                         pm._player.commands)
+
+    def test_a_seek_that_lands_records_it_too(self):
+        pm = self._apply(_AcceptingPlayer())
+
+        self.assertEqual(self.RESUME, pm.last_seek)
+
+
 class TestAStartInFlightIsNotAStop(unittest.TestCase):
     """`_video` is assigned only once the open succeeds, so for the whole of a
     load the player looks stopped from in here. Every incidental push during
