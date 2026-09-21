@@ -70,6 +70,11 @@ class LiveDiscoveryTest(unittest.TestCase):
                 "the shim's floor is >=1.18.0 on purpose")
         cls.session = _e2e.Session()
         cls.server_id = cls.session.server_id()
+        # What the server calls itself, asked over HTTP on the address this
+        # suite already trusts. The broadcast reply is supposed to carry the
+        # same string, and comparing the two is what makes the assertion
+        # below about the reply rather than about it being non-empty.
+        cls.server_name = cls._public(cls.session.address).get("ServerName")
         # Through the shim's own gateway, not the apiclient directly: the
         # `try`/`except` and the list() around it are the code under test,
         # and a test that called the library would pass with the gateway
@@ -84,6 +89,15 @@ class LiveDiscoveryTest(unittest.TestCase):
                 "QA server with `--autodiscovery --on-host` (it is off by "
                 "default, and the container publishes no UDP port). %d other "
                 "server(s) answered." % (cls.server_id, len(cls.found)))
+
+    @staticmethod
+    def _public(address):
+        import json
+        import urllib.request
+
+        with urllib.request.urlopen(
+                address.rstrip("/") + "/System/Info/Public", timeout=10) as r:
+            return json.loads(r.read()) or {}
 
     @classmethod
     def tearDownClass(cls):
@@ -107,8 +121,15 @@ class LiveDiscoveryTest(unittest.TestCase):
 
         self.assertTrue(reply.get("Address"),
                         "no Address, so the screen would drop this row")
-        self.assertTrue(reply.get("Name"),
-                        "no Name, so the row would show its address twice")
+        # The NAME the server calls itself, not merely a non-empty string. A
+        # reply carrying the id as its name, or the address, or a placeholder
+        # is truthy and tells the user nothing -- and the row exists to let
+        # them tell one server on the LAN from another.
+        self.assertEqual(
+            self.server_name, reply.get("Name"),
+            "discovery advertises the name %r for a server that calls itself "
+            "%r over HTTP, so the row names the wrong thing"
+            % (reply.get("Name"), self.server_name))
 
     def test_the_advertised_address_is_one_a_client_can_use(self):
         """The press after the one this feature exists for.
@@ -159,6 +180,13 @@ class LiveDiscoveryTest(unittest.TestCase):
         self.assertIn(self.ours[0]["Address"], texts,
                       "the address is not on screen, and it is the only part "
                       "of an unauthenticated reply a user can judge")
+        # Both fields the docstring says `_discovered_rows` reads, not one.
+        # The name is what makes a row legible where a LAN holds more than
+        # one Jellyfin -- which this one does, which is why the class matches
+        # on ServerId at all.
+        self.assertIn(self.server_name, texts,
+                      "the server's name is not on screen, so every row on a "
+                      "LAN with more than one Jellyfin reads the same")
 
 
 if __name__ == "__main__":
