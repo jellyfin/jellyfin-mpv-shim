@@ -251,6 +251,35 @@ class ServersMixin(GatewayCore):
             log.debug("known_servers failed", exc_info=True)
             return []
 
+    def discover_servers(self, timeout=1.0):
+        """Jellyfin servers that answer a UDP broadcast on this network.
+
+        ``[{"Id", "Name", "Address", ...}]``, one per server, empty when
+        nothing answers -- and empty when the installed apiclient has no
+        discovery module, which is the case this `try` is for: the module
+        landed in 1.19.0 and the shim's floor is older. That is the project's
+        own optional-dependency pattern applied one step wider, at the module
+        rather than the package (CONTRIBUTING.md).
+
+        **Blocks for the whole timeout** -- nothing says when the last server
+        has answered -- so callers run it off the UI thread. It never raises
+        for a network failure.
+
+        **The replies are not authenticated.** Anything on the network can
+        answer with any name and any address, which is why the UI shows the
+        address and why nothing here signs in to one.
+        """
+        try:
+            from jellyfin_apiclient_python.discovery import discover_servers
+        except ImportError:
+            log.debug("this apiclient has no server discovery")
+            return []
+        try:
+            return list(discover_servers(timeout=timeout) or [])
+        except Exception:
+            log.debug("server discovery failed", exc_info=True)
+            return []
+
     def quick_connect(self, server, code_callback, should_cancel):
         """Blocking Quick Connect login. ``code_callback(code)`` gets the
         user-facing code as soon as the server issues it; ``should_cancel()``
