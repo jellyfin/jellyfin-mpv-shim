@@ -40,7 +40,7 @@ class StartupForceWindowTest(unittest.TestCase):
 
     def _init_options(self, osc_style="mpvtk", start_minimized=False,
                       mpvtk_active=False, reopen=False):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm.mpvtk_active = mpvtk_active
         # _init_mpv reads `reopen` off whether a player already exists; a
         # first launch has none. _ensure_mpv is the seam that re-inits.
@@ -78,7 +78,7 @@ class StartupForceWindowTest(unittest.TestCase):
         one, "took no window" and "can never take a window" are the same
         passing result.
         """
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._player = None
         pm._mpv_alive = False
         with mock.patch.object(settings, "enable_gui", True), \
@@ -93,7 +93,7 @@ class StartupForceWindowTest(unittest.TestCase):
         playback_abort=yes AND force_window=yes. Asserting the pair rather
         than force_window alone, because force_window with playback_abort
         off is the *playing* row -- a window, but one waiting for video."""
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._player = None
         pm._mpv_alive = False
         with mock.patch.object(settings, "enable_gui", True), \
@@ -106,7 +106,7 @@ class StartupForceWindowTest(unittest.TestCase):
         """The guard the test above must not have broken: dropping to the
         windowless state when there is already no window is a no-op, not a
         reason to start mpv."""
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._player = None
         pm._mpv_alive = False
         with mock.patch.object(settings, "enable_gui", True):
@@ -130,7 +130,7 @@ class StartupForceWindowTest(unittest.TestCase):
         construction options sees the second round as a failure and the
         product is fine; what the user has either way is a window.
         """
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._player = None
         pm._mpv_alive = False
         with mock.patch.object(settings, "enable_gui", True), \
@@ -209,7 +209,7 @@ class MinimizeReleaseTest(unittest.TestCase):
     do a few minutes later anyway."""
 
     def _player(self, runtime_force_window):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._runtime_force_window = runtime_force_window
         pm._mpv_alive = True
         pm.mpvtk_active = False

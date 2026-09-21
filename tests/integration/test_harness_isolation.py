@@ -138,7 +138,7 @@ class BuildPlayerTracksTheConstructor(unittest.TestCase):
         return attrs
 
     def test_every_constructor_attribute_exists_on_a_built_player(self):
-        pm = h.build_player(h.import_player_with_fake_mpv())
+        pm = h.build_player(h.import_player_with_fake_mpv(), test=self)
         missing = sorted(a for a in self._init_attrs()
                          if a not in self.ALLOWED_MISSING
                          and not hasattr(pm, a))
@@ -148,6 +148,76 @@ class BuildPlayerTracksTheConstructor(unittest.TestCase):
             "any tested method reading one raises AttributeError: %s\n"
             "Add them to build_player (or to ALLOWED_MISSING with a reason)."
             % ", ".join(missing))
+
+
+class TheRefusedWriteCleanupTest(unittest.TestCase):
+    """The machinery rather than the subclass: does a case that has never
+    heard of this get covered by it?
+
+    The inner cases below opt into nothing -- they are ordinary
+    `unittest.TestCase`s that build a player and write a property, and
+    `build_player` is what registers the cleanup. Running them and reading
+    the result is the only way to assert that a *cleanup* fails a test;
+    asserting the writes were recorded would test the guard again and say
+    nothing about whether anything is watching.
+
+    `property_is_absent` is what makes this non-vacuous. FakeMPV accepts every
+    write, so without it the hook is installed and cannot fire, and a hook
+    that cannot fire is the "tests that cannot fail" shape.
+    """
+
+    def _result(self, body):
+        class Inner(unittest.TestCase):
+            def runTest(inner):
+                body(inner)
+
+        result = unittest.TestResult()
+        Inner().run(result)
+        return result
+
+    def test_a_write_this_mpv_refuses_fails_the_case_that_made_it(self):
+        def body(inner):
+            pm = h.build_player(h.import_player_with_fake_mpv(), test=inner)
+            pm._player.property_is_absent("osd-shadow-offset")
+            # Refused, and deliberately not raised: the write returns and the
+            # test body carries on, exactly as production does.
+            pm._player.osd_shadow_offset = 2
+
+        result = self._result(body)
+
+        self.assertEqual([], [e[1] for e in result.errors],
+                         "the write raised instead of being recorded")
+        self.assertEqual(1, len(result.failures),
+                         "a refused property write did not fail its case")
+        self.assertIn("osd_shadow_offset", result.failures[0][1],
+                      "the failure does not name what was refused")
+
+    def test_an_allowed_absence_excuses_it(self):
+        """The escape hatch, on the one entry that is in the list: an mpv
+        that predates `osd-border-style` is a supported mpv, and
+        `set_osd_settings` writing it there is a decision."""
+        absent = "osd_border_style"
+        self.assertIn(absent, h.ALLOWED_REFUSED_WRITES)
+
+        def body(inner):
+            pm = h.build_player(h.import_player_with_fake_mpv(), test=inner)
+            pm._player.property_is_absent(absent)
+            setattr(pm._player, absent, "outline-and-shadow")
+
+        result = self._result(body)
+
+        self.assertEqual([], result.failures + result.errors,
+                         "an absence in ALLOWED_REFUSED_WRITES failed anyway")
+
+    def test_a_case_that_refuses_nothing_passes(self):
+        """The control: the cleanup is not failing everything."""
+        def body(inner):
+            pm = h.build_player(h.import_player_with_fake_mpv(), test=inner)
+            pm._player.osd_shadow_offset = 2
+
+        result = self._result(body)
+
+        self.assertEqual([], result.failures + result.errors)
 
 
 if __name__ == "__main__":
