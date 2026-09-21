@@ -113,6 +113,28 @@ def may_download(client):
     return bool(policy.get("EnableContentDownloading"))
 
 
+def may_refresh_metadata(client):
+    """`IsAdministrator` -- may this user make the server re-scan an item?
+
+    `POST /Items/{id}/Refresh` is administrator-only by construction, which is
+    also where jellyfin-web draws the line.
+
+    Absent means an answer we did not get, so: permitted -- and **this is the
+    first fail-open gate here that can show an action the server will then
+    refuse.** Every other one fails open onto a feature the user merely
+    *might* lack; this one fails open onto an endpoint no ordinary account can
+    call. Accepted rather than overlooked: `IsAdministrator` is in every
+    `UserPolicy` on every server that has the endpoint, so reaching it needs a
+    policy fetch that failed *and* a non-admin, while closing the gate instead
+    would hide the entry from administrators whose fetch failed. Recorded in
+    `docs/PERMISSION_GAPS.md` as the one exception this module tolerates.
+    """
+    policy = policy_for(client) or {}
+    if "IsAdministrator" not in policy:
+        return True
+    return bool(policy.get("IsAdministrator"))
+
+
 def may_manage_collections(client):
     """`EnableCollectionManagement` — may this user write to a collection?
 

@@ -144,6 +144,17 @@ class TilesMixin:
     #: a Program are out for the same reason.
     MENU_MEDIA_INFO = PLAYABLE_TYPES | {"Audio", "AudioBook"}
 
+    #: Types that offer Refresh Metadata. Everything that is a real library
+    #: item, which is the server's own rule: `/Items/{id}/Refresh` takes an
+    #: item id and a Live TV channel or programme is not one.
+    #:
+    #: The Live TV types do not need excluding here -- `_tile_menu_entries`
+    #: returns from its live branch before reaching this -- and they are left
+    #: out anyway, because a set that says what it means survives somebody
+    #: moving the entry.
+    MENU_REFRESH = (MENU_PLAYABLE | MENU_WATCHED
+                    | {"Book", "Photo", "PhotoAlbum", "BoxSet"}) - MENU_LIVE
+
     #: Containers the hover play chip offers, on top of MENU_PLAYABLE and
     #: MENU_LIVE: things whose contents are a queue in the order the grid is
     #: already showing them.
@@ -379,6 +390,19 @@ class TilesMixin:
             # with, so this is one of the few entries that answers just as
             # well with the server away.
             out.append((_("Media Info"), "info", "mediainfo"))
+        # Admin only, and ABOVE Delete rather than below it: this is the
+        # entry an administrator reaches for when an episode arrived with no
+        # metadata, and it must not sit next to the one that destroys the
+        # file. Live TV never reaches here (the live branch returns), and an
+        # in-progress recording is excluded because refreshing a file still
+        # being written is asking the server to read a moving target.
+        if t in self.MENU_REFRESH and not self._offline:
+            from . import live_tv
+
+            if (not live_tv.is_recording_now(item)
+                    and self._actions.can_refresh_metadata(
+                        self.route.get("server") or self.server)):
+                out.append((_("Refresh metadata"), "refresh", "refresh"))
         # Last, and deliberately: it is the only entry here that destroys
         # anything, and a menu whose most dangerous item sits next to Play
         # is a menu that gets misclicked. The condition is the item's own
@@ -468,6 +492,10 @@ class TilesMixin:
         elif action == "mediainfo":
             self._close_menu()
             self._open_media_info(item, server)
+            return
+        elif action == "refresh":
+            self._close_menu()
+            self._actions.refresh_metadata(item, server)
             return
         elif action == "deleteitem":
             self._close_menu()
