@@ -5,7 +5,7 @@ USER_APP_NAME = "Jellyfin MPV Shim"
 # how a Linux desktop finds the window's icon — see player.py's x11_name /
 # wayland_app_id. Changing one without the others loses the icon silently.
 DESKTOP_ID = "com.github.iwalton3.jellyfin-mpv-shim"
-CLIENT_VERSION = "3.0.0"
+CLIENT_VERSION = "3.1.0"
 
 #: The uuid the downloads browser uses where a live source would name a
 #: server. It is not a server: nothing connects to it, no credential carries

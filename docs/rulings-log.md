@@ -865,6 +865,141 @@ on: a copy watched while its origin was unknown, in *this* build, that is later 
 keyed on the sentinel pair, not on the item — `DELETE ... WHERE item_id=?` passes every
 "it is gone" assertion and takes both with it, so two tests exist for that one mutation.
 
+## Session of 2026-09-20 — the roadmap round on the todo list
+
+**How these were captured.** The planning half of `/triage-review` run
+`2026-09-20-mpv-shim-todo`, put to [iw] as multiple choice with a free-text option.
+**Where an answer is quoted below they typed it**; the round's own record marks the ones
+that were selections, and none of those are here. The run directory is under this
+repository's git common directory and is **not in the working tree**, so it is not citable
+as a document and will not survive a fresh clone; what has to outlive it is here.
+
+**Three of these were replaced after a measurement refuted the premise they rested on**, and
+the superseded wording is kept rather than deleted. A log of only the surviving text hides
+the most useful thing this round produced: which rules a measurement can overturn.
+
+### R33 — a failed mpv property write gets one interception point, not 84 patches
+
+> "I think that deserves a proxy on our end not 84 patches"
+
+*Provoked by:* #761/#765, where a property write python-mpv cannot deliver becomes a Python
+attribute that answers every later read of that property for the life of the process — and
+the resume position was the site that shipped.
+*Settles:* a subclass of whichever backend is live, overriding `__setattr__`, installed where
+the player is constructed. The reason the per-site answer loses is not the count: **whether a
+given write shadows depends on the mpv the user has**, so the live sites are a property of the
+deployment rather than of the tree, and no audit of this repository could hold the rule.
+
+### R34 — the proxy never raises — **supersedes R34a below**
+
+> "We might need some test machinery that can auto-assert no dead MPV values are written into
+> then, agree raising isn't ideal for strict mode"
+
+*Provoked by:* a measurement taken after R34a was given. **14 of the 84 writes have further
+statements after them inside the same `try`**, so raising skips work production always does
+and a strict test run exercises a path the app never takes; the worst is `player_window.py`'s
+`keepaspect`, with six statements behind it, which is the handoff `CLAUDE.md` names as the one
+that made every film play stretched.
+*Settles:* it records and logs, identically in production and under test, and the **assertion**
+lives in the suite instead — automatic rather than per-test, because a check a test has to
+remember to call is absent exactly where it is needed.
+
+#### R34a — **SUPERSEDED by R34**
+
+> "Raise on failure during tests, allow with log message in production"
+
+Kept because the shape it names — a strict mode that fails loudly under test — is the obvious
+answer, and the reason it is wrong is a fact about this tree rather than about the idea.
+
+### R35 — an mpv.conf volume turns our volume memory off
+
+> "Detect if a user overrided it in mpv.conf, if so, disable our volume setting persistence and
+> make the volume selectors session-only"
+
+and, added mid-round:
+
+> "If it isn't implementable easily, add an escape hatch setting for disabling volume
+> persistence, advanced only"
+
+*Settles:* both. The condition on the second turned out to be **false** — detection is five
+lines and asks mpv rather than parsing anything — so the escape hatch is carried as an
+independent want rather than as a consequence, and it covers the one case detection cannot
+see: an `mpv.conf` that sets `volume=100`, which is mpv's own default.
+
+### R36 — missing episodes: do what jellyfin-web does — **supersedes R36a below**
+
+> "Do whatever jellyfin-web does"
+
+*Settles:* the client sends no filter for a *listing* and the **server** applies the user's own
+`DisplayMissingEpisodes`; the client marks the card "Missing" or "Unaired" and gives it no play
+button. So a user seeing phantom episodes has that setting on, and what was missing here was
+the marking and the refusal, not a query.
+
+#### R36a — **SUPERSEDED by R36, in its query half only**
+
+> "Honour DisplayMissingEpisodes, and mark them"
+
+The honouring turned out to be the server's — `TvShowsController.cs` applies it, measured on
+both supported majors — so the client has nothing to send. The marking half stands and is what
+shipped.
+
+### R37 — a key that means back, unbound by default
+
+> "ESC is generally strange because a lot of users do expect it to leave fullscreen"
+
+> "#762 for that one mouse buttons are 'interesting' because users might want those bound to
+> chapter seek"
+
+*Settles:* a new `kb_nav_back`, unbound, with ESC untouched — and the mouse thumb buttons left
+alone, knowingly keeping the fullscreen fallback at the library root, because re-routing them
+would change what they do for people using them today.
+
+### R38 — the Flatpak inhibitor: investigate now, ship it if it is easy — **supersedes R38a**
+
+> "Investigate now, if it is easy it goes in 3.1.0 if it is difficult it gets defered"
+
+*Settles:* a gate rather than a schedule. It evaluated to **easy** — five lines of Python, no
+manifest change, measurably different behaviour against the shipped build — so it is in 3.1.0.
+The definition of "easy" it was judged against is in the round's plan, kept because a gate
+whose criterion is discarded after use cannot be re-checked.
+
+#### R38a — **SUPERSEDED by R38**
+
+> "Measure first, you can build flatpak locally"
+
+### R39 — spike the stdjflib fixture, and use it if it works inside an hour
+
+> "Spike it, if it can be made to get working in an hour we use it, otherwise just use fakes"
+
+> "It's a disposable server, so injecting is benign"
+
+> "Plugin approach is more ideal if it works and is less than 2kloc"
+
+*Settles:* it worked, inside the hour, and the plugin was never needed — the whole fixture is
+about forty lines of insert. What the spike bought was the knowledge that **three things are
+required and each fails silently and identically**: the row, its `AncestorIds`, and its own
+`PresentationUniqueKey`.
+
+### R40 — the sync rework is regression tested, not deferred
+
+> "Not sure yet, and I just remembered the server connection lifecycle fixes are also in the
+> sync rework. I think the correct answer is I regression test it instead of letting it stale"
+
+*Provoked by:* the question of whether 3.1.0 should ship from `master` instead, since only one
+of the sixteen items needs the sync branch underneath it.
+*Settles:* no split. **The sync rework is not only risk — it also carries fixes**, so deferring
+it to de-risk a release would be deferring fixes to protect fixes. The release is gated on the
+owner's regression testing of it rather than on trimming it.
+
+### R41 — what is declined, and the difference from deferred
+
+> "Chevron matches Jellyfin's web interface, am inclined to leave it"
+
+with the cursor-autohide half of #767 ruled a wontfix in the same round.
+*Settles:* both are **declined**, not deferred: they get a reply to their reporter saying so,
+and no plan item. Deferring something nobody intends to do is how a backlog stops meaning
+anything.
+
 ---
 
 **Most of these are consequences of four commitments**, identified by [iw] on 2026-09-20 after
