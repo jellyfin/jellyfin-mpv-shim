@@ -89,8 +89,16 @@ def password_for(account, address):
     if account in tuple(facts.get("no_password") or NO_PASSWORD_ACCOUNTS):
         return ""
     if account == (facts.get("admin") or ADMIN_ACCOUNT):
-        return (os.environ.get(ADMIN_PASSWORD_ENV)
-                or facts.get("admin_password") or DEFAULT_PASSWORD)
+        # The published file FIRST. It is per server, and the whole reason
+        # `_published_path` is keyed by port is that this suite holds
+        # sessions to two servers with two different admin passwords -- so
+        # an environment variable that wins would hand the second server the
+        # first one's password and fail the login. The variable stays as the
+        # fallback for a machine that cannot see the file at all (the Windows
+        # VM reaches the server over the network), where one password is all
+        # there is and all that is needed.
+        return (facts.get("admin_password")
+                or os.environ.get(ADMIN_PASSWORD_ENV) or DEFAULT_PASSWORD)
     return facts.get("password") or DEFAULT_PASSWORD
 
 
