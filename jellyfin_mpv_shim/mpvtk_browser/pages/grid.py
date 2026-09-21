@@ -185,7 +185,10 @@ class GridPage(Page):
             q_sort_by, q_sort_order = sort_by, sort_order
             if route.get("_sort") is None:
                 index = self._sort_index(view)
-                if index:
+                # `is not None`, because entry 0 is a real answer: a stored
+                # Name/Descending has no entry in our menu and matches
+                # Name/Ascending loosely, which is index 0.
+                if index is not None:
                     route["_sort"] = index
                     _n, q_sort_by, q_sort_order = self._sorts()[index]
             if collections:
