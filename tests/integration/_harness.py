@@ -1121,43 +1121,46 @@ def watch_refused_writes(test, pm):
     on the *class*, so that a re-created mpv mid-test still reports, and the
     e2e player is process-wide and outlives the case.
 
-    **The class is captured with the mark, and that is load-bearing.** The
-    window is a question about the guarded class, not about whichever instance
-    is on the manager when cleanup runs -- and a case that re-creates mpv from
-    a re-imported module gets a *different* guarded class, whose counter starts
-    at zero. Asking that one about a mark taken against the old class answered
-    "nothing was refused" for a window in which everything was.
+    **The mark is one number per guarded class, not one number.** The window
+    is a question about every class the case touched, and a case can touch a
+    class the manager is not holding at either end of it -- mpv re-created
+    from a re-imported module gets a *different* guarded class, whose counter
+    starts at zero. Observing only the class at mark time and the class at
+    cleanup gets this wrong in both directions: `A -> B -> A` never asks B at
+    all, and a case that ends on B asks B from zero, which reports the
+    refusals of every earlier case in the process. The registry in
+    `mpv_guard` is the complete list, so a snapshot over it diffed at cleanup
+    answers both.
+
+    ``pm`` is **not read**. It stays in the signature because every caller has
+    one and passing it is what says which player the case is about, but the
+    window is per guarded class now and the registry already holds every
+    class -- including ones no manager is pointing at.
     """
     from jellyfin_mpv_shim import mpv_guard
 
-    player = getattr(pm, "_player", None)
-    mark = mpv_guard.refused_count(player)
-    # The player itself, not its class: `failed_writes` is a property closing
-    # over the class's own counter, so reading it off the class hands back the
-    # descriptor. The instance is only a handle to that shared record -- it
-    # does not have to be alive, or still be the manager's player.
-    test.addCleanup(_assert_no_refused_writes, test, pm, mark, player)
+    # Classes, not the player: `guarded` caches one class per base and the
+    # counter lives there, so the instance was never the thing being asked --
+    # and a class that has no live instance by cleanup is exactly the one the
+    # old two-instant window dropped.
+    mark = {cls: mpv_guard.refused_count(cls)
+            for cls in mpv_guard.guarded_classes()}
+    test.addCleanup(_assert_no_refused_writes, test, mark)
 
 
-def _assert_no_refused_writes(test, pm, mark, marked=None):
+def _assert_no_refused_writes(test, mark):
     from jellyfin_mpv_shim import mpv_guard
 
-    player = getattr(pm, "_player", None)
     # SINCE the mark, not the whole record: it is shared by every instance of
     # the guarded class and so by every case in the process, and reading all
     # of it fails this case for the refusal of the one before it.
     #
-    # One window per guarded class the case touched. Where mpv was re-created
-    # from a re-imported module the class changed under us, so the new one is
-    # asked from zero and the one the mark came from is still asked about its
-    # own window -- refusals made before the swap are as real as the ones
-    # after it. `refusals_since` takes the class directly: the record is a
-    # class attribute, so the instance was never the thing being asked.
-    windows = []
-    if marked is not None:
-        windows.append((marked, mark))
-    if player is not None and type(player) is not type(marked):
-        windows.append((player, 0))
+    # One window per guarded class, over every class that exists NOW. A class
+    # absent from the snapshot was built during this case, so its whole record
+    # is inside the window and it is asked from zero -- correctly, where
+    # asking a pre-existing class from zero would over-report.
+    windows = [(cls, mark.get(cls, 0))
+               for cls in mpv_guard.guarded_classes()]
     #
     # Names only. The record carries the value, and libmpv puts it in the
     # exception's own args -- `http_header_fields` is this server's
