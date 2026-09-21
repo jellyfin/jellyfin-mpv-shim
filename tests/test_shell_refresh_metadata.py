@@ -30,6 +30,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
 
+import os
 import unittest
 
 from jellyfin_mpv_shim import user_policy
@@ -126,12 +127,71 @@ class TheGateFailsOpenTest(unittest.TestCase):
         self.assertFalse(user_policy.may_refresh_metadata(client))
 
     def test_a_policy_we_could_not_read_is_allowed(self):
-        """Fail open: the same rule the whole module states. Unreachable in
-        practice -- `IsAdministrator` is in every policy on every server with
-        this endpoint -- and the cost of the other choice is an administrator
-        whose fetch failed losing the entry."""
+        """Fail open: the same rule the whole module states.
+
+        Rare by conjunction, not impossible. `IsAdministrator` is in every
+        policy on every server with this endpoint, so this branch needs a
+        failed fetch *and* a non-administrator -- but the failed fetch alone
+        is ordinary, since `policy_for` answers `{}` after any exception from
+        `get_user`. The cost of the other choice is an administrator whose
+        fetch failed losing the entry. `docs/PERMISSION_GAPS.md` §7 has the
+        trade."""
         self.assertTrue(user_policy.may_refresh_metadata(_FakeClient(None)))
         self.assertTrue(user_policy.may_refresh_metadata(None))
+
+
+class TheProseDoesNotOverclaimTest(unittest.TestCase):
+    """No site says this branch is unreachable, because it is not.
+
+    `docs/PERMISSION_GAPS.md` §7 said so and was corrected in `442ce124`;
+    the same words stayed at two other sites, so the doc and the code
+    disagreed and the reader nearest the code got the wrong one. Correcting
+    words leaves three copies of one argument free to drift apart again --
+    which is exactly how this arose -- so the next drift fails here instead
+    of shipping.
+
+    A confident comment raises the reader's prior that the code below is
+    right. That is what makes an overclaim worse than silence.
+    """
+
+    #: Assembled rather than written out, because this module is inside the
+    #: tree it walks and one of the two corrected sites was in it -- spelling
+    #: the phrase here would make the check fail on itself forever, and
+    #: excusing this file instead would stop it watching the site it was
+    #: written for.
+    PHRASE = " ".join(("Unreachable", "in", "practice"))
+
+    def _tree(self):
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for base, dirs, names in os.walk(root):
+            dirs[:] = [d for d in dirs
+                       if d not in (".git", "build", "dist", "__pycache__")]
+            for name in names:
+                if name.endswith((".py", ".md")):
+                    yield os.path.join(base, name), root
+
+    def test_no_site_claims_the_fail_open_branch_cannot_be_reached(self):
+        hits = []
+        for path, root in self._tree():
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    text = fh.read()
+            except (OSError, UnicodeDecodeError):
+                continue
+            # The phrase wraps across two lines at both sites it was found
+            # at, which is why the obvious grep for it finds nothing.
+            flat = " ".join(text.split())
+            if self.PHRASE.lower() in flat.lower():
+                hits.append(os.path.relpath(path, root))
+
+        self.assertEqual(
+            [], sorted(hits),
+            "the fail-open branch in `user_policy.may_refresh_metadata` is "
+            "rare by conjunction, not unreachable: `policy_for` answers {} "
+            "after ANY exception from `get_user`, and a working server "
+            "produces timeouts, 504s and expired tokens. Say the "
+            "conjunction, or cite docs/PERMISSION_GAPS.md §7. Sites: %s"
+            % ", ".join(sorted(hits)))
 
 
 class _FakeClient:
