@@ -44,6 +44,14 @@ class _Player:
         #: which is what left "does the seek-to-skip prompt appear" checked
         #: by an `assertIn` against update()'s SOURCE.
         self.texts = []
+        self.commands = []
+
+    def command(self, name, *args):
+        """`set` is how the shim writes a property it must not shadow."""
+        self.commands.append((name, *args))
+        if name == "set":
+            prop, value = args
+            setattr(self, prop.replace("-", "_"), value)
 
     def show_text(self, text, *a, **kw):
         """An automatic skip announces itself on the OSD."""
@@ -919,6 +927,95 @@ class ResumingIntoAnIntroDoesNotSkipItTest(unittest.TestCase):
         with mock.patch.object(settings, "skip_intro_on_seek", False):
             self._seek_round_trip(pm, 10.0, 40.0)
         self.assertEqual(pm.skips, [])
+
+
+class _PropertyUnavailable(AttributeError):
+    """python-mpv's `PropertyUnavailableError`, whose base class is the whole
+    mechanism: `MPV.__setattr__` catches `AttributeError`."""
+
+
+class _ShadowingPlayer:
+    """python-mpv's write contract -- the field this test is named after.
+
+    A write mpv cannot deliver raises out of `_set_property`, and
+    `MPV.__setattr__` catches `AttributeError` and falls through to
+    `object.__setattr__`. `__getattr__` is only consulted when normal lookup
+    fails, so the attribute left behind wins every later read for the life of
+    the process -- a later *successful* write does not clear it (measured
+    against python-mpv 1.0.8). A stand-in that merely recorded writes would
+    make that unreachable while reporting a pass.
+    """
+
+    def __init__(self):
+        object.__setattr__(self, "_mpv", {"playback-time": None})
+        object.__setattr__(self, "loaded", False)
+        object.__setattr__(self, "commands", [])
+
+    def __setattr__(self, name, value):
+        try:
+            if not self.loaded:
+                raise _PropertyUnavailable("mpv property is not available", -10)
+            self._mpv[name.replace("_", "-")] = value
+        except AttributeError:
+            object.__setattr__(self, name, value)
+
+    def __getattr__(self, name):
+        try:
+            return self._mpv[name.replace("_", "-")]
+        except KeyError:
+            raise AttributeError(name)
+
+    def command(self, name, *args):
+        self.commands.append((name, *args))
+        if name != "set":
+            return
+        prop, value = args
+        if not self.loaded:
+            # Measured: -12, as a `SystemError`, which is not in _mpv_errors.
+            raise SystemError("Error running mpv command", -12, (name, *args))
+        self._mpv[prop] = value
+
+
+class AResumeThatCannotSeekLeavesNoShadowTest(unittest.TestCase):
+    """#761/#765: playback can end between the duration gate and the resume
+    seek, and the write that lands then is not merely lost.
+
+    It becomes a Python attribute on the player object, which every later read
+    gets instead of mpv's own position for the rest of the session --
+    `_check_stalled_finish` then reads a file parked at the resume offset and
+    advances the queue on a timer. The reporters saw episodes skipping
+    themselves; the logs blamed the server.
+    """
+
+    def _pm(self, loaded):
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._player = _ShadowingPlayer()
+        object.__setattr__(pm._player, "loaded", loaded)
+        pm.last_seek = None
+        pm._last_ui_seek_time = 0.0
+        return pm
+
+    def test_a_resume_onto_a_dead_file_does_not_pin_the_position(self):
+        pm = self._pm(loaded=False)
+
+        # Raising is the other way to lose the rest of _play_media: this runs
+        # in its tail, ahead of send_timeline_initial.
+        pm._apply_resume_offset(1079.0)
+
+        self.assertNotIn("playback_time", pm._player.__dict__,
+                         "the failed write left a shadow on the player")
+        object.__setattr__(pm._player, "loaded", True)
+        pm._player.command("set", "playback-time", 3.0)
+        self.assertEqual(pm._player.playback_time, 3.0,
+                         "a position read did not reach mpv")
+
+    def test_a_resume_that_can_seek_still_seeks(self):
+        """The control: the fix must not cost the resume itself."""
+        pm = self._pm(loaded=True)
+
+        pm._apply_resume_offset(30.0)
+
+        self.assertEqual(pm._player.playback_time, 30.0)
 
 
 class TestMediaSegmentTypes(unittest.TestCase):
