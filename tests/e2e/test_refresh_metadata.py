@@ -16,10 +16,13 @@ and asks three things a fake cannot:
 * **the server accepts it.** An unrecognised parameter is dropped, but a
   malformed enum value is a 400, and nothing had ever sent this exact set to
   a real server;
-* **`Recursive` really is inert**, from the wire instead of from the source:
-  the same request with and without it answers identically. That is this
-  repo's standing claim about Jellyfin ("it drops what it does not
-  recognise") applied to the one parameter that was wrong;
+* **`Recursive` is not a name this endpoint knows**, from the wire instead of
+  from the source. Not by comparing two successes -- `ReplaceAllMetadata=true`
+  is recognised *and* honoured and answers the same 204, so that comparison
+  passes for a parameter that plainly does something. By the contrast this
+  repo already prescribes: a bogus value for a name the endpoint knows is a
+  400, and `Recursive` with an equally bogus value is accepted, which it
+  could only be if nothing ever read it;
 * **an ordinary account is refused.** §7 calls the endpoint
   "administrator-only by construction" and gates the menu entry on
   `IsAdministrator` -- and `user_policy.may_refresh_metadata` *fails open*, so
@@ -80,6 +83,67 @@ def _request_the_code_builds():
     return "/Items" + sent["path"], sent["params"]
 
 
+#: A parameter name the endpoint **knows**, and the positive half of the
+#: control below. Taken from the request the code builds rather than written
+#: out, so a rename in `refresh_item` fails here instead of quietly turning
+#: the control into two requests that both succeed.
+RECOGNISED = "MetadataRefreshMode"
+
+#: The name under test. Named once and used in both the request and the
+#: message about it -- item 9 of this round was two functions three lines
+#: apart that disagreed after one of them was edited.
+UNRECOGNISED = "Recursive"
+
+
+def _assert_recursive_is_not_a_parameter(test, address, token, path, params):
+    """The inertness claim, measured instead of read from the server's source.
+
+    Two equal successes cannot tell an ignored parameter from an honoured
+    one, and that is not a hypothetical here: `ReplaceAllMetadata=true` is
+    recognised *and* behaviour-changing, and sending it against this same
+    baseline also answers 204. So a comparison of statuses passes for a
+    parameter that unquestionably does something.
+
+    What can fail is the contrast CLAUDE.md already prescribes -- "the
+    evidence that a value parses is the contrast with a deliberately bogus
+    one". The endpoint **does** validate the names it knows: an unparseable
+    value for `RECOGNISED` is a 400. `Recursive` with an equally unparseable
+    value is accepted, which it could only be if the name never reached a
+    binder at all.
+
+    `POST /Items/{id}/Refresh` answers 204 with no body and
+    `DateLastRefreshed` is in no DTO the API returns, so there is no
+    after-state to observe. This is the observable that exists: it is on the
+    request, not on the result.
+
+    Stated once and called from both majors' classes, because a rule written
+    out twice is how the two drift apart.
+    """
+    test.assertIn(RECOGNISED, params,
+                  "the request no longer carries %s, so this control is "
+                  "asking about a name the endpoint may not know either"
+                  % RECOGNISED)
+
+    known_but_bogus = _post(address, token, path,
+                            dict(params, **{RECOGNISED: "NotARealMode"}))
+    test.assertEqual(
+        400, known_but_bogus,
+        "%s is a name this endpoint knows, so an unparseable value for it "
+        "must be refused. It answered %s, which means this endpoint "
+        "validates nothing and the contrast below proves nothing"
+        % (RECOGNISED, known_but_bogus))
+
+    unknown_and_bogus = _post(address, token, path,
+                              dict(params, **{UNRECOGNISED: "NotABool"}))
+    test.assertIn(
+        unknown_and_bogus, (200, 202, 204),
+        "`%s` with a value nothing could parse answered %s. The endpoint "
+        "refuses bad values for names it knows, so being accepted is what "
+        "says the name is dropped before anything reads it -- and %s says "
+        "it is not"
+        % (UNRECOGNISED, unknown_and_bogus, unknown_and_bogus))
+
+
 def _post(address, token, path, params):
     """POST and return the status, or the status of the HTTPError."""
     url = "%s%s?%s" % (address.rstrip("/"), path,
@@ -127,13 +191,17 @@ class TheRefreshRequestTest(unittest.TestCase):
                       "the server refused the refresh this code sends: "
                       "%s %s" % (status, self.params))
 
-    def test_an_unrecognised_parameter_changes_nothing(self):
+    def test_recursive_is_not_a_parameter_this_endpoint_knows(self):
         """The claim the corrected docstring rests on, measured.
 
         `Recursive` was sent for a while and named as the mechanism. If the
         endpoint had *rejected* it the feature would have been visibly broken;
-        that it is dropped is why nobody noticed, and this is the assertion
-        that says so from the wire rather than from the server's source.
+        that it is dropped is why nobody noticed, and this says so from the
+        wire rather than from the server's source.
+
+        The status comparison is kept and is no longer what carries the
+        claim -- see `_assert_recursive_is_not_a_parameter` for why two equal
+        successes cannot establish it.
         """
         without = _post(self.admin.address, self.admin.token,
                         self._path_for(self.series_id), self.params)
@@ -144,6 +212,10 @@ class TheRefreshRequestTest(unittest.TestCase):
         self.assertEqual(without, with_it,
                          "the server tells the two requests apart, so "
                          "`Recursive` is not inert after all")
+
+        _assert_recursive_is_not_a_parameter(
+            self, self.admin.address, self.admin.token,
+            self._path_for(self.series_id), self.params)
 
     def test_an_ordinary_account_is_refused(self):
         """`user_policy.may_refresh_metadata` fails open, so a failed policy
@@ -194,7 +266,14 @@ class TheOtherMajorAgreesTest(unittest.TestCase):
                       "%s refused the refresh: %s"
                       % (_e2e.public_version(self.session.address), status))
 
-    def test_and_drops_the_same_unrecognised_parameter(self):
+    def test_and_does_not_know_the_same_parameter_either(self):
+        """The same control, because the claim is about both majors.
+
+        Strengthened here too rather than only on the primary server: a rule
+        applied at one site of two is the shape this whole round is about,
+        and leaving the weaker assertion here would have reproduced it inside
+        its own fix.
+        """
         path = self.path.replace("ITEM", self.series_id)
 
         without = _post(self.session.address, self.session.token,
@@ -203,6 +282,9 @@ class TheOtherMajorAgreesTest(unittest.TestCase):
                         path, dict(self.params, Recursive=True))
 
         self.assertEqual(without, with_it)
+
+        _assert_recursive_is_not_a_parameter(
+            self, self.session.address, self.session.token, path, self.params)
 
 
 if __name__ == "__main__":
