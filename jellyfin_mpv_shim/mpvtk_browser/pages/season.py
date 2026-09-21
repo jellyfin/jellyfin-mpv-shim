@@ -168,8 +168,10 @@ class SeasonPage(Page):
         # bands above the grid already and the links would be a third, and a
         # page whose header is taller than its first row of episodes has
         # stopped being an episode list. Detail and series put them under
-        # the synopsis, which is where web has them -- there is no synopsis
-        # here.
+        # their synopsis, which is where web has them; this page draws one
+        # now too (below), and the links stay here anyway -- a fourth band
+        # is the thing being avoided, not the absence of a paragraph to sit
+        # under.
         row_buttons += detail_components.provider_link_buttons(
             season_item, self.open_link,
             # The same fallback `common_actions` takes above: the season's
@@ -187,6 +189,29 @@ class SeasonPage(Page):
             header.append(chrome.wrap_row(
                 title_row, size[0] - 2 * gpad, gap=12, align="center"))
         header.append(Row(acts, gap=8, align="center"))
+        # The season's own synopsis, which this page has never drawn -- and
+        # the data has been on the wire the whole time: `get_seasons` asks for
+        # `info()`, and the apiclient's `info()` includes `Overview`. So this
+        # is a rendering omission and not a query change. jellyfin-web shows
+        # it too (`itemDetails/index.js` adds `Overview` to its Fields when
+        # the type is Season).
+        #
+        # Wrapped against `gpad` rather than CONTENT_PAD, and through
+        # `body_width` rather than the pad alone: this page centres its grid,
+        # so with `grid_fill: center` the column is up to ~94px narrower per
+        # side at a 1200px window, and the scrollbar takes 10 more. Wrapping
+        # to the window instead runs the tail of every line under the
+        # scrollbar, and which words land there then changes with the window
+        # size.
+        #
+        # Inside `header`, before head_h is measured: that number is what
+        # tells the virtualizer which rows are near the viewport, and a
+        # header that grew while the number stayed put leaves the rows you
+        # are looking at un-composited.
+        if season_item.get("Overview"):
+            header.append(chrome.paragraph(
+                season_item["Overview"], 18,
+                chrome.body_width(size[0], gpad)))
         # Measured, not the flat 100 this used to pass: head_h is what tells
         # the virtualizer which rows are near the viewport, and a header
         # that grew by 400px of artwork while the number stayed at 100

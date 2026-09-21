@@ -381,9 +381,15 @@ class FakeSource:
         # exercise the omitted-serverId branch -- and would stay green if
         # this screen started composing its link from something other than
         # the season's own DTO.
+        # `Overview` on the first and NOT on the second, deliberately: the
+        # page has to draw one and must not draw an empty paragraph, and a
+        # library really is like this -- seasons are described unevenly. It
+        # is also the field this fixture did not model, which is what left
+        # the season page's missing synopsis unobservable.
         return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
                  "SeriesId": series_id, "SeriesName": "A Show",
                  "ServerId": "SRVID",
+                 "Overview": "Where the show finds its feet.",
                  "ExternalUrls": [
                      {"Name": "TheTVDB",
                       "Url": "https://thetvdb.example/series/1/seasons/1"}]},
