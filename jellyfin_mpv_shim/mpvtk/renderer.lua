@@ -5411,7 +5411,16 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
         local moved = known and
             (math.abs(pos.x - state.phud.mx) +
              math.abs(pos.y - state.phud.my)) > 2
-        state.phud.mx, state.phud.my = pos.x, pos.y
+        if not known then
+            -- Only while unknown, so the anchor stays the point the pointer
+            -- was at when the HUD went idle and `moved` is distance
+            -- TRAVELLED. Written on every event it was a per-event delta
+            -- instead, and Windows 11 feeds mouse motion a pixel at a time
+            -- (#767) -- so the controls could not be summoned with the mouse
+            -- at all, however far it went. The anchor's lifetime was already
+            -- right: phud_hide and the engage both put it back to -1.
+            state.phud.mx, state.phud.my = pos.x, pos.y
+        end
         if moved and confirmed then
             -- Pointer movement summons the full HUD, skippable segment
             -- or not: the scene draws its own Skip button, so there is
