@@ -92,6 +92,12 @@ CONTRACT = [
     # suite can only assume, because it builds the DTO it then reads.
     "tests.e2e.test_music_playlist",
     "tests.e2e.test_items_endpoint",
+    # Signing back in, and the uuid that must survive it -- the identity the
+    # download catalog and the auto-download allow-list are written in, so a
+    # fresh one orphans every download from that server. Also the refusal of
+    # a wrong address BEFORE the password goes out, which needs two real
+    # servers with two ServerIds and cannot be asked of a fake at all.
+    "tests.e2e.test_login_lifecycle",
     # The server-truth backing for batch 4 -- CanDelete absent unless
     # asked, TranscodeReasons in the TranscodingUrl, StartItemId
     # inclusive, the shader library-scope lookup. It was added to
