@@ -92,6 +92,12 @@ CONTRACT = [
     # suite can only assume, because it builds the DTO it then reads.
     "tests.e2e.test_music_playlist",
     "tests.e2e.test_items_endpoint",
+    # The refresh request, replayed against both majors from the method that
+    # builds it. Everything this feature rested on was read rather than
+    # measured and one reading was wrong (`Recursive` is not a parameter);
+    # the unit test asserts our own outgoing dict and structurally cannot
+    # see that. Also pins the non-admin refusal that §7's fail-open relies on.
+    "tests.e2e.test_refresh_metadata",
     # The server-truth backing for batch 4 -- CanDelete absent unless
     # asked, TranscodeReasons in the TranscodingUrl, StartItemId
     # inclusive, the shader library-scope lookup. It was added to
