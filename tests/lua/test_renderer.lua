@@ -2115,6 +2115,40 @@ ok((last_event("debug_state") or {}).phud_shown == true,
 fake.send("mpvtk-hud", "no")
 fake.send("mpvtk-active", "yes")
 
+-- #767, and the failure it cost: the threshold is 2px of distance TRAVELLED
+-- from where the pointer was when the HUD went idle, not 2px between two
+-- consecutive notifications. Windows 11 reports motion a pixel at a time, and
+-- against the per-event version this crawl covers 300px without ever
+-- summoning -- which is a mouse that cannot raise the controls at all.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- anchors
+for step = 1, 300 do
+    fake.observe("mouse-pos", { x = 300 + step, y = 300, hover = true })
+end
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "a 300px crawl in 1px steps never summoned the playback HUD")
+
+-- The contrast, so this cannot pass for a renderer that summons on anything:
+-- the same handler, one event, and a pointer that has not moved at all.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- anchors
+fake.reset_events()
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- no movement
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown ~= true,
+   "a pointer that never moved summoned the playback HUD")
+fake.observe("mouse-pos", { x = 400, y = 300, hover = true })   -- one 100px jump
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "a single 100px move did not summon the playback HUD")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
 local function hud_engage(opts)
     fake.send("mpvtk-hud", "no")
     fake.send("mpvtk-hud", "yes", fake.token(opts or {}))
