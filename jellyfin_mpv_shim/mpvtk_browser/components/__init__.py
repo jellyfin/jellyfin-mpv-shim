@@ -26,6 +26,7 @@ from .labels import (
     track_artists,
     track_duration,
     type_indicator_icon,
+    virtual_episode_label,
 )
 from .banner import compose_banner, poster_box, wrap_pil
 

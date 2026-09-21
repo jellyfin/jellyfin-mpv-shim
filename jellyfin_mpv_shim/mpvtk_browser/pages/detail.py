@@ -209,22 +209,31 @@ class DetailPage(Page):
         ud = item.get("UserData") or {}
         pos = ud.get("PlaybackPositionTicks") or 0
         buttons = []
+        missing = components.virtual_episode_label(item)
         # Opened from a remote or the arrow keys, this page lands focused on
         # whichever of the two is the call to action -- Resume when there is
         # a position to resume from, Play otherwise. Watching something is
         # the reason the page was opened, and without this the first press
         # of any arrow key had to hunt for it from wherever focus last was.
-        if pos > 0:
+        if pos > 0 and not missing:
             buttons.append(controls.action_btn(
                 "play_arrow",
                 _("Resume") + "  " + detail_components.fmt_ticks(pos),
                 "btn-resume",
                 lambda: self._start(item, server, offset_ticks=pos),
                 primary=True, size=controls.PRIMARY_ROW, autofocus=True))
-        buttons.append(controls.action_btn(
-            "play_arrow", _("Play"), "btn-play",
-            lambda: self._start(item, server),
-            primary=(pos <= 0), size=controls.PRIMARY_ROW, autofocus=(pos <= 0)))
+        if not missing:
+            # The second site of the tile chip's rule: an episode the server
+            # has no file for cannot be played, and a button that reports a
+            # failure the client could see coming reads as a broken client.
+            # Both sites change together or the rule is only half applied --
+            # `tiles._tile_playable` is the other. A `pos` on one of these is
+            # possible (the file was there once), so Resume goes with Play.
+            buttons.append(controls.action_btn(
+                "play_arrow", _("Play"), "btn-play",
+                lambda: self._start(item, server),
+                primary=(pos <= 0), size=controls.PRIMARY_ROW,
+                autofocus=(pos <= 0)))
         tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
         if tids:
             buttons.append(controls.action_btn(

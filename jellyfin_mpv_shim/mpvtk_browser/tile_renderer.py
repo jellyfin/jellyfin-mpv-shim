@@ -1222,6 +1222,7 @@ class TileRenderer:
             glyph=components.placeholder_glyph(item),
             watched=components.is_watched(item),
             badge=int(ud.get("UnplayedItemCount") or 0),
+            tag=components.virtual_episode_label(item) or "",
             progress=progress,
             downloaded=self.is_downloaded(item),
             kind=components.type_indicator_icon(item),
