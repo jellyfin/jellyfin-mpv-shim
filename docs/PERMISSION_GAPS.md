@@ -400,11 +400,14 @@ account's server will certainly refuse.
 It is accepted for two reasons, and they are worth having written down so the
 next reader does not have to re-derive them:
 
-- **the case is unreachable in practice.** `IsAdministrator` is present in
-  every `UserPolicy` on every server version that has this endpoint, so
-  reaching the fail-open branch needs a policy fetch that failed *and* a
-  non-administrator. A failed fetch is what the whole module's rule is about;
-  the combination is not a state a working server produces.
+- **it needs two things at once, and only one of them is common.**
+  `IsAdministrator` is present in every `UserPolicy` on every server version
+  that has this endpoint, so reaching the fail-open branch needs a policy
+  fetch that failed *and* a non-administrator. A failed fetch is what the
+  whole module's rule is about — `policy_for` answers `{}` after any exception
+  from `get_user`, so a timeout, a 504 from a reverse proxy, an expired token
+  or a malformed body all reach it, and a working server produces those. The
+  conjunction is what makes it rare, not the state being impossible.
 - **closing it instead is worse in the direction that matters.** An
   administrator whose policy fetch failed is exactly the person who came to
   refresh something, and hiding the entry from them is a feature that has
@@ -413,9 +416,11 @@ next reader does not have to re-derive them:
 **What it asks for is the middle strength**, not the strongest: a full refresh
 that replaces nothing, so missing or changed metadata and artwork are fetched
 and anything already stored — including fields edited by hand — is kept.
-`Recursive`, so a series or season reaches the episodes under it. The strongest
-option discards everything the server holds, and a context menu with no
-confirmation dialog is not where that belongs.
+A series or season refresh reaches the episodes under it, and nothing in the
+request asks for that: the server refreshes the item and then, for anything
+that is a `Folder`, calls `Folder.ValidateChildren`, whose `recursive`
+defaults to true. The strongest option discards everything the server holds,
+and a context menu with no confirmation dialog is not where that belongs.
 
 **Live TV is out**, as it is in web: a channel or a programme is not an item
 with metadata to re-read. So is an in-progress recording — the file is still
