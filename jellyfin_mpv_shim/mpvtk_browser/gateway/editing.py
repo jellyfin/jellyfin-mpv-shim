@@ -114,13 +114,23 @@ class EditingMixin(GatewayCore):
         holds, hand-edited fields included, and that is not something to put
         one press away on a context menu with no dialog in between.
 
-        `Recursive`, so refreshing a series or a season reaches the episodes
-        under it -- which is the case somebody reaches for this in: one
-        episode whose metadata never landed.
+        **Refreshing a series or a season reaches the episodes under it, and
+        no parameter asks for that.** That is the case somebody reaches for
+        this in -- one episode whose metadata never landed -- so it is worth
+        saying where it comes from: `ProviderManager.RefreshItem` refreshes
+        the item and then, for anything that is a `Folder`, calls
+        `Folder.ValidateChildren`, whose `recursive` defaults to true. A
+        Series and a Season are Folders. Measured against the server source
+        at 12.0 and 10.11.0.
+
+        This used to send `Recursive: True` and say that was the mechanism.
+        It is not a parameter of the endpoint on either major, and Jellyfin
+        answers an unrecognised name exactly as it answers its absence, so
+        the parameter was inert and the explanation was wrong while the
+        behaviour it described was right.
         """
         self._edit(server_uuid, lambda jf: jf.items(
             "/%s/Refresh" % item_id, "POST", params={
-                "Recursive": True,
                 "MetadataRefreshMode": "FullRefresh",
                 "ImageRefreshMode": "FullRefresh",
                 "ReplaceAllMetadata": False,

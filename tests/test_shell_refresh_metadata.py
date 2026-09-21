@@ -195,7 +195,13 @@ class RefreshCallTest(unittest.TestCase):
         self.assertIs(False, sent["params"]["ReplaceAllMetadata"])
         self.assertIs(False, sent["params"]["ReplaceAllImages"])
         self.assertEqual("FullRefresh", sent["params"]["MetadataRefreshMode"])
-        self.assertIs(True, sent["params"]["Recursive"])
+        # `Recursive` is not a parameter of this endpoint on either supported
+        # major -- `ItemRefreshController.RefreshItem` takes the four above
+        # plus `regenerateTrickplay`, at 12.0 and at 10.11.0 -- and Jellyfin
+        # answers an unrecognised name exactly as it answers its absence. So
+        # sending it proved nothing and documented a mechanism that does not
+        # exist. The recursion happens anyway; see `refresh_item`.
+        self.assertNotIn("Recursive", sent["params"])
 
 
 if __name__ == "__main__":
