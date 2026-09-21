@@ -37,7 +37,8 @@ from unittest import mock
 sys.argv = [sys.argv[0]]
 
 from tests._shell_harness import (FakeController, FakeSource,    # noqa: E402
-                                  _SyncPool, build_scene, ids)
+                                  _DeferredPool, _SyncPool,
+                                  build_scene, ids)
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser     # noqa: E402
 
@@ -64,6 +65,52 @@ def _login(ctl, **kw):
     b._pool = _SyncPool()
     b.show_login(**kw)
     return b
+
+
+class TheScanDoesNotBlockTheLoopTest(unittest.TestCase):
+    """This file's third stated requirement, which had prose and no test.
+
+    Every other case here installs `_SyncPool`, which runs submitted work
+    inline -- so a `discover_servers()` called straight from the loop thread
+    and one handed to the pool are indistinguishable, and the whole file would
+    stay green with the login form frozen for the scan's entire timeout.
+
+    `_DeferredPool` is what tells them apart: it holds submitted work until
+    `drain()`, so the scan has not run yet at the point the screen first
+    draws -- unless it never went to the pool at all.
+    """
+
+    def _deferred_login(self):
+        ctl = _Discovering()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        pool = _DeferredPool()
+        b._pool = pool
+        b.show_login()
+        return b, ctl, pool
+
+    def test_the_scan_has_not_run_when_the_screen_first_draws(self):
+        b, ctl, pool = self._deferred_login()
+
+        nodes, _h = build_scene(b, size=(1600, 900))
+
+        self.assertEqual(
+            0, ctl.scans,
+            "discover_servers ran before the first draw, so it ran on the "
+            "loop thread -- the login form blocks for its whole timeout")
+        self.assertTrue(
+            pool.queued, "no work reached the pool at all")
+        self.assertNotIn("login-found-row-0", ids(nodes))
+
+    def test_and_the_servers_arrive_once_it_does(self):
+        """The other half: deferred is not the same as dropped."""
+        b, ctl, pool = self._deferred_login()
+        build_scene(b, size=(1600, 900))
+
+        pool.drain()
+        nodes, _h = build_scene(b, size=(1600, 900))
+
+        self.assertEqual(1, ctl.scans)
+        self.assertIn("login-found-row-0", ids(nodes))
 
 
 class TheDiscoveredBlockTest(unittest.TestCase):
