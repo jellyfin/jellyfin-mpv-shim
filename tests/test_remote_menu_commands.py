@@ -144,6 +144,51 @@ class TestTheyAreAdvertised(RemoteCommandBase):
                           "%s is routed but never advertised" % command)
 
 
+#: The MediaType the server reports for each leaf item type the client
+#: plays. Containers are absent because they expand to these before
+#: anything is handed to the player.
+MEDIA_TYPE_OF = {
+    "Movie": "Video", "Episode": "Video", "Video": "Video",
+    "MusicVideo": "Video", "Recording": "Video",
+    "TvChannel": "Video", "Program": "Video",
+    "Audio": "Audio", "AudioBook": "Audio",
+    "Photo": "Photo",
+}
+
+
+class TestTheMediaTypesAreAdvertised(unittest.TestCase):
+    """`PlayableMediaTypes` said "Video" for the whole of the music and
+    photo work — it was written before either existed and nothing brought
+    it forward, so every server was told this client cannot play them.
+
+    The left-hand side is the browser's OWN tables, so a new leaf type
+    fails here until somebody decides what it means on the wire.
+    """
+
+    def _leaf_types(self):
+        # MENU_MEDIA_INFO is "types that have MediaSources", i.e. the leaf
+        # playable things; a Photo is deliberately out of it (no sources)
+        # and the live types are their own set.
+        from jellyfin_mpv_shim.mpvtk_browser.repository import PHOTO_TYPE
+        from jellyfin_mpv_shim.mpvtk_browser.tiles import TilesMixin
+        return TilesMixin.MENU_MEDIA_INFO | TilesMixin.MENU_LIVE | {PHOTO_TYPE}
+
+    def test_the_map_covers_every_playable_leaf_type(self):
+        self.assertEqual(self._leaf_types(), set(MEDIA_TYPE_OF))
+
+    def test_every_playable_leaf_type_has_an_advertised_media_type(self):
+        advertised = set(CAPABILITIES["PlayableMediaTypes"])
+        for item_type in sorted(self._leaf_types()):
+            self.assertIn(MEDIA_TYPE_OF[item_type], advertised,
+                          "%s plays here but its media type is not "
+                          "advertised" % item_type)
+
+    def test_a_book_is_not_advertised(self):
+        """It has no media source and is read rather than played, so a cast
+        one would reach a player that cannot start it."""
+        self.assertNotIn("Book", CAPABILITIES["PlayableMediaTypes"])
+
+
 class TestTheHamburger(RemoteCommandBase):
     def test_browsing_it_opens_the_focused_tile_s_context_menu(self):
         pm = self._pm(browsing=True)
