@@ -32,6 +32,7 @@ import threading
 from .utils import (same_origin, synchronous, Timer, get_resource,
                     item_is_audio)
 from .media import segment_labels
+from . import mpv_guard
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
 from .player_audio import AudioMixin
@@ -964,9 +965,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         dropped_gamepad = False
         dropped_osc = False
 
+        # A subclass of whichever backend is live, so every property
+        # write this app makes goes through one interception point and a
+        # refusal cannot become a Python attribute -- see mpv_guard. The
+        # class is read per call for the same reason the backend globals are:
+        # the integration harness swaps the backend module underneath us.
+        guarded = mpv_guard.guarded(mpv.MPV)
+
         while True:
             try:
-                player = mpv.MPV(**kwargs, **options)
+                player = guarded(**kwargs, **options)
             except FileNotFoundError:
                 # There is no mpv binary to spawn. Handled ahead of the
                 # retries rather than by them, for two reasons: dropping an
@@ -1023,6 +1031,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                             "falling back to the command line and the OSD "
                             "menu.", OSC_OPTION)
                 self._lua_works = False
+            # Only now: both backends assign their own bookkeeping through
+            # __setattr__ on the way up, and some of it really is a plain
+            # Python attribute. See mpv_guard.arm.
+            mpv_guard.arm(player)
             return player
 
     def _init_mpv(self):
@@ -4940,7 +4952,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             try:
                 self._player.osd_border_style = border_style or "outline-and-shadow"
             except Exception:
-                pass  # Older mpv that lacks the property; nothing to restore.
+                # NOT the absent-property case, which is what this comment
+                # used to claim: on an mpv without osd-border-style the write
+                # does not raise at all. python-mpv absorbed it into a Python
+                # attribute -- which get_osd_settings above then read back as
+                # a border style this mpv does not have -- and mpv_guard now
+                # records the refusal and returns. The name is in
+                # _harness.ALLOWED_REFUSED_WRITES because of this site. What
+                # is left for this handler is a value mpv rejects.
+                pass
         except _mpv_errors:
             self._handle_mpv_disconnect()
 

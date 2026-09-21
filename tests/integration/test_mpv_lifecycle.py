@@ -79,7 +79,7 @@ class TeardownLeakTest(unittest.TestCase):
     worker without stopping the old one — a thread leaked every cycle."""
 
     def test_teardown_stops_old_trickplay_without_joining(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         old = FakeTrickPlay()
         pm.trickplay = old
         pm._teardown_player()
@@ -89,7 +89,7 @@ class TeardownLeakTest(unittest.TestCase):
         self.assertIsNone(pm.trickplay, "trickplay reference not cleared")
 
     def test_teardown_before_first_init_is_noop(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm.trickplay = None
         pm._teardown_player()  # must not raise
         self.assertIsNone(pm.trickplay)
@@ -98,7 +98,7 @@ class TeardownLeakTest(unittest.TestCase):
         # Re-open path: mpv not alive -> _ensure_mpv -> _init_mpv ->
         # _teardown_player. The OLD trickplay must be stopped (join=False) and
         # not left running; no lingering worker across the cycle.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         old = FakeTrickPlay()
         pm.trickplay = old
         pm._mpv_alive = False
@@ -131,7 +131,7 @@ class StaleQueueDrainTest(unittest.TestCase):
     the defect and fix are pure queue handling."""
 
     def test_teardown_drains_stale_queued_tasks(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         ran = []
         pm.put_task(pm._handle_mpv_shutdown)          # the stale teardown task
         pm.put_task(lambda: ran.append("stray"))      # a stray finished_callback
@@ -149,7 +149,7 @@ class StaleQueueDrainTest(unittest.TestCase):
         # outgoing instance would), then _ensure_mpv -> _init_mpv ->
         # _teardown_player must drain it. The new session's _video must survive
         # and the new player's eof must still queue finished_callback.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm.put_task(pm._handle_mpv_shutdown)          # queued by the outgoing mpv
 
         pm._mpv_alive = False
@@ -175,7 +175,7 @@ class _IdleMixin:
         """A player that is fully idle (mpv alive, no video / menu / syncplay /
         webview) — the precondition idle_quit() requires. Sub-tests then flip a
         single gate on to prove it becomes a no-op."""
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = True
         # _idle_quit / _terminate_thread are seeded by build_player.
         pm._video = None
@@ -287,7 +287,7 @@ class ShutdownGuardTest(unittest.TestCase):
 
     def _player_with_observers(self):
         # Register the real shutdown handler on a FakeMPV by driving _init_mpv.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = False
         pm._ensure_mpv()   # runs _init_mpv -> registers the shutdown callback
         pm._video = None
@@ -325,7 +325,7 @@ class ReopenAfterIdleQuitTest(unittest.TestCase):
     xvfb real-mpv leg.)"""
 
     def test_ensure_mpv_reopens_and_clears_idle_flag(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         # Simulate the post-idle-quit state: process gone, flag set.
         pm._mpv_alive = False
         pm._idle_quit = True
@@ -346,7 +346,7 @@ class MenuSurvivesReopenTest(unittest.TestCase):
     window while the user was looking at the menu."""
 
     def test_menu_object_and_state_survive_reopen(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         menu = pm.menu
         menu.is_menu_shown = True     # menu is on screen
         pm._mpv_alive = False
@@ -361,7 +361,7 @@ class MenuSurvivesReopenTest(unittest.TestCase):
                       "menu was not pointed at the re-created player")
 
     def test_idle_quit_blocked_by_menu_shown_after_reopen(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm.menu.is_menu_shown = True
         pm._mpv_alive = False
         pm._ensure_mpv()
@@ -378,7 +378,7 @@ class MenuSurvivesReopenTest(unittest.TestCase):
         # re-init must reuse it, not construct a new one.
         from jellyfin_mpv_shim.menu import OSDMenu
 
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm.menu = None
         pm._mpv_alive = False
         pm._ensure_mpv()
@@ -400,7 +400,7 @@ class SyncPlaySurvivesReopenTest(unittest.TestCase):
     """
 
     def _halted_member(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm.syncplay._enabled = True
         pm.syncplay.halt_group_playback()   # what stop() does to a session
         pm._video = None
@@ -443,7 +443,7 @@ class SyncPlaySurvivesReopenTest(unittest.TestCase):
     def test_real_manager_created_once_then_reused(self):
         from jellyfin_mpv_shim.syncplay import SyncPlayManager
 
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm.syncplay = None
         pm._mpv_alive = False
         pm._ensure_mpv()
@@ -475,7 +475,7 @@ class WindowLifecycleTest(unittest.TestCase):
     """
 
     def _player(self, browsing=True):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = True
         pm._video = None
         pm.mpvtk_active = browsing
@@ -615,7 +615,7 @@ class KeyClaimsSurviveReopenTest(unittest.TestCase):
     """
 
     def _player(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = True
         pm._video = None
         pm.mpvtk_active = False
@@ -703,7 +703,7 @@ class BrowseHandoffTest(unittest.TestCase):
     """
 
     def _player(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = True
         pm._video = None
         pm.mpvtk_active = True
@@ -806,7 +806,7 @@ class StopReleasesSyncPlayTest(unittest.TestCase):
     def _player(self, reachable):
         from tests.integration.test_player_state_machine import FakeVideo
 
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = True
         pm._video = FakeVideo()
         pm.syncplay._enabled = True
@@ -875,7 +875,7 @@ class DyingMpvTest(unittest.TestCase):
     def _player(self):
         from tests.integration.test_player_state_machine import FakeVideo
 
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._video = FakeVideo(has_next=False)
         pm.should_send_timeline = True
         pm.send_timeline_stopped = lambda *a, **kw: None
@@ -916,7 +916,7 @@ class FullscreenPersistTest(unittest.TestCase):
          self.settings.browser_fullscreen) = self._saved
 
     def _player(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = True
         pm._video = None
         return pm
