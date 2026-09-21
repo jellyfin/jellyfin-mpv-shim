@@ -114,11 +114,14 @@ def source_of(account, address):
     if account in tuple(facts.get("no_password") or NO_PASSWORD_ACCOUNTS):
         return "no password, which is what this account is for"
     if account == (facts.get("admin") or ADMIN_ACCOUNT):
-        if os.environ.get(ADMIN_PASSWORD_ENV):
-            return "$" + ADMIN_PASSWORD_ENV
+        # Same order as `password_for`: the published file first, the
+        # environment second. A diagnostic that names a source the resolver
+        # did not use sends the reader to the wrong password.
         if facts.get("admin_password"):
             return _published_path(
                 urllib.parse.urlsplit(address).port or 8096)
+        if os.environ.get(ADMIN_PASSWORD_ENV):
+            return "$" + ADMIN_PASSWORD_ENV
         return ("a GUESS at the historical default: this is the admin, whose "
                 "password is random per server state now, and there is no $%s "
                 "and no readable %s" % (
