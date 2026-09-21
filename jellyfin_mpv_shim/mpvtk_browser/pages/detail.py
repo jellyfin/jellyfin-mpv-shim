@@ -159,12 +159,28 @@ class DetailPage(Page):
                 lambda: self.ctx.actions.confirm_delete_item(
                     item, server, on_done=self._left_after_delete)))
         if item.get("Type") == "Episode" and item.get("SeriesId"):
-            btns.append(controls.action_btn(
+            # A gap has neither Play nor Resume (`_play_buttons`), and those
+            # two carried the page's ONLY `autofocus` -- so suppressing them
+            # left the page with nothing nominated, and a remote's first
+            # press had to hunt for focus from wherever it last was. That is
+            # the condition the autofocus up there exists to prevent.
+            #
+            # Go to Series is the one thing there is to do with a gap, so on
+            # one it takes the head of the row, the accent and the focus;
+            # everywhere else it stays a secondary action at the end, where
+            # Play is still the call to action. [iw]
+            lead = bool(components.virtual_episode_label(item))
+            series_btn = controls.action_btn(
                 "movie", _("Go to Series"), "act-series",
                 lambda: self.ctx.nav.navigate({
                     "kind": "series", "server": server,
                     "item_id": item["SeriesId"],
-                    "title": item.get("SeriesName", "")})))
+                    "title": item.get("SeriesName", "")}),
+                primary=lead, autofocus=lead)
+            if lead:
+                btns.insert(0, series_btn)
+            else:
+                btns.append(series_btn)
         return Row(btns, gap=8, align="center")
 
     def _left_after_delete(self):

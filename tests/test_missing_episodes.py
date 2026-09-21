@@ -43,6 +43,8 @@ sys.argv = [sys.argv[0]]
 from tests._shell_harness import FakeSource                        # noqa: E402
 
 from jellyfin_mpv_shim.mpvtk_browser import components             # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser import strips                 # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser import theme                  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser       # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.repository import (             # noqa: E402
     LibrarySource)
@@ -114,8 +116,62 @@ class TheLabelTest(unittest.TestCase):
                             components.virtual_episode_label(UNAIRED))
 
 
+class TheTagChipFitsTest(unittest.TestCase):
+    """The tag is baked into the strip bitmap, beside its neighbours.
+
+    Nothing clips it back: several tiles share one image, so a chip wider than
+    its tile draws over the tile to its right rather than being cut off. The
+    captions below it already ellipsize to `g.tile_w` for exactly this reason
+    (`_paint_caption`); the chip is the fourth baked-text site and did not ask.
+
+    "Missing" and "Unaired" fit at every locale measured, so this is a guard
+    against a translation nobody has read yet, not a reproduction of one.
+    """
+
+    def _chip(self, text, max_w):
+        from PIL import Image, ImageDraw
+
+        tile_w = strips._px(240)
+        img = Image.new("RGBA", (tile_w * 3, tile_w), (0, 0, 0, 0))
+        dr = ImageDraw.Draw(img)
+        strips.StripStore._paint_text_chip(
+            img, dr, strips._px(17), strips._px(17), text, 14, max_w=max_w)
+        return tile_w, img.getbbox()
+
+    def test_a_long_tag_stays_inside_its_tile(self):
+        text = "Nicht ausgestrahlt und noch nicht verfügbar"
+        tile_w, unclamped = self._chip(text, None)
+        # Pinned so the case cannot quietly stop being one: if this string
+        # ever fits unclamped, the test below proves nothing and says so.
+        self.assertGreater(
+            unclamped[2], tile_w,
+            "the sample no longer overflows a tile unclamped -- pick a "
+            "longer one, or this test has stopped testing anything")
+
+        _tw, box = self._chip(text, tile_w - strips._px(8))
+
+        self.assertLessEqual(
+            box[2], tile_w,
+            "the tag chip drew %dpx past its own tile, into the next one"
+            % (box[2] - tile_w))
+
+    def test_a_tag_that_fits_is_left_alone(self):
+        """The control: a clamp that shortened everything would pass the test
+        above and ellipsize "Unaired" on every tile in the library."""
+        _tw, clamped = self._chip("Unaired", strips._px(240) - strips._px(8))
+        _tw, unclamped = self._chip("Unaired", None)
+
+        self.assertEqual(unclamped, clamped)
+
+
 class NoPlayAffordanceTest(unittest.TestCase):
-    """Both sites of one rule, in one test class on purpose."""
+    """All THREE sites of one rule, in one test class on purpose.
+
+    The count was two when this was written, and two was wrong: the browser
+    offers to play an item from the tile chip, from the detail page's buttons,
+    and from the tile's context menu. Missing the third is what the comments
+    here call the N-1-of-N shape, arrived at by enumerating the sites by hand.
+    """
 
     def _browser(self):
         b = MpvtkBrowser(app=None, source=FakeSource())
@@ -165,6 +221,87 @@ class NoPlayAffordanceTest(unittest.TestCase):
         found = _button_ids(row)
         self.assertIn("btn-play", found)
         self.assertIn("btn-resume", found)
+
+    #: Every menu action that starts playback, now or later. A gap must offer
+    #: none of them: `get_playback_url` declines a sourceless item, so each one
+    #: ends in `play()` logging "no URL found" and returning with the screen
+    #: unchanged and nothing said.
+    PLAYING_ACTIONS = {"play", "restart", "queue", "queuenext"}
+
+    def _menu_actions(self, item):
+        b = self._browser()
+        return {action for _label, _icon, action
+                in b._tile_menu_entries(item)}
+
+    def test_the_tile_menu_offers_no_way_to_play_it(self):
+        """The third site. A position is possible on a gap -- the file was
+        there once -- so this is the item that would otherwise get Resume and
+        Play from beginning as well."""
+        with_position = dict(MISSING)
+        with_position["UserData"] = {"PlaybackPositionTicks": 60 * 10000000}
+
+        actions = self._menu_actions(with_position)
+
+        self.assertFalse(
+            actions & self.PLAYING_ACTIONS,
+            "a missing episode's tile menu offers %s"
+            % sorted(actions & self.PLAYING_ACTIONS))
+
+    def test_an_ordinary_episodes_tile_menu_still_plays(self):
+        """The control on the third site."""
+        actions = self._menu_actions(NORMAL)
+
+        self.assertIn("play", actions)
+        self.assertIn("queue", actions)
+
+    def test_a_gap_keeps_the_entries_that_are_not_about_playing(self):
+        """The gate is on playback, not on the item. Go to Series is the one
+        thing there IS to do with a gap, and suppressing the whole menu would
+        take it away."""
+        actions = self._menu_actions(dict(MISSING, SeriesId="sh1"))
+
+        self.assertIn("goseries", actions)
+        self.assertIn("watched", actions)
+
+
+class TheGapsCallToActionTest(unittest.TestCase):
+    """Suppressing both play buttons took the page's only ``autofocus`` with
+    them, so a Missing episode opened with nothing nominated and the first
+    arrow press had to hunt for focus.
+
+    [iw]: "Go to Series should be the focused option, brought to the begining
+    of the list and made to be blue."
+    """
+
+    def _actions_row(self, item):
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        b.nav_stack = [{"kind": "detail", "server": "srv1",
+                        "item_id": item["Id"], "title": item.get("Name")}]
+        page = b._page_for(b.route)
+        return page._detail_actions(item, "srv1")
+
+    def test_a_gap_leads_with_go_to_series(self):
+        row = self._actions_row(dict(MISSING, SeriesId="sh1"))
+
+        first = row.children[0]
+        self.assertEqual("act-series", first.id,
+                         "the row leads with %s" % first.id)
+        self.assertTrue(first.autofocus,
+                        "nothing on the page is nominated for a remote")
+        self.assertEqual(theme.ACCENT, first.bg,
+                         "Go to Series is not the accented call to action")
+
+    def test_an_ordinary_episode_is_unchanged(self):
+        """The control. Play is still this page's call to action when there
+        is one, and Go to Series stays a secondary action at the end."""
+        row = self._actions_row(dict(NORMAL, SeriesId="sh1"))
+
+        ids = [c.id for c in row.children]
+        self.assertEqual("act-series", ids[-1],
+                         "Go to Series moved for an episode that can play")
+        series = row.children[-1]
+        self.assertFalse(series.autofocus)
+        self.assertNotEqual(theme.ACCENT, series.bg)
 
 
 #: What the server has for this series: a missing first episode and two real

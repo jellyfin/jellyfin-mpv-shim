@@ -164,10 +164,12 @@ class TilesMixin:
         if components.virtual_episode_label(item):
             # An episode the server has no file for. jellyfin-web's card
             # gates its own overlay play button the same way
-            # (`cardBuilder.js`: Virtual plus a MediaType means no button),
-            # and the same rule has to hold at the detail page's Play button
-            # -- one rule, two sites, which is the shape a fix applied at
-            # N-1 of N sites takes here.
+            # (`cardBuilder.js`: Virtual plus a MediaType means no button).
+            #
+            # **One rule, THREE sites**: here, the detail page's Play button,
+            # and `_tile_menu_entries` below. This comment said two and was
+            # wrong, which is how the menu shipped offering Play for a gap --
+            # the N-1-of-N shape arrived at by counting the sites by hand.
             return False
         t = item.get("Type")
         if t in self.MENU_LIVE or t in self.MENU_PLAYABLE:
@@ -302,7 +304,11 @@ class TilesMixin:
                             else _("Add to favorites"), "favorite",
                             "favorite"))
             return out
-        if t in self.MENU_PLAYABLE:
+        if t in self.MENU_PLAYABLE and not components.virtual_episode_label(item):
+            # The third site of `_tile_playable`'s rule. Gated on playback
+            # alone, not on the whole menu: Go to Series below is the one
+            # thing there is to do with a gap.
+            #
             # Two entries where there is a position to resume from, as
             # jellyfin-web's card menu has: "Play" now means resume (see
             # _menu_play), so without the second one restarting a
