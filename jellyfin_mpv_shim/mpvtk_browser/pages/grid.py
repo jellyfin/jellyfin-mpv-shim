@@ -71,6 +71,11 @@ _DEFAULT_VIEW = {
     "viewType": (view_prefs.GRID_VIEW, None),
     "showTitle": (True, None),
     "showYear": (True, None),
+    # None, not index 0 or a sort name: "nothing stored" has to be
+    # distinguishable from "stored as the default", because it is what decides
+    # whether the route keeps its own sort or takes the server's.
+    "sortby": (None, None),
+    "sortorder": (None, None),
 }
 
 #: Collection types with a Genres screen. Music has its own, in the
@@ -172,16 +177,27 @@ class GridPage(Page):
                 view = (get_view(srv, parent, ctype)
                         if get_view else dict(_DEFAULT_VIEW))
             image_type = _image_type_of(view)
+            # The stored sort, mapped onto THIS screen's menu, and only where
+            # the route carries none -- the same rule the view settings above
+            # follow, for the same reason. It happens here rather than in
+            # `load` because the sort is in the document the view settings
+            # come from, and the query below is the first thing that needs it.
+            q_sort_by, q_sort_order = sort_by, sort_order
+            if route.get("_sort") is None:
+                index = self._sort_index(view)
+                if index:
+                    route["_sort"] = index
+                    _n, q_sort_by, q_sort_order = self._sorts()[index]
             if collections:
                 # Collections are server-wide and recursive (a BoxSet
                 # can gather items from several libraries), so this is a
                 # different query, not a filter on the library.
                 items, total = source.get_movie_collections(
-                    srv, sort_by=sort_by, sort_order=sort_order,
+                    srv, sort_by=q_sort_by, sort_order=q_sort_order,
                     filters=filters, image_type=image_type)
             else:
                 items, total = source.get_library_items(
-                    srv, parent, sort_by=sort_by, sort_order=sort_order,
+                    srv, parent, sort_by=q_sort_by, sort_order=q_sort_order,
                     filters=filters, image_type=image_type,
                     collection_type=ctype)
             # Paint the tiles BEFORE asking for the filter pickers. Nothing
@@ -199,7 +215,7 @@ class GridPage(Page):
             # just left. One job rather than two, so nothing is submitted to
             # the pool from inside a pool worker.
             if run.epoch == epoch:
-                self._install(items, total, view, sort_by)
+                self._install(items, total, view, q_sort_by)
                 invalidate()
             vals = route.get("_filtervals")
             if vals is None:
@@ -209,12 +225,12 @@ class GridPage(Page):
                 except Exception:
                     log.debug("filter values unavailable", exc_info=True)
                     vals = {"genres": [], "years": []}
-            return items, total, vals, view
+            return items, total, vals, view, q_sort_by
 
         def done(res):
-            items, total, vals, view = res
+            items, total, vals, view, used_sort = res
             route["_filtervals"] = vals
-            self._install(items, total, view, sort_by)
+            self._install(items, total, view, used_sort)
 
         self.route_async(work, done, epoch)
 
@@ -433,7 +449,7 @@ class GridPage(Page):
         bar = Row([
             Dropdown("grid-sort", [s[0] for s in self._sorts()],
                      selected=route.get("_sort", 0), w=180,
-                     on_select=lambda i, v: self._set("_sort", i)),
+                     on_select=lambda i, v: self._set_sort(i)),
             # One button instead of the three drop-downs and two
             # checkboxes that used to live here. The bar had 277px spare
             # at 1280 -- one control's width, with genre names that size
@@ -529,6 +545,88 @@ class GridPage(Page):
         see EXTRA_SORTS -- and a route's stored ``_sort`` is an index into
         whichever list its own screen offers."""
         return sorts_for(self.route.get("collection_type"))
+
+    def _sort_index(self, view):
+        """This screen's menu index for the stored sort, or None for "leave
+        the screen's own default alone".
+
+        None rather than 0 in two cases, and both are the point:
+
+        * the stored sort is not in THIS library's menu -- a sort set in
+          jellyfin-web on a TV library ("Date Episode Added") read on a screen
+          that does not offer it. Falling back is what keeps that from
+          selecting something arbitrary;
+        * nothing is stored at all.
+
+        **Our menu couples a direction to each field and web does not**, so a
+        stored `SortName`/`Descending` has no entry here. The field wins: an
+        entry with the right field in our direction is much closer to what was
+        asked for than ignoring the setting, and the alternative is a menu
+        entry per direction for a screen that has never had one.
+        """
+        stored_by = ((view or {}).get("sortby") or (None, None))[0]
+        stored_order = ((view or {}).get("sortorder") or (None, None))[0]
+        if not stored_by:
+            return None
+        loose = None
+        for index, (_label, by, order) in enumerate(self._sorts()):
+            if by != stored_by:
+                continue
+            if order == stored_order:
+                return index
+            if loose is None:
+                loose = index
+        return loose
+
+    def _set_sort(self, index):
+        """Change the sort, reload, and remember it where web looks.
+
+        The names, never the index -- see `view_prefs.resolve_sort` and
+        `EXTRA_SORTS`. Said plainly because it is a cross-client write and
+        somebody will report it as one: **changing the sort here changes it in
+        the user's jellyfin-web client**, which is what parity with it means.
+        """
+        _label, sort_by, sort_order = self._sorts()[index]
+        self._set("_sort", index)
+        self._persist_sort(sort_by, sort_order)
+
+    def _persist_sort(self, sort_by, sort_order):
+        """Write the sort to the server without touching the screen.
+
+        `_set_view` is the other spelling and does more, because the settings
+        it writes change how the grid DRAWS: it repaints optimistically and
+        rolls back on failure. A sort has already been re-fetched by the time
+        this runs, and rolling THAT back would re-sort the grid under somebody
+        who is looking at it -- so a failure reports and leaves the screen as
+        it is.
+        """
+        route = self.route
+        source = self.ctx.source
+        save = getattr(source, "save_view_setting", None)
+        if save is None:
+            return
+        server = route.get("server") or self.ctx.server
+        parent = route.get("parent_id")
+        ctype = route.get("collection_type")
+        view = dict(route.get("_view") or _DEFAULT_VIEW)
+        writes = []
+        for setting, value in (("sortby", sort_by), ("sortorder", sort_order)):
+            key = (view.get(setting) or (None, None))[1]
+            writes.append((setting, value, key))
+            # Keep the route's copy in step, so the next change writes to the
+            # same key this one did rather than back to the first candidate.
+            view[setting] = (value, key)
+        route["_view"] = view
+
+        def work():
+            for setting, value, key in writes:
+                save(server, parent, ctype, setting, value, key=key)
+
+        def failed(_exc):
+            self.ctx.status(_("That sort could not be saved."))
+
+        self.ctx.run.run(work, lambda _r: None, self.ctx.run.epoch,
+                         on_error=failed)
 
     def _bound_query(self):
         """``(sort_by, sort_order, filters, person, srv, image_type,
@@ -689,7 +787,11 @@ class GridPage(Page):
             Text(_("Sort"), size="small", color=theme.SUBTLE_FG),
             Dropdown("%s-sort" % self.kind, [s[0] for s in self._sorts()],
                      selected=self.route.get("_sort", 0), w=180,
-                     on_select=lambda i, v: self._set("_sort", i)),
+                     # The same call, and on a route with no `parent_id` --
+                     # a person page, a search result -- `keys_for` has no key
+                     # family to offer and `save_view_setting` returns without
+                     # writing. jellyfin-web does not persist those either.
+                     on_select=lambda i, v: self._set_sort(i)),
         ], gap=10, align="center")
 
     def _open_studios(self):

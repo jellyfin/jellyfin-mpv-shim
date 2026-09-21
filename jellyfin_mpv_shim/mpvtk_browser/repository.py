@@ -846,9 +846,11 @@ class LibrarySource:
     def get_view_settings(self, server_uuid, parent_id, collection_type):
         """``{setting: (value, key)}`` for a library's saved view settings.
 
-        All four in one read, because they live in one document -- and the
+        All of them in one read, because they live in one document -- and the
         key each came from rides along so a save lands where the user's web
-        client will look for it (see ``view_prefs``).
+        client will look for it (see ``view_prefs``). The sort is in here too:
+        same document, same contract, and the grid needs it before it can ask
+        for items.
         """
         try:
             custom = self._display_prefs_custom(server_uuid)
@@ -864,6 +866,12 @@ class LibrarySource:
         for setting in view_prefs.BOOL_SETTINGS:
             out[setting] = view_prefs.resolve_bool(
                 custom, parent_id, collection_type, setting)
+        # The sort rides in the same dict because it is in the same document:
+        # asking for it separately would be a second read of a blob this one
+        # has already cached, and the grid needs both before it can issue the
+        # item query.
+        out.update(view_prefs.resolve_sort(custom, parent_id,
+                                           collection_type))
         return out
 
     def _display_prefs_custom(self, server_uuid, refresh=False):
