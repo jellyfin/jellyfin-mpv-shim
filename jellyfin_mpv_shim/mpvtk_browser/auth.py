@@ -244,10 +244,20 @@ class AuthMixin:
             self._login["user"] = reauth.get("username") or ""
             self._login["pass"] = ""
             self._login_error = None
+        # Cleared on every arrival, not accumulated: a stale list from the
+        # last time this screen was open would offer addresses that may no
+        # longer be there, and the scan below is a second away.
+        self._discovered = []
         if self.server is None and not reauth:
             self.navigate(route, reset=True)
         else:
             self.navigate(route)
+        # Not while re-authenticating: every row here fills in a DIFFERENT
+        # server's address, which is the one edit that turns that form back
+        # into "add a server" without saying so -- the same reason the known
+        # servers block is hidden there.
+        if not reauth:
+            self._scan_for_servers()
 
     def _render_login(self, route, size):
         def field(fid, ph, key, mask=False):
@@ -291,6 +301,10 @@ class AuthMixin:
                 known = self.controller.known_servers() or []
             except Exception:
                 known = []
+        # Above the saved list, because this is the block that answers "what
+        # is my server's address" for somebody who has never typed one.
+        if not qc and not reauth:
+            rows += self._discovered_rows(route)
         if known:
             rows.append(Text(_("Previously added servers"), size="small",
                              color=theme.SUBTLE_FG))
@@ -362,6 +376,64 @@ class AuthMixin:
                     Row([Spacer(), form, Spacer()]),
                     Spacer()],
                    flex=1, direction="column", align="stretch", gap=10)
+
+    def _scan_for_servers(self):
+        """Look for servers on this network, in the background.
+
+        A second of broadcast on the loop thread would freeze the form for a
+        second, and the answer is worth nothing if the user cannot type while
+        it arrives.
+
+        Nothing is selected and nothing is signed into: the replies are not
+        authenticated -- anything on the network can answer with any name and
+        any address -- so this offers addresses and the user chooses one.
+        """
+        if self.controller is None:
+            return
+        scan = getattr(self.controller, "discover_servers", None)
+        if scan is None:
+            return
+        ep = self._epoch
+
+        def done(found):
+            self._discovered = list(found or [])
+            if self._discovered:
+                self.invalidate()
+
+        self.run_async(lambda: scan(), done, ep)
+
+    def _discovered_rows(self, route):
+        """The "Servers on your network" block, or [] when nothing answered.
+
+        **The address is shown, not only the name.** A discovery reply is
+        unauthenticated, so the name is whatever the answering machine chose
+        to call itself and the address is the only part a user can judge --
+        see the apiclient's `discovery` module, which says the same thing to
+        its own callers.
+        """
+        found = [s for s in (self._discovered or []) if s.get("Address")]
+        if not found:
+            return []
+        rows = [Text(_("Servers on your network"), size="small",
+                     color=theme.SUBTLE_FG)]
+        for i, server in enumerate(found):
+            address = server.get("Address") or ""
+            name = server.get("Name") or address
+            rows.append(Row([
+                Icon("lan", 16, color=theme.SUBTLE_FG),
+                # Two lines rather than one: the name is the thing you
+                # recognise and the address is the thing you check, and at
+                # 460px one line of "Name -- http://10.0.0.5:8096" ellipsizes
+                # away exactly the half that is evidence.
+                Column([
+                    Text(name, size="normal"),
+                    Text(address, size="small", color=theme.SUBTLE_FG),
+                ], gap=2, flex=1),
+                Button(_("Use"), id="login-found-%d" % i, size="small",
+                       on_click=lambda a=address: self._use_known_server(a)),
+            ], id="login-found-row-%d" % i, pad=8, gap=10, radius=6,
+               align="center", bg=theme.PANEL_BG))
+        return rows
 
     def _use_known_server(self, address):
         self._login["server"] = address
