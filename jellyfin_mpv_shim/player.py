@@ -2245,7 +2245,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         self.last_seek = offset
         self._last_ui_seek_time = time.time()
-        self._player.playback_time = offset
+        # A command, not `self._player.playback_time = offset`: a property
+        # write python-mpv cannot deliver is caught by its own `__setattr__`
+        # and becomes a plain Python attribute, which wins every later read
+        # for the life of the process (#761, #765). Playback dying between the
+        # duration gate and here is the window, and the stale position the
+        # shadow reports makes `_check_stalled_finish` advance the queue.
+        try:
+            self._player.command("set", "playback-time", offset)
+        except Exception:
+            # Broader than _mpv_errors on purpose: with nothing loaded this is
+            # a bare `SystemError` (-12), which is in neither backend's error
+            # tuple. Swallowed rather than allowed out, because it runs in the
+            # tail of _play_media -- a resume that could not be applied is the
+            # old position, which the next timeline tick corrects, where a
+            # half-finished start skips send_timeline_initial and the rest.
+            log.debug("Could not apply the resume offset.", exc_info=True)
 
     def timeline_handle(self):
         if self.timeline_trigger:
