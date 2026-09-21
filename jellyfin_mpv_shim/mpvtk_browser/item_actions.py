@@ -486,11 +486,17 @@ class ItemActions:
         The exception this repository tolerates rather than one it forgot:
         every other fail-open gate here hides a feature the user *might* not
         have, and this one can offer an administrator-only endpoint to a
-        non-administrator whose policy we could not read. Unreachable in
-        practice -- `IsAdministrator` is in every policy on every server that
-        has the endpoint -- and written down in
-        `docs/PERMISSION_GAPS.md` so the next reader does not
-        have to rediscover it.
+        non-administrator whose policy we could not read. It needs two things
+        at once and only one of them is common: `IsAdministrator` is in every
+        policy on every server that has the endpoint, so this branch needs a
+        failed policy fetch *and* a non-administrator. The failed fetch alone
+        is ordinary -- `policy_for` answers `{}` after any exception from
+        `get_user`, so a timeout, a 504 from a reverse proxy, an expired token
+        or a malformed body all reach it. The conjunction is what makes it
+        rare, not the state being impossible.
+
+        `docs/PERMISSION_GAPS.md` §7 holds the reasoning and the trade; this
+        says only enough to stop the next reader closing the gate.
         """
         source = getattr(self.services, "source", None)
         ask = getattr(source, "can_refresh_metadata", None)
