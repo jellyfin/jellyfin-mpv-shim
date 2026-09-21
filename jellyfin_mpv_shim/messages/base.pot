@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-21 01:12-0400\n"
+"POT-Creation-Date: 2026-09-21 18:26-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1095,10 +1095,10 @@ msgstr ""
 msgid "Connect"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #. A heading above a list of Jellyfin servers that answered a broadcast on
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
+#: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Servers on your network"
 msgstr ""
 
@@ -1254,6 +1254,20 @@ msgstr ""
 #. narrow buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
+msgstr ""
+
+#. A chip drawn on the corner of an episode tile, and on nothing else: this
+#. episode has not been broadcast yet, so the server lists it but has no file
+#. for it. One word; the tile is about 150px wide.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgid "Unaired"
+msgstr ""
+
+#. A chip drawn on the corner of an episode tile, and on nothing else: this
+#. episode has aired and the library has no file for it -- a gap in the
+#. season, not an error. One word; the tile is about 150px wide.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgid "Missing"
 msgstr ""
 
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -4533,18 +4547,18 @@ msgstr ""
 msgid "The recording settings could not be saved."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, python-format
 #. A one-line status message at the bottom of the screen after the menu entry
 #. above was used. %s is the name of the film, show or album. It reports that
 #. the server accepted the request, not that it has finished.
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
 msgid "The server is refreshing %s."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, python-format
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
 msgid "%s could not be refreshed."
 msgstr ""
 
@@ -6640,10 +6654,10 @@ msgstr ""
 msgid "Add to playlist"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #. An entry in the right-click menu on a library tile, shown only to server
 #. administrators: it asks the server to look again for this item's metadata
 #. and artwork. Sentence case, like the other entries in that menu.
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Refresh metadata"
 msgstr ""
 
