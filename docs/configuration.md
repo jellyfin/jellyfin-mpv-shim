@@ -1245,12 +1245,19 @@ Other miscellaneous configuration options. You probably won't have to change the
   - Please consider getting a certificate from Let's Encrypt instead of using this.
 - `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`
   - This only applies for when you first launch the program.
-- `lang_filter` - Limit track selection to desired languages. Default: `und,eng,jpn,mis,mul,zxx`
+- `lang_filter` - Limit which tracks the audio and subtitle **menus** offer.
+  Default: `und,eng,jpn,mis,mul,zxx`
+  - **Not automatic selection**, which the old wording here ("limit track
+    selection") implied: the only consumers are the OSD menu's two track lists
+    and the playback HUD's pickers (`menu.py`, `osc_bridge.py`). What gets
+    chosen for you is `language_preference` and `language_config` below.
   - Requires restart — the list is read once at startup. The two options below
       are read as they are used, so changing them alone takes effect at once;
       that is why this one is worth calling out, since otherwise the filter
       appears to start working with the *old* languages.
-  - Note that you need to turn on the options below for this to actually do something.
+  - **It does nothing until you turn on one of the two options below**, both
+    of which default to off. Editing the list alone is the commonest way to
+    conclude this setting is broken.
   - If you remove `und` from the list, it will ignore untagged items.
   - Languages are typically in [ISO 639-2/B](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes),
       but if you have strange files this may not be the case.
@@ -1261,6 +1268,21 @@ Other miscellaneous configuration options. You probably won't have to change the
 - `language_preference` - Track-selection preset, set from *Settings → Subtitles & Languages*. Default: `custom`
   - One of `unset`, `dubbed_shows`, `subbed_shows`, `dubbed_all`, `subbed_all`, `custom`.
   - Anything other than `custom` generates `language_config` rules for you; `custom` leaves whatever you wrote there alone. See [Language Config](#language-config-power-user).
+  - What each one writes, with `preferred_language` as *pref* (default `eng`)
+    and the original audio assumed to be `jpn` — `language_config.preset_rules`
+    is the source, and the rules are tried in order:
+    - Subbed (both variants): `jpn` audio + full *pref* subtitles; then `jpn`
+      audio + any *pref* subtitles; then *pref* audio.
+    - Dubbed (both variants): *pref* audio + signs/songs subtitles; then
+      *pref* audio; then `jpn` audio + full *pref* subtitles; then `jpn`
+      audio + any *pref* subtitles.
+    - Unset writes no rules at all, leaving selection to the server.
+    - The "shows only" variants add `"type": "series"` to every rule, so
+      **films are left entirely at the server's choice**.
+  - **The subbed presets assume the original audio is Japanese.** That is the
+    anime case the examples were written for, and nothing in the dropdown says
+    so. If your original audio is something else, pick `custom` and write the
+    rules by hand.
 - `preferred_language` - The language the presets above are built around. Default: `eng`
 - `screenshot_dir` - Sets where screenshots go.
   - Default is the desktop on Windows and unset (current directory) on other platforms.
