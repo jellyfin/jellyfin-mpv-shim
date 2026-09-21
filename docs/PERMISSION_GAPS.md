@@ -380,3 +380,44 @@ up deliberately. Nothing in the test suite deletes from a real server.
 Pinned by `tests/test_shell_delete_item.py` — the gate, that an absent field
 is a refusal, that offline does not offer it, and that the confirmation says
 what it destroys without truncating the sentence.
+
+## 7. Refreshing metadata — the first admin-only action, and the one fail-open we tolerate  — ADDED
+
+`POST /Items/{id}/Refresh` is **administrator-only by construction**: there is
+no per-library grant and no user-level permission that opens it, which is where
+jellyfin-web draws the line too. The tile menu's *Refresh metadata* entry is
+therefore gated on `IsAdministrator`, through
+`user_policy.may_refresh_metadata` → `LibrarySource.can_refresh_metadata` →
+`ItemActions.can_refresh_metadata`, the same three-step shape as every other
+gate here.
+
+**It fails open, and that is a real exception rather than an oversight.** Every
+other fail-open gate in `user_policy` shows a feature the user merely *might*
+lack — SyncPlay, recording, downloading, collections — so a failed policy fetch
+leaves a button that probably works. This one leaves a button that an ordinary
+account's server will certainly refuse.
+
+It is accepted for two reasons, and they are worth having written down so the
+next reader does not have to re-derive them:
+
+- **the case is unreachable in practice.** `IsAdministrator` is present in
+  every `UserPolicy` on every server version that has this endpoint, so
+  reaching the fail-open branch needs a policy fetch that failed *and* a
+  non-administrator. A failed fetch is what the whole module's rule is about;
+  the combination is not a state a working server produces.
+- **closing it instead is worse in the direction that matters.** An
+  administrator whose policy fetch failed is exactly the person who came to
+  refresh something, and hiding the entry from them is a feature that has
+  disappeared for no reason they can see.
+
+**What it asks for is the middle strength**, not the strongest: a full refresh
+that replaces nothing, so missing or changed metadata and artwork are fetched
+and anything already stored — including fields edited by hand — is kept.
+`Recursive`, so a series or season reaches the episodes under it. The strongest
+option discards everything the server holds, and a context menu with no
+confirmation dialog is not where that belongs.
+
+**Live TV is out**, as it is in web: a channel or a programme is not an item
+with metadata to re-read. So is an in-progress recording — the file is still
+being written, and asking the server to re-read a moving target is not a useful
+thing to offer.

@@ -665,6 +665,21 @@ class LibrarySource:
         except Exception:
             return True                 # fails open; see user_policy
 
+    def can_refresh_metadata(self, server_uuid):
+        """`IsAdministrator` -- may this user ask the server to re-scan?
+
+        The **first admin-gated action in this browser**, and the one place
+        the fail-open rule can show a button the server refuses. See
+        `user_policy.may_refresh_metadata` and
+        `docs/PERMISSION_GAPS.md`.
+        """
+        from ..user_policy import may_refresh_metadata
+
+        try:
+            return may_refresh_metadata(self._conn(server_uuid).client)
+        except Exception:
+            return True                 # fails open; see user_policy
+
     def can_download(self, server_uuid):
         """`EnableContentDownloading`.
 
@@ -3462,6 +3477,13 @@ class OfflineLibrarySource:
         """Nothing to download FROM. The book screens read this to decide
         whether to offer a fetch, and offline the answer is no -- what is
         already on disk is still readable, and that path does not ask."""
+        return False
+
+    def can_refresh_metadata(self, server_uuid):
+        """No server to re-scan. Declared for signature parity, like its
+        siblings above: the offline source is what the online one falls back
+        to, and a missing method there reads as an AttributeError on the
+        loop thread rather than as an absent menu entry."""
         return False
 
     def get_genres(self, server_uuid, parent_id=None):

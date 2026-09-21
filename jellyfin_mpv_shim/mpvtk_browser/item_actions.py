@@ -480,6 +480,50 @@ class ItemActions:
         except Exception:
             return True
 
+    def can_refresh_metadata(self, server=None):
+        """Whether to offer Refresh Metadata. Fails OPEN, like its siblings.
+
+        The exception this repository tolerates rather than one it forgot:
+        every other fail-open gate here hides a feature the user *might* not
+        have, and this one can offer an administrator-only endpoint to a
+        non-administrator whose policy we could not read. Unreachable in
+        practice -- `IsAdministrator` is in every policy on every server that
+        has the endpoint -- and written down in
+        `docs/PERMISSION_GAPS.md` so the next reader does not
+        have to rediscover it.
+        """
+        source = getattr(self.services, "source", None)
+        ask = getattr(source, "can_refresh_metadata", None)
+        if ask is None or server is None:
+            return True
+        try:
+            return bool(ask(server))
+        except Exception:
+            return True
+
+    def refresh_metadata(self, item, server):
+        """Ask the server to re-read this item's metadata.
+
+        Reports rather than waits: the server queues the refresh and answers
+        at once, so there is nothing to show progress for and nothing to
+        reload -- what lands later arrives through the websocket item update
+        the shell already listens for.
+        """
+        iid = item.get("Id")
+        if not iid:
+            return
+        name = item.get("Name") or ""
+        ctl = self.services.controller
+        if ctl is None:
+            return
+
+        def queued():
+            self.services.set_status(
+                _("The server is refreshing %s.") % name)
+
+        self.edit(lambda c: c.refresh_item(server, iid), on_ok=queued,
+                  error=_("%s could not be refreshed.") % name)
+
     def can_download(self, server=None):
         """Whether this user may fetch bytes from ``server`` at all.
 
