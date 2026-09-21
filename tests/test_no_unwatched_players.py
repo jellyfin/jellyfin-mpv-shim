@@ -76,6 +76,34 @@ class TheAuditReadsTheCallAndNotTheNameTest(unittest.TestCase):
         self.assertEqual(0, checked, "a file's own builder was counted")
         self.assertEqual([], offenders)
 
+    def test_a_wrapper_with_a_defaulted_case_is_found(self):
+        """The hole this rule was added for: the call inside the wrapper
+        hands over a case, so the call-site rule is satisfied, while every
+        caller of the wrapper may omit one and get None."""
+        offenders, _checked = self._audit(
+            "def build(test=None, **kw):\n"
+            "    return h.build_player(mod, test=test, **kw)\n")
+
+        self.assertEqual(1, len(offenders),
+                         "a defaulted forwarding wrapper was not found")
+        self.assertIn("DEFAULTED", offenders[0][1])
+
+    def test_a_wrapper_that_requires_its_case_passes(self):
+        """The control. Wrappers are fine -- defaulting the case is not."""
+        offenders, _checked = self._audit(
+            "def build(test, **kw):\n"
+            "    return h.build_player(mod, test=test, **kw)\n")
+
+        self.assertEqual([], offenders)
+
+    def test_a_function_that_defaults_test_but_forwards_nothing_is_ignored(self):
+        """`test=None` is an ordinary parameter name. Only forwarding it to
+        build_player makes it this audit's business."""
+        offenders, _checked = self._audit(
+            "def helper(test=None):\n    return test\n")
+
+        self.assertEqual([], offenders)
+
     def test_a_bare_call_to_the_imported_name_is_ours(self):
         """The drift this leaves room for, closed: import the name instead of
         the module and the call is bare, which a module-alias-only rule would

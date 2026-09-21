@@ -255,7 +255,20 @@ def refusals_since(player, mark):
     answer to whether there were any.
     """
     new = refused_count(player) - mark
-    if new <= 0:
+    if new < 0:
+        # The counter cannot go backwards for one guarded class, so a
+        # negative window means the mark and the player are not the same
+        # class -- a stand-in rebuilt from a re-imported module has a fresh
+        # class-level counter starting at zero. Returning () there would
+        # report "nothing was refused" for a window in which everything was,
+        # which is the "tests that cannot fail" shape this hook exists to
+        # avoid. Loud instead.
+        raise AssertionError(
+            "refused_count went backwards (%d now, mark was %d): the mark and "
+            "this player belong to different guarded classes, so every "
+            "refusal in this window would have been dropped silently"
+            % (refused_count(player), mark))
+    if new == 0:
         return ()
     return refusals(player)[-new:]
 
