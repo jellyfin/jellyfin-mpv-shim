@@ -247,6 +247,89 @@ class TheRefusedWriteCleanupTest(unittest.TestCase):
                          "dropped")
         self.assertIn("osd_shadow_offset", result.failures[0][1])
 
+    def _another_guarded_class(self, seen_by=None):
+        """A second guarded class over a fresh base, armed and ready to refuse.
+
+        A fresh base is what a re-imported backend module produces; `guarded`
+        caches per base, so this is a genuinely separate class with its own
+        counter, without needing a second import here.
+        """
+        from jellyfin_mpv_shim import mpv_guard
+
+        base = seen_by if seen_by is not None else h.fake_mpv_class()
+        cls = mpv_guard.guarded(type("_SeparateFake", (base,), {}))
+        player = cls()
+        # `passthrough=()` for the same reason `build_player` passes it: the
+        # fake stores properties as ordinary attributes, so arm()'s default
+        # snapshot would exempt the very ones a test declares absent.
+        mpv_guard.arm(player, passthrough=())
+        return player
+
+    def test_a_refusal_on_a_class_held_only_in_the_middle_reports(self):
+        """`A -> B -> A`. The window used to observe two instants -- the class
+        at mark time and the class at cleanup -- so a class the case held only
+        in between was never asked. Both instants say A here, and everything
+        that was refused was refused on B.
+
+        This is the same silent "nothing was refused" as the swap case above,
+        one step harder to see, because the manager ends holding exactly what
+        it started with.
+        """
+        def body(inner):
+            pm = h.build_player(h.import_player_with_fake_mpv(), test=inner)
+            original = pm._player
+
+            middle = self._another_guarded_class(
+                seen_by=type(original).__mro__[1])
+            self.assertIsNot(type(middle), type(original),
+                             "the intermediate shares the guarded class, so "
+                             "this case no longer constructs the situation")
+            pm._player = middle
+            middle.property_is_absent("osd-shadow-offset")
+            middle.osd_shadow_offset = 2          # refused, on B
+
+            pm._player = original                 # ...and back to A
+
+        result = self._result(body)
+
+        self.assertEqual([], [e[1] for e in result.errors],
+                         "the cleanup raised instead of reporting")
+        self.assertEqual(1, len(result.failures),
+                         "a refusal on a class the case held only in the "
+                         "middle was dropped")
+        self.assertIn("osd_shadow_offset", result.failures[0][1])
+
+    def test_a_refusal_before_the_case_is_not_charged_to_it(self):
+        """The other direction, and it is the one that fails a blameless case.
+
+        The record is class level and therefore process wide. A case ending on
+        a class it did not start on used to have that class asked **from
+        zero** -- which reads the whole process's history and reports the
+        refusals of every earlier case. The mark is per class now, so a class
+        that already existed is asked about this case's window only.
+        """
+        earlier = self._another_guarded_class()
+        earlier.property_is_absent("osd-shadow-offset")
+        earlier.osd_shadow_offset = 2             # refused BEFORE the case
+
+        from jellyfin_mpv_shim import mpv_guard
+        self.assertEqual(1, mpv_guard.refused_count(type(earlier)),
+                         "the setup refusal was not recorded, so this case "
+                         "would pass without asserting anything")
+
+        def body(inner):
+            pm = h.build_player(h.import_player_with_fake_mpv(), test=inner)
+            # Ends holding the class that refused a write before this case
+            # started, and refuses nothing itself.
+            pm._player = earlier
+
+        result = self._result(body)
+
+        self.assertEqual([], result.failures + result.errors,
+                         "a case was failed for a refusal made before it "
+                         "started:\n" + "\n".join(
+                             e[1] for e in result.failures + result.errors))
+
     def test_a_case_that_refuses_nothing_passes(self):
         """The control: the cleanup is not failing everything."""
         def body(inner):

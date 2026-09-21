@@ -156,6 +156,13 @@ def _make(base):
         #: instance of this class, which is what makes it survive a
         #: re-creation mid-test.
         _jms_refusals = refusals
+        #: The same counter `failed_writes` returns, reachable **without an
+        #: instance**. `failed_writes` is a property, so reading it off the
+        #: class hands back the descriptor -- a truthy object that arithmetic
+        #: then fails on. The suite's window is a question about the class
+        #: (a case can hold three players of three classes), so it needs to
+        #: ask one it has no live instance of.
+        _jms_count = count
 
         def __setattr__(self, name, value):
             if (not self._jms_armed
@@ -276,7 +283,28 @@ def refusals_since(player, mark):
 def refused_count(player):
     """How many writes were refused, which is exact where `refusals` is a tail.
 
+    Takes a guarded **class** as readily as an instance, because the record
+    is class level and the suite's window is asked per class -- including of
+    classes it holds no live player of. `_jms_count` is checked before
+    `failed_writes` for exactly that: the property yields the descriptor when
+    read off the class, which is truthy and is not a number.
+
     Zero for anything unguarded, so a caller does not have to ask first: a
     stand-in nobody wrapped has no failures to report rather than an error.
     """
+    counter = getattr(player, "_jms_count", None)
+    if counter is not None:
+        return counter[0]
     return getattr(player, "failed_writes", 0)
+
+
+def guarded_classes():
+    """Every guarded class built so far, newest last.
+
+    The registry is process-wide and `guarded` caches one class per base, so
+    this is the complete set of places a refusal can have been recorded --
+    which is what lets a caller ask about a class it saw only in the middle
+    of a test and no longer holds.
+    """
+    with _classes_lock:
+        return tuple(_classes.values())
