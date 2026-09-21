@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-19 18:03-0400\n"
+"POT-Creation-Date: 2026-09-21 00:54-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1247,6 +1247,20 @@ msgstr ""
 #. narrow buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
+msgstr ""
+
+#. A chip drawn on the corner of an episode tile, and on nothing else: this
+#. episode has not been broadcast yet, so the server lists it but has no file
+#. for it. One word; the tile is about 150px wide.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgid "Unaired"
+msgstr ""
+
+#. A chip drawn on the corner of an episode tile, and on nothing else: this
+#. episode has aired and the library has no file for it -- a gap in the
+#. season, not an error. One word; the tile is about 150px wide.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgid "Missing"
 msgstr ""
 
 #. Heading over the video stream's rows in the Media Info panel. A stream

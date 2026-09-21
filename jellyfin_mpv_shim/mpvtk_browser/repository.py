@@ -2513,10 +2513,33 @@ class LibrarySource:
         """Episodes for a series in aired order, ACROSS seasons, optionally
         starting at ``start_item_id`` — this is how the play queue crosses
         season boundaries (mirrors jellyfin-web's getEpisodes with startItemId
-        and no SeasonId)."""
+        and no SeasonId).
+
+        **The same two filters :meth:`get_season_queue` sends, for the same
+        reason**, and this method went without them: for a user whose
+        ``DisplayMissingEpisodes`` is on, the cross-season queue contained
+        episodes with no file. The server applies ``isMissing`` *after* the
+        include decision and ``startItemId`` and ``limit`` after that
+        (``TvShowsController.cs``), so with S01E01 missing the Next Up
+        fallback's ``limit=1`` returned exactly that episode -- pressing Play
+        on a series nobody had started began a file that does not exist.
+
+        Issued through ``api.shows`` for the reason :meth:`get_season_queue`
+        gives one method down: the apiclient helper takes no filter
+        arguments, and this is the same request with two more.
+        """
         api = self._conn(server_uuid).api
-        result = api.get_episodes(series_id, start_item_id=start_item_id,
-                                  fields=LIST_FIELDS, limit=limit) or {}
+        params = {
+            "UserId": "{UserId}",
+            "IsVirtualUnaired": False,
+            "IsMissing": False,
+            "Fields": LIST_FIELDS,
+        }
+        if start_item_id:
+            params["StartItemId"] = start_item_id
+        if limit:
+            params["Limit"] = limit
+        result = api.shows("/%s/Episodes" % series_id, params=params) or {}
         return result.get("Items", [])
 
     def get_season_queue(self, server_uuid, series_id, season_id):
@@ -2525,7 +2548,12 @@ class LibrarySource:
         Separate from :meth:`get_episodes`, which the season SCREEN uses,
         because the two want different rows: a listing shows missing and
         unaired episodes so you can see the gaps, and a queue must not try to
-        play them. Those are jellyfin-web's own filters for this exact
+        play them. **The listing showing them is web's behaviour too** -- it
+        sends no filter either and relies on the server honouring the user's
+        ``DisplayMissingEpisodes`` -- so what keeps a gap from being *played*
+        from the screen is `components.virtual_episode_label`, asked by the
+        tile's play chip and by the detail page's buttons, rather than the
+        absence of a filter here. Those are jellyfin-web's own filters for this exact
         gesture (``playbackmanager.js``'s ``getSeriesOrSeasonPlaybackPromise``
         sends ``IsVirtualUnaired: false, IsMissing: false``), and folding
         them into the shared method would quietly hide the gaps from the
