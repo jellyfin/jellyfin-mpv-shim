@@ -741,6 +741,29 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # The trap this exists for: the list *looks* like the control and is inert
+    # on its own, because both switches below it default off -- so somebody
+    # who edits the languages and sees nothing change has found nothing
+    # wrong. It also says what the filter reaches, since the name promises
+    # more than it does: the track MENUS, not what gets chosen for you.
+    "lang_filter": _(
+        "This list does nothing on its own -- turn on one of the two "
+        "switches below it. It changes which tracks the audio and subtitle "
+        "menus offer you, not which one is picked automatically; the preset "
+        "above is what does that. \"und\" means untagged, so removing it "
+        "hides untagged tracks as well."),
+    # What each preset writes is otherwise only readable in
+    # `language_config.preset_rules`, and one of those rules is a fact nobody
+    # could guess from the dropdown: every "subbed" preset assumes the
+    # original audio is Japanese. Said here rather than only in the docs,
+    # because this is where the choice is made.
+    "language_preference": _(
+        "\"Subbed\" keeps the original audio and adds full subtitles in your "
+        "language. \"Dubbed\" prefers audio in your language with signs and "
+        "songs subtitles, and falls back to subbed where there is no dub. "
+        "The \"shows only\" pair leaves films at whatever the server picks. "
+        "The subbed presets assume the original audio is Japanese; if yours "
+        "is not, choose Custom and write the rules yourself."),
     # The percentage is the point of the note as much as the restart is: a
     # language at 30% is mostly English and picking it should not look like
     # a fault. Translating is where that number moves, so the note says so.
