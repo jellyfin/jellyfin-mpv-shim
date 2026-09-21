@@ -82,7 +82,17 @@ CONNECT_BUSY = "busy"
 REAUTH_WRONG_SERVER = "wrong_server"
 USER_AGENT = "Jellyfin-MPV-Shim/%s" % CLIENT_VERSION
 CAPABILITIES = {
-    "PlayableMediaTypes": ["Video"],
+    # Written when the client played video and nothing else, and never
+    # brought forward: music and photos both shipped against a list that
+    # still said "Video". Book is absent on purpose -- a book is read in
+    # the in-window reader and has no media source, so a cast one would
+    # arrive at a player that cannot start it.
+    #
+    # jellyfin-web never reads this: its sessionPlayer hardcodes
+    # `audio || video` (plugins/sessionPlayer/plugin.js), which is why
+    # casting a photo from web does nothing (#773) and why adding Photo
+    # here does not fix that. This is for the server and other clients.
+    "PlayableMediaTypes": ["Video", "Audio", "Photo"],
     "SupportsMediaControl": True,
     "SupportsPersistentIdentifier": True,
     "SupportedCommands": [
