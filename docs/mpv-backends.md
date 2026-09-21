@@ -26,6 +26,18 @@ established, so the code does not have to.
 | unknown attribute | `__getattr__` issues a **property read** | plain `AttributeError` |
 | a core in this process | yes | no — mpv is a child process |
 | property read cost | in-process call | synchronous IPC command |
+| `command("set", name, 5.0)` | works — the value is coerced to a string | **`MPVError: invalid parameter`** |
+
+**mpv's `set` command takes its value as a string**, and only one binding says
+so for you: python-mpv runs every argument through `_mpv_coax_proptype`, while
+python-mpv-jsonipc puts the raw JSON on the socket and mpv refuses a number.
+Measured both ways on mpv 0.41. So a `command("set", …)` written and tested on
+libmpv works there and silently does nothing on the external backend — silently
+because the callers that use this form wrap it, having been written for a
+*different* failure (`_apply_resume_offset` catches so that a resume which
+cannot be applied does not abort the playback start). That is how the resume
+position came to be applied on one backend only, and what caught it was the
+external-backend e2e leg, not any unit test. **Pass `str(value)`.**
 
 `_mpv_errors` is the tuple to catch. `mpv_events.wait_property` and
 `PlayerManager._observe` both discriminate on the **class**, not on a module

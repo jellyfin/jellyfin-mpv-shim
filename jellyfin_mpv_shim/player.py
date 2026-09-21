@@ -2242,10 +2242,44 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         the intro on open with no input at all. The exemption already exists
         for seeks the UI makes; the resume simply never claimed it, and
         keeping the claim next to the seek is what stops the two drifting.
+
+        **`last_seek` is set BEFORE the seek, and moving it below is a
+        regression, not a tidy-up.** A review asked for exactly that, so that
+        a resume which never happened is not recorded as a position reached.
+        It is `None` for the first item of a session, and the stop report
+        reads `int((self.last_seek or 0) * 10000000)`
+        (`player_reporting.py:643`) -- so a failed resume would report
+        position ZERO and destroy the user's place. Reporting the position
+        they asked to return to is the lesser wrong, and surfacing the failure
+        to them is the real fix (todo 17).
+        Pinned by `TestAFailedResumeStillReportsItsPosition`.
         """
         self.last_seek = offset
         self._last_ui_seek_time = time.time()
-        self._player.playback_time = offset
+        # A command, not `self._player.playback_time = offset`: a property
+        # write python-mpv cannot deliver is caught by its own `__setattr__`
+        # and becomes a plain Python attribute, which wins every later read
+        # for the life of the process (#761, #765). Playback dying between the
+        # duration gate and here is the window, and the stale position the
+        # shadow reports makes `_check_stalled_finish` advance the queue.
+        try:
+            # **`str`, not the float.** mpv's `set` command takes its value as
+            # a string: python-mpv coerces one for you (`_mpv_coax_proptype`)
+            # and python-mpv-jsonipc puts the raw JSON on the socket, where a
+            # number comes back `MPVError: invalid parameter` -- measured on
+            # both backends against mpv 0.41. So the float form worked on
+            # libmpv and silently did nothing on the external backend, where
+            # the `except` below turned it into a resume that never happened
+            # (docs/mpv-backends.md section 1).
+            self._player.command("set", "playback-time", str(offset))
+        except Exception:
+            # Broader than _mpv_errors on purpose: with nothing loaded this is
+            # a bare `SystemError` (-12), which is in neither backend's error
+            # tuple. Swallowed rather than allowed out, because it runs in the
+            # tail of _play_media -- a resume that could not be applied is the
+            # old position, which the next timeline tick corrects, where a
+            # half-finished start skips send_timeline_initial and the rest.
+            log.debug("Could not apply the resume offset.", exc_info=True)
 
     def timeline_handle(self):
         if self.timeline_trigger:
