@@ -926,8 +926,11 @@ class StripStore:
             # corner, in the placeholder grey rather than the accent: the
             # accent means "yours", and this says the opposite. Pinned by its
             # LEFT edge, since nothing else shares this corner with it.
+            # The chip is pinned at `x + inset - _px(13)`, i.e. _px(4) in
+            # from the tile's left edge, so the same margin on the right is
+            # `g.tile_w - _px(8)` of width.
             self._paint_text_chip(img, dr, x + inset, inset, t.tag,
-                                  g.badge_size)
+                                  g.badge_size, max_w=g.tile_w - _px(8))
         elif t.sources > 1:
             # "This film is here twice" -- a 4K and a 1080p, a theatrical and
             # an extended. The count, not a symbol, because which of them
@@ -1215,7 +1218,7 @@ class StripStore:
         return max(_px(StripStore.BADGE_PITCH), bw + _px(4))
 
     @staticmethod
-    def _paint_text_chip(img, dr, cx, cy, text, size):
+    def _paint_text_chip(img, dr, cx, cy, text, size, max_w=None):
         """A word on a filled chip, pinned by its LEFT edge at ``cx``.
 
         The count chip's shape (`_paint_count_chip`) with two differences, and
@@ -1227,6 +1230,12 @@ class StripStore:
 
         Sized to its text for the same reason the count chip is: "Unaired" is
         wider than "Missing", and a fixed width would clip one of them.
+
+        ``max_w`` is the widest chip this tile can hold. It is not optional in
+        spirit: several tiles share one strip bitmap, so an over-wide chip
+        draws over the tile to its RIGHT instead of being clipped -- the same
+        reason the captions ellipsize to ``g.tile_w``. English fits at every
+        size; a long translation of "Unaired" need not.
         """
         font = _font(size, bold=True)
         if StripStore.shadowed_badges():
@@ -1235,7 +1244,11 @@ class StripStore:
             # chip on one of those looks like a control rather than a label.
             StripStore._shadowed_text(img, text, font, cx, cy)
             return
+        if max_w is not None:
+            text = StripStore._ellipsize(dr, text, font, max_w - _px(14))
         bw = int(dr.textlength(text, font=font)) + _px(14)
+        if max_w is not None:
+            bw = min(bw, max_w)
         _aa_fill(img, [cx - _px(13), _px(5), cx - _px(13) + bw, _px(25)],
                  theme.rgb(theme.PLACEHOLDER_BG, 255), radius=_px(6))
         dr.text((cx - _px(13) + bw / 2, _px(15)), text, font=font,
