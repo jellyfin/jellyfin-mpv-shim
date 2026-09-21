@@ -306,9 +306,17 @@ def bundled_cplugins(ext_mpv):
       promoting an object that is already loaded works -- so there is **no
       import-order rule here to get wrong** and this is strictly additive.
 
-    **The blast radius is one plugin, not every bundled one.** With
-    ``config_dir`` set nothing is scanned, so the promotion makes a cplugin
-    *able* to load while the explicit path decides *which* does.
+    **The promotion does not by itself load anything.** With ``config_dir``
+    set nothing is scanned, so making libmpv's symbols global only makes a
+    cplugin *able* to load; the explicit paths below decide which ones do.
+
+    Those paths are every ``.so`` this package installs into
+    ``FLATPAK_CPLUGIN_DIR`` -- one file today (the GNOME inhibitor, see the
+    Flatpak manifest), and whatever a later release puts beside it. That is
+    the intended reach and not an accident: a cplugin we ship into our own
+    ``/app`` is one we mean to load. Said plainly because this paragraph used
+    to say "one plugin", which was a true statement about what ships and a
+    loose one about what the code does.
 
     libmpv only: the external backend runs a real mpv binary, which scans for
     and loads its own cplugins, and on a box with no libmpv the ``CDLL``
