@@ -209,6 +209,44 @@ class TheRefusedWriteCleanupTest(unittest.TestCase):
         self.assertEqual([], result.failures + result.errors,
                          "an absence in ALLOWED_REFUSED_WRITES failed anyway")
 
+    def test_a_refusal_before_the_player_was_swapped_still_reports(self):
+        """The record lives on the guarded CLASS, and the counter is per
+        class. A case that ends holding a player of a DIFFERENT guarded class
+        -- which the whole-suite leg produces, because it evicts modules
+        between files and the next fake is built from a fresh base -- used to
+        have its window asked of the new class, whose counter starts at zero.
+        That answered "nothing was refused" for a window in which something
+        was, silently. Three integration cases were doing it.
+        """
+        from jellyfin_mpv_shim import mpv_guard
+
+        def body(inner):
+            pm = h.build_player(h.import_player_with_fake_mpv(), test=inner)
+            pm._player.property_is_absent("osd-shadow-offset")
+            pm._player.osd_shadow_offset = 2      # refused, on THIS class
+            # A subclass of the same fake: `guarded` caches per BASE, so a
+            # new base is a new guarded class with its own counter -- which
+            # is what a re-imported backend module produces, without needing
+            # a second import here.
+            fake_base = type(pm._player).__mro__[1]
+            replacement = mpv_guard.guarded(
+                type("_ReimportedFake", (fake_base,), {}))()
+            self.assertIsNot(type(replacement), type(pm._player),
+                             "the replacement shares the guarded class, so "
+                             "this case no longer constructs the situation")
+            self.assertEqual(0, mpv_guard.refused_count(replacement),
+                             "the replacement's counter is not fresh")
+            pm._player = replacement
+
+        result = self._result(body)
+
+        self.assertEqual([], [e[1] for e in result.errors],
+                         "the cleanup raised instead of reporting")
+        self.assertEqual(1, len(result.failures),
+                         "a refusal made before the player was replaced was "
+                         "dropped")
+        self.assertIn("osd_shadow_offset", result.failures[0][1])
+
     def test_a_case_that_refuses_nothing_passes(self):
         """The control: the cleanup is not failing everything."""
         def body(inner):
