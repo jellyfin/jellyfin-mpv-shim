@@ -347,6 +347,13 @@ class Tile:
     poster_tag: str = ""
     watched: bool = False
     badge: int = 0
+    #: A short word drawn as a chip in the tile's TOP-LEFT corner -- today
+    #: only "Missing"/"Unaired" for an episode the server has no file for
+    #: (components.virtual_episode_label). Top-left because that corner holds
+    #: the source count, which a virtual episode cannot have: no media
+    #: source, no count, so the slot is free by construction rather than by
+    #: a precedence rule that could be wrong later.
+    tag: str = ""
     progress: float = 0.0
     downloaded: bool = False
     #: Material icon name marking what kind of thing this is ("folder",
@@ -525,6 +532,10 @@ class StripStore:
             t.subtitle2,
             bool(t.watched),
             int(t.badge),
+            # In the key because it is drawn into the bitmap: an episode that
+            # gains a file stops being Missing, and without this the strip
+            # would keep the chip until something else invalidated it.
+            t.tag,
             round(float(t.progress), 2),
             bool(t.downloaded),
             t.kind,
@@ -910,7 +921,14 @@ class StripStore:
         inset = _px(17)
         # The top-LEFT corner: web's `.mediaSourceIndicator`, and it holds
         # this one thing.
-        if t.sources > 1:
+        if t.tag:
+            # The same shape as the unplayed-episode chip on the other
+            # corner, in the placeholder grey rather than the accent: the
+            # accent means "yours", and this says the opposite. Pinned by its
+            # LEFT edge, since nothing else shares this corner with it.
+            self._paint_text_chip(img, dr, x + inset, inset, t.tag,
+                                  g.badge_size)
+        elif t.sources > 1:
             # "This film is here twice" -- a 4K and a 1080p, a theatrical and
             # an extended. The count, not a symbol, because which of them
             # plays is a choice the detail page offers and the number is what
@@ -1195,6 +1213,33 @@ class StripStore:
         # (BADGE_PITCH is 26 against a 22px disc), floored at that pitch so a
         # narrow chip lines the stack up exactly as a disc would.
         return max(_px(StripStore.BADGE_PITCH), bw + _px(4))
+
+    @staticmethod
+    def _paint_text_chip(img, dr, cx, cy, text, size):
+        """A word on a filled chip, pinned by its LEFT edge at ``cx``.
+
+        The count chip's shape (`_paint_count_chip`) with two differences, and
+        both are about what the word means. The fill is the placeholder grey
+        rather than the accent, because the accent is what marks things that
+        are yours and this says the opposite; and it is pinned left, because
+        nothing shares this corner with it, so there is no stack to line up
+        against and no pitch to return.
+
+        Sized to its text for the same reason the count chip is: "Unaired" is
+        wider than "Missing", and a fixed width would clip one of them.
+        """
+        font = _font(size, bold=True)
+        if StripStore.shadowed_badges():
+            # The themes that draw badges as shadowed text rather than chips
+            # (see `shadowed_badges`) get the same treatment here: a filled
+            # chip on one of those looks like a control rather than a label.
+            StripStore._shadowed_text(img, text, font, cx, cy)
+            return
+        bw = int(dr.textlength(text, font=font)) + _px(14)
+        _aa_fill(img, [cx - _px(13), _px(5), cx - _px(13) + bw, _px(25)],
+                 theme.rgb(theme.PLACEHOLDER_BG, 255), radius=_px(6))
+        dr.text((cx - _px(13) + bw / 2, _px(15)), text, font=font,
+                anchor="mm", fill=(255, 255, 255))
 
     @staticmethod
     def _paint_count_badge(img, dr, cx, cy, text, size):

@@ -6,8 +6,11 @@ bug it encodes; those are the reason to keep the logic rather than "simplify"
 it later.
 """
 
+import datetime
 import ipaddress
 import urllib.parse
+
+from ...i18n import _
 
 
 #: Types whose caption is a LISTING -- "which channel, and when" rather
@@ -219,6 +222,43 @@ TYPE_INDICATOR_ICONS = {
     "PhotoAlbum": "photo_album",
     "Photo": "photo",
 }
+
+
+def virtual_episode_label(item):
+    """"Missing", "Unaired", or None for an episode that has a file.
+
+    **jellyfin-web's rule, in one place.** `indicators.js` marks an `Episode`
+    whose `LocationType` is `Virtual` -- one the server listed out of the
+    series metadata with nothing behind it -- and which of the two words it
+    gets depends only on whether the air date is still in the future.
+
+    Neither is hidden, because seeing the gaps is the point: the server has
+    already applied the user's own `DisplayMissingEpisodes`
+    (`TvShowsController.cs`, both supported majors), so an item only reaches
+    here because somebody asked to see it. What web's card does NOT give one
+    is a play button, and that is the other half of this predicate's job --
+    `tiles._tile_playable` and the detail page's own buttons ask it too, and
+    a rule applied at one of its sites is the recurring defect shape here.
+
+    An undated virtual episode is "Missing": a future date is the only
+    evidence that it is coming rather than absent.
+    """
+    if item.get("Type") != "Episode":
+        return None
+    if item.get("LocationType") != "Virtual":
+        return None
+    from .. import live_tv
+
+    # Through live_tv.parse_time, not `fromisoformat`: these are UTC with
+    # seven fractional digits, and every shorter way of parsing one yields a
+    # plausible datetime out by the UTC offset rather than an error
+    # (docs/jellyfin-api-notes.md section 9.1). It returns a local aware
+    # datetime, so the comparison has to be aware as well.
+    premiere = live_tv.parse_time(item.get("PremiereDate"))
+    if premiere is not None and premiere > datetime.datetime.now(
+            datetime.timezone.utc):
+        return _("Unaired")
+    return _("Missing")
 
 
 def type_indicator_icon(item):

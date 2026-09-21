@@ -161,6 +161,14 @@ class TilesMixin:
     def _tile_playable(self, item):
         """Whether a hovered tile gets a play chip. Cheap and pure: this runs
         for every tile of every strip that is built."""
+        if components.virtual_episode_label(item):
+            # An episode the server has no file for. jellyfin-web's card
+            # gates its own overlay play button the same way
+            # (`cardBuilder.js`: Virtual plus a MediaType means no button),
+            # and the same rule has to hold at the detail page's Play button
+            # -- one rule, two sites, which is the shape a fix applied at
+            # N-1 of N sites takes here.
+            return False
         t = item.get("Type")
         if t in self.MENU_LIVE or t in self.MENU_PLAYABLE:
             # Photo is deliberately absent from MENU_PLAYABLE, and should
