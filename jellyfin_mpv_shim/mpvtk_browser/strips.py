@@ -1242,7 +1242,23 @@ class StripStore:
             # The themes that draw badges as shadowed text rather than chips
             # (see `shadowed_badges`) get the same treatment here: a filled
             # chip on one of those looks like a control rather than a label.
-            StripStore._shadowed_text(img, text, font, cx, cy)
+            #
+            # `max_w` goes THROUGH rather than being applied below: this
+            # branch returns above the clamp, so for a while it drew at full
+            # width on every shadowed theme. `_shadowed_text` is where the
+            # budget belongs anyway -- the drawn width is the glyphs plus a
+            # shadow pad taken off the cap height, which nothing out here can
+            # compute.
+            #
+            # `left`, not the default centring. This chip is pinned by its
+            # LEFT edge at `cx` (see the summary line), and `_shadowed_text`
+            # centres unless told otherwise -- so on a shadowed theme the word
+            # grew out of its own middle and walked off the left of the tile,
+            # into the one before it. `cx - _px(6)` is where the filled branch
+            # below puts the same glyphs: its chip starts at `cx - _px(13)`
+            # and adds `_px(7)` of padding before the text.
+            StripStore._shadowed_text(img, text, font, cx, cy,
+                                      left=cx - _px(6), max_w=max_w)
             return
         if max_w is not None:
             text = StripStore._ellipsize(dr, text, font, max_w - _px(14))
@@ -1276,18 +1292,41 @@ class StripStore:
                 fill=(255, 255, 255))
 
     @staticmethod
-    def _shadowed_text(img, text, font, cx, cy, right=None):
+    def _shadowed_text(img, text, font, cx, cy, right=None, left=None,
+                       max_w=None):
         """White text with a drop shadow, no chip behind it.
 
-        Centred on (cx, cy), or pinned by its RIGHT edge when ``right`` is
-        given -- which is what the episode count needs, for the reason
-        ``_paint_decorations`` gives: that edge is the one lined up with the
-        badge stack, and a wide chip growing from its middle walks off the
-        corner of the card.
+        Centred on (cx, cy), or pinned by one edge:
+
+        * ``right`` pins the **layer's** right edge -- glyphs plus the shadow
+          pad. That is what the episode count needs, for the reason
+          ``_paint_decorations`` gives: that edge is the one lined up with the
+          badge stack, and a wide chip growing from its middle walks off the
+          corner of the card.
+        * ``left`` pins the **glyphs'** left edge, and the asymmetry with
+          ``right`` is deliberate rather than an oversight. The one caller
+          lines this word up with where the same word sits on a *filled*
+          theme, and the pad is invisible halo -- including it would shift the
+          text right by a few px when the theme changed. ``right``'s callers
+          are lining up against a stack of shadowed marks, where the layer
+          edge is the one that matches.
+
+        ``max_w`` ellipsizes to fit, and the budget is ``max_w`` **minus the
+        pad on both sides**, because the pad is drawn width. Neither
+        ``max_w`` nor ``max_w`` less the filled chip's padding is right: they
+        happen to coincide near 14px and diverge at other sizes, so a wrong
+        choice here passes at the one size a test is written at. It lives
+        here rather than in the caller because the pad comes off the cap
+        height of the rendered glyphs, which the caller cannot compute.
         """
         from PIL import Image as PILImage, ImageDraw
 
         probe = ImageDraw.Draw(PILImage.new("RGBA", (1, 1)))
+        if max_w is not None:
+            box = probe.textbbox((0, 0), text, font=font, anchor="lt")
+            text = StripStore._ellipsize(
+                probe, text, font,
+                max_w - 2 * StripStore.shadow_pad(max(1, box[3] - box[1])))
         box = probe.textbbox((0, 0), text, font=font, anchor="lt")
         tw, th = max(1, box[2] - box[0]), max(1, box[3] - box[1])
         # Off the cap HEIGHT, so every count -- "2", "12", "128" -- carries
@@ -1302,6 +1341,11 @@ class StripStore:
                                    fill=(255, 255, 255, 255))
         if right is not None:
             cx = right - layer.width // 2
+        elif left is not None:
+            # `+ pad`, which is what makes this the GLYPHS' left edge rather
+            # than the layer's -- see the docstring for why the two pins are
+            # not symmetric.
+            cx = left + layer.width // 2 - pad
         StripStore._shadowed(img, layer, th, cx, cy)
         # The drawn width, so a caller pinning by `right` can tell the badge
         # beside it how far to move. There is no other way to know: the
