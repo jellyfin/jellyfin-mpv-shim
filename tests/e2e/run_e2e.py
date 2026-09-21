@@ -104,6 +104,12 @@ CONTRACT = [
     # answers exactly as sending nothing does, so a dropped IsMissing is
     # invisible from this side until an unplayable episode is queued.
     "tests.e2e.test_missing_episodes_live",
+    # The sort is a CROSS-CLIENT write: it lands in the DisplayPreferences
+    # CustomPrefs document under jellyfin-web's own key names, and a wrong
+    # key is not a crash -- the shim reads back what it wrote and web reads
+    # back what it wrote, diverging silently. The fake stores whatever key it
+    # is handed, so only a server can say.
+    "tests.e2e.test_sort_persistence_live",
     # The server-truth backing for batch 4 -- CanDelete absent unless
     # asked, TranscodeReasons in the TranscodingUrl, StartItemId
     # inclusive, the shader library-scope lookup. It was added to
