@@ -47,11 +47,19 @@ class _Player:
         self.commands = []
 
     def command(self, name, *args):
-        """`set` is how the shim writes a property it must not shadow."""
+        """`set` is how the shim writes a property it must not shadow.
+
+        A string value, as mpv requires and as jsonipc does not coerce --
+        see `_ShadowingPlayer.command`. Stored as the float it names, because
+        every reader of `playback_time` here treats it as a number.
+        """
         self.commands.append((name, *args))
         if name == "set":
             prop, value = args
-            setattr(self, prop.replace("-", "_"), value)
+            if not isinstance(value, str):
+                raise ValueError("mpv's `set` wants a string, got %r"
+                                 % (value,))
+            setattr(self, prop.replace("-", "_"), float(value))
 
     def show_text(self, text, *a, **kw):
         """An automatic skip announces itself on the OSD."""
@@ -970,10 +978,25 @@ class _ShadowingPlayer:
         if name != "set":
             return
         prop, value = args
+        # **The field this fake did not model, and it cost a real bug.** mpv's
+        # `set` takes its value as a STRING: python-mpv coerces one, and
+        # python-mpv-jsonipc puts the raw JSON on the socket and gets back
+        # `MPVError: invalid parameter`. Measured on both against mpv 0.41 --
+        # so a stand-in that accepted a float passed while the external
+        # backend resumed nothing at all, and only an e2e leg on that backend
+        # noticed.
+        if not isinstance(value, str):
+            raise ValueError("mpv's `set` wants a string, got %r" % (value,))
         if not self.loaded:
             # Measured: -12, as a `SystemError`, which is not in _mpv_errors.
             raise SystemError("Error running mpv command", -12, (name, *args))
-        self._mpv[prop] = value
+        # Takes a string and answers with a number, as mpv does. A fake that
+        # echoed the string back would turn every position comparison in this
+        # suite into a string comparison and hide the type at the seam.
+        try:
+            self._mpv[prop] = float(value)
+        except ValueError:
+            self._mpv[prop] = value
 
 
 class AResumeThatCannotSeekLeavesNoShadowTest(unittest.TestCase):
@@ -1005,7 +1028,9 @@ class AResumeThatCannotSeekLeavesNoShadowTest(unittest.TestCase):
         self.assertNotIn("playback_time", pm._player.__dict__,
                          "the failed write left a shadow on the player")
         object.__setattr__(pm._player, "loaded", True)
-        pm._player.command("set", "playback-time", 3.0)
+        # A string, because that is what mpv's `set` takes and what the shim
+        # now sends -- see `_ShadowingPlayer.command`.
+        pm._player.command("set", "playback-time", "3.0")
         self.assertEqual(pm._player.playback_time, 3.0,
                          "a position read did not reach mpv")
 

@@ -2252,7 +2252,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # duration gate and here is the window, and the stale position the
         # shadow reports makes `_check_stalled_finish` advance the queue.
         try:
-            self._player.command("set", "playback-time", offset)
+            # **`str`, not the float.** mpv's `set` command takes its value as
+            # a string: python-mpv coerces one for you (`_mpv_coax_proptype`)
+            # and python-mpv-jsonipc puts the raw JSON on the socket, where a
+            # number comes back `MPVError: invalid parameter` -- measured on
+            # both backends against mpv 0.41. So the float form worked on
+            # libmpv and silently did nothing on the external backend, where
+            # the `except` below turned it into a resume that never happened
+            # (docs/mpv-backends.md section 1).
+            self._player.command("set", "playback-time", str(offset))
         except Exception:
             # Broader than _mpv_errors on purpose: with nothing loaded this is
             # a bare `SystemError` (-12), which is in neither backend's error
