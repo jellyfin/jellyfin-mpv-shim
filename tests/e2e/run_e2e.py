@@ -98,6 +98,12 @@ CONTRACT = [
     # a wrong address BEFORE the password goes out, which needs two real
     # servers with two ServerIds and cannot be asked of a fake at all.
     "tests.e2e.test_login_lifecycle",
+    # Gaps in a season, against the four virtual episodes injected into the
+    # QA library's BaseItems. The listing must SHOW them (web's behaviour)
+    # and the play queue must not -- and a filter Jellyfin does not recognise
+    # answers exactly as sending nothing does, so a dropped IsMissing is
+    # invisible from this side until an unplayable episode is queued.
+    "tests.e2e.test_missing_episodes_live",
     # The server-truth backing for batch 4 -- CanDelete absent unless
     # asked, TranscodeReasons in the TranscodingUrl, StartItemId
     # inclusive, the shader library-scope lookup. It was added to
