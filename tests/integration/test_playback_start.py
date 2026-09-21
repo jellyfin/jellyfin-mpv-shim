@@ -64,7 +64,7 @@ def make_video(**kw):
     return video
 
 
-def build(test=None, **player_kw):
+def build(test, **player_kw):
     pm = h.build_player(player_module, test=test, **player_kw)
     pm.action_trigger = threading.Event()
     pm.timeline_trigger = threading.Event()

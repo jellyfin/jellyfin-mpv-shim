@@ -270,6 +270,44 @@ class TheSameClassIsReusedTest(unittest.TestCase):
                       [r.name for r in mpv_guard.refusals(second)])
 
 
+class TheWindowCannotGoBackwardsTest(unittest.TestCase):
+    """The record is class-level, so a mark only means something against the
+    class it came from.
+
+    `_assert_no_refused_writes` takes a mark at build time and asks for the
+    window at cleanup. If the player it asks about belongs to a DIFFERENT
+    guarded class -- a stand-in rebuilt from a re-imported module, which the
+    integration harness does by evicting modules from `sys.modules` -- that
+    class's counter starts at zero and the window comes out negative. Reading
+    that as "nothing was refused" would report a pass for a case in which
+    everything was refused, which is the shape this hook exists to catch.
+    """
+
+    def test_a_mark_from_another_class_is_an_error_not_silence(self):
+        other, _mark = _guarded(_LibmpvLike, known=[])
+        other.not_a_property = 1
+        other.nor_this_one = 2
+        stale_mark = mpv_guard.refused_count(other)
+        fresh, _fresh_mark = _guarded(_JsonipcLike, properties=())
+
+        self.assertLess(mpv_guard.refused_count(fresh), stale_mark,
+                        "the two classes share a counter, so this case no "
+                        "longer constructs a backwards window")
+        with self.assertRaises(AssertionError) as caught:
+            mpv_guard.refusals_since(fresh, stale_mark)
+
+        self.assertIn("backwards", str(caught.exception))
+
+    def test_an_empty_window_is_still_empty(self):
+        """The control, and the case that must NOT become an error: an
+        unguarded stand-in answers 0 to `refused_count` on purpose, so mark
+        and count are both zero and the window is legitimately empty."""
+        player, mark = _guarded(_LibmpvLike, known=[])
+
+        self.assertEqual((), mpv_guard.refusals_since(player, mark))
+        self.assertEqual((), mpv_guard.refusals_since(object(), 0))
+
+
 class TheContractsModelledHereAreTheRealOnesTest(unittest.TestCase):
     """The stand-ins above are a reading of two libraries, and a reading is
     a belief about someone else's code. These pin the parts the guard

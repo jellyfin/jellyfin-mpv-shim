@@ -21,6 +21,14 @@ otherwise a different function: `tests/test_syncplay_pause_ignore.py` defines
 its own builder of that name, with its own stand-in player, and has nothing to
 do with this.
 
+**Wrappers are checked too, and this is the hole that made it necessary.**
+A local `def build(test=None, **kw)` forwarding to `build_player` satisfies the
+call-site rule -- the keyword is right there -- while letting every caller of
+the *wrapper* omit its case and get None. That is the opt-in this file exists
+to close, reopened one level up where a rule reading only call sites cannot
+see it. So a function that forwards `test=` to `build_player` may not give its
+own `test` parameter a default.
+
 A finding is not automatically a bug -- a call site with no case to hand over
 (a module-level fixture built once for a whole file) is legitimate and belongs
 in ACCEPTED with the reason.
@@ -53,6 +61,51 @@ def _imports_the_name(tree):
             if any(alias.name == "build_player" for alias in node.names):
                 return True
     return False
+
+
+def _defaulted_params(fn):
+    """The names of ``fn``'s parameters that carry a default."""
+    args = fn.args
+    positional = list(args.posonlyargs) + list(args.args)
+    out = set()
+    if args.defaults:
+        for name, _default in zip(positional[-len(args.defaults):],
+                                  args.defaults):
+            out.add(name.arg)
+    for name, default in zip(args.kwonlyargs, args.kw_defaults):
+        if default is not None:
+            out.add(name.arg)
+    return out
+
+
+def _forwarding_wrappers(tree, bare_counts):
+    """Line numbers of functions that forward a DEFAULTED `test` onward.
+
+    See the wrapper paragraph above: the call inside one of these looks
+    correct to `_calls`, so the hole is only visible from the definition.
+    """
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        if node.name == "build_player":
+            continue
+        if "test" not in _defaulted_params(node):
+            continue
+        for inner in ast.walk(node):
+            if not isinstance(inner, ast.Call):
+                continue
+            func = inner.func
+            if isinstance(func, ast.Attribute):
+                named = func.attr == "build_player"
+            elif isinstance(func, ast.Name):
+                named = func.id == "build_player" and bare_counts
+            else:
+                named = False
+            if named and any(kw.arg == "test" for kw in inner.keywords):
+                found.append(node.lineno)
+                break
+    return found
 
 
 def _calls(tree, bare_counts):
@@ -92,7 +145,18 @@ def audit(root="tests"):
             rel = os.path.relpath(os.path.abspath(path), _REPO).replace(
                 os.sep, "/")
             own = _defines_its_own(tree)
-            for lineno, passes in _calls(tree, _imports_the_name(tree)):
+            bare = _imports_the_name(tree)
+            if not (own and rel.endswith("_harness.py")):
+                for lineno in _forwarding_wrappers(tree, bare):
+                    checked += 1
+                    site = "%s:%d" % (rel, lineno)
+                    if site in ACCEPTED:
+                        continue
+                    offenders.append(
+                        (site, "forwards a DEFAULTED `test` to build_player, "
+                               "so a caller of this wrapper can omit its case "
+                               "and nothing watches what mpv refused"))
+            for lineno, passes in _calls(tree, bare):
                 if own and rel.endswith("_harness.py"):
                     continue
                 checked += 1
