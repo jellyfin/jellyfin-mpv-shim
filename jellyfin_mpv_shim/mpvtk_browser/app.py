@@ -324,6 +324,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # here via on_change so Connect can read all three fields at once).
         self._login = {"server": "", "user": "", "pass": ""}
         self._login_error = None
+        #: Servers that answered a discovery broadcast, for the login form.
+        #: Declared here rather than only on the login path, because
+        #: `_render_login` reads it and a repaint can arrive before any
+        #: navigation has (docs/browser-shell.md).
+        self._discovered = []
         # Live text of the chrome search box (the renderer owns the widget; we
         # mirror it so the search *button* can read it).
         self._search_box = {"term": ""}

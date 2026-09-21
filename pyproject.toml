@@ -17,6 +17,11 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "python-mpv>=1.0.8",
+    # Server discovery on the login screen wants >=1.19.0
+    # (`jellyfin_apiclient_python.discovery`), and the floor deliberately does
+    # NOT move until that release is on PyPI: the import is guarded and the
+    # block is simply absent on an older one, so raising it here would break
+    # installs to gate one optional affordance.
     "jellyfin-apiclient-python>=1.18.0",
     # >=1.4.0 for MPV(discard_output=...); see mpv_options.build_mpv_options.
     "python-mpv-jsonipc>=1.4.0",
