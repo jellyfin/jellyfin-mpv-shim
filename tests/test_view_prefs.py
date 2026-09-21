@@ -49,6 +49,62 @@ class KeyTest(unittest.TestCase):
         self.assertEqual(view_prefs.keys_for(None, "movies"), [])
 
 
+class ResolveSortTest(unittest.TestCase):
+    """#758: the sort lived on the route and died with the navigation.
+
+    Web's key names, because the point of persisting it here is that the two
+    clients agree: `userSettings.js` writes `<key>-sortby` and
+    `<key>-sortorder`, and a save has to land on the key the read came from.
+    """
+
+    def test_an_untouched_library_stores_nothing(self):
+        got = view_prefs.resolve_sort({}, "lib1", "movies")
+
+        self.assertEqual({"sortby": (None, None),
+                          "sortorder": (None, None)}, got)
+
+    def test_webs_own_keys_are_read(self):
+        prefs = {"items-lib1-sortby": "DateCreated",
+                 "items-lib1-sortorder": "Descending"}
+
+        got = view_prefs.resolve_sort(prefs, "lib1", "movies")
+
+        self.assertEqual(("DateCreated", "items-lib1-sortby"), got["sortby"])
+        self.assertEqual(("Descending", "items-lib1-sortorder"),
+                         got["sortorder"])
+
+    def test_a_typed_key_wins_over_the_bare_one(self):
+        """The same precedence every other setting here has, and the reason
+        the resolver returns candidates rather than one key."""
+        prefs = {"items-lib1-sortby": "SortName",
+                 "items-lib1-Movie-sortby": "CommunityRating"}
+
+        got = view_prefs.resolve_sort(prefs, "lib1", "movies")
+
+        self.assertEqual(("CommunityRating", "items-lib1-Movie-sortby"),
+                         got["sortby"])
+
+    def test_the_two_halves_can_come_from_different_keys(self):
+        """Web writes them separately, so they can be stored separately --
+        and each is written back where it was found, not both to one key."""
+        prefs = {"items-lib1-Movie-sortby": "PlayCount",
+                 "items-lib1-sortorder": "Ascending"}
+
+        got = view_prefs.resolve_sort(prefs, "lib1", "movies")
+
+        self.assertEqual("items-lib1-Movie-sortby", got["sortby"][1])
+        self.assertEqual("items-lib1-sortorder", got["sortorder"][1])
+
+    def test_no_parent_means_nothing_stored(self):
+        """A person page or a search result has no key family, so it keeps
+        today's behaviour -- which is web's too."""
+        got = view_prefs.resolve_sort({"items-lib1-sortby": "PlayCount"},
+                                      None, "movies")
+
+        self.assertEqual({"sortby": (None, None),
+                          "sortorder": (None, None)}, got)
+
+
 class ResolveTest(unittest.TestCase):
     def test_an_untouched_library_is_auto(self):
         value, key = view_prefs.resolve_image_type({}, "PID", "movies")

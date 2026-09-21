@@ -114,6 +114,38 @@ not mean right-click is covered everywhere; see `_interact`.
 
 ## Things that are easy to get wrong
 
+**A module here asserts the property it is named for, or its docstring
+narrows to what is asserted.** Stated once, for all of them, because it was
+broken at three of six modules in one round and each fix restated the rule
+where it had already failed to transfer.
+
+The failure is specific and it is not laziness — it is the one assertion that
+was reachable being mistaken for the one that was meant:
+
+- `assertTrue(label)` where the claim is *which* label. A classifier
+  answering the same word for everything passes.
+- comparing two successes where the claim is that one parameter is inert.
+  Jellyfin answers an unrecognised name exactly as it answers its absence, so
+  a parameter that is honoured answers identically too.
+- observing a return value where the claim is about **what happened before
+  it**. "Refused before the password went out" is not visible in the refusal;
+  an implementation that logs in first and refuses afterwards returns the
+  same thing.
+
+The way out is the same each time. **Find the observable the claim is
+actually about** — it is often on the request rather than the result, or on a
+seam the test can wrap — and **make the assertion fail before trusting it**,
+by mutating the code under test. Where the subject is something nobody here
+can mutate, such as the server, falsify the *control* instead: feed it the
+input that should break it and watch the case go red. Three of the six
+modules whose assertions were made to fail this way were sound; the three
+that were not were all three of that round's findings.
+
+Where no observable exists, narrow the docstring rather than leaving a claim
+nothing checks. And where a fixture can go stale, **fail rather than skip** —
+a skipped module goes quiet without failing, and nobody learns the day it
+happened.
+
 **A whole suite that fails on timing, against a server that answers
 correctly: run the `Optimize database` scheduled task.** Until it has run,
 SQLite has no statistics, picks a bad plan, and **every query whose result

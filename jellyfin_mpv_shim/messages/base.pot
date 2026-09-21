@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-21 00:45-0400\n"
+"POT-Creation-Date: 2026-09-21 01:02-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5312,6 +5312,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "Shuffle"
+msgstr ""
+
+#. A one-line status message at the bottom of the library screen, after the
+#. server refused to remember which sort order the user picked. The sort
+#. itself has already been applied; only remembering it failed.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "That sort could not be saved."
 msgstr ""
 
 #. Label beside the dropdown that orders a library grid. A verb.

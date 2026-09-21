@@ -130,6 +130,41 @@ def resolve_bool(custom_prefs, parent_id, collection_type, setting):
     return default, None
 
 
+#: The two CustomPrefs suffixes jellyfin-web stores a sort under
+#: (`userSettings.js`: `<key>-sortby`, `<key>-sortorder`). Spelled here in
+#: web's own lower case, because the suffix IS the setting name everything
+#: else passes to :func:`keys_for` and to ``save_view_setting``.
+SORT_SETTINGS = ("sortby", "sortorder")
+
+
+def resolve_sort(custom_prefs, parent_id, collection_type):
+    """``{"sortby": (value, key), "sortorder": (value, key)}``, values None
+    where nothing is stored.
+
+    **Two keys, not one**, because web stores the field and the direction
+    separately and each has to be written back to the key it was read from --
+    the same read-it-back-to-where-you-found-it contract the rest of this
+    module keeps, so that changing a sort here changes it in the user's web
+    client rather than beside it.
+
+    The values are the SERVER's names (`SortName`, `Descending`), never a
+    menu index: `pages/grid.EXTRA_SORTS` appends per collection type, and its
+    own comment records that a stored index re-points every route already
+    carrying one. Persisting an index would make that trap outlive the
+    session and cross libraries.
+    """
+    prefs = custom_prefs or {}
+    out = {}
+    for setting in SORT_SETTINGS:
+        out[setting] = (None, None)
+        for key in keys_for(parent_id, collection_type, setting):
+            raw = str(prefs.get(key) or "").strip()
+            if raw:
+                out[setting] = (raw, key)
+                break
+    return out
+
+
 def resolve_view_type(custom_prefs, parent_id, collection_type):
     """``(value, key)`` for the grid-or-list choice."""
     prefs = custom_prefs or {}
