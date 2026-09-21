@@ -242,6 +242,36 @@ shallow-cloning. A `tag` is safe to name, because a tag does not move.
 `--share=network` instead of the pinned wheel set — convenient here and disqualifying
 there.
 
+### The bundled mpv cplugin needs naming *and* a symbol promotion
+
+The manifest has installed `mpv_inhibit_gnome.so` to `/app/etc/mpv/scripts` and
+granted `--talk-name=org.gnome.SessionManager` since 3.0.0, and the plugin had
+**never once loaded** — measured against the shipped build with a stand-in session
+manager on the bus: zero `Inhibit` calls during playback. Two independent causes,
+and neither fix works alone (`mpv_options.bundled_cplugins`):
+
+- **`--config-dir` suppresses the scan.** It switches off every other config
+  directory, the global one included, so nothing in `/app/etc/mpv/scripts` is ever
+  looked at. Probed: a script in `MPV_HOME/scripts` loads with `MPV_HOME` alone and
+  stops the moment `config_dir` is set. The fix is to name the file explicitly.
+- **python-mpv `dlopen`s libmpv `RTLD_LOCAL`.** A cplugin linked against it then
+  fails with `undefined symbol: mpv_observe_property`. `ctypes.CDLL("libmpv.so.2",
+  mode=ctypes.RTLD_GLOBAL)` fixes it, and promoting an already-loaded object works —
+  so there is no import-order rule to get wrong.
+
+With both, the plugin calls `Inhibit(app='mpv', reason='Playing video', flags=12)`
+on play and `Uninhibit` on stop; `flags=12` is `4|8`, suspend and idle.
+
+**No manifest change was needed**, and the blast radius is one plugin rather than
+every bundled one: with `config_dir` set nothing is scanned, so the promotion makes a
+cplugin *able* to load while the explicit path decides which one does. `/app` is not
+derivable from `sys.prefix` either, which is `/usr` inside the sandbox.
+
+This is an **X11** fix in practice: `stop-screensaver` is true under libmpv and
+mutter honours the Wayland idle-inhibit protocol, so the GNOME plugin only matters
+where that protocol is not in play. KDE and XFCE want `org.freedesktop.ScreenSaver`,
+which *is* a manifest change and is not done here.
+
 ## 4. Version spelling
 
 `jellyfin_mpv_shim/constants.py:CLIENT_VERSION` is the single source of truth for the
