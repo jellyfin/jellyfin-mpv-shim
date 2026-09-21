@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-19 18:03-0400\n"
+"POT-Creation-Date: 2026-09-21 00:45-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2805,6 +2805,33 @@ msgid ""
 "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target "
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
+msgstr ""
+
+#. Explanation shown under the "Language Filter" list of language codes
+#. (Settings > Playback > Subtitles & Languages). The "two switches below it"
+#. are the next two checkboxes on that screen. "und" is the ISO 639 code for
+#. an undetermined language and is not translated.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"This list does nothing on its own -- turn on one of the two switches below "
+"it. It changes which tracks the audio and subtitle menus offer you, not "
+"which one is picked automatically; the preset above is what does that. "
+"\"und\" means untagged, so removing it hides untagged tracks as well."
+msgstr ""
+
+#. Explanation shown under the track-preset dropdown (Settings > Playback >
+#. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
+#. that dropdown's own options and should read the same way they are
+#. translated there. "Signs and songs" subtitles translate on-screen text and
+#. song lyrics only, for a viewer listening to a dub.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"\"Subbed\" keeps the original audio and adds full subtitles in your "
+"language. \"Dubbed\" prefers audio in your language with signs and songs "
+"subtitles, and falls back to subbed where there is no dub. The \"shows "
+"only\" pair leaves films at whatever the server picks. The subbed presets "
+"assume the original audio is Japanese; if yours is not, choose Custom and "
+"write the rules yourself."
 msgstr ""
 
 #. Explanation shown under the "Language" setting (Settings > General >
