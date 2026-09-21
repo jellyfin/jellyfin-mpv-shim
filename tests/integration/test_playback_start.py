@@ -64,8 +64,8 @@ def make_video(**kw):
     return video
 
 
-def build(**player_kw):
-    pm = h.build_player(player_module, **player_kw)
+def build(test=None, **player_kw):
+    pm = h.build_player(player_module, test=test, **player_kw)
     pm.action_trigger = threading.Event()
     pm.timeline_trigger = threading.Event()
     return pm
@@ -81,7 +81,7 @@ def start_media(test, video=None, prepare=None, **settings_kw):
     Module-level rather than a method because both the ordering claims and
     the trickplay arm are about what one start did.
     """
-    pm = build()
+    pm = build(test=test)
     if prepare is not None:
         prepare(pm)
     timer = threading.Timer(
@@ -105,7 +105,7 @@ class LoadOutcomeTest(unittest.TestCase):
     behind for the user: the video, the retry, and the error notice."""
 
     def setUp(self):
-        self.pm = build()
+        self.pm = build(test=self)
         self.notices = []
         # The one collaborator that has to be watched rather than inferred:
         # a timeout and a refusal both stop playback and both stash a retry,
@@ -350,7 +350,7 @@ class TrickplayPumpTest(unittest.TestCase):
         pm.trickplay = _RecordingTrickplay()
 
     def _armed(self, core_idle=True, paused=False, position=0.0):
-        pm = build()
+        pm = build(test=self)
         pm.trickplay = _RecordingTrickplay()
         pm._trickplay_pending = True
         pm._player.core_idle = core_idle
@@ -429,7 +429,7 @@ class LoadObserverLeakTest(unittest.TestCase):
     """
 
     def test_repeated_starts_do_not_accumulate_property_observers(self):
-        pm = build()
+        pm = build(test=self)
         counts = []
         for index in range(4):
             timer = threading.Timer(
@@ -526,7 +526,7 @@ class WindowGeometryTest(unittest.TestCase):
     """
 
     def setUp(self):
-        self.pm = build()
+        self.pm = build(test=self)
         self.player = self.pm._player
 
     def test_the_geometry_is_rearmed_at_the_live_window_size(self):
@@ -589,7 +589,7 @@ class PlaystateSnapshotTest(unittest.TestCase):
     """
 
     def setUp(self):
-        self.pm = build()
+        self.pm = build(test=self)
         self.player = self.pm._player
         self.states = []
         self.pm.on_playstate = self.states.append

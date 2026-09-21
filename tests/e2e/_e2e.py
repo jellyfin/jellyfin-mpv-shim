@@ -959,6 +959,11 @@ class E2ETestCase(unittest.TestCase):
         # a cleanup as well as the tearDown below, because a setUp that raises
         # part way runs cleanups and not tearDown.
         self.addCleanup(self._safe_stop)
+        # Every case, nothing opting in: this suite drives a REAL mpv, so a
+        # property write it refuses is the version skew between the shim and
+        # the mpv on this box -- which is the one thing a fake cannot be asked
+        # about. See _harness.watch_refused_writes.
+        h.watch_refused_writes(self, self.pm)
 
     def _safe_stop(self):
         try:

@@ -135,6 +135,36 @@ The case histories, because the abstract rule is easy to nod at and hard to appl
 `tests/integration/test_playback_start.py` is what fixing `FakeMPV` unlocked: the
 three ways a start fails, which a real mpv cannot be asked to perform on cue.
 
+### The field `FakeMPV` did not model was failure
+
+It refused an unmodelled **read** and accepted an unmodelled **write** — and a
+refused write is the whole subject of `mpv_guard` (docs/mpv-backends.md section 1).
+So the fake takes an injectable absent-property set, empty by default, through
+`property_is_absent("osd-border-style")`: one set and one branch in a
+`__setattr__` that already existed, and the only way to exercise the version-skew
+path without owning fourteen mpv builds.
+
+Deliberately not the other way round. A fake that refused every name it does not
+model would enumerate mpv's property list inside this repository and then assert
+the shim agrees with it, which is the *self-agreeing* shape rather than a fact
+about mpv — and it would fail on the first legitimate name somebody adds.
+
+The assertion around it is `_harness.watch_refused_writes`, registered by
+`build_player` on the case that called it and by `E2ETestCase.setUp` for every e2e
+case, so **nothing opts in**. Integration has no shared base to put a cleanup in,
+and a base added now would cover only the files somebody remembered to re-parent;
+`build_player` is the one thing all 47 sites call, which is why its `test`
+parameter is enforced by `tools/audit_build_player_calls.py` (via
+`tests/test_no_unwatched_players.py`) rather than remembered.
+
+What it is worth differs by suite, and saying so is the point. Against a real mpv
+(e2e, and the three integration files that run the real `_init_mpv`) it is a
+version-skew detector, and different boxes and CI images carry different builds, so
+the population gets covered over runs rather than per run. Against `FakeMPV` it can
+only fire for a property a test declared absent — a hook that cannot otherwise
+fail, which is the shape section 7 is about. It is installed for what it stops
+somebody doing later: making the fake lenient again with nothing to notice.
+
 `tools/probe_hover_overlay_cost.py` is the number behind that last one: it drives a
 real mpv, sweeps the pointer across a grid, and prints the overlay traffic per move
 from the renderer's own `ov_adds` / `ov_bytes`. Measured on Windows (d3d11/WARP,

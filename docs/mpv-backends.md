@@ -43,6 +43,50 @@ external-backend e2e leg, not any unit test. **Pass `str(value)`.**
 `PlayerManager._observe` both discriminate on the **class**, not on a module
 flag, so they carry no global state and stay testable against a fake.
 
+### A refused property write becomes a Python attribute — on both
+
+Neither binding reports a property write mpv would not take. Both absorb it
+into `object.__setattr__`, and because `__getattr__` only runs when normal
+lookup fails, the attribute they leave behind answers every later read of that
+property **for the life of the process**. A later *successful* write does not
+clear it; only a restart does (measured, python-mpv 1.0.8).
+
+|  | swallows an absent property | swallows an unavailable one |
+|---|---|---|
+| libmpv (`python-mpv`) | yes — `AttributeError`, −8 | yes — `PropertyUnavailableError`, −10, which **subclasses** `AttributeError` |
+| external (`python-mpv-jsonipc`) | yes — the name is not in the `property-list` read at connect | no — the name *is* in that list, so the write goes out and errors |
+
+So it is not a libmpv-only defect; only the unavailable half is. A bad *value*
+raises `TypeError` on both and is not absorbed.
+
+The shipped instance is #761/#765: `_apply_resume_offset` wrote
+`playback_time`, playback ended between the duration gate and the write, and
+every later read reported the resume offset — so `_check_stalled_finish` saw a
+file parked at the end and advanced the queue on a timer, which reads as the
+server stalling. The second site is `set_osd_settings`, where a `try/except`
+written for exactly this absence cannot fire, and `get_osd_settings` then reads
+the shadow back as a border style the mpv does not have.
+
+**Which of the 84 property writes this reaches is a property of the user's mpv
+build**, not of this tree, so the live sites cannot be enumerated by reading
+them. `mpv_guard.guarded` is therefore one interception point: a subclass of
+whichever backend is live, overriding `__setattr__`, installed in
+`_construct_mpv` and armed once construction has returned — after the point,
+because both libraries assign their own bookkeeping through `__setattr__` on
+the way up and some of it genuinely is a plain Python attribute (python-mpv's
+`osd`/`raw`/`lazy`/`overlays`, jsonipc's `observer_id`, which it keeps
+assigning once per observer for the life of the object).
+
+**It never raises**, and that was ruled the other way first. 14 of the 84
+writes have further statements after them inside the same `try` — six after
+`keepaspect` at `player_window.py:522`, the picture-view/playback handoff that
+made every film play stretched — so a raise makes a test run take a path
+production never takes. What it does instead is record and log, and the
+*assertion* lives in the suite: `_harness.watch_refused_writes` is registered
+for every integration and e2e case without one opting in, so an mpv on this box
+that lacks a property the shim writes fails a test rather than quietly wearing
+a shadow.
+
 ### Which option an exception blames
 
 Both backends can name the offending option and neither does it the same way:
