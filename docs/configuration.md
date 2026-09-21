@@ -870,6 +870,17 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_unwatched` - Mark the video as unwatched and quit. (Default: `u`)
 - `kb_menu` - Open the configuration menu. (Default: `c`)
 - `kb_menu_esc` - Leave the menu. Exits fullscreen otherwise. (Default: `esc`)
+- `kb_nav_back` - "Go back" and nothing else: leave the menu, close a dialog,
+  or step back a page in the library — and **never** exit fullscreen.
+  (Default: `null`, unbound)
+  - `kb_menu_esc` keeps doing both jobs, because most people expect ESC to
+    leave fullscreen. Set this if you want the two separated, e.g.
+    `"kb_nav_back": "b"`.
+  - At the library's *root* there is nowhere to go back to, and this key then
+    does nothing at all. That is the difference: ESC exits fullscreen there.
+  - The mouse back button and a multimedia keyboard's Back key are unaffected;
+    they go through the in-window UI's own binding, which still behaves like
+    ESC at the library root.
 - `kb_menu_ok` - "ok" for the **legacy OSD menu only** — not the library and
   not the player controls, which use `ui_select_key`. (Default: `enter`)
 - `kb_menu_left` - "left" for menu. Seeks otherwise. (Default: `left`)

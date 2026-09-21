@@ -479,6 +479,11 @@ class Settings(SettingsBase):
     kb_unwatched: Optional[str] = "u"
     kb_menu: Optional[str] = "c"
     kb_menu_esc: Optional[str] = "esc"
+    # "Go back" with nothing else attached to it. Unbound by default on
+    # purpose: ESC keeps doing both jobs -- back, and then leaving fullscreen
+    # -- because a lot of users expect ESC to leave fullscreen, so this is for
+    # somebody who wants the two separated rather than a change for everyone.
+    kb_nav_back: Optional[str] = None
     kb_menu_ok: Optional[str] = "enter"
     kb_menu_left: Optional[str] = "left"
     kb_menu_right: Optional[str] = "right"

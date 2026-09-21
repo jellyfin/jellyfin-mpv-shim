@@ -148,6 +148,100 @@ class NavBackTest(unittest.TestCase):
                     "%s: BACK reached the browser over a picture" % label)
 
 
+class _RecordingPlayer:
+    """Just enough mpv to see whether fullscreen was written."""
+
+    def __init__(self):
+        self.commands = []
+
+    def command(self, *args):
+        self.commands.append(args)
+
+
+class NavBackKeyTest(unittest.TestCase):
+    """`kb_nav_back` is ESC's first two steps and deliberately not its third.
+
+    At the library ROOT there is nowhere to go back to, so `_nav_back`
+    declines, ESC's fallback fires and fullscreen goes off with it -- which is
+    #762, reported by somebody who had mapped a remote button to a literal
+    ESC. The new key is the same gesture without that tail.
+
+    Both halves are here because the ruling was "a new unbound key, ESC
+    unchanged": a test for the new handler alone would pass just as well
+    against a version that had quietly fixed ESC instead, which is the thing
+    that was decided against.
+    """
+
+    def _at_root(self):
+        pm = _pm(None)                       # browse, nothing playing
+        pm.mpvtk_active = True
+        # The root: the browser is asked and says there is nowhere to go.
+        pm.on_nav_back = lambda: False
+        pm.fullscreen_disable = False
+        pm.menu = types.SimpleNamespace(is_menu_shown=False,
+                                        actions=[],
+                                        menu_action=lambda a: None)
+        pm._player = _RecordingPlayer()
+        return pm
+
+    def test_the_new_key_does_not_leave_fullscreen(self):
+        pm = self._at_root()
+
+        pm._on_nav_back_key()
+
+        self.assertEqual([], pm._player.commands,
+                         "kb_nav_back wrote to the player at the library root")
+        self.assertFalse(pm.fullscreen_disable,
+                         "kb_nav_back latched fullscreen off")
+
+    def test_esc_still_does(self):
+        """The pin on "ESC unchanged". Plenty of users expect ESC to leave
+        fullscreen, which is why the answer was a second key rather than a
+        new meaning for this one."""
+        pm = self._at_root()
+
+        pm._on_menu_esc()
+
+        self.assertIn(("set", "fullscreen", "no"), pm._player.commands,
+                      "ESC stopped leaving fullscreen at the library root")
+        self.assertTrue(pm.fullscreen_disable)
+
+    def test_the_new_key_still_goes_back_where_there_is_somewhere_to_go(self):
+        """A key that never leaves fullscreen and also never navigates is not
+        the feature."""
+        pm = self._at_root()
+        calls = []
+        pm.on_nav_back = lambda: calls.append(1) or True
+
+        pm._on_nav_back_key()
+
+        self.assertEqual([1], calls, "the browser was not asked to go back")
+        self.assertEqual([], pm._player.commands)
+
+    def test_it_closes_the_menu_first(self):
+        """The same first step ESC has: with the OSD menu up, back means back
+        in the menu and nothing reaches the browser."""
+        pm = self._at_root()
+        actions = []
+        pm.menu = types.SimpleNamespace(is_menu_shown=True,
+                                        menu_action=actions.append)
+        nav = []
+        pm.on_nav_back = lambda: nav.append(1) or True
+
+        pm._on_nav_back_key()
+
+        self.assertEqual(["back"], actions)
+        self.assertEqual([], nav, "the browser was navigated as well")
+
+    def test_it_is_unbound_by_default(self):
+        """Which is what makes this free for everybody who did not ask: a
+        default of None binds nothing, and `_bind_key(None, ...)` is already
+        a supported no-op."""
+        from jellyfin_mpv_shim.conf import Settings
+
+        self.assertIsNone(Settings.kb_nav_back)
+
+
 class NavCommandTest(unittest.TestCase):
     def _command(self, video, action):
         calls = []
