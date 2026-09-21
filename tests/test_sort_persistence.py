@@ -167,6 +167,27 @@ class SortPersistenceTest(unittest.TestCase):
 
         self.assertEqual("CommunityRating", src.queries[-1]["sort_by"])
 
+    def test_a_stored_sort_resolving_to_index_zero_is_still_recorded(self):
+        """Index 0 is the one answer `_sort_index` can give that is falsy.
+
+        `_sort_index` returns None rather than 0 so that "nothing stored" is
+        distinguishable from "stored", and a caller testing the index for
+        truthiness throws that distinction away again. Name/Descending is the
+        case that reaches it from real use: web can store it, our menu couples
+        a direction to each field and has no entry for it, so the loose match
+        lands on entry 0 -- Name/Ascending.
+
+        The query is the same either way today, because the route's own
+        default is also entry 0. What the route carries is not: unrecorded,
+        the resolution re-runs on every reload, and the day `SORTS[0]` stops
+        being the route default it stops agreeing too.
+        """
+        b, _src = self._browser(view_settings={
+            "sortby": ("SortName", "items-lib1-sortby"),
+            "sortorder": ("Descending", "items-lib1-sortorder")})
+
+        self.assertEqual(0, b.route.get("_sort"))
+
 
 if __name__ == "__main__":
     unittest.main()
