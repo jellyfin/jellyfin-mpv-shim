@@ -89,8 +89,16 @@ def password_for(account, address):
     if account in tuple(facts.get("no_password") or NO_PASSWORD_ACCOUNTS):
         return ""
     if account == (facts.get("admin") or ADMIN_ACCOUNT):
-        return (os.environ.get(ADMIN_PASSWORD_ENV)
-                or facts.get("admin_password") or DEFAULT_PASSWORD)
+        # The published file FIRST. It is per server, and the whole reason
+        # `_published_path` is keyed by port is that this suite holds
+        # sessions to two servers with two different admin passwords -- so
+        # an environment variable that wins would hand the second server the
+        # first one's password and fail the login. The variable stays as the
+        # fallback for a machine that cannot see the file at all (the Windows
+        # VM reaches the server over the network), where one password is all
+        # there is and all that is needed.
+        return (facts.get("admin_password")
+                or os.environ.get(ADMIN_PASSWORD_ENV) or DEFAULT_PASSWORD)
     return facts.get("password") or DEFAULT_PASSWORD
 
 
@@ -106,11 +114,14 @@ def source_of(account, address):
     if account in tuple(facts.get("no_password") or NO_PASSWORD_ACCOUNTS):
         return "no password, which is what this account is for"
     if account == (facts.get("admin") or ADMIN_ACCOUNT):
-        if os.environ.get(ADMIN_PASSWORD_ENV):
-            return "$" + ADMIN_PASSWORD_ENV
+        # Same order as `password_for`: the published file first, the
+        # environment second. A diagnostic that names a source the resolver
+        # did not use sends the reader to the wrong password.
         if facts.get("admin_password"):
             return _published_path(
                 urllib.parse.urlsplit(address).port or 8096)
+        if os.environ.get(ADMIN_PASSWORD_ENV):
+            return "$" + ADMIN_PASSWORD_ENV
         return ("a GUESS at the historical default: this is the admin, whose "
                 "password is random per server state now, and there is no $%s "
                 "and no readable %s" % (
