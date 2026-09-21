@@ -1361,6 +1361,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_unwatched, self._on_unwatched_key)
         self._bind_key(settings.kb_menu, self._on_menu_key)
         self._bind_key(settings.kb_menu_esc, self._on_menu_esc)
+        self._bind_key(settings.kb_nav_back, self._on_nav_back_key)
         self._bind_key(settings.kb_menu_ok, self._on_menu_ok)
         # #16: `kb_menu_*` are MENU keys and are not bound here at all --
         # the OSD menu installs them itself for exactly as long as it is on
@@ -1564,6 +1565,31 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         else:
             self._player.command("set", "fullscreen", "no")
             self.fullscreen_disable = True
+
+    def _on_nav_back_key(self):
+        """"Back", and *only* back -- no fullscreen fallback.
+
+        `_on_menu_esc` above is ESC's handler and ends by leaving fullscreen,
+        which is the half this exists to be free of: at the library ROOT
+        `_nav_back` declines (it wants `mpvtk_active` and `_library_showing`),
+        so the fallback fires and ESC drops fullscreen as well. Users who map
+        a remote button to a literal ESC get that too (#762).
+
+        **ESC is deliberately unchanged.** Plenty of people expect ESC to
+        leave fullscreen, so the answer is a second, unbound key rather than a
+        new meaning for the one everybody has. `_bind_key(None, ...)` is
+        already a no-op, which is what makes "new and unbound" cost nothing.
+
+        Not reached by the mouse thumb buttons or a multimedia Back key, which
+        go through the renderer's `mpvtk_thumb` section and still carry the
+        fullscreen fallback at the library root. Re-routing those would change
+        what the thumb buttons do for people using them today, and the ruling
+        was about leaving ESC alone.
+        """
+        if self.menu.is_menu_shown:
+            self.menu.menu_action("back")
+        else:
+            self._nav_back()
 
     def _on_menu_ok(self):
         """ENTER: confirm the OSD menu, and nothing else.
