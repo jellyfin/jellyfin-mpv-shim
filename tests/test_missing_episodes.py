@@ -37,6 +37,7 @@ if __name__ == "__main__":
 import sys
 import unittest
 from types import SimpleNamespace as NS
+from unittest import mock
 
 sys.argv = [sys.argv[0]]
 
@@ -162,6 +163,116 @@ class TheTagChipFitsTest(unittest.TestCase):
         _tw, unclamped = self._chip("Unaired", None)
 
         self.assertEqual(unclamped, clamped)
+
+
+class TheTagChipFitsOnShadowedThemesTest(unittest.TestCase):
+    """The same claim on the other branch of `_paint_text_chip`.
+
+    Two things had to be wrong at once for this to ship, and the class above
+    could not see either. It draws on the FIRST tile, where a left overflow
+    lands at a negative x that PIL simply clips -- `getbbox()` never reports
+    it -- and it asserts only the right edge. And it runs on the default
+    theme, which takes the filled-chip branch. No test in the tree rendered
+    this function under `badge_shadow` at all.
+
+    Both of this round's defects were on the other side of that: the clamp
+    sat below the shadowed branch's early return so it never ran, and the
+    shadowed text was centred on `cx` while the function's own summary line
+    says the chip is pinned by its LEFT edge there. Neither fix alone is
+    enough -- a centred word that fits still starts half a word too far left,
+    and a left-pinned word with no clamp still runs off the right.
+
+    So: a MIDDLE tile, where both edges are real, and both edges asserted.
+    """
+
+    #: Tile 1 of 3. On tile 0 a left bleed is clipped at x=0 and invisible to
+    #: `getbbox()`, which is how 161px of it went unnoticed.
+    TILE = 1
+
+    def _chip(self, text, shadow=True):
+        from PIL import Image, ImageDraw
+
+        tile_w = strips._px(240)
+        img = Image.new("RGBA", (tile_w * 3, tile_w), (0, 0, 0, 0))
+        dr = ImageDraw.Draw(img)
+        x0 = tile_w * self.TILE
+        with mock.patch.object(strips.StripStore, "shadowed_badges",
+                               staticmethod(lambda: shadow)):
+            strips.StripStore._paint_text_chip(
+                img, dr, x0 + strips._px(17), strips._px(17), text, 14,
+                max_w=tile_w - strips._px(8))
+        return x0, tile_w, img.getbbox()
+
+    def _assert_inside(self, text):
+        x0, tile_w, box = self._chip(text)
+        self.assertIsNotNone(box, "nothing was drawn for %r" % text)
+        self.assertGreaterEqual(
+            box[0], x0,
+            "%r drew %dpx past the LEFT of its own tile, into the one before "
+            "it. Several tiles share one strip bitmap, so this is not "
+            "clipped -- it is painted over a neighbour."
+            % (text, x0 - box[0]))
+        self.assertLessEqual(
+            box[2], x0 + tile_w,
+            "%r drew %dpx past the RIGHT of its own tile"
+            % (text, box[2] - (x0 + tile_w)))
+
+    def test_the_english_words_fit(self):
+        """Not a guard against an unread translation: these bleed 15px left
+        at any length, so every Missing and Unaired tile on a shadowed theme
+        was painting over the tile beside it."""
+        for text in ("Missing", "Unaired"):
+            with self.subTest(text=text):
+                self._assert_inside(text)
+
+    def test_a_long_tag_fits(self):
+        text = "Nicht ausgestrahlt und noch nicht verfügbar"
+        _x0, tile_w, unclamped = self._chip(text)
+        self.assertGreater(
+            unclamped[2] - unclamped[0], 0,
+            "the sample drew nothing")
+
+        self._assert_inside(text)
+
+    def test_the_word_sits_where_the_filled_theme_puts_it(self):
+        """The other half of the left pin, and the reason it is the GLYPHS'
+        edge rather than the layer's.
+
+        A shadow pad is invisible halo. Pinning the padded layer would fit
+        the tile just as well and move the word a few px right of where the
+        same word sits on a filled theme -- visible as a twitch when the
+        theme changes, and not something a "does it fit" assertion can see.
+        """
+        self.assertEqual(self._ink_x("Missing", shadow=False),
+                         self._ink_x("Missing", shadow=True),
+                         "the word moved when the theme changed")
+
+    def _ink_x(self, text, shadow):
+        """The leftmost column holding white glyph ink.
+
+        White specifically: the filled branch draws a grey chip behind the
+        word and the shadowed one a dark halo around it, so a bounding box
+        measures a different thing on each branch and cannot be compared
+        across them. The glyphs are the only thing both branches draw.
+        """
+        from PIL import Image, ImageDraw
+
+        tile_w = strips._px(240)
+        img = Image.new("RGBA", (tile_w * 3, tile_w), (0, 0, 0, 0))
+        dr = ImageDraw.Draw(img)
+        x0 = tile_w * self.TILE
+        with mock.patch.object(strips.StripStore, "shadowed_badges",
+                               staticmethod(lambda: shadow)):
+            strips.StripStore._paint_text_chip(
+                img, dr, x0 + strips._px(17), strips._px(17), text, 14,
+                max_w=tile_w - strips._px(8))
+        px = img.load()
+        for x in range(img.width):
+            for y in range(img.height):
+                r, g, b, a = px[x, y]
+                if a > 200 and r > 230 and g > 230 and b > 230:
+                    return x - x0
+        self.fail("no glyph ink found for %r (shadow=%s)" % (text, shadow))
 
 
 class NoPlayAffordanceTest(unittest.TestCase):
