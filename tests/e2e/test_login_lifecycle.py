@@ -205,6 +205,129 @@ class AWrongAddressIsRefusedBeforeThePasswordTest(_SignedIn):
                 "JMS_E2E_SERVER_ALT is the same server by ServerId, so it "
                 "cannot stand in for the wrong one")
 
+    def _watch_logins(self):
+        """Record every `auth.login` reached on a client the manager builds.
+
+        Wrapping the factory and recording that it *ran* observes nothing --
+        it runs in both outcomes, since `reauthenticate` builds its client
+        before it has anything to decide with. What has to be recorded is
+        whether the returned client's `auth.login` was reached, which is the
+        call that puts the password on the wire.
+
+        The address and username only. A test that recorded the third
+        argument would be a test that writes the user's password into a
+        failure message.
+
+        `self.manager` is a process-wide singleton shared by every case in
+        this module (`_manager` says why), so the wrap comes off in a
+        cleanup. Without that every later case in the run would go through a
+        wrapped factory belonging to a class that had finished.
+        """
+        calls = []
+        original = self.manager.client_factory
+
+        def factory(*args, **kwargs):
+            client = original(*args, **kwargs)
+            inner = client.auth.login
+
+            def login(address, username, *rest, **kw):
+                calls.append((address, username))
+                return inner(address, username, *rest, **kw)
+
+            client.auth.login = login
+            return client
+
+        self.manager.client_factory = factory
+        self.addCleanup(setattr, self.manager, "client_factory", original)
+        return calls
+
+    def test_the_password_is_not_sent_to_the_wrong_server(self):
+        """The module docstring's claim, observed rather than inferred.
+
+        The two cases below watch the return value and the saved credential,
+        and an implementation that logged in and *then* returned
+        REAUTH_WRONG_SERVER satisfies both -- having handed the user's
+        password to a machine it was about to refuse. That is the whole
+        reason the guard sits where it does.
+        """
+        logins = self._watch_logins()
+
+        ok, reason = self.manager.reauthenticate(
+            self.uuid, ACCOUNT, self.password, address=self.alt)
+
+        self.assertFalse(ok)
+        self.assertEqual(
+            [], logins,
+            "the password went to %s before the address was refused"
+            % self.alt)
+
+    def test_the_watch_sees_a_login_that_should_happen(self):
+        """The control, and without it the case above is vacuous.
+
+        A wrap that silently stopped intercepting -- a renamed method, an
+        auth object rebuilt after the factory returns -- records nothing, and
+        "nothing was recorded" is exactly what the assertion above wants to
+        see. So the same wrap is pointed at the address that should succeed.
+        """
+        logins = self._watch_logins()
+
+        ok, reason = self.manager.reauthenticate(
+            self.uuid, ACCOUNT, self.password)
+
+        self.assertTrue(ok, "reauthenticate failed: %r" % (reason,))
+        self.assertEqual(
+            [(_e2e.SERVER, ACCOUNT)], logins,
+            "the wrap recorded %r for a sign-in that did happen, so it is "
+            "not watching what it claims to watch" % (logins,))
+
+    def test_quick_connect_refuses_before_the_code_is_shown(self):
+        """The same promise on the passwordless half, with a stronger reason.
+
+        Approving a Quick Connect request is something the user goes and does
+        in that server's own web session -- so a code shown for a server we
+        mean to refuse sends them somewhere else entirely, to do nothing.
+        `reauthenticate_with_quick_connect` says exactly that in its own
+        comment, and nothing asked it.
+
+        No factory wrap here: `code_callback` IS the act of showing the code,
+        so the test supplies it and asserts it was never called.
+        """
+        from jellyfin_mpv_shim.constants import REAUTH_WRONG_SERVER
+
+        shown = []
+
+        ok, reason = self.manager.reauthenticate_with_quick_connect(
+            self.uuid, code_callback=shown.append,
+            should_cancel=lambda: True, address=self.alt)
+
+        self.assertFalse(ok)
+        self.assertEqual(REAUTH_WRONG_SERVER, reason)
+        self.assertEqual(
+            [], shown,
+            "a Quick Connect code for %s was shown to the user before the "
+            "address was refused, sending them to approve it in a session "
+            "that has nothing to do with this login" % self.alt)
+
+    def test_quick_connect_does_show_a_code_for_the_right_server(self):
+        """The control on the case above, for the same reason as the one on
+        the password half: a flow that raised before ever reaching the
+        callback would satisfy it while showing nothing about the guard.
+
+        `should_cancel` returns True so the wait gives up at once -- there is
+        nobody to approve the request, and the assertion is about the code
+        having been offered, not about the sign-in completing.
+        """
+        shown = []
+
+        self.manager.reauthenticate_with_quick_connect(
+            self.uuid, code_callback=shown.append,
+            should_cancel=lambda: True)
+
+        self.assertTrue(
+            shown,
+            "no Quick Connect code was offered for the server the credential "
+            "actually names, so the refusal above proves nothing")
+
     def test_it_says_wrong_server_rather_than_blaming_the_password(self):
         """The reason exists so the form can say which half is wrong. A bare
         False would send the user to change a password that was correct."""
