@@ -2242,6 +2242,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         the intro on open with no input at all. The exemption already exists
         for seeks the UI makes; the resume simply never claimed it, and
         keeping the claim next to the seek is what stops the two drifting.
+
+        **`last_seek` is set BEFORE the seek, and moving it below is a
+        regression, not a tidy-up.** A review asked for exactly that, so that
+        a resume which never happened is not recorded as a position reached.
+        It is `None` for the first item of a session, and the stop report
+        reads `int((self.last_seek or 0) * 10000000)`
+        (`player_reporting.py:643`) -- so a failed resume would report
+        position ZERO and destroy the user's place. Reporting the position
+        they asked to return to is the lesser wrong, and surfacing the failure
+        to them is the real fix (todo 17).
+        Pinned by `TestAFailedResumeStillReportsItsPosition`.
         """
         self.last_seek = offset
         self._last_ui_seek_time = time.time()
