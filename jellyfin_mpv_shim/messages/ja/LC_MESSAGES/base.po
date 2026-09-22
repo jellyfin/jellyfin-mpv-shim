@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-01-09 10:54+0000\n"
-"Last-Translator: mf_Mii <myomyonn.exfat32@gmail.com>\n"
+"PO-Revision-Date: 2026-09-22 06:45+0000\n"
+"Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
 "Language: ja\n"
@@ -3026,7 +3026,7 @@ msgstr "オーディオ"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Books"
-msgstr ""
+msgstr "書籍"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Ungrouped"
