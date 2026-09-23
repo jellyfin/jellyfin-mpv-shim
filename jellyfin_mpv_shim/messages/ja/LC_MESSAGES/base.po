@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-22 06:45+0000\n"
-"Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
+"PO-Revision-Date: 2026-09-23 23:21+0000\n"
+"Last-Translator: Sakura <sakura2026@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
 "Language: ja\n"
@@ -21,23 +21,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "不明なフォーマット"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "全%(total)dページ中%(page)dページ"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "%dページ"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%%読書済"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -76,10 +76,12 @@ msgstr "現在の構成..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Jellyfinを開き、あなたのユーザーメニューからクイックコネクトを選択し、次の"
+"コードを入力してください:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "承認を待機中..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
@@ -98,16 +100,12 @@ msgid "Account already exists. Updating credentials."
 msgstr ""
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "サーバーを正常に追加しました。"
+msgstr "サーバーの資格情報が更新されました。"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "サーバーの追加が失敗しました。"
+msgstr "サーバーの資格情報の更新に失敗しました。"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -126,18 +124,12 @@ msgid "Add another server?"
 msgstr "新しいサーバーを追加しますか？"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "サーバーに接続できません。"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "このサーバーではクイックコネクトが有効になっていません。"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
@@ -544,21 +536,21 @@ msgstr "サムネイルのプレビューの有効化"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "ナイトモード (自動音量調整)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "ロック済み"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "読み込みに失敗しました。接続を確認してください。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "ページ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -569,25 +561,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "最初のページ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "サーバーを正常に追加しました。"
+msgstr "前のページ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "次のページ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "最後のページ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -605,7 +595,7 @@ msgstr "ライブTV"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "選択中: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -613,7 +603,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "読み込み中…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -1194,7 +1184,7 @@ msgstr "Dolby VisionのBLプリセットのフラグ"
 # seeded from jellyfin-web: MediaInfoDvBlSignalCompatibilityId
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV bl signal compatibility id"
-msgstr "Dolby VisionのBL信号互換性ID"
+msgstr "Dolby Vision Base Layer Signal Cross-Compatibility ID"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2460,10 +2450,8 @@ msgstr "SyncPlay"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Favorites"
-msgstr "サーバーを削除"
+msgstr "お気に入り"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -3018,9 +3006,8 @@ msgstr "自動"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Audiobooks"
-msgstr "オーディオ"
+msgstr "オーディオブック"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -3711,9 +3698,8 @@ msgstr "初日"
 
 # seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Repeat episodes"
-msgstr "すべてのエピソード"
+msgstr "エピソードをリピート"
 
 # seeded from jellyfin-web: Movies
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3787,21 +3773,18 @@ msgstr "トランスコードしない"
 
 # seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat all"
-msgstr "リピート"
+msgstr "すべてリピート"
 
 # seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat one"
-msgstr "リピート"
+msgstr "一つだけリピート"
 
 # seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat off"
-msgstr "リピート"
+msgstr "リピートしない"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, python-format
@@ -3836,32 +3819,22 @@ msgstr "ストップ"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from favorites"
-msgstr "サーバーを削除"
+msgstr "お気に入りから削除"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to favorites"
-msgstr "サーバーを削除"
+msgstr "お気に入りに追加"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Volume"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not open that link."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "このリンクを開けません。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
