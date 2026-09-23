@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-18 00:38+0000\n"
-"Last-Translator: alison2033 <a23030485@gmail.com>\n"
+"PO-Revision-Date: 2026-09-23 23:21+0000\n"
+"Last-Translator: Addison <addison.send@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr "Formato Desconhecido"
+msgstr "Formato desconhecido"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -161,41 +161,31 @@ msgstr "Avançar para pular anúncio"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Preview"
-msgstr "Pular Introduções"
+msgstr "Pular Introdução"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Introduções Puladas"
+msgstr "Introdução Pulada"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Tentar pular créditos"
+msgstr "Tentar Pular Introdução"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
 msgstr "Pular resumo"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Introduções Puladas"
+msgstr "Resumo Pulado"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Tentar pular créditos"
+msgstr "Tentar Pular Resumo"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Introdução pulada"
+msgstr "Pular Introdução"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -301,10 +291,8 @@ msgstr "Mudar o perfil de reprodução de vídeo"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "Sair e marcar como não visto"
+msgstr "Sair e Marcar como Não Visto"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -491,33 +479,25 @@ msgid "Discord Rich Presence"
 msgstr "Status de Atividade no Discord"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Introdução pulada"
+msgstr "Pular Introduções"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Introduções Puladas"
+msgstr "Pular Créditos"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Commercials"
 msgstr "Pular comerciais"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Introduções Puladas"
+msgstr "Pular Introduções"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Introduções Puladas"
+msgstr "Pular Resumos"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -863,9 +843,8 @@ msgstr "Web"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Video"
-msgstr "Vídeos"
+msgstr "Vídeo"
 
 # seeded from jellyfin-web: Audio
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1284,7 +1263,7 @@ msgstr "Entrada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "Janela"
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1293,13 +1272,11 @@ msgstr "Tema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Library Browser"
-msgstr ""
+msgstr "Navegador de Biblioteca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Recording"
 msgid "Reading"
-msgstr "Gravando"
+msgstr "Lendo"
 
 # seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1309,16 +1286,13 @@ msgid "Downloads"
 msgstr "Downloads"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Download Tuning"
-msgstr "Remover servidor"
+msgstr "Baixar Tuning"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Player Controls"
-msgstr "Número de Reproduções"
+msgstr "Controles do Reprodutor"
 
 # seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1329,17 +1303,15 @@ msgstr "Reprodução"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
-msgstr ""
+msgstr "Legendas & Idiomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
-msgstr ""
+msgstr "Aprimoramento de Vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Tentar pular créditos"
+msgstr "Pular Introdução / Créditos"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1348,19 +1320,18 @@ msgstr "Avançado"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "Desligado (decodificação por software)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "Somente acima de 1080p"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "On"
-msgstr ""
+msgstr "Ligado"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Copy (advanced)"
 msgstr "Avançado"
 
@@ -3308,9 +3279,8 @@ msgstr ""
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Cancel recording?"
-msgstr "Cancelar Gravação"
+msgstr "Cancelar gravação?"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3370,26 +3340,23 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s foi removido."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s could not be deleted."
-msgstr ""
+msgstr "%s não pode ser removido."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "Remover servidor"
+msgstr "Remover a cópia baixada de %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Download"
-msgstr "Remover servidor"
+msgstr "Remover Arquivo"
 
 # seeded from jellyfin-web: Delete
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3402,12 +3369,12 @@ msgstr "Excluir"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
-msgstr ""
+msgstr "O arquivo não pode ser removido."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "Abrindo %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -4336,10 +4303,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Usuário:"
+msgstr "Renomear"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
@@ -4352,10 +4317,9 @@ msgid "Delete Playlist"
 msgstr "Remover servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Remover servidor"
+msgstr "Remover a playlist %s?"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4462,10 +4426,9 @@ msgid "Type in the search box above."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Servidor:"
+msgstr "Resultados para \"%s\""
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4533,9 +4496,9 @@ msgstr "Em Exibição"
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "Recentes"
+msgstr "Recentemente Adicionados em {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4901,10 +4864,8 @@ msgid "No servers configured yet."
 msgstr "Configuração do servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Usuário:"
+msgstr "Usuários"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
@@ -4913,16 +4874,13 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Servidor:"
+msgstr "Servidores para %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Servidor:"
+msgstr "Servidores"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -4931,10 +4889,8 @@ msgid "Change PIN"
 msgstr "Trocar áudio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Servidor:"
+msgstr "Definir PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -5111,16 +5067,12 @@ msgid "Home"
 msgstr "Início"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Servidor:"
+msgstr "Servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Usuário:"
+msgstr "Usuário"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
