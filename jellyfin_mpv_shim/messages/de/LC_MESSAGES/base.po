@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-24 07:15+0000\n"
+"PO-Revision-Date: 2026-09-25 00:52+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -2273,12 +2273,20 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
+"Die gleiche Vorgehensweise gilt für Bibliothekseinstellungen zum Zeichnen "
+"von Logografiken. Standardmäßig deaktiviert: Film- oder Serienlogos sind "
+"üblicherweise weiß und auf dunklem Hintergrund gut lesbar; der "
+"Schatteneffekt entsteht erst durch die Druckplatte. Aktiviere die Funktion, "
+"wenn Deine Logos dunkel sind."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"Farbpalette, Leuchteffekt, Coverstil und Standard-Covergröße. Farben ändern "
+"sich sofort; Cover- und Überschriftengrößen werden nach einem Neustart "
+"wirksam."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2286,6 +2294,11 @@ msgid ""
 "gaps keeps the page margins the same on every screen size; centring keeps "
 "the covers evenly spaced and moves both margins instead."
 msgstr ""
+"Die Breite, die bei einer ganzen Anzahl von Covern nicht genutzt wird, wird "
+"dort angezeigt, wo sie endet. Durch Vergrößern der Abstände bleiben die "
+"Seitenränder auf jeder Bildschirmgröße gleich; durch Zentrieren bleiben die "
+"Cover gleichmäßig verteilt, während stattdessen beide Ränder verschoben "
+"werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2293,6 +2306,9 @@ msgid ""
 "client does. It shows more of the artwork without taking any more vertical "
 "space."
 msgstr ""
+"Den Hintergrund auf einer Detailseite bis an den Fensterrand ziehen, wie es "
+"im Webclient der Fall ist. Dadurch wird mehr vom Bildmaterial angezeigt, "
+"ohne zusätzlichen vertikalen Platz zu beanspruchen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
@@ -2652,22 +2668,22 @@ msgstr "Schätze…"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%(count)d items · %(size)s"
-msgstr ""
+msgstr "%(count)d Elemente · %(size)s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d already downloaded"
-msgstr ""
+msgstr "%d bereits heruntergeladen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
-msgstr ""
+msgstr "%d angeschaut"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "%d von unbekannter Größe"
 
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2677,19 +2693,19 @@ msgstr "Download"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
-msgstr ""
+msgstr "Angeschaute einschliessen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Nothing left to download."
-msgstr ""
+msgstr "Nichts übrig zum herunterladen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The download could not be started."
-msgstr ""
+msgstr "Der Download konnte nicht gestartet werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
-msgstr ""
+msgstr "Die Bibliothek bietet keine Filter an."
 
 # seeded from jellyfin-web: Filters
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2705,10 +2721,8 @@ msgid "%d items"
 msgstr "%d Einträge"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Clear All"
-msgstr "SyncPlay"
+msgstr "Alles löschen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
@@ -2720,10 +2734,8 @@ msgstr "Alle"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "Automatisch abspielen"
+msgstr "Auto"
 
 # seeded from jellyfin-web: Poster
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2735,10 +2747,8 @@ msgid "Thumbnail"
 msgstr "Vorschaubild"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Watched"
 msgid "Banner"
-msgstr "Angesehen"
+msgstr "Banner"
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
