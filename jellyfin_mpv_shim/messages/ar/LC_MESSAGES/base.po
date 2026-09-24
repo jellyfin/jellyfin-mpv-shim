@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-22 00:30+0000\n"
+"PO-Revision-Date: 2026-09-25 00:52+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -4796,10 +4796,8 @@ msgid "Servers"
 msgstr "خوادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Change Audio"
 msgid "Change PIN"
-msgstr "تغيير الصوت"
+msgstr "تغيير الرمز"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Set PIN"
@@ -4808,7 +4806,7 @@ msgstr "تحديد رمز"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Delete user %s and its saved logins?"
-msgstr ""
+msgstr "حذف المستخدم %s و سجلات دخوله المحفوظة؟"
 
 # seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -4817,19 +4815,19 @@ msgstr "حذف مستخدم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
-msgstr ""
+msgstr "نشط"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Connected"
-msgstr ""
+msgstr "متصل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Offline"
-msgstr ""
+msgstr "غير متصل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Auto-download"
-msgstr ""
+msgstr "تحميل تلقائي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -4882,23 +4880,17 @@ msgstr "تشغيل من البداية"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Play Count"
 msgid "Play next"
-msgstr "عداد التشغيل"
+msgstr "تشغيل التالي"
 
 # seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Unplayed"
 msgid "Mark unplayed"
-msgstr "غير مُشغّل"
+msgstr "غير كغير مشغل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark played"
-msgstr "أخرج وعينه كـ(لم يتم مشاهدته)"
+msgstr "عينه كمشغل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to playlist"
@@ -4927,7 +4919,7 @@ msgid "There is nothing here to queue."
 msgstr "لا يوجد شيء هنا للترصيف."
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgctxt "12-hour clock"
 msgid "{time} {period}"
 msgstr "{time} {period}"
