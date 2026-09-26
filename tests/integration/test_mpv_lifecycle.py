@@ -338,6 +338,50 @@ class ReopenAfterIdleQuitTest(unittest.TestCase):
         self.assertIsNot(pm._player, old_player, "mpv process was not re-created")
 
 
+class SocketCloseIsAShutdownTest(unittest.TestCase):
+    """B7. On the external backend mpv's "shutdown" event may never reach the
+    IPC client; the socket closing is the one certain signal, and the app
+    stayed up with no window when nothing listened for it. Built through the
+    real `_init_mpv` (via `_ensure_mpv`), which is where the listener is
+    attached. Both legs assert something: the libmpv handle must never be
+    handed a jsonipc-only attribute."""
+
+    def _fresh(self):
+        pm = h.build_player(player_module, test=self)
+        pm._mpv_alive = False
+        pm._idle_quit = True
+        pm._ensure_mpv()
+        return pm, pm._player
+
+    def test_the_socket_closing_ends_the_session_once(self):
+        pm, handle = self._fresh()
+        if not player_module.is_using_ext_mpv:
+            self.assertNotIn("quit_callback", vars(handle))
+            return
+        self.assertTrue(pm._mpv_alive)
+        pm.should_send_timeline = True
+        handle.close_socket()
+        self.assertTrue(getattr(handle, "_jms_shutdown_seen", False),
+                        "a closed socket did not reach the shutdown path")
+        self.assertFalse(pm.should_send_timeline)
+        # A second close (and the terminate the shutdown path starts, whose
+        # own EOF reaches quit_callback again) must not run it twice.
+        handle.close_socket()
+        if pm._terminate_thread is not None:
+            pm._terminate_thread.join(5)
+
+    def test_our_own_terminate_is_not_taken_for_a_close(self):
+        pm, handle = self._fresh()
+        if not player_module.is_using_ext_mpv:
+            self.assertNotIn("quit_callback", vars(handle))
+            return
+        pm.should_send_timeline = True
+        pm._terminate_mpv(handle)
+        self.assertFalse(getattr(handle, "_jms_shutdown_seen", False),
+                         "tearing mpv down ourselves ran the user-close path")
+        self.assertTrue(pm.should_send_timeline)
+
+
 class MenuSurvivesReopenTest(unittest.TestCase):
     """Regression: _init_mpv used to build a FRESH OSDMenu on every re-open,
     resetting is_menu_shown to False. The systray "Application Menu" opened the

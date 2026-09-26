@@ -14,6 +14,7 @@
 #     wildly different cost.
 # ---------------------------------------------------------------------------
 
+import functools
 import logging
 import os
 import re
@@ -582,6 +583,9 @@ def chapter_target(chapters, pos, direction):
 _UNSET = object()
 
 
+#: Guards the once-per-handle shutdown flag (_on_shutdown_event).
+_SHUTDOWN_SEEN_LOCK = threading.Lock()
+
 class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     """
     The underlying player is thread safe, however, locks are used in this
@@ -1103,6 +1107,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             log_handler=mpv_log_handler,
             loglevel=mpv_loglevel_for(settings.mpv_log_level),
         )
+        if is_using_ext_mpv:
+            # Read at call time by python-mpv-jsonipc, so bound to THIS
+            # handle: a replaced handle closing must not shut down its
+            # successor. See _on_ipc_closed.
+            self._player.quit_callback = functools.partial(
+                self._on_ipc_closed, self._player)
 
         # **Before anything else touches this handle.** The shader pack is the
         # reason: `OSDMenu` / `menu.update_player` below construct a
@@ -1851,6 +1861,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # or re-terminate.
         if self._idle_quit:
             return
+        # Once per handle: on the external backend this can arrive twice,
+        # as mpv's event and from the socket closing (_on_ipc_closed).
+        handle = self._player
+        with _SHUTDOWN_SEEN_LOCK:
+            if getattr(handle, "_jms_shutdown_seen", False):
+                return
+            try:
+                handle._jms_shutdown_seen = True
+            except Exception:
+                pass
         log.info("mpv shutdown event received")
         # Only flip the flag here; the real teardown does network I/O and
         # swaps self._video, neither of which belongs on MPV's event
@@ -4816,6 +4836,37 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # terminate is still running on the thread above. That is
         # on_mpv_terminated, fired at the end of _terminate_mpv.
         self._notify_mpv_gone()
+
+    def _on_ipc_closed(self, handle):
+        """The external mpv's socket closed. B7.
+
+        mpv's "shutdown" event is not guaranteed to reach an IPC client
+        before the socket goes: measured, a window closed after a download or
+        a playback delivered none, and nothing else told the app, which then
+        stayed up with no window (and, without a tray, unreachable). The
+        socket closing is the one certain signal, so it runs the handle's own
+        "shutdown" handlers -- the player's and the in-window browser's -- if
+        the event did not. Directly, not through the library's event thread:
+        that thread is stopped as soon as this returns.
+
+        Not for a handle we are tearing down ourselves, and not for one that
+        has already been replaced.
+        """
+        if handle is not self._player:
+            return
+        inter = getattr(handle, "mpv_inter", None)
+        if getattr(inter, "_stopping", False):
+            return
+        if getattr(handle, "_jms_shutdown_seen", False):
+            return
+        log.info("mpv's socket closed without a shutdown event; treating it "
+                 "as one")
+        for callback in list(getattr(handle, "event_bindings", {})
+                             .get("shutdown", ())):
+            try:
+                callback(None)
+            except Exception:
+                log.debug("a shutdown handler raised", exc_info=True)
 
     def _handle_mpv_disconnect(self):
         if not self._mpv_alive:

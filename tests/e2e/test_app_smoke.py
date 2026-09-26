@@ -35,17 +35,6 @@ import _relay  # noqa: E402
 FILM_NAME = "The Only Film In Its Set"
 
 
-def _known_bug_on(backend, bug):
-    """`expectedFailure` on one backend only, citing the bug. On the other
-    backend the test runs, and must pass, as normal."""
-    def wrap(fn):
-        if (os.environ.get("JMS_TEST_BACKEND") or "libmpv") == backend:
-            fn = unittest.expectedFailure(fn)
-            fn.__doc__ = (fn.__doc__ or "") + "\n\nKnown bug: %s" % bug
-        return fn
-    return wrap
-
-
 @_e2e.require_server
 class KeyboardSmokeTest(unittest.TestCase):
 
@@ -113,14 +102,11 @@ class KeyboardSmokeTest(unittest.TestCase):
                             for _m, p in self.relay.requests),
                         "no playback report went through the relay")
 
-    @_known_bug_on("jsonipc", "B7")
     def test_closing_the_window_after_playback_exits_the_app(self):
-        """What a person does when they are done. On the external-mpv
-        backend the app treats mpv's exit as a crash ("connection LOST; dead
-        until the next play") and stays up with no window -- B7, found by
-        this harness on its first run, on Linux and Windows. Expected to fail
-        there until it is fixed in slice S6; the day it passes, the manifest
-        check reports an unexpected success and this marker has to go."""
+        """What a person does when they are done. B7, found by this harness
+        on its first run on Linux and Windows: on the external-mpv backend
+        mpv's "shutdown" event can miss the IPC client, and the app stayed up
+        with no window. Fixed in player._on_ipc_closed."""
         self._login_search_and_play()
         self.assertEqual(0, self.app.quit(), "the app did not exit cleanly")
 
