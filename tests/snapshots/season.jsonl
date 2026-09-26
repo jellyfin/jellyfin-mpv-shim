@@ -24,15 +24,18 @@
 {"click": true, "fill": "00a4dc", "h": 40.0, "hover": {"fill": "1cb6e8"}, "id": "se-nextup", "radius": 6, "sc": "season", "t": "rect", "w": 98.4, "x": 16.0, "y": 128.0}
 {"c": "ffffff", "h": 18.0, "id": "r.1.0.1.0.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 8 5 l 8 19 l 19 12", "sc": "season", "t": "icon", "w": 18.0, "x": 26.0, "y": 139.0}
 {"align": "left", "c": "ffffff", "h": 20.0, "id": "r.1.0.1.0.1", "sc": "season", "size": 16, "t": "text", "text": "Next Up", "w": 53.4, "x": 51.0, "y": 138.0}
-{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "se-watched", "radius": 6, "sc": "season", "t": "rect", "w": 107.2, "x": 122.4, "y": 128.0}
-{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.1.1.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 9 16.17 l 4.83 12 l 3.41 13.41 l 9 19 l 21 7 l 19.59 5.59", "sc": "season", "t": "icon", "w": 18.0, "x": 132.4, "y": 139.0}
-{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.1.1.1", "sc": "season", "size": 16, "t": "text", "text": "Watched", "w": 62.2, "x": 157.4, "y": 138.0}
-{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "se-fav", "radius": 6, "sc": "season", "t": "rect", "w": 104.5, "x": 237.7, "y": 128.0}
-{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.1.2.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 12 21.35 l 10.55 20.03 b 5.4 15.36 2 12.28 2 8.5 b 2 5.42 4.42 3 7.5 3 b 9.24 3 10.91 3.81 12 5.09 b 13.09 3.81 14.76 3 16.5 3 b 19.58 3 22 5.42 22 8.5 b 22 12.28 18.6 15.36 13.45 20.04 l 12 21.35", "sc": "season", "t": "icon", "w": 18.0, "x": 247.7, "y": 139.0}
-{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.1.2.1", "sc": "season", "size": 16, "t": "text", "text": "Favorite", "w": 59.5, "x": 272.7, "y": 138.0}
-{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "se-download", "radius": 6, "sc": "season", "t": "rect", "w": 115.9, "x": 350.2, "y": 128.0}
-{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.1.3.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 19 9 l 15 9 l 15 3 l 9 3 l 9 9 l 5 9 l 12 16 l 19 9 m 5 18 l 5 20 l 19 20 l 19 18 l 5 18", "sc": "season", "t": "icon", "w": 18.0, "x": 360.2, "y": 139.0}
-{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.1.3.1", "sc": "season", "size": 16, "t": "text", "text": "Download", "w": 70.9, "x": 385.2, "y": 138.0}
+{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "se-shuffle", "radius": 6, "sc": "season", "t": "rect", "w": 95.9, "x": 122.4, "y": 128.0}
+{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.1.1.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 10.59 9.17 l 5.41 4 l 4 5.41 l 9.17 10.58 l 10.59 9.17 m 14.5 4 l 16.54 6.04 l 4 18.59 l 5.41 20 l 17.96 7.46 l 20 9.5 l 20 4 l 14.5 4 m 14.83 13.41 l 13.42 14.82 l 16.55 17.95 l 14.5 20 l 20 20 l 20 14.5 l 17.96 16.54 l 14.83 13.41", "sc": "season", "t": "icon", "w": 18.0, "x": 132.4, "y": 139.0}
+{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.1.1.1", "sc": "season", "size": 16, "t": "text", "text": "Shuffle", "w": 50.9, "x": 157.4, "y": 138.0}
+{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "se-watched", "radius": 6, "sc": "season", "t": "rect", "w": 107.2, "x": 226.3, "y": 128.0}
+{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.1.2.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 9 16.17 l 4.83 12 l 3.41 13.41 l 9 19 l 21 7 l 19.59 5.59", "sc": "season", "t": "icon", "w": 18.0, "x": 236.3, "y": 139.0}
+{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.1.2.1", "sc": "season", "size": 16, "t": "text", "text": "Watched", "w": 62.2, "x": 261.3, "y": 138.0}
+{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "se-fav", "radius": 6, "sc": "season", "t": "rect", "w": 104.5, "x": 341.6, "y": 128.0}
+{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.1.3.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 12 21.35 l 10.55 20.03 b 5.4 15.36 2 12.28 2 8.5 b 2 5.42 4.42 3 7.5 3 b 9.24 3 10.91 3.81 12 5.09 b 13.09 3.81 14.76 3 16.5 3 b 19.58 3 22 5.42 22 8.5 b 22 12.28 18.6 15.36 13.45 20.04 l 12 21.35", "sc": "season", "t": "icon", "w": 18.0, "x": 351.6, "y": 139.0}
+{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.1.3.1", "sc": "season", "size": 16, "t": "text", "text": "Favorite", "w": 59.5, "x": 376.6, "y": 138.0}
+{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "se-download", "radius": 6, "sc": "season", "t": "rect", "w": 115.9, "x": 454.1, "y": 128.0}
+{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.1.4.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 19 9 l 15 9 l 15 3 l 9 3 l 9 9 l 5 9 l 12 16 l 19 9 m 5 18 l 5 20 l 19 20 l 19 18 l 5 18", "sc": "season", "t": "icon", "w": 18.0, "x": 464.1, "y": 139.0}
+{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.1.4.1", "sc": "season", "size": 16, "t": "text", "text": "Download", "w": 70.9, "x": 489.1, "y": 138.0}
 {"align": "left", "c": "e8e8e8", "h": 22.5, "id": "r.1.0.2", "sc": "season", "size": 18, "t": "text", "text": "Where the show finds its feet.", "w": 1238.0, "x": 16.0, "y": 180.0}
 {"h": 179.0, "id": "ep-0#strip", "ih": 179, "iw": 1032, "sc": "season", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1032.0, "x": 16.0, "y": 214.5}
 {"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "ep-0-e0", "ring": true, "sc": "season", "t": "rect", "w": 240, "x": 16.0, "y": 214.5}
