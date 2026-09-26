@@ -239,6 +239,10 @@ PER_BACKEND = [
     # is mpv's own properties (`path`, `keepaspect`), and the two backends
     # disagree about property types often enough to be worth both legs.
     "tests.e2e.test_comic_reader",
+    # The shipped app as a subprocess, driven only by keys over IPC, with
+    # the network through a relay the test owns (tests/e2e/_app.py). The
+    # base every rebuilt e2e test moves onto; see the release-gate plan.
+    "tests.e2e.test_app_smoke",
 ]
 
 MODULES = CONTRACT + PER_BACKEND

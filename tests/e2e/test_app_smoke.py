@@ -1,0 +1,135 @@
+"""The shipped app, driven only through its keyboard, from login to a film
+played to the end.
+
+This is the harness proving itself (step 1 of the release-gate plan) on a
+path that already works, before any scenario leans on it to find a bug. It
+is also the one test in the tree where nothing between the keypress and the
+server is the test's: `run.py` as a subprocess, the real gateway, client
+manager, timeline reporter and profile store, a fresh config directory, and
+the network going through a relay the test owns.
+
+What it asserts is what a person would check by hand: the fields took what
+was typed, the library appeared, search found the film, the detail page
+offered Play, and after playing it to the end the SERVER says it was
+watched -- reported by the app's own timeline, which no other e2e test runs
+(they replace it and send the report themselves; see the e2e audit).
+
+`JMS_TEST_BACKEND` picks the backend, as for every other e2e leg, but here
+it is applied the way a user would choose it: through `conf.json`
+(`mpv_ext`), not by swapping a module.
+"""
+
+import os
+import sys
+import time
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _accounts  # noqa: E402
+import _app  # noqa: E402
+import _e2e  # noqa: E402
+import _relay  # noqa: E402
+
+#: 12 seconds, and referenced by no other test, so this module owns its
+#: watched state (docs/testing.md section 11).
+FILM_NAME = "The Only Film In Its Set"
+
+
+@_e2e.require_server
+class KeyboardSmokeTest(unittest.TestCase):
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        films = [i for i in self.session.find_all(item_type="Movie")
+                 if i.get("Name") == FILM_NAME]
+        self.assertEqual(1, len(films),
+                         "the QA library should hold exactly one %r"
+                         % FILM_NAME)
+        self.film = films[0]["Id"]
+        self.session.reset_played(self.film)
+        self.addCleanup(self.session.reset_played, self.film)
+
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        backend = os.environ.get("JMS_TEST_BACKEND") or "libmpv"
+        self.app = _app.App(backend=backend)
+        self.addCleanup(self.app.close)
+        self.app.start()
+
+    def _log_on_failure(self):
+        """The app's own log, because a failure here is inside a process
+        the test cannot see into."""
+        try:
+            with open(self.app.log_path, encoding="utf-8",
+                      errors="replace") as fh:
+                return "".join(fh.readlines()[-60:])
+        except OSError:
+            return "(no log.txt)"
+
+    def test_login_search_and_play_a_film_to_the_end(self):
+        app = self.app
+        try:
+            app.wait_for(lambda f: _app.shown(f, "login-server"), timeout=60,
+                         what="the login screen")
+            app.key("TAB")
+            app.type(self.relay.address)
+            app.key("TAB")
+            app.type("qa-user")
+            app.key("TAB")
+            # Keyed by the upstream server, not the relay's port: the
+            # published password file is per server.
+            app.type(_accounts.password_for("qa-user", _e2e.SERVER))
+            filled = app.wait_for(
+                lambda f: _app.fields(f).get("login-pass") == "*" * 8,
+                timeout=10, what="the password field")
+            self.assertEqual(self.relay.address,
+                             _app.fields(filled).get("login-server"))
+            self.assertEqual("qa-user", _app.fields(filled).get("login-user"))
+            app.key("ENTER")
+
+            app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                         what="the home screen")
+            for _ in range(20):
+                rev = app.frame()["rev"]
+                app.key("TAB")
+                if app.after(rev).get("nav") == "nav-search":
+                    break
+            app.type("Only Film")
+            app.key("ENTER")
+            tile = "search-Movies-" + self.film
+            app.wait_for(lambda f: _app.shown(f, tile), timeout=30,
+                         what="the film in the search results")
+            app.wait_for(lambda f: f.get("nav") == tile, timeout=10,
+                         what="keyboard focus on the result")
+            app.key("ENTER")
+            app.wait_for(lambda f: f.get("nav") == "btn-play", timeout=30,
+                         what="the detail page with Play focused")
+            app.key("ENTER")
+
+            # Played to the end by the app's own timeline, which reports it;
+            # nothing here sends a report.
+            played = _e2e.wait_for(
+                lambda: (self.session.user_data(self.film) or {})
+                .get("Played"), timeout=90)
+            self.assertTrue(played,
+                            "the film played to the end and the server does "
+                            "not say it was watched")
+            # And the app came back to the library rather than sitting on
+            # the last frame.
+            app.wait_for(lambda f: _app.shown(f, "btn-play"), timeout=60,
+                         what="the detail page after playback")
+        except (AssertionError, _app.AppError):
+            print("\n--- app log (last 60 lines) ---\n"
+                  + self._log_on_failure(), file=sys.stderr)
+            raise
+        self.assertEqual([], self.relay.redirects)
+        self.assertTrue(any(p.startswith("/Sessions/Playing")
+                            for _m, p in self.relay.requests),
+                        "no playback report went through the relay")
+        self.assertEqual(0, app.quit(), "the app did not exit cleanly")
+
+
+if __name__ == "__main__":
+    unittest.main()
