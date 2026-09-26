@@ -113,6 +113,42 @@ class Catalog:
             "SELECT * FROM pending_playstate WHERE item_id = ?", (item_id,))
 
 
+def add_profile(app, name):
+    """Settings > Servers & Users > Add User. Leaves Settings open."""
+    app.move_to("nav-settings")
+    app.key("ENTER")
+    app.wait_for(lambda f: _app.shown(f, "stab-servers"), timeout=15,
+                 what="the settings tabs")
+    app.move_to("stab-servers")
+    app.key("ENTER")
+    app.wait_for(lambda f: _app.shown(f, "su-newuser"), timeout=15,
+                 what="the users list")
+    app.move_to("su-newuser")
+    app.type(name)
+    app.move_to("su-adduser")
+    app.key("ENTER")
+
+
+def switch_profile(app, index):
+    """The top bar's profile drop-down, by keyboard: the entry at
+    ``index`` (0 = first). Settings' own user rows take no focus."""
+    app.move_to("nav-user")
+    app.key("ENTER")
+    app.wait_for(lambda f: f.get("dd_open") == "nav-user", timeout=10,
+                 what="the profile list open")
+    for _ in range(index):
+        app.key("DOWN")
+    app.key("ENTER")
+
+
+def credentials(config_dir):
+    """{profile name: [usernames it holds a saved login for]}."""
+    reg = users(config_dir) or {}
+    return {u.get("name"): [c.get("username") for c in
+                            (u.get("credentials") or [])]
+            for u in reg.get("users", [])}
+
+
 def users(config_dir):
     """The profile registry as the app wrote it."""
     try:
