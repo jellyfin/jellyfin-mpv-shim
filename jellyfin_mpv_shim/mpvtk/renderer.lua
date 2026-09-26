@@ -2124,6 +2124,58 @@ local function draw_scrollbar(ass, node)
     }
 end
 
+-- Test-only observer (tests/e2e/_app.py), inert unless JMS_TEST_OBSERVE is
+-- set. After each finished frame it publishes what that frame drew, with
+-- each node's on-screen rect and whether its viewport clips it, to
+-- user-data/mpvtk/observe, plus a ring of per-frame summaries so a test
+-- can tell "never blanked" from "blanked between two reads". Read-only:
+-- it runs after the frame is flushed and never requests one. It proves what
+-- was SUBMITTED; that the VO showed it is the pixel check's job. Hung off
+-- `state` because this file is at Lua's 200-local ceiling.
+if os.getenv('JMS_TEST_OBSERVE') then
+    state.obs_rev = 0
+    state.obs_hist = {}
+    state.observe = function()
+        state.obs_rev = state.obs_rev + 1
+        local nodes, shown = {}, 0
+        for _, node in ipairs(state.nodes or {}) do
+            if node.id or node.text then
+                local ex, ey = eff(node)
+                local vis = visible(node)
+                if vis then shown = shown + 1 end
+                nodes[#nodes + 1] = {
+                    id = node.id, t = node.t, text = node.text,
+                    x = ex, y = ey, w = node.w, h = node.h, vis = vis,
+                }
+            end
+        end
+        -- A text field's contents live in state.tb, not in the scene. A
+        -- masked field reports its length only.
+        local fields = {}
+        for id, tb in pairs(state.tb or {}) do
+            local n = state.byid[id]
+            fields[id] = (n and n.mask) and string.rep('*', #tb.text)
+                or tb.text
+        end
+        local occ = {}
+        for _, o in ipairs(occluders or {}) do
+            occ[#occ + 1] = { x1 = o.x1, y1 = o.y1, x2 = o.x2, y2 = o.y2 }
+        end
+        local hist = state.obs_hist
+        hist[#hist + 1] = { rev = state.obs_rev, shown = shown }
+        if #hist > 512 then table.remove(hist, 1) end
+        pcall(mp.set_property_native, 'user-data/mpvtk/observe', {
+            rev = state.obs_rev, w = state.w, h = state.h,
+            nav = state.nav, focus = state.focus, hover = state.hover_id,
+            dd_open = state.dd_open, menu_open = active_menu() ~= nil,
+            modal_open = modal_active(), active = state.active,
+            phud_mode = state.phud.mode, phud_shown = state.phud.shown,
+            occluders = occ, nodes = nodes, fields = fields,
+        })
+        pcall(mp.set_property_native, 'user-data/mpvtk/observe_hist', hist)
+    end
+end
+
 render = function()
     -- The wheel section follows what is on screen, so it is decided where
     -- the screen is. Above the early return: a blank scene is still an
@@ -2651,6 +2703,7 @@ render = function()
     osd.z = state.osd_z
     osd:update()
     flush_overlays()
+    if state.observe then state.observe() end
 end
 
 -- ------------------------------------------------------------ hit tests
