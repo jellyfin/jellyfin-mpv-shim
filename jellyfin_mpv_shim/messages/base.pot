@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-21 00:54-0400\n"
+"POT-Creation-Date: 2026-09-26 13:46-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5292,11 +5292,13 @@ msgstr ""
 msgid "Play All"
 msgstr ""
 
-#. Button above a library grid that queues every item in a random order and
-#. starts playing. An imperative verb.
+#. Button on a library grid, an album, a playlist, a series or a season that
+#. queues everything in it in a random order and starts playing. An imperative
+#. verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "Shuffle"
 msgstr ""

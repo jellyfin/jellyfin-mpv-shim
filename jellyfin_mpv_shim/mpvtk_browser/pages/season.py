@@ -159,6 +159,10 @@ class SeasonPage(Page):
                 "play_arrow", _("Next Up"), "se-nextup",
                 lambda: actions.play_next_up(route["series_id"], server),
                 primary=True))
+            acts.append(controls.action_btn(
+                "shuffle", _("Shuffle"), "se-shuffle",
+                lambda: actions.shuffle_season(
+                    route["series_id"], route["item_id"], server)))
         acts += detail_components.common_actions(
             actions, tiles,
             season_item or {"Id": route["item_id"], "Type": "Season"},
