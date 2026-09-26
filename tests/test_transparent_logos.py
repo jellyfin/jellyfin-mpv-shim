@@ -381,6 +381,21 @@ class TestTileCompositing(unittest.TestCase):
         self.assertGreater(imageutil._luma(img.getpixel((g.tile_w // 2, 6))),
                            200)
 
+    def test_a_rounded_card_clips_a_plated_logo_at_its_corners(self):
+        """#777's other half: a plated logo is contained too, and ink that
+        runs out to the logo's edge would square off the card's corners.
+        Drawn tile-sized with a solid band of ink along the top."""
+        g = TileGeom().physical()
+        logo = Image.new("RGBA", (g.tile_w, g.tile_h), (0, 0, 0, 0))
+        ImageDraw.Draw(logo).rectangle([0, 0, g.tile_w - 1, g.tile_h // 5],
+                                       fill=(0, 0, 0, 255))
+        imageutil.measure_transparency(logo)
+        img, g = self._painted(logo, rounded=True)
+        self.assertEqual(img.getpixel((1, 1))[3], 0)
+        self.assertEqual(img.getpixel((g.tile_w - 2, 1))[3], 0)
+        # The ink is still there away from the corners.
+        self.assertLess(imageutil._luma(img.getpixel((g.tile_w // 2, 4))), 20)
+
     def test_an_opaque_poster_is_unchanged(self):
         """Every non-logo tile in the app goes down this path."""
         img, g = self._painted(Image.new("RGB", (140, 210), (200, 40, 40)))
