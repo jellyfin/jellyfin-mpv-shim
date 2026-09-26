@@ -2926,7 +2926,12 @@ local function tb_key(name)
     elseif name == 'PASTE' then
         local clip = clip_get()
         if clip then
-            tb_insert(clip:gsub('[\r\n]', ' '))
+            -- A copied line ends in a newline (`pass show x | xsel -b`), and
+            -- as a trailing space it fails a login invisibly. Trim the ends;
+            -- a break inside is one space. Spaces are left alone -- a
+            -- password may start or end with one.
+            clip = clip:gsub('^[\r\n]+', ''):gsub('[\r\n]+$', '')
+            tb_insert((clip:gsub('[\r\n]+', ' ')))
         else
             clip_notify('paste')
         end
