@@ -21,9 +21,11 @@ a fresh reading of the same code.
 | `_expand`'s broad `except` | Correct for every type except Playlist, where failure and empty had to be told apart (`ExpandFailed`). The catch is not narrowed. |
 | `mpv_options.py` OrderedDict insertion order | Deliberate and documented. |
 | `HomePage._unique` renumbering a colliding row id | Deliberate, and kept even though renumbering is positional -- the one thing a row id may not be. It cannot fire: `_row_id` drops the key only when it is falsy, and a falsy key needs a library view with no `Id`. Measured on the QA server (12.0.0): 19 of 19 views carry one, and `BaseItemDto` marks 152 of its 155 properties `nullable: true` -- `Id` is one of the three it does not. Pinned by `test_the_backstop_is_unreachable_through_the_real_producers`. Deleting it does not remove the defect, it trades it for a worse one: duplicate node ids, where `layout()` warns and events "target only the last occurrence", so a row's tiles go unreachable. That is the bug `2fa969b3` was written to fix. |
+| ~~`downloads.server_id` being `NULL` on every row~~ | **GONE in 3.0.0** (CX8): the column is dropped, every path that spells the one store directory takes it from `sync.db.STORE_DIR`, and `_adopt_orphan` has no directory left to report. The entry stays because the reasoning is what a reader needs, and because its second half is still live. **The first half, now settled by the schema:** it was the on-disk path key, NULL on every row, and a value in it would have moved a download's directory out from under the row naming it — `_remove_files` then reporting success while deleting nothing. It was never the scoping key; that is `content_server_id`. Read as "the path key", this entry used to license building a per-server layout on it, which is the confusion `content_server_id` exists to end. **The second half, still live and the one copy of it:** the reason it was empty was a *typo*, not an absence. `_add_row` used to read it from `client.config.data["auth.server-id"]`, and the apiclient assigns `auth.server=id` instead (`connection_manager.py:398`, its initial commit 2020-01-15, verified in both the installed package and the local checkout) — so **fixing that typo upstream would have started filling this column**. The rule that outlives the column: *nothing may take a server identity out of `client.config.data`* — upstream owns how it spells those keys, and a typo there is a filter that silently stops applying. Every site that could is cited back to here rather than re-telling it (CR12). `tests/test_catalog_content_scope.py` pins both halves. See F43 and `docs/postmortems/20260912-recovery-plan.md`. |
 | `keysweep` caching the sweep | Deliberate: a re-sweep would see our own non-weak lines and drop every claim. |
 | A mixed-script line sitting ~3px low (`mpvtk/pilfont.py`) | The reserved metrics come from `script_of`'s face and the shared baseline from the tallest run. The alternative re-typesets every wrapped line in the symbol face and draws RTL as boxes. Every caller draws into a margin that absorbs it. |
 | The Latin ligature block on the CJK face (`pilfont.py`) | Measured — NotoSansCJK draws `ﬁ` fine. Moving it is churn against nothing. |
+| Three functions that answer "is this server local" | They answer three different questions and one of them is deliberately worse. `utils.is_local_domain` decides a *bitrate*, so it goes as far as hairpin NAT (a request to checkip.amazonaws.com) and an IPv6 fallback that asks the server; being wrong there costs a transcode. `utils.resolved_host_is_private` stops at the name lookup, because it only describes a connection and an outbound request to a third party to choose an icon is not a trade worth making. `components.is_local_server` resolves nothing at all: it runs on the render path, where a name lookup is a blocking call per frame, and it is the fallback for a server nothing has connected to — there being no connection to describe is exactly when there is nothing to resolve from. Collapsing them either puts DNS on the render path or puts an HTTP request on the connect path, per server. |
 | `log_utils.py` `ring_handler`'s non-forced formatter | With `sanitize_output: false` the in-app log viewer and "copy logs" hand out unredacted text while `log.txt` stays clean. That is the point: it is a hidden dev setting, and switching it off means you want live URLs for debugging. |
 
 ## 2. Traced and clean — do not re-audit
@@ -175,7 +177,13 @@ then dropped in the same commit).
 | F39 | `player_window.py` `clear_picture` / `set_browse_window` | The window jump moved from opening a comic to LEAVING one. Cosmetic, and the open half is fixed. |
 | F40 | `player_window.py` `_apply_browse_fullscreen` | Reported edge case: the browse preference does not leave fullscreen when `fullscreen` is unset. Not yet reproduced. |
 | F41 | `mpvtk_browser/app.py` `_yield` | **Diagnosed and closed.** A yield overtaken by `enter_browse` engaged the HUD over the library. Below, kept for the shape. |
-| F42 | `settings/general.py` `_sync_path` | The dict holding the typed download folder is created once and never cleared, so a value can outlive the field that produced it. Below. |
+| F42 | `settings/general.py` `_sync_path` | **Fixed.** The dict holding the typed download folder was created once and never cleared, so a value could outlive the field that produced it. Below, kept for the shape. |
+| F43 | `sync/db.py` `downloads.item_id` | The catalog holds **one row per item id across every server**, and item ids are not unique across servers. Holding both copies is not possible, and since 2026-09-12 that is the ratified intent rather than a cost. **The reason given for that on 2026-09-12 was wrong and is corrected below** — a shared id does not mean a shared file. Below. |
+| F44 | `users.py` `append_credentials_for` | Replaces the **first** entry carrying a uuid, so a list that already holds the duplicate the old bug produced keeps the second one. Strictly better than appending, incomplete as an invariant. |
+| F48 | `sync/manager.py` `_next_runnable`, `_download` | The download queue resolves its client from `downloads.server_uuid`, so a row queued through one address of a server cannot run through another. Needs the *winning* credential to change between sessions, which needs two addresses; below. |
+| F47 | `sync/manager.py` `apply_userdata_event` | The socket is advance-only while the sweep retreats, so an un-watch made on another device lands at the next sweep rather than on the message announcing it. Ratified; below. |
+| F46 | `sync/auto.py` `_is_watched` | The reaper deletes on `played_by_anyone`, an aggregate over **every** actor, while the sweep refreshes only the connected one — so a deferred account's stale `played = 1` can delete a file that account has not watched. Ratified, with [iw]'s reasoning; below. |
+| F45 | `sync/manager.py` `_destination_is_writable` | Infers ownership of `.jellyfin-mpv-shim-write-test` from its name alone, so a same-named file *with content* in the destination is treated as ours: ignored by the emptiness check, then truncated and deleted. Only this app writes that name and it only ever writes it empty, so the reachable case is our own leftover — but the check could compare size and does not. |
 
 ### F29 — sleeping NAS, not reproduced
 
@@ -431,27 +439,259 @@ reproduction attempts from message sequences failed, and a one-line
 `_caller()` on the refusal named it the first time it fired. Same reasoning
 as `player_window._caller` -- "which caller it was IS the finding".
 
-### F42 — the download-folder field remembers across pages
+### F42 — the download-folder field remembered across pages (fixed)
 
-`_sync_path` is created once (`app.py`, `self._sync_path = {}`) and written
-by the folder TextBox's `on_change`. **Nothing ever clears it.** So a path
-typed once, on any visit to Settings, stays in that dict for the life of the
-browser -- and the Move button reads it in preference to the value the field
-is showing.
+`_sync_path` was created once (`app.py`, `self._sync_path = {}`), written by
+the folder TextBox's `on_change`, and **never cleared**. So a path typed once,
+on any visit to Settings, stayed in that dict for the life of the browser --
+and the Move button reads it in preference to the value the field is showing,
+which is the risk map's "`_sync_path` is Tier 1 and destructive: Move
+relocates the store to a path the visible field is not showing".
 
-Found while fixing the reported "moving to an empty folder is a no-op",
-which was the sibling bug in the same expression (`get("path") or val`
-could not tell "not edited" from "cleared"). That half is fixed and tested;
-this half is not, and it is the risk map's
-"`_sync_path` is Tier 1 and destructive -- Move relocates the store to a
-path the visible field is not showing".
+Found while fixing the reported "moving to an empty folder is a no-op", the
+sibling bug in the same expression (`get("path") or val` could not tell "not
+edited" from "cleared").
 
-**Why it is not fixed here**: the obvious repair -- seed the dict from the
-current setting when the row is built -- runs on every repaint and would
-clobber an edit in progress, which is the standing footgun of this shell
-(docs/browser-shell.md: a screen is rebuilt from scratch on every repaint).
-The right fix is to clear it when the settings route is entered or retired,
-and that wants a look at `_retire_page` rather than a line in a builder.
+**Two repairs were wrong and are worth keeping.** Seeding the dict from the
+current setting when the row is built runs on every repaint and clobbers an
+edit in progress -- the standing footgun of this shell. Clearing it on a
+navigation misses the ways the field leaves the screen without one: a tab
+change, a search that filters the row out, a yield to playback.
 
-Reachable, but it needs a typed-then-abandoned edit followed by a Move on a
-later visit, and the destination is still confirmed for the empty case.
+The repair is `app.py:_drop_abandoned_sync_path`, which **mirrors the
+renderer's own prune**: the renderer drops a textbox's text when its node
+leaves the scene, so the dict is dropped on the first frame the row does not
+draw. Four events, one fact. The row stamps itself when it is drawn;
+`build()` consumes the stamp. `tests/test_shell_downloads.py:TestTheMoveButtonUsesThePathOnScreen`
+pins both directions -- an abandoned path is forgotten, and one typed in this
+visit still wins, including the empty field that means "the default folder".
+
+
+### F43 — one item id, one row, whichever server it came from
+
+**An item id is not unique across servers**, and this is measured rather than
+assumed: it is `MD5(.NET type name + path)` laid out as a .NET Guid, with no
+server, library or install component in it at all (confirmed on 12.0.0 for
+Movie, Episode, Season and Photo; the runnable derivation is in
+`docs/jellyfin-api-notes.md` 13b). Two installs both mounting their library at
+`/media` therefore hand out the same id **for different files**.
+
+`downloads.item_id` is the catalog-wide primary key, so only one of the two
+copies can ever be held.
+
+**A correction, because this entry carried the wrong reason for a day.** The
+2026-09-12 amendment said the single row is harmless because "the id is a path
+hash, so a collision is the same file". That does not follow, and §13b says so
+in the same breath as the derivation: the hash covers the .NET type and the
+path, **not the bytes**, so two installs with the same internal mount point
+produce one id for genuinely different files — the case §13b calls out as
+serving the wrong film, silently. The *outcome* stands; the reasoning under it
+does not, and it was an inference read into a one-sentence ruling rather than
+anything measured.
+
+**What was done.** The catalog answers "we have this" only for the server that
+owns the row — `is_complete` and the three `downloaded_*_ids` sets take a
+required scope, and `offline_video_factory` asks
+`ClientManager.uuid_for_client` who is playing. The reachable failure was
+"server B's film silently plays server A's file"; it is now "not downloaded,
+stream it". The rule, and the two places that are unscoped on purpose, are
+in `docs/offline-sync.md` 3b.
+
+**And the door is one door, which is the 2026-09-13 change.** `enqueue` no
+longer holds the refusal itself: both entrances -- it and `_adopt_orphan`,
+which rebuilds a row from a manifest and had no check at all -- go through
+`SyncManager.claim_identity`. A row that names another server is refused. A
+row that names *no* server is an orphan, and there the door weighs evidence
+rather than guessing: the requesting server's MediaSource byte count against
+the bytes actually on disk. Equal, the orphan is re-homed where it stands and
+nothing is re-downloaded; different, or absent on either side, it is reaped
+and fetched afresh, because the user asking for a download outranks a copy the
+catalog cannot account for ([iw]). **Missing evidence is not
+agreement** -- reading it as agreement is §13b's silent failure. Metadata
+cannot stand in for the bytes: `Type` is an input to the id, `Name` is
+editable, two encodes share a runtime, and a `Book` has neither.
+
+**What was not done, and why it is here rather than in a plan.** A composite
+key over `(server_uuid, item_id)` needs a destructive table rebuild — which at
+the time broke this catalog's additive-only migration contract, so a catalog the
+new build touches stops opening in an older one — plus a per-server on-disk
+layout, and a server threaded through ~37 call sites across four files
+including the delete path. Three further tables key on `item_id`. **[iw]**
+chose the scoped repair over it with that comparison in hand.
+**One leg of that comparison is gone as of 3.0.0**: the additive-only contract
+was cut deliberately (CX8) and the catalog already rebuilds three tables. The
+decision stands on the rest, which is most of it — but do not re-quote the
+migration contract as the reason.
+
+**Ratified 2026-09-12, and the limitation is now the intended behaviour rather
+than a cost.** [iw], asked directly whether a downloaded copy's identity
+includes the server:
+
+> there's really no benefit to having a duplicate entry from two servers that
+> is the same id. The id is a hash of the file path, so the only time they
+> could be the same would be if it is literally duplicate content.
+>
+> Maybe the answer is we deny duplicate id downloads ever being downloaded in
+> the first place. What is critical is we **must** record the server id along
+> with the download.
+
+So the composite key stays declined, for a better reason than its cost: a
+collision means the two servers are serving *the same file*, and holding it
+twice buys nothing. **The rule is deny-at-the-door**, which `enqueue` already
+does — and the obligation that comes with it is that `content_server_id` is
+recorded on every new row, and backfilled wherever a manifest can supply it.
+
+A row whose server cannot be established is **not** a deletion candidate. It is
+treated as "the server is gone or lost", which is the same state as an item
+downloaded locally whose server was later removed from the client: it still
+plays, its playstate is still recorded locally, and what is blocked is pulling
+playstate from a server and pushing it back. Deletion is allowed. The
+diagnosis, the rulings verbatim, and what they leave open are in
+`docs/offline-sync.md` section 1.
+
+So the standing limitation is: *a user with two installs sharing an internal
+mount path cannot download the same id from both* — deliberately, because
+those two would be the same file.
+
+### F46 — a deferred account's stale watched mark can delete a file
+
+Sync is lazy per account (`docs/offline-sync.md` section 3): the sweep asks
+as whichever account is
+connected for a server and refreshes only that actor's state. An account whose
+profile is inactive keeps whatever was last recorded for it, however old.
+
+The reaper does not read one actor. It reads `db.played_by_anyone`, because it
+deletes **one file on disk** and the question is whether this machine has
+finished with it — that asymmetry is F43's neighbour and is documented in
+`docs/offline-sync.md` 1.
+
+Put together: an account marked an episode watched a month ago, un-watched it
+on their phone yesterday, and has not signed in here since. Their `played = 1`
+is still what the reaper sees, and the file goes. Unrecoverable in the sense
+that matters — the bytes are re-downloadable, the user's evening is not.
+
+**[iw], verbatim:**
+
+> *"Accounts are only deferred when no one is actually switching to them in the
+> UI. The deferred aspect is only in place to reduce sync cost. I lean towards
+> accept the cost and log into do not fix."*
+
+Narrowing it needs the same thing F43's narrowing needs and does not have: a
+claim system recording who *requested* each download. Refreshing every account
+instead is what was declined — it is a second client per server, or
+per-credential auth, against a connection model that deliberately connects one
+chain per server.
+
+The nearby thing that *was* done: an account becoming active stops being
+deferred before anything is decided on its behalf — the switch reconnects, that
+is the sweep's trigger, and the reaper's hold is keyed on the account so the
+first reap after a switch waits for a sweep as the new person. It used to be an
+explicit `request_profile_sweep`; D1 deleted that and `docs/offline-sync.md`
+section 3 says why the reconnect is enough.
+
+**D1's scoping does not change this entry.** The narrowed pull asks about the
+signed-in account's rows plus any server it auto-downloads for — so a deferred
+account's own stale mark is refreshed exactly when it was before, which is when
+that account signs in. The wide sweep never refreshed it either: it filed under
+whoever was asking.
+
+### F47 — the socket does not retreat, and the sweep does
+
+Advance-only is lifted for the **pull**, so `_refresh_userdata` may clear an
+actor's `played` when the server says unwatched. `apply_userdata_event` — the websocket,
+which section 2 of `docs/offline-sync.md` calls *the mechanism* to the sweep's
+*fallback* — was not changed with it, so the two writers of one direction now answer
+differently and an un-watch made elsewhere waits for a sweep. The sweep's trigger is a
+server *appearing*, so "waits" can be a while.
+
+**[iw], asked directly:** *"This is honestly fine, a sweep still happens on client
+launch and if the user has the client open managing watch states for downloads they're
+probably doing it on this client."*
+
+Which is the two things that bound it. An un-watch made **here** does not go through
+this path at all: `record_watched` writes the catalog verbatim in both directions, in
+the same breath as telling the server. And an un-watch made **elsewhere** is corrected
+by the launch sweep, which every session has.
+
+The same `pending_playstate.played = 1` gate would transfer unchanged if this is ever
+revisited; it is one keyword argument. Not done, because C5 names the sweep and one
+writer changing direction is enough new behaviour for one branch.
+
+### F48 — a download queued through one door of a server cannot run through another
+
+> **CLOSED 2026-09-19, fixed rather than accepted.** Both halves are done and the entry is kept
+> for the reasoning, not as a live decision. The allow-list half is R14 (see below); the download
+> queue resolves its client from the **row** now, not from the login that enqueued it --
+> `SyncManager._client_for_row`: the account that asked (R19's `requested_*`), then any door to
+> the row's own content server, then the row's login for an orphan that has nothing else.
+> Asking by account is also what stops a file being fetched as somebody else, which resolving by
+> server alone would have allowed. `tests/test_sync_manager.py`'s
+> `TheDownloadQueueResolvesByTheRowTest` is the pin, including the negative control.
+>
+> **REOPENED 2026-09-15, pending a measurement. Do not cite this entry as settled.**
+> `docs/offline-sync-goals.md` files split-horizon as issue-worthy under G3's "would anyone file
+> it" test, and the two documents sat in contradiction with both current. [iw]: *"Split horizon
+> downloads likely deserve a measurement and a planning discussion. It's reasonable to say 'if
+> the server is not connected right now because a fast switchable user isn't keeping a connection
+> alive, let the download fall back to a queue.'"*
+>
+> **The enumeration below is also short by two.** It counts three sites in the download path.
+> `auto.allowed_servers()` and `_followed_series` key on the same login uuid, so on the trip the
+> consequence is not a late fetch: unattended fetching does not run **at all**, silently, and the
+> "no servers selected" warning cannot fire because the list is non-empty. R14 re-keys the
+> allow-list to the account, which removes that pair.
+>
+> **That half is closed, 2026-09-19.** The allow-list is `allowed_accounts()` now, keyed on
+> `(ServerId, UserId)` and stored per profile in `users.json`; `tests/test_auto_download.py`'s
+> `test_a_second_address_for_one_server_still_runs` is the pin, and the storage and its one-way
+> adoption are in `tests/test_auto_download_accounts.py`. `_followed_series` stays login-keyed
+> **deliberately** -- see C6 and its own docstring; it is not the same question.
+> The three sites in the *download queue* below are untouched and still open.
+> See R14 and R16 in `docs/rulings-log.md`.
+>
+> **Measured 2026-09-18, and the register is now elsewhere.** [iw]'s own `users.json` holds one
+> profile, two credentials and **two distinct `ServerId`s** — there is no split-horizon server on
+> this install, so this is not biting anybody here today.
+>
+> **CLOSED 2026-09-20, and this entry carries its own status again.** The download queue asks
+> `_client_for_actor` first now: `_next_runnable` and `_download` both resolve through
+> `_client_for_row`, which asks it. The case has a pin against a real server —
+> `tests/e2e/test_offline_sync.py`'s `OneServerAtTwoAddressesTest`,
+> `test_a_download_queued_at_home_runs_through_the_other_door`. Kept rather than deleted because
+> the three bullets below are why it stayed open as long as it did.
+
+
+*What follows is the diagnosis as it stood, kept because the three bullets at the end are why
+it was left open for as long as it was.*
+
+`enqueue` records the login that was browsing, and `_next_runnable` and `_download` both
+resolved their client with `get_client(row["server_uuid"])`. `clients._connect_all` groups
+a server's credentials by `Id` into one serial fallback chain and stops at the first
+address that answers, registering the client under **that** credential's uuid — so the
+other uuid has no client, and a row carrying it is skipped forever while a perfectly good
+route to the same server sits open.
+
+`SyncManager._client_for_actor` already solved exactly this for the *replay* queue, and
+its docstring names the case: *"A person can hold several logins for one server -- a LAN
+address and a remote one are two -- and the one they were signed in as offline is often
+not the one that comes back first."* The download queue never got it -- the repository's
+recurring shape, a right rule at N-1 of N sites, and it is **what the fix reuses**: the
+queue asks `_client_for_actor` first now. It was left open this long because of how narrow
+the reachable case turned out to be:
+
+- **Two accounts, one server, one address** does not reach it. Both credentials sort to
+  the same `connection_priority`, so the same one wins every session and the loser never
+  connects — never browses, never enqueues, strands nothing.
+- **Two local profiles** does not reach it either. A switch stops the old profile's
+  clients, so Alice's queued download waiting for Alice's profile is the correct
+  behaviour rather than a stall.
+- **Two addresses for one server** is the case: priority depends on which subnet the
+  machine is on, so the LAN credential wins at home and the remote one wins away, and a
+  download queued at home is stranded on the trip it was for.
+
+**[iw]:** *"generally users shouldn't be adding the same server twice except for
+multiple users"* — and multiple users is the first bullet, which does not reach it.
+
+Found by the QA-server observation batch 4 was gated on, so it is outside the coherence
+the round's enumeration: that list was closed before anything on this machine could
+exhibit the case.

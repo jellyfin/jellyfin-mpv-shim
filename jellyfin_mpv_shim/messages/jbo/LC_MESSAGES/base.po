@@ -4965,6 +4965,24 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "galraipau"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "galraipau"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "dziraipau"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "dziraipau"
+
 #~ msgid "Application Log"
 #~ msgstr "te plivei lo proga"
 

@@ -11,7 +11,7 @@ exactly like the ``c`` menu would.
 import logging
 
 from .conf import settings
-from .i18n import _
+from .i18n import _, _p
 from .menu import COLOR_LIST, SIZE_LIST, TRANSCODE_LEVELS, lang_filter
 from .utils import get_sub_display_title
 
@@ -201,7 +201,9 @@ class OscBridge:
         size = self._options(SIZE_LIST, settings.subtitle_size)
         color = self._options(COLOR_LIST, settings.subtitle_color)
         position = self._options(
-            [(_("Bottom"), "bottom"), (_("Top"), "top"), (_("Middle"), "middle")],
+            [(_p("subtitle position", "Bottom"), "bottom"),
+             (_p("subtitle position", "Top"), "top"),
+             (_("Middle"), "middle")],
             settings.subtitle_position,
         )
 

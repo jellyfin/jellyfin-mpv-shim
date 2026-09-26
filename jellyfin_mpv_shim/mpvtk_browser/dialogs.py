@@ -1097,7 +1097,7 @@ class DialogsMixin:
         truncated. `_message` had worked this out and used
         `chrome.paragraph`; this one had not.
         """
-        title = title or _("Confirm")
+        title = title or _p("dialog heading", "Confirm")
         yes = yes or _("OK")
 
         def build():

@@ -746,6 +746,10 @@ episodes are fetched for you automatically.
   config directory)
   - Change this from *Settings → Browse → Downloads*, not by hand: moving the store copies the files and
     updates the catalog. Editing the path directly leaves the existing downloads behind.
+  - The folder must be **empty**, and this app then owns it — it will move and remove things inside
+    it. An existing empty folder is fine, as is one on another drive.
+  - Pasting a path is safe: surrounding quotes and spaces are ignored, so Windows Explorer's
+    *Copy as path* can be pasted straight in.
 - `prefer_downloaded` - Play the downloaded copy when one exists, instead of streaming. Default: `true`
 - `work_offline` - Browse only downloaded media and don't contact the server. Default: `false`
   - Applied live when toggled, so you don't need to restart.
@@ -784,6 +788,15 @@ nothing is playing.
   - Only applies to automatic downloads. Ones you asked for are never counted against it and are
     never deleted automatically.
 - `auto_download_delete_watched` - Delete automatic downloads once watched. Default: `true`
+- `auto_download_keep_watched_hours` - Keep a watched automatic download for this many hours
+  before deleting it. `0` deletes it on the next check. Default: `24`
+  - The clock starts the first time this app sees the item as watched, so it works with the
+    server away. An episode you finished elsewhere while this machine was off starts its window
+    when the machine next looks.
+  - Retention only. If the storage budget above is reached, watched downloads are still removed
+    before their time is up — otherwise a full budget would stop automatic downloading for the
+    length of the window. *Reached*, not exceeded: a budget sitting exactly full evicts too,
+    because that is the state a capped folder settles into.
 - `auto_download_keep_days` - Delete unwatched automatic downloads after this many days. `0` means
   never expire on age alone. Default: `30`
 - `auto_download_interval_mins` - How often to check. Default: `60`
@@ -857,6 +870,17 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_unwatched` - Mark the video as unwatched and quit. (Default: `u`)
 - `kb_menu` - Open the configuration menu. (Default: `c`)
 - `kb_menu_esc` - Leave the menu. Exits fullscreen otherwise. (Default: `esc`)
+- `kb_nav_back` - "Go back" and nothing else: leave the menu, close a dialog,
+  or step back a page in the library — and **never** exit fullscreen.
+  (Default: `null`, unbound)
+  - `kb_menu_esc` keeps doing both jobs, because most people expect ESC to
+    leave fullscreen. Set this if you want the two separated, e.g.
+    `"kb_nav_back": "b"`.
+  - At the library's *root* there is nowhere to go back to, and this key then
+    does nothing at all. That is the difference: ESC exits fullscreen there.
+  - The mouse back button and a multimedia keyboard's Back key are unaffected;
+    they go through the in-window UI's own binding, which still behaves like
+    ESC at the library root.
 - `kb_menu_ok` - "ok" for the **legacy OSD menu only** — not the library and
   not the player controls, which use `ui_select_key`. (Default: `enter`)
 - `kb_menu_left` - "left" for menu. Seeks otherwise. (Default: `left`)
@@ -1092,6 +1116,7 @@ download and the full memory.
 
 - `thumbnail_enable` - Enable trickplay thumbnails: the preview frame shown while you drag the seek bar. Applies to every `osc_style`. Read when MPV is built, so changing it needs a restart. Turning it off also stops the images being downloaded, which is the reason to. (Default: `true`)
 - `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
+- `thumbnail_scale` - How much to enlarge the preview frames when they are drawn, for a HiDPI display where they would otherwise come out small. `null` follows the display: the interface scale in the Jellyfin UI, and the display's HiDPI factor under MPV's own controls or your own OSC. The frames are scaled as they are drawn rather than downloaded bigger, so this costs no memory; it needs MPV 0.38 or newer, and older versions draw them at their own size. Applies the next time previews load. (Default: `null`)
 - `trickplay_fast_mode` - Load every preview frame at once instead of a window around the seek position. Previews never wait, but a long video costs hundreds of megabytes of memory. Turning it *on* applies to the video you are watching, the next time you scrub outside the part already loaded; turning it *off* applies to the next video. (Default: `false`)
 
 `thumbnail_osc_builtin` was removed. It meant "use your own custom OSC but
@@ -1220,12 +1245,19 @@ Other miscellaneous configuration options. You probably won't have to change the
   - Please consider getting a certificate from Let's Encrypt instead of using this.
 - `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`
   - This only applies for when you first launch the program.
-- `lang_filter` - Limit track selection to desired languages. Default: `und,eng,jpn,mis,mul,zxx`
+- `lang_filter` - Limit which tracks the audio and subtitle **menus** offer.
+  Default: `und,eng,jpn,mis,mul,zxx`
+  - **Not automatic selection**, which the old wording here ("limit track
+    selection") implied: the only consumers are the OSD menu's two track lists
+    and the playback HUD's pickers (`menu.py`, `osc_bridge.py`). What gets
+    chosen for you is `language_preference` and `language_config` below.
   - Requires restart — the list is read once at startup. The two options below
       are read as they are used, so changing them alone takes effect at once;
       that is why this one is worth calling out, since otherwise the filter
       appears to start working with the *old* languages.
-  - Note that you need to turn on the options below for this to actually do something.
+  - **It does nothing until you turn on one of the two options below**, both
+    of which default to off. Editing the list alone is the commonest way to
+    conclude this setting is broken.
   - If you remove `und` from the list, it will ignore untagged items.
   - Languages are typically in [ISO 639-2/B](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes),
       but if you have strange files this may not be the case.
@@ -1236,6 +1268,21 @@ Other miscellaneous configuration options. You probably won't have to change the
 - `language_preference` - Track-selection preset, set from *Settings → Subtitles & Languages*. Default: `custom`
   - One of `unset`, `dubbed_shows`, `subbed_shows`, `dubbed_all`, `subbed_all`, `custom`.
   - Anything other than `custom` generates `language_config` rules for you; `custom` leaves whatever you wrote there alone. See [Language Config](#language-config-power-user).
+  - What each one writes, with `preferred_language` as *pref* (default `eng`)
+    and the original audio assumed to be `jpn` — `language_config.preset_rules`
+    is the source, and the rules are tried in order:
+    - Subbed (both variants): `jpn` audio + full *pref* subtitles; then `jpn`
+      audio + any *pref* subtitles; then *pref* audio.
+    - Dubbed (both variants): *pref* audio + signs/songs subtitles; then
+      *pref* audio; then `jpn` audio + full *pref* subtitles; then `jpn`
+      audio + any *pref* subtitles.
+    - Unset writes no rules at all, leaving selection to the server.
+    - The "shows only" variants add `"type": "series"` to every rule, so
+      **films are left entirely at the server's choice**.
+  - **The subbed presets assume the original audio is Japanese.** That is the
+    anime case the examples were written for, and nothing in the dropdown says
+    so. If your original audio is something else, pick `custom` and write the
+    rules by hand.
 - `preferred_language` - The language the presets above are built around. Default: `eng`
 - `screenshot_dir` - Sets where screenshots go.
   - Default is the desktop on Windows and unset (current directory) on other platforms.

@@ -5230,6 +5230,32 @@ msgstr "لاڕووی خستنەوەسەری ڤیدیۆ"
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "بنەڕەتی"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "بنەڕەتی"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "سەرەوە"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "سەرەوە"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "ژێرەوە"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "ژێرەوە"
+
 #, fuzzy
 #~| msgid "Could not copy the log."
 #~ msgid "Could not copy the text."

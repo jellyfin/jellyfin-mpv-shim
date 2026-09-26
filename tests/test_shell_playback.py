@@ -1771,8 +1771,15 @@ class TestServerSwitchLeavesSyncPlay(unittest.TestCase):
         self.ctl = FakeController()
         self.left = []
         self.ctl.sync_leave = lambda srv: self.left.append(srv)
-        self.b = MpvtkBrowser(app=None, source=FakeSource(),
-                              controller=self.ctl)
+        source = FakeSource()
+        # Both servers CONNECTED, which is what these tests are about.
+        # `FakeSource` holds one while `FakeController.list_servers` names
+        # two -- a real and meaningful state (a saved server that is down),
+        # and since the switcher started offering those, picking one means
+        # "reconnect it" and never reaches the SyncPlay handover at all.
+        source.servers = lambda: [{"uuid": "srv1", "name": "Home"},
+                                  {"uuid": "srv2", "name": "Remote"}]
+        self.b = MpvtkBrowser(app=None, source=source, controller=self.ctl)
         self.b._pool = _SyncPool()
         self.b.server = "srv1"
 

@@ -5553,6 +5553,32 @@ msgstr "پروفایل های پخش ویدئو"
 msgid "Select Shader Profile"
 msgstr "نمایه سایه بان را انتخاب کنید"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "تکرار"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "تکرار"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "بالا"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "بالا"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "پایین"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "پایین"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

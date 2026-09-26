@@ -87,6 +87,23 @@ def _aa_mask(w, h, radius=None):
     return mask
 
 
+def _card_mask(g, radius):
+    """The rounded card's silhouette as an ``L`` mask, tile-sized, for
+    clipping anything painted edge to edge into a rounded tile.
+
+    Hard-edged on purpose, unlike ``_aa_mask``: it has to match the card,
+    which ``_paint_poster`` draws with a plain ``rounded_rectangle``. Art
+    clipped softer than the card would leave the card's own edge showing
+    round the curve.
+    """
+    from PIL import Image as PILImage, ImageDraw
+
+    mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, g.tile_w - 1, g.tile_h - 1], radius=radius, fill=255)
+    return mask
+
+
 def _aa_fill(img, box, colour, radius=None):
     """Fill ``box`` (``[x0, y0, x1, y1]``, inclusive) in ``img`` with an
     antialiased ellipse or rounded rectangle.
@@ -347,6 +364,13 @@ class Tile:
     poster_tag: str = ""
     watched: bool = False
     badge: int = 0
+    #: A short word drawn as a chip in the tile's TOP-LEFT corner -- today
+    #: only "Missing"/"Unaired" for an episode the server has no file for
+    #: (components.virtual_episode_label). Top-left because that corner holds
+    #: the source count, which a virtual episode cannot have: no media
+    #: source, no count, so the slot is free by construction rather than by
+    #: a precedence rule that could be wrong later.
+    tag: str = ""
     progress: float = 0.0
     downloaded: bool = False
     #: Material icon name marking what kind of thing this is ("folder",
@@ -525,6 +549,10 @@ class StripStore:
             t.subtitle2,
             bool(t.watched),
             int(t.badge),
+            # In the key because it is drawn into the bitmap: an episode that
+            # gains a file stops being Missing, and without this the strip
+            # would keep the chip until something else invalidated it.
+            t.tag,
             round(float(t.progress), 2),
             bool(t.downloaded),
             t.kind,
@@ -763,7 +791,7 @@ class StripStore:
         return {"src": src, "iw": iw2, "ih": ih2, "lw": lw, "lh": lh, "v": v}
 
     def _paint_poster(self, img, dr, x, t, g):
-        from PIL import Image as PILImage, ImageDraw, ImageOps
+        from PIL import Image as PILImage, ImageOps
 
         # The card's SHAPE is theme-driven -- a "rounded" theme draws
         # jellyfin-web-style rounded corners, the stock look is a square
@@ -831,9 +859,7 @@ class StripStore:
                     # Clip the art to the same rounded rect so its corners
                     # match. A square card needs no clip: the art is now
                     # exactly the card, edge to edge.
-                    mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
-                    ImageDraw.Draw(mask).rounded_rectangle(
-                        [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
+                    mask = _card_mask(g, r)
                 if poster.mode == "RGBA":
                     # paste() takes ONE mask, so the art's own transparency has
                     # to be folded into the corner clip — passing the rounded
@@ -849,10 +875,26 @@ class StripStore:
                 if poster.size != (g.tile_w, g.tile_h):
                     poster = poster.copy()
                     poster.thumbnail((g.tile_w, g.tile_h), lanczos)
-                px = x + (g.tile_w - poster.width) // 2
+                px = (g.tile_w - poster.width) // 2
                 py = (g.tile_h - poster.height) // 2
-                img.paste(poster, (px, py),
-                          poster if poster.mode == "RGBA" else None)
+                if rounded:
+                    # Contained art can still reach the corners -- a Thumb
+                    # the tile's own shape, a logo inked to its edge -- and
+                    # pasted square it fills the pixels the silhouette leaves
+                    # transparent (#777). Lay it into a tile-sized layer and
+                    # clip that. No mask on the inner paste: it would square
+                    # the art's alpha.
+                    from PIL import ImageChops
+
+                    layer = PILImage.new("RGBA", (g.tile_w, g.tile_h),
+                                         (0, 0, 0, 0))
+                    layer.paste(poster.convert("RGBA"), (px, py))
+                    layer.putalpha(ImageChops.multiply(
+                        layer.getchannel("A"), _card_mask(g, r)))
+                    img.paste(layer, (x, 0), layer)
+                else:
+                    img.paste(poster, (x + px, py),
+                              poster if poster.mode == "RGBA" else None)
         elif t.glyph:
             # A muted centred mark so a blank tile still reads. Usually a
             # Material icon -- jellyfin-web's own per-type default, so a
@@ -910,7 +952,17 @@ class StripStore:
         inset = _px(17)
         # The top-LEFT corner: web's `.mediaSourceIndicator`, and it holds
         # this one thing.
-        if t.sources > 1:
+        if t.tag:
+            # The same shape as the unplayed-episode chip on the other
+            # corner, in the placeholder grey rather than the accent: the
+            # accent means "yours", and this says the opposite. Pinned by its
+            # LEFT edge, since nothing else shares this corner with it.
+            # The chip is pinned at `x + inset - _px(13)`, i.e. _px(4) in
+            # from the tile's left edge, so the same margin on the right is
+            # `g.tile_w - _px(8)` of width.
+            self._paint_text_chip(img, dr, x + inset, inset, t.tag,
+                                  g.badge_size, max_w=g.tile_w - _px(8))
+        elif t.sources > 1:
             # "This film is here twice" -- a 4K and a 1080p, a theatrical and
             # an extended. The count, not a symbol, because which of them
             # plays is a choice the detail page offers and the number is what
@@ -985,11 +1037,8 @@ class StripStore:
                      int((g.tile_w - 1) * frac), g.tile_h - 1],
                     fill=theme.rgb(fill, 255),
                 )
-                mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
-                ImageDraw.Draw(mask).rounded_rectangle(
-                    [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
                 layer.putalpha(ImageChops.multiply(layer.getchannel("A"),
-                                                   mask))
+                                                   _card_mask(g, r)))
                 img.paste(layer, (x, 0), layer)
             else:
                 dr.rectangle(
@@ -1197,6 +1246,59 @@ class StripStore:
         return max(_px(StripStore.BADGE_PITCH), bw + _px(4))
 
     @staticmethod
+    def _paint_text_chip(img, dr, cx, cy, text, size, max_w=None):
+        """A word on a filled chip, pinned by its LEFT edge at ``cx``.
+
+        The count chip's shape (`_paint_count_chip`) with two differences, and
+        both are about what the word means. The fill is the placeholder grey
+        rather than the accent, because the accent is what marks things that
+        are yours and this says the opposite; and it is pinned left, because
+        nothing shares this corner with it, so there is no stack to line up
+        against and no pitch to return.
+
+        Sized to its text for the same reason the count chip is: "Unaired" is
+        wider than "Missing", and a fixed width would clip one of them.
+
+        ``max_w`` is the widest chip this tile can hold. It is not optional in
+        spirit: several tiles share one strip bitmap, so an over-wide chip
+        draws over the tile to its RIGHT instead of being clipped -- the same
+        reason the captions ellipsize to ``g.tile_w``. English fits at every
+        size; a long translation of "Unaired" need not.
+        """
+        font = _font(size, bold=True)
+        if StripStore.shadowed_badges():
+            # The themes that draw badges as shadowed text rather than chips
+            # (see `shadowed_badges`) get the same treatment here: a filled
+            # chip on one of those looks like a control rather than a label.
+            #
+            # `max_w` goes THROUGH rather than being applied below: this
+            # branch returns above the clamp, so for a while it drew at full
+            # width on every shadowed theme. `_shadowed_text` is where the
+            # budget belongs anyway -- the drawn width is the glyphs plus a
+            # shadow pad taken off the cap height, which nothing out here can
+            # compute.
+            #
+            # `left`, not the default centring. This chip is pinned by its
+            # LEFT edge at `cx` (see the summary line), and `_shadowed_text`
+            # centres unless told otherwise -- so on a shadowed theme the word
+            # grew out of its own middle and walked off the left of the tile,
+            # into the one before it. `cx - _px(6)` is where the filled branch
+            # below puts the same glyphs: its chip starts at `cx - _px(13)`
+            # and adds `_px(7)` of padding before the text.
+            StripStore._shadowed_text(img, text, font, cx, cy,
+                                      left=cx - _px(6), max_w=max_w)
+            return
+        if max_w is not None:
+            text = StripStore._ellipsize(dr, text, font, max_w - _px(14))
+        bw = int(dr.textlength(text, font=font)) + _px(14)
+        if max_w is not None:
+            bw = min(bw, max_w)
+        _aa_fill(img, [cx - _px(13), _px(5), cx - _px(13) + bw, _px(25)],
+                 theme.rgb(theme.PLACEHOLDER_BG, 255), radius=_px(6))
+        dr.text((cx - _px(13) + bw / 2, _px(15)), text, font=font,
+                anchor="mm", fill=(255, 255, 255))
+
+    @staticmethod
     def _paint_count_badge(img, dr, cx, cy, text, size):
         """A number in white on a filled accent disc, centred on (cx, cy).
 
@@ -1218,18 +1320,41 @@ class StripStore:
                 fill=(255, 255, 255))
 
     @staticmethod
-    def _shadowed_text(img, text, font, cx, cy, right=None):
+    def _shadowed_text(img, text, font, cx, cy, right=None, left=None,
+                       max_w=None):
         """White text with a drop shadow, no chip behind it.
 
-        Centred on (cx, cy), or pinned by its RIGHT edge when ``right`` is
-        given -- which is what the episode count needs, for the reason
-        ``_paint_decorations`` gives: that edge is the one lined up with the
-        badge stack, and a wide chip growing from its middle walks off the
-        corner of the card.
+        Centred on (cx, cy), or pinned by one edge:
+
+        * ``right`` pins the **layer's** right edge -- glyphs plus the shadow
+          pad. That is what the episode count needs, for the reason
+          ``_paint_decorations`` gives: that edge is the one lined up with the
+          badge stack, and a wide chip growing from its middle walks off the
+          corner of the card.
+        * ``left`` pins the **glyphs'** left edge, and the asymmetry with
+          ``right`` is deliberate rather than an oversight. The one caller
+          lines this word up with where the same word sits on a *filled*
+          theme, and the pad is invisible halo -- including it would shift the
+          text right by a few px when the theme changed. ``right``'s callers
+          are lining up against a stack of shadowed marks, where the layer
+          edge is the one that matches.
+
+        ``max_w`` ellipsizes to fit, and the budget is ``max_w`` **minus the
+        pad on both sides**, because the pad is drawn width. Neither
+        ``max_w`` nor ``max_w`` less the filled chip's padding is right: they
+        happen to coincide near 14px and diverge at other sizes, so a wrong
+        choice here passes at the one size a test is written at. It lives
+        here rather than in the caller because the pad comes off the cap
+        height of the rendered glyphs, which the caller cannot compute.
         """
         from PIL import Image as PILImage, ImageDraw
 
         probe = ImageDraw.Draw(PILImage.new("RGBA", (1, 1)))
+        if max_w is not None:
+            box = probe.textbbox((0, 0), text, font=font, anchor="lt")
+            text = StripStore._ellipsize(
+                probe, text, font,
+                max_w - 2 * StripStore.shadow_pad(max(1, box[3] - box[1])))
         box = probe.textbbox((0, 0), text, font=font, anchor="lt")
         tw, th = max(1, box[2] - box[0]), max(1, box[3] - box[1])
         # Off the cap HEIGHT, so every count -- "2", "12", "128" -- carries
@@ -1244,6 +1369,11 @@ class StripStore:
                                    fill=(255, 255, 255, 255))
         if right is not None:
             cx = right - layer.width // 2
+        elif left is not None:
+            # `+ pad`, which is what makes this the GLYPHS' left edge rather
+            # than the layer's -- see the docstring for why the two pins are
+            # not symmetric.
+            cx = left + layer.width // 2 - pad
         StripStore._shadowed(img, layer, th, cx, cy)
         # The drawn width, so a caller pinning by `right` can tell the badge
         # beside it how far to move. There is no other way to know: the

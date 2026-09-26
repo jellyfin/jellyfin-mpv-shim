@@ -5494,6 +5494,50 @@ msgstr "Profils de lecture vidéo"
 msgid "Select Shader Profile"
 msgstr "Sélectionner le profil du nuanceur"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Par défaut"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Par défaut"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Répéter"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Répéter"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Confirmer"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Confirmer"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Haut"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Haut"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Bas"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Bas"
+
 #, fuzzy
 #~| msgid "Quit and Mark Unwatched"
 #~ msgid "Mark Unwatched"

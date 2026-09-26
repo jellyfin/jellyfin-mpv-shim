@@ -5579,6 +5579,32 @@ msgstr "Bideo Erreprodukzio Profilak"
 msgid "Select Shader Profile"
 msgstr "Itzal-Profilak Aukeratu"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Errepikatu"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Errepikatu"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Goian"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Goian"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Azpian"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Azpian"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

@@ -5466,6 +5466,14 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Repetir"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Repetir"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

@@ -184,7 +184,7 @@ def stream_attributes(stream, source=None):
     add("NAL", stream.get("NalLengthSize"))
     if kind in ("Subtitle", "Audio"):
         # Only the true ones; see the docstring.
-        for flag, label in (("IsDefault", _("Default")),
+        for flag, label in (("IsDefault", _p("media stream flag", "Default")),
                             ("IsForced", _("Forced")),
                             ("IsExternal", _("External"))):
             if stream.get(flag):

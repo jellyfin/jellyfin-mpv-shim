@@ -37,8 +37,8 @@ class OwnedStateTest(unittest.TestCase):
         if findings:
             lines = []
             for entry, strays in findings:
-                lines.append("%s: self.%s reached in %s"
-                             % (entry.module, entry.attr,
+                lines.append("%s (%s) reached in %s"
+                             % (entry.state, entry.scope,
                                 ", ".join(sorted(strays))))
                 lines.append("    " + entry.why)
             self.fail("\n".join(lines) +
@@ -50,23 +50,23 @@ class OwnedStateTest(unittest.TestCase):
         """The guard on the guard. A renamed attribute finds nothing
         anywhere, reports a clean tree, and checks nothing ever again."""
         for entry in audit.OWNED:
-            with self.subTest("%s.%s" % (entry.module, entry.attr)):
+            with self.subTest("%s in %s" % (entry.state, entry.scope)):
                 sites = audit._sites(entry)
                 self.assertTrue(
                     sites,
-                    "self.%s is not touched anywhere in %s any more — it was "
+                    "%s is not touched anywhere in %s any more — it was "
                     "renamed or removed, and this entry has been checking "
-                    "nothing" % (entry.attr, entry.module))
+                    "nothing" % (entry.state, entry.scope))
                 phantom = sorted(entry.owners - set(sites))
                 self.assertFalse(
                     phantom,
-                    "declared owners of self.%s that do not touch it: %r. An "
+                    "declared owners of %s that do not touch it: %r. An "
                     "owner is a record of a site that exists, not permission "
                     "for one that might: left standing, it pre-authorises "
                     "exactly the second owner this audit is for, and the "
                     "audit stays silent because the name is already listed. "
                     "Real sites: %r"
-                    % (entry.attr, phantom, sorted(sites)))
+                    % (entry.state, phantom, sorted(sites)))
 
 
 if __name__ == "__main__":

@@ -196,9 +196,18 @@ def parse(text: str) -> Dict[str, str]:
             continue
 
         if line.startswith("#"):
-            # An obsolete entry is commented out wholesale. Its lines never
-            # reach the parser below, so skipping them here is enough.
+            # An obsolete entry is commented out wholesale, so its lines
+            # never reach the parser below. Skipping them is not quite
+            # enough: msgmerge writes the "#, fuzzy" of a fuzzy obsolete
+            # entry on the line ABOVE the "#~" run, and that flag was
+            # already on the entry being built. Nothing flushes during the
+            # run -- there is no msgstr to flush -- so the flag survived to
+            # the next LIVE entry and dropped it from the .mo without a
+            # word. Latent only because obsolete entries sit at the end of
+            # a catalogue and normally have nothing after them.
             if line.startswith("#~"):
+                entry = _Entry()
+                section = None
                 continue
             if line.startswith("#,"):
                 flags = [f.strip() for f in line[2:].split(",")]

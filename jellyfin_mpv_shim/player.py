@@ -32,6 +32,7 @@ import threading
 from .utils import (same_origin, synchronous, Timer, get_resource,
                     item_is_audio)
 from .media import segment_labels
+from . import mpv_guard
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
 from .player_audio import AudioMixin
@@ -576,6 +577,11 @@ def chapter_target(chapters, pos, direction):
     return None
 
 
+#: "we have never written this" -- distinct from every value mpv can hold,
+#: including None, which some properties legitimately are.
+_UNSET = object()
+
+
 class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     """
     The underlying player is thread safe, however, locks are used in this
@@ -755,6 +761,25 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # outlives a queue advance -- a badly-flagged season is one answer,
         # not one per episode -- and nothing else.
         self._deinterlace_override = None
+        #: The gear menu's Aspect Ratio force, with the same three
+        #: states and the same lifetime as the deinterlace one above:
+        #: None means "however the file is flagged".
+        self._aspect_override = None
+        #: What `video-aspect-override` held before we first wrote it, so
+        #: clearing hands THAT back rather than a -1 we made up. `_UNSET`
+        #: until we write, and that is the load-bearing half: there is no
+        #: aspect setting, so a value at that property came from the user's
+        #: own mpv.conf, and a session that forces nothing must leave it
+        #: alone. Same rule as `_render_written` above, at a property that
+        #: has no preset behind it. Re-read per mpv -- see _init_mpv.
+        self._aspect_pristine = _UNSET
+        #: Bumped when the session the playback HUD belonged to ends.
+        #: `run_action` stamps every DEFERRED ui action with the value it
+        #: saw and the drain drops one whose stamp has moved. A gear-menu
+        #: press that could not run while a playback start held the lock
+        #: otherwise lands on the library, where the control that would undo
+        #: it is not on screen. See `end_hud_session`.
+        self._hud_generation = 0
         # {mpv property: value} for every property any preset-driven setting
         # can write, as the FRESH mpv had them -- so the restore hands back
         # mpv's defaults plus the user's own mpv.conf, and nothing else.
@@ -940,9 +965,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         dropped_gamepad = False
         dropped_osc = False
 
+        # A subclass of whichever backend is live, so every property
+        # write this app makes goes through one interception point and a
+        # refusal cannot become a Python attribute -- see mpv_guard. The
+        # class is read per call for the same reason the backend globals are:
+        # the integration harness swaps the backend module underneath us.
+        guarded = mpv_guard.guarded(mpv.MPV)
+
         while True:
             try:
-                player = mpv.MPV(**kwargs, **options)
+                player = guarded(**kwargs, **options)
             except FileNotFoundError:
                 # There is no mpv binary to spawn. Handled ahead of the
                 # retries rather than by them, for two reasons: dropping an
@@ -999,6 +1031,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                             "falling back to the command line and the OSD "
                             "menu.", OSC_OPTION)
                 self._lua_works = False
+            # Only now: both backends assign their own bookkeeping through
+            # __setattr__ on the way up, and some of it really is a plain
+            # Python attribute. See mpv_guard.arm.
+            mpv_guard.arm(player)
             return player
 
     def _init_mpv(self):
@@ -1078,6 +1114,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # It also means a failure between here and the end of _init_mpv
         # cannot leave the PREVIOUS mpv's values recorded against this one.
         self._render_written = set()
+        # Same reset, same reason: a fresh mpv has the user's mpv.conf
+        # again, and the previous handle's value is not this one's. The
+        # OVERRIDE deliberately survives -- _play_media re-asserts it.
+        self._aspect_pristine = _UNSET
         self._snapshot_render_pristine()
 
         try:
@@ -1333,6 +1373,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_unwatched, self._on_unwatched_key)
         self._bind_key(settings.kb_menu, self._on_menu_key)
         self._bind_key(settings.kb_menu_esc, self._on_menu_esc)
+        self._bind_key(settings.kb_nav_back, self._on_nav_back_key)
         self._bind_key(settings.kb_menu_ok, self._on_menu_ok)
         # #16: `kb_menu_*` are MENU keys and are not bound here at all --
         # the OSD menu installs them itself for exactly as long as it is on
@@ -1536,6 +1577,31 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         else:
             self._player.command("set", "fullscreen", "no")
             self.fullscreen_disable = True
+
+    def _on_nav_back_key(self):
+        """"Back", and *only* back -- no fullscreen fallback.
+
+        `_on_menu_esc` above is ESC's handler and ends by leaving fullscreen,
+        which is the half this exists to be free of: at the library ROOT
+        `_nav_back` declines (it wants `mpvtk_active` and `_library_showing`),
+        so the fallback fires and ESC drops fullscreen as well. Users who map
+        a remote button to a literal ESC get that too (#762).
+
+        **ESC is deliberately unchanged.** Plenty of people expect ESC to
+        leave fullscreen, so the answer is a second, unbound key rather than a
+        new meaning for the one everybody has. `_bind_key(None, ...)` is
+        already a no-op, which is what makes "new and unbound" cost nothing.
+
+        Not reached by the mouse thumb buttons or a multimedia Back key, which
+        go through the renderer's `mpvtk_thumb` section and still carry the
+        fullscreen fallback at the library root. Re-routing those would change
+        what the thumb buttons do for people using them today, and the ruling
+        was about leaving ESC alone.
+        """
+        if self.menu.is_menu_shown:
+            self.menu.menu_action("back")
+        else:
+            self._nav_back()
 
     def _on_menu_ok(self):
         """ENTER: confirm the OSD menu, and nothing else.
@@ -2153,7 +2219,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Almost always a playback start in progress. Deferring beats both
         # blocking the caller and dropping the user's input.
         log.debug("Player is busy; deferring UI action to the action thread.")
-        self.put_task(func, self)
+        generation = self._hud_generation
+
+        def unless_the_session_ended(pm):
+            # Read at drain time, so a door that closed while this waited is
+            # what decides. See end_hud_session.
+            if pm._hud_generation != generation:
+                log.debug("Dropping a UI action queued by a session that has "
+                          "since ended.")
+                return None
+            return func(pm)
+
+        self.put_task(unless_the_session_ended, self)
         return None
 
     # Put a task to the event queue.
@@ -2203,10 +2280,44 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         the intro on open with no input at all. The exemption already exists
         for seeks the UI makes; the resume simply never claimed it, and
         keeping the claim next to the seek is what stops the two drifting.
+
+        **`last_seek` is set BEFORE the seek, and moving it below is a
+        regression, not a tidy-up.** A review asked for exactly that, so that
+        a resume which never happened is not recorded as a position reached.
+        It is `None` for the first item of a session, and the stop report
+        reads `int((self.last_seek or 0) * 10000000)`
+        (`player_reporting.py:643`) -- so a failed resume would report
+        position ZERO and destroy the user's place. Reporting the position
+        they asked to return to is the lesser wrong, and surfacing the failure
+        to them is the real fix (todo 17).
+        Pinned by `TestAFailedResumeStillReportsItsPosition`.
         """
         self.last_seek = offset
         self._last_ui_seek_time = time.time()
-        self._player.playback_time = offset
+        # A command, not `self._player.playback_time = offset`: a property
+        # write python-mpv cannot deliver is caught by its own `__setattr__`
+        # and becomes a plain Python attribute, which wins every later read
+        # for the life of the process (#761, #765). Playback dying between the
+        # duration gate and here is the window, and the stale position the
+        # shadow reports makes `_check_stalled_finish` advance the queue.
+        try:
+            # **`str`, not the float.** mpv's `set` command takes its value as
+            # a string: python-mpv coerces one for you (`_mpv_coax_proptype`)
+            # and python-mpv-jsonipc puts the raw JSON on the socket, where a
+            # number comes back `MPVError: invalid parameter` -- measured on
+            # both backends against mpv 0.41. So the float form worked on
+            # libmpv and silently did nothing on the external backend, where
+            # the `except` below turned it into a resume that never happened
+            # (docs/mpv-backends.md section 1).
+            self._player.command("set", "playback-time", str(offset))
+        except Exception:
+            # Broader than _mpv_errors on purpose: with nothing loaded this is
+            # a bare `SystemError` (-12), which is in neither backend's error
+            # tuple. Swallowed rather than allowed out, because it runs in the
+            # tail of _play_media -- a resume that could not be applied is the
+            # old position, which the next timeline tick corrects, where a
+            # half-finished start skips send_timeline_initial and the rest.
+            log.debug("Could not apply the resume offset.", exc_info=True)
 
     def timeline_handle(self):
         if self.timeline_trigger:
@@ -2850,6 +2961,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except Exception:
             log.debug("could not apply the deinterlace setting",
                       exc_info=True)
+        # The aspect force, re-asserted per item like the deinterlace one
+        # above and SURVIVING a queue advance: a badly flagged season is one
+        # answer, not one per episode. Without it the override is a global
+        # nobody owns, and forcing 4:3 on one film left every later film,
+        # photo and comic page at 4:3 with no control reachable to undo it.
+        #
+        # Only when there IS one. The `else` that wrote -1 here overrode a
+        # `video-aspect-override` in the user's own mpv.conf, at every item,
+        # for a feature they had not touched -- there is no aspect setting,
+        # so this client has no default to assert.
+        if self._aspect_override is not None:
+            try:
+                self._write_aspect(self._aspect_override)
+            except Exception:
+                log.debug("could not apply the aspect override",
+                          exc_info=True)
         self._apply_render_presets()
         # How long mpv holds a still. BEFORE play(), not after the load
         # succeeds: this is what mpv reports as the file's `duration`, so
@@ -3436,6 +3563,125 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         self._deinterlace_override = bool(on)
         self.reapply_deinterlace()
+
+    #: Defaults on the CLASS, not only in `__init__`. Two dozen test modules
+    #: build a PlayerManager with `__new__` and wire the fields they need,
+    #: so a new one that `run_action` or `_play_media` reads unconditionally
+    #: is an AttributeError in every one of them that did not hear about it
+    #: -- and inside a queue drain it is logged and swallowed, which is the
+    #: silent half. The class answering makes the stand-ins right by
+    #: default; `__init__` still sets the instance attribute.
+    _hud_generation = 0
+    _aspect_pristine = _UNSET
+
+    #: The gear menu's Auto row, in mpv's own spelling. It arrives as the
+    #: property VALUE, not as None, and it means "no force" -- storing it
+    #: made `aspect_forced` answer yes to the row that turns forcing off.
+    _ASPECT_AUTO = ("-1", "-1.0", -1, -1.0)
+
+    def _write_aspect(self, value):
+        """Write the property, remembering what it held the first time.
+
+        Nothing else in this client writes `video-aspect-override` and no
+        setting maps to it, so whatever is there before our first write is
+        the user's -- and handing THAT back is what clearing means. Callers
+        hold ``_lock``.
+        """
+        if self._aspect_pristine is _UNSET:
+            try:
+                self._aspect_pristine = self._player.video_aspect_override
+            except Exception:
+                # An mpv too old to have it. -1 is then the honest guess,
+                # and the write below will fail on its own terms anyway.
+                log.debug("could not read the aspect mpv came in with",
+                          exc_info=True)
+                self._aspect_pristine = -1.0
+        self._player.video_aspect_override = value
+
+    @synchronous("_lock")
+    def set_aspect(self, value):
+        """Force an aspect ratio for this session -- the gear menu's Aspect
+        Ratio row. ``value`` is mpv's string form ("16:9"); None, or mpv's
+        own spelling of auto, hands the decision back to the file.
+
+        ``@synchronous`` and stored, for the same two reasons as
+        ``set_deinterlace``: ``run_action``'s deferred path holds no lock, and
+        a value written straight at mpv is a global with no owner -- which is
+        what this was.
+        """
+        if value is None or value in self._ASPECT_AUTO:
+            self.clear_aspect_override()
+            return
+        self._aspect_override = value
+        try:
+            self._write_aspect(value)
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+
+    def clear_aspect_override(self):
+        """Drop the aspect force. Called on the way back to the library and
+        on minimize -- the same two doors as
+        :meth:`clear_deinterlace_override`.
+
+        **Unlike that one, this DOES write mpv.** Its sibling can leave the
+        property alone because `_play_media` rewrites it for every item and
+        there is no picture to correct once playback is over. An aspect
+        override outlives playback onto surfaces `_play_media` never runs
+        for: a photo, and a comic page, which `show_picture` loads directly.
+        Leaving it set is how a 4:3 force reached a comic.
+
+        It puts back what mpv came in with, not -1: those differ for anyone
+        whose mpv.conf sets one. Never written means never OURS to put back,
+        so that case writes nothing at all.
+
+        No ``@synchronous``, unlike ``set_aspect``: both doors call this
+        inline on the browser's loop thread, and the lock is held for the
+        whole of a playback start -- taking it here would freeze the window
+        for that stretch, which is the freeze ``run_action`` exists to
+        avoid. The ordering this used to lose is settled by
+        ``end_hud_session`` instead, one door up.
+        """
+        self._aspect_override = None
+        if self._aspect_pristine is _UNSET:
+            return
+        try:
+            self._player.video_aspect_override = self._aspect_pristine
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        except Exception:
+            log.debug("could not clear the aspect override", exc_info=True)
+
+    def aspect_forced(self):
+        """Whether a session force is in effect, for the gear row's way back
+        -- the same question `deinterlace_forced` answers."""
+        return self._aspect_override is not None
+
+    def end_hud_session(self):
+        """Declare the playback session over, so nothing it queued lands
+        after it.
+
+        The doors call this BEFORE they clear anything. ``run_action``
+        defers a UI action whenever ``_lock`` is contended, which a playback
+        start holds for up to ``playback_timeout`` -- so a gear-menu press
+        can still be on ``evt_queue`` when the viewer gives up and goes
+        back. Draining it then re-installs a force onto the library, where
+        the gear menu that would undo it is not reachable.
+
+        A generation rather than a drain of the queue: ``evt_queue`` also
+        carries the player's own work (a finished_callback, the shutdown
+        teardown), and discarding THOSE at a door is the bug
+        ``_teardown_player``'s drain has a comment about. This drops only
+        what the ended session asked for, and it covers every gear-menu
+        state at once rather than one guard per control.
+
+        It fires more often than "playback ended": `enter_browse` is called
+        unconditionally when music stops and on a mirror summon, both of
+        which can happen while the library is already up. Dropping a pending
+        HUD action there is still the right answer -- the thing it was aimed
+        at is over -- but do not read a bump as proof that something was
+        playing.
+        """
+        self._hud_generation += 1
 
     def deinterlace_forced(self):
         """Whether a session force is in effect, i.e. whether the setting is
@@ -4732,7 +4978,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             try:
                 self._player.osd_border_style = border_style or "outline-and-shadow"
             except Exception:
-                pass  # Older mpv that lacks the property; nothing to restore.
+                # NOT the absent-property case, which is what this comment
+                # used to claim: on an mpv without osd-border-style the write
+                # does not raise at all. python-mpv absorbed it into a Python
+                # attribute -- which get_osd_settings above then read back as
+                # a border style this mpv does not have -- and mpv_guard now
+                # records the refusal and returns. The name is in
+                # _harness.ALLOWED_REFUSED_WRITES because of this site. What
+                # is left for this handler is a value mpv rejects.
+                pass
         except _mpv_errors:
             self._handle_mpv_disconnect()
 

@@ -5288,6 +5288,34 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Default"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Default"
+
+#, fuzzy
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Atas"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Atas"
+
+#, fuzzy
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Bawah"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Bawah"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

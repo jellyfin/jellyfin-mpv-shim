@@ -5319,6 +5319,59 @@ msgstr "Perfil de reproducció de vídeo"
 msgid "Select Shader Profile"
 msgstr "Seleccioneu el perfil d'ombres"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Per defecte"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Per defecte"
+
+msgctxt "guide navigation"
+msgid "Later"
+msgstr "Més tard"
+
+#, fuzzy
+msgctxt "update banner"
+msgid "Later"
+msgstr "Més tard"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Repeteix"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Repeteix"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Confirma"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Confirma"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Superior"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Superior"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Inferior"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Inferior"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "Interfície MPV amb miniatures"
 

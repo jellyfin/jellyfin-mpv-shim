@@ -77,6 +77,37 @@ class AppendCredentialsForTest(UserManagerTestBase):
         um = self.fresh()
         self.assertFalse(um.append_credentials_for("nope", {"uuid": "u1"}))
 
+    def test_a_uuid_already_filed_is_replaced_rather_than_duplicated(self):
+        """Two credentials under one uuid is never a valid state, however it
+        is reached: the server switcher keys by uuid so the duplicate is
+        invisible, every save writes both, and every connect races them.
+
+        Reached for real by re-authenticating while the user switches
+        accounts. `_finalize_login` replaces in place on its own branch, but
+        the after-a-switch branch files through here instead -- so the rule
+        was applied at one of its two sites, which is the shape this repo
+        keeps producing. Fixing it here covers both.
+        """
+        um = self.fresh()
+        other = um.add_user("other")
+        first = {"uuid": "u1", "address": "http://old", "username": "a"}
+        self.assertTrue(um.append_credentials_for(other["id"], first))
+        again = {"uuid": "u1", "address": "http://new", "username": "a"}
+        self.assertTrue(um.append_credentials_for(other["id"], again))
+        stored = self.fresh().get(other["id"])["credentials"]
+        self.assertEqual(stored, [again],
+                         "one uuid, two credentials: %r" % (stored,))
+
+    def test_but_a_different_uuid_still_appends(self):
+        """The negative control. This is still how a SECOND server reaches a
+        user who was switched away mid-login."""
+        um = self.fresh()
+        other = um.add_user("other")
+        um.append_credentials_for(other["id"], {"uuid": "u1", "address": "a"})
+        um.append_credentials_for(other["id"], {"uuid": "u2", "address": "b"})
+        stored = self.fresh().get(other["id"])["credentials"]
+        self.assertEqual([c["uuid"] for c in stored], ["u1", "u2"])
+
 
 class AtomicSaveTest(UserManagerTestBase):
     def test_users_save_leaves_no_temp_file(self):
@@ -170,65 +201,88 @@ def _watch_targets(item_id, server_uuid):
     """What the in-window browser would mark watched, offline.
 
     _queue_offline_watched applies the marks rather than returning them, so
-    record what it wrote — the fan-out rule (a series or season id expands
-    to its downloaded episodes) is the thing under test either way."""
-    written = []
-    db = _sync().db
-    db.upsert_playstate.side_effect = (
-        lambda srv, iid, played=None: written.append((iid, srv)))
+    read them back out of the catalog — the fan-out rule (a series or season
+    id expands to its downloaded episodes) is the thing under test either
+    way."""
     browser_gw.PlayerGateway._queue_offline_watched(
         server_uuid, item_id, True)
-    return written
+    return [(p["item_id"], p["user_id"])
+            for p in _sync().db.list_playstate()]
 
 
 class OfflineWatchTargetsTest(unittest.TestCase):
-    def _db(self):
-        db = mock.Mock()
-        db.list.return_value = [
-            {"item_id": "e1", "series_id": "S", "season_id": "sea1",
-             "server_uuid": "srv"},
-            {"item_id": "e2", "series_id": "S", "season_id": "sea2",
-             "server_uuid": "srv"},
-            {"item_id": "m1", "series_id": None, "season_id": None,
-             "server_uuid": "srv"},
-        ]
-        # The fan-out rule moved onto SyncDB, and it is what this class is
-        # about -- so run the real one against this mock's rows rather than
-        # restating it here, which would be a test agreeing with itself.
-        from jellyfin_mpv_shim.sync.db import SyncDB
+    """The fan-out, against a real catalog on disk.
 
-        db.watched_targets.side_effect = (
-            lambda item_id, server_uuid=None:
-            SyncDB.watched_targets(db, item_id, server_uuid))
-        return db
+    Built on a real ``SyncDB`` rather than a mock that models
+    ``watched_targets``: the rule is a query now, scoped like every other
+    content read, and a double standing in for the query can only restate
+    whatever this file already believes. The resolver is real too — see
+    tests/test_offline_actor_e2e.py for why a stand-in for it is the one
+    thing that may not appear.
+    """
+
+    #: A saved login, the Jellyfin server behind it, and the person. Named
+    #: rather than left to fall through to the unattributed sentinel: the
+    #: replay queue refuses an entry nobody can be named for, so without
+    #: this every assertion below would be about a mark production drops.
+    LOGIN, SERVER_ID, USER_ID = "srv", "SRV", "U1"
+
+    def setUp(self):
+        from jellyfin_mpv_shim.sync.db import SyncDB
+        from jellyfin_mpv_shim.users import userManager
+
+        self.tmp = tempfile.mkdtemp(prefix="jms-watch-targets-")
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(self.db.close)
+        for item_id, series, season in (("e1", "S", "sea1"),
+                                        ("e2", "S", "sea2"),
+                                        ("m1", None, None)):
+            self.db.upsert({"item_id": item_id, "status": "complete",
+                            "type": "Episode" if series else "Movie",
+                            "name": item_id, "series_id": series,
+                            "season_id": season,
+                            "server_uuid": self.LOGIN,
+                            "content_server_id": self.SERVER_ID,
+                            "file_path": item_id + ".mkv"})
+        for attr, value in (
+                ("users", [{"id": "local", "credentials": [
+                    {"uuid": self.LOGIN, "Id": self.SERVER_ID,
+                     "UserId": self.USER_ID}]}]),
+                ("active_id", "local")):
+            patch = mock.patch.object(userManager, attr, value)
+            self.addCleanup(patch.stop)
+            patch.start()
+        patch = mock.patch.object(_sync(), "db", self.db)
+        self.addCleanup(patch.stop)
+        patch.start()
 
     def test_leaf_item(self):
-        db = self._db()
-        db.is_complete.return_value = True
-        with mock.patch.object(_sync(), "db", db):
-            targets = _watch_targets("m1", "srv")
-        self.assertEqual(targets, [("m1", "srv")])
+        self.assertEqual(_watch_targets("m1", self.LOGIN),
+                         [("m1", self.USER_ID)])
 
     def test_series_fans_out(self):
-        db = self._db()
-        db.is_complete.return_value = False
-        with mock.patch.object(_sync(), "db", db):
-            targets = _watch_targets("S", "srv")
-        self.assertEqual({t[0] for t in targets}, {"e1", "e2"})
+        self.assertEqual({t[0] for t in _watch_targets("S", self.LOGIN)},
+                         {"e1", "e2"})
 
     def test_season_fans_out(self):
-        db = self._db()
-        db.is_complete.return_value = False
-        with mock.patch.object(_sync(), "db", db):
-            targets = _watch_targets("sea2", "srv")
-        self.assertEqual([t[0] for t in targets], ["e2"])
+        self.assertEqual([t[0] for t in _watch_targets("sea2", self.LOGIN)],
+                         ["e2"])
 
     def test_unknown_id_yields_nothing(self):
-        db = self._db()
-        db.is_complete.return_value = False
-        with mock.patch.object(_sync(), "db", db):
-            targets = _watch_targets("??", "srv")
-        self.assertEqual(targets, [])
+        self.assertEqual(_watch_targets("??", self.LOGIN), [])
+
+    def test_another_servers_rows_are_not_reachable(self):
+        """The scope, which the fan-out did not have. A login on another
+        server marking a series it does not own used to fan out over this
+        server's episodes and file the marks under an account that exists
+        on neither."""
+        from jellyfin_mpv_shim.users import userManager
+        with mock.patch.object(userManager, "users", [
+                {"id": "local", "credentials": [
+                    {"uuid": "other", "Id": "OTHER", "UserId": "U2"}]}]):
+            self.assertEqual(_watch_targets("S", "other"), [])
+        self.assertEqual(self.db.userdata_actors("e1"), [])
 
 
 def _episode(eid, sid, season, played, season_name=None, pidx=1, idx=1):
@@ -238,12 +292,11 @@ def _episode(eid, sid, season, played, season_name=None, pidx=1, idx=1):
             "UserData": {"Played": played}}
 
 
-def _offline_source(items, series_server=None):
+def _offline_source(items, series_ids=()):
     src = OfflineLibrarySource.__new__(OfflineLibrarySource)
     src.catalog_path = None
     src.root = None
-    src._snap = _OfflineSnapshot(items=items,
-                                 series_server=series_server or {})
+    src._snap = _OfflineSnapshot(items=items, series_ids=series_ids)
     return src
 
 
@@ -284,7 +337,7 @@ class OfflineUserdataAggregationTest(unittest.TestCase):
     def test_get_item_series_fallback_carries_userdata(self):
         src = _offline_source(
             [_episode("e1", "S", "sea1", played=True)],
-            series_server={"S": "srv"})
+            series_ids={"S"})
         item = src.get_item("offline", "S")
         self.assertEqual(item["Type"], "Series")
         self.assertTrue(item["UserData"]["Played"])

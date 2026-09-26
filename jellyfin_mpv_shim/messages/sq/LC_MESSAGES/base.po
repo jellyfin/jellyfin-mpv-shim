@@ -5400,6 +5400,32 @@ msgstr "Profilet e luajtjes së videos"
 msgid "Select Shader Profile"
 msgstr "Zgjidh profilin e hijëzuesit"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Parazgjedhur"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Parazgjedhur"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Lartë"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Lartë"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Poshtë"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Poshtë"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

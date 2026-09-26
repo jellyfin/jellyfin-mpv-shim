@@ -5586,6 +5586,40 @@ msgstr "Mga Profile sa Pag-playback ng Video"
 msgid "Select Shader Profile"
 msgstr "Piliin ang Shader Profile"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Default"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Default"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Ulitin"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Ulitin"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Itaas"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Itaas"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Ibaba"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Ibaba"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

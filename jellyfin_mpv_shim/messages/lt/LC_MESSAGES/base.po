@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-08 23:24+0000\n"
+"PO-Revision-Date: 2026-09-10 20:34+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -4775,7 +4775,7 @@ msgid ""
 "Open menu (press c) for details."
 msgstr ""
 "MPV Shim v{0} galimas atnaujinimas\n"
-"Atidarykite meniu (paspauskite \"c\") detalesniam aprašymui."
+"Atidarykite meniu (paspauskite c) detalesniam aprašymui."
 
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
@@ -4873,6 +4873,64 @@ msgstr "Vaizdo atkūrimo profilis"
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "Pasirinkite Shader profilį"
+
+#, fuzzy
+msgctxt "setting value"
+msgid "Default"
+msgstr "Numatytasis"
+
+#, fuzzy
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Numatytasis"
+
+#, fuzzy
+msgctxt "guide navigation"
+msgid "Later"
+msgstr "Vėliau"
+
+#, fuzzy
+msgctxt "update banner"
+msgid "Later"
+msgstr "Vėliau"
+
+#, fuzzy
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Kartoti"
+
+#, fuzzy
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Kartoti"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Patvirtinti"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Patvirtinti"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Viršuje"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Viršuje"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Apačioje"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Apačioje"
 
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "MPV vartotojo sąsaja su miniatiūromis"

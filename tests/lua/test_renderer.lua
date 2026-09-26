@@ -368,6 +368,39 @@ local ch = last_event("change")
 ok(ch ~= nil and ch.value == "pasted", "ctrl+v falls back to a helper",
    ch and ch.value or "no change event")
 
+-- A copied line ends in a newline -- `get_my_password | xsel -b` -- and a
+-- password field that keeps it (as a space, which is what a line break
+-- inside the text becomes) fails the login for a reason nobody can see.
+-- Line breaks at either end go; one inside still reads as a space.
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = "hunter2\r\n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl", "") })
+click("clipnl")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, "hunter2", "a pasted line loses its trailing newline")
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = "\nfirst\r\nsecond\n\n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl2", "") })
+click("clipnl2")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, "first second",
+   "an inner line break is one space, the ends are trimmed")
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = " pass \n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl3", "") })
+click("clipnl3")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, " pass ", "spaces are the user's and are kept")
+
 -- Nothing at all: the user gets told which package to install, rather
 -- than a text field that silently ignores ctrl+v.
 fake.subprocess = nil       -- every helper fails, as if not installed
@@ -732,6 +765,35 @@ for _, e in ipairs(fake.log.events) do
     if type(e) == "table" and e.t == "forward" then fwd = fwd + 1 end
 end
 eq(fwd, 1, "the mouse forward button sends one forward event")
+
+-- A multimedia keyboard's browser Back/Forward keys mean the same thing.
+fake.log.commands = {}
+fake.key("go_back")
+sent_esc = false
+for _, c in ipairs(fake.log.commands) do
+    if type(c) == "table" and c[1] == "keypress" and c[2] == "ESC" then
+        sent_esc = true
+    end
+end
+ok(sent_esc, "the keyboard's Back key presses ESC")
+
+fake.reset_events()
+fake.key("go_forward")
+fwd = 0
+for _, e in ipairs(fake.log.events) do
+    if type(e) == "table" and e.t == "forward" then fwd = fwd + 1 end
+end
+eq(fwd, 1, "the keyboard's Forward key sends one forward event")
+
+-- ...but NOT in the shape the mouse buttons use. Their action sits on the
+-- down half because a mouse button's plain handler fires on release; a key's
+-- fires on a bare press as well as on key-down, and Windows delivers these
+-- keys as WM_APPCOMMAND, which mpv feeds as a bare press with no down at all
+-- (w32_common.c handle_appcommand). A down-only handler is dead there.
+eq(fake.log.keybinds_up["go_back"], nil,
+   "the keyboard's Back acts only on key-down, which Windows never sends")
+eq(fake.log.keybinds_up["go_forward"], nil,
+   "the keyboard's Forward acts only on key-down, which Windows never sends")
 
 -- ========================================== client-side title bar
 
@@ -1758,6 +1820,11 @@ ok(fake.log.sections["mpvtk_thumb"] ~= nil,
 ok((fake.log.sections["mpvtk_thumb"] or {})["mbtn_back"]
    and (fake.log.sections["mpvtk_thumb"] or {})["mbtn_forward"],
    "the thumb buttons are not in mpvtk_thumb")
+-- The keyboard's pair rides the same section, for the same reason: over a
+-- film they are the user's to bind.
+ok((fake.log.sections["mpvtk_thumb"] or {})["go_back"]
+   and (fake.log.sections["mpvtk_thumb"] or {})["go_forward"],
+   "the keyboard's Back/Forward keys are not in mpvtk_thumb")
 ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_back"],
    "mbtn_back is still in the group the HUD keeps enabled")
 ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_forward"],
@@ -2081,6 +2148,40 @@ ok((last_event("debug_state") or {}).phud_shown == true,
 fake.send("mpvtk-hud", "no")
 fake.send("mpvtk-active", "yes")
 
+-- #767, and the failure it cost: the threshold is 2px of distance TRAVELLED
+-- from where the pointer was when the HUD went idle, not 2px between two
+-- consecutive notifications. Windows 11 reports motion a pixel at a time, and
+-- against the per-event version this crawl covers 300px without ever
+-- summoning -- which is a mouse that cannot raise the controls at all.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- anchors
+for step = 1, 300 do
+    fake.observe("mouse-pos", { x = 300 + step, y = 300, hover = true })
+end
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "a 300px crawl in 1px steps never summoned the playback HUD")
+
+-- The contrast, so this cannot pass for a renderer that summons on anything:
+-- the same handler, one event, and a pointer that has not moved at all.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- anchors
+fake.reset_events()
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- no movement
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown ~= true,
+   "a pointer that never moved summoned the playback HUD")
+fake.observe("mouse-pos", { x = 400, y = 300, hover = true })   -- one 100px jump
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "a single 100px move did not summon the playback HUD")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
 local function hud_engage(opts)
     fake.send("mpvtk-hud", "no")
     fake.send("mpvtk-hud", "yes", fake.token(opts or {}))
@@ -2363,6 +2464,92 @@ ok(win_ov ~= nil, "a frame inside the window was not drawn")
 eq(win_ov and tonumber(win_ov[6]), (45 - 40) * 32 * 18 * 4,
    "the overlay offset was not rebased onto the window")
 eq(trickplay_request(), nil, "asked for a window it already had")
+
+-- The frames are decoded at the server's preview width, a PHYSICAL size, so
+-- at 2x the frame is half the size of the bubble drawn around it. The last
+-- argument is `thumbnail_scale` ("auto" follows the UI scale), and mpv 0.38+
+-- scales an overlay on the GPU when handed a display size (dw/dh) -- so the
+-- file, and mpv's copy of the frame, stay the size they were.
+-- `test_renderer_lua.py` runs this file again as an mpv without dw/dh.
+local OLD_OVERLAY = os.getenv("JMS_TEST_NO_OVERLAY_SCALE") ~= nil
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100", "2")
+fake.log.commands = {}
+hud_pointer(907, 672)                   -- still 7:30, frame 45
+pv_paint()
+local sc = preview_overlay()
+ok(sc ~= nil, "a scaled frame was not drawn")
+eq(sc and tonumber(sc[6]), (45 - 40) * 32 * 18 * 4,
+   "scaling moved the frame's offset")
+eq(sc and tonumber(sc[8]), 32, "the frame was not read at its own width")
+eq(sc and tonumber(sc[9]), 18, "the frame was not read at its own height")
+if OLD_OVERLAY then
+    eq(sc and #sc, 10, "passed a display size to an mpv that rejects one")
+    ok(preview().w < 64 + 16, "the bubble grew for a frame drawn at 1x")
+else
+    eq(sc and tonumber(sc[11]), 64, "the frame was not drawn at 2x")
+    eq(sc and tonumber(sc[12]), 36, "the frame height was not drawn at 2x")
+    ok(preview().w >= 64 + 16, "the bubble did not grow around the 2x frame")
+end
+
+-- Partly covered. A floating layer occludes images, so the frame is cut into
+-- pieces in DISPLAY pixels, and each piece's source rectangle is that piece
+-- divided back down. This is the one place a scaled frame can read outside
+-- itself -- past the end of the file on mpv's file path, and a SIGSEGV on
+-- the `&address` memory path (jellyfin_mpv_shim/mpvtk/GUIDE.md section 5) --
+-- so check every
+-- piece against the frame's own 32x18, not only that something was drawn.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "hud-seek", t = "slider", x = 100, y = 660, w = 1080,
+          h = 26, min = 0, max = 600, value = 0, pv = true },
+        -- Down to the bar and no further: the pointer on the bar has to
+        -- stay on the bar, and the frame above it has to be covered across
+        -- its whole height, or a strip below the layer is (correctly)
+        -- drawn full width.
+        { id = "toast", t = "layer", kind = "float",
+          x = 0, y = 0, w = 907, h = 638 } })
+fake.log.commands = {}
+hud_pointer(907, 671)
+pv_paint()
+local frame_base = (45 - 40) * 32 * 18 * 4
+local pieces = 0
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "overlay-add" and c[5] == "/tiles.bin" then
+        pieces = pieces + 1
+        local rel = tonumber(c[6]) - frame_base
+        local w, h, stride = tonumber(c[8]), tonumber(c[9]), tonumber(c[10])
+        local sy, sx = math.floor(rel / stride), (rel % stride) / 4
+        ok(rel >= 0 and sx + w <= 32 and sy + h <= 18,
+           "a piece of the scaled frame reads outside the frame",
+           string.format("src %d,%d %dx%d", sx, sy, w, h))
+        ok(tonumber(c[3]) >= 907 + 2,
+           "a piece of the frame was drawn under the layer covering it",
+           "x=" .. tostring(c[3]))
+        if not OLD_OVERLAY then
+            ok(c[11] and math.abs(tonumber(c[11]) - 2 * w) <= 2,
+               "a covered piece was not scaled with the rest of the frame",
+               string.format("w=%s dw=%s", tostring(w), tostring(c[11])))
+        end
+    end
+end
+ok(pieces >= 1, "the uncovered part of the frame was not drawn at all")
+seek_scene()
+
+-- "auto" is the UI scale: the bubble's padding and type follow it already,
+-- so a frame that did not would shrink inside its own box.
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100", "auto")
+fake.send("mpvtk-scale", fake.token({ s = 2 }))
+fake.log.commands = {}
+hud_pointer(908, 672)
+pv_paint()
+sc = preview_overlay()
+ok(sc ~= nil, "no frame drawn at a 2x UI scale")
+eq(sc and sc[11] and tonumber(sc[11]), (not OLD_OVERLAY) and 64 or nil,
+   "auto did not follow the UI scale")
+fake.send("mpvtk-scale", fake.token({ s = 1 }))
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100")
 
 -- The chapter-image fallback indexes by chapter start instead of a cadence.
 fake.send("shim-trickplay-chapters", "32", "18", "/tiles.bin", "0,120,480")
@@ -3203,6 +3390,49 @@ fake.log.commands = {}
 fake.key("mbtn_left_dbl")
 ok(not did("cycle", "fullscreen"),
    "double-clicking empty library background toggled full screen")
+fake.send("mpvtk-active", "no")
+
+-- ------------- and the state NONE of the three fall-throughs can answer
+--
+-- All three of them -- click, double click and right click on bare video --
+-- open with `state.phud.mode and state.phud.shown`, and `phud.mode` is only
+-- ever true under `osc_style` mpvtk. Give the window to a lua OSC and the
+-- mode never comes on, so with `mpvtk_mouse` still enabled every button
+-- reaches a handler that has no branch for it and stops there: the picture
+-- is unreachable by mouse and mpv's own bindings never see the key.
+--
+-- That is #724 / #726, and the repair is one level up -- the app sends
+-- `mpvtk-active no` so the sections drop to priority -1 and mpv wins the
+-- mouse (asserted above, and `tests/test_classic_osc_mouse.py` pins that the
+-- app actually sends it on the transitions a video goes through). What THIS
+-- pins is why that is load-bearing rather than tidy, and it is the case a
+-- fixture cannot reach if `phud.mode` is set for it: with the mode off, the
+-- fall-throughs are dead code and their absence is silent.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+scene({})                               -- bare video, no node anywhere
+repaint()
+fake.mouse(640, 360)
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_mode ~= true,
+   "the no-HUD case was set up with HUD mode ON, so it proves nothing")
+-- One button per log. `did` scans everything recorded since the last
+-- reset, so sharing a log lets a left click that wrongly paused answer the
+-- RIGHT click's assertion too -- three assertions, one of them measuring
+-- the others. Measured: it happens.
+fake.log.commands = {}
+fake.key("mbtn_left")
+ok(not did("cycle", "pause"),
+   "with no HUD mode a bare-video click reached the pause fall-through")
+fake.log.commands = {}
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "with no HUD mode a bare-video right click reached the fall-through")
+fake.log.commands = {}
+fake.key("mbtn_left_dbl")
+ok(not did("cycle", "fullscreen"),
+   "with no HUD mode a bare-video double click reached the fall-through")
 fake.send("mpvtk-active", "no")
 
 -- ================================================ HUD nav + seek bar

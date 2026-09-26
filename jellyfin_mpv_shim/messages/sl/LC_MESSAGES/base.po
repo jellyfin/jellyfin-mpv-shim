@@ -5270,6 +5270,24 @@ msgstr "Profili predvajanja videa"
 msgid "Select Shader Profile"
 msgstr "Izberi profil senčenja"
 
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Na vrhu"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Na vrhu"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Na dnu"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Na dnu"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

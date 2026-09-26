@@ -456,7 +456,7 @@ class RemoteMenuCommandTest(unittest.TestCase):
     keep their historical "open the OSD menu" meaning everywhere else."""
 
     def _player(self, mpvtk=False, video=None):
-        pm = h.build_player(player)
+        pm = h.build_player(player, test=self)
         pm._mpv_alive = True
         pm.mpvtk_active = mpvtk
         pm._video = video

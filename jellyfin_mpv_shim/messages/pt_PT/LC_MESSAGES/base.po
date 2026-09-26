@@ -5465,6 +5465,61 @@ msgstr "Perfil de reprodução de vídeo"
 msgid "Select Shader Profile"
 msgstr "Selecionar perfil de shader"
 
+# seeded from jellyfin-web: Default
+msgctxt "setting value"
+msgid "Default"
+msgstr "Predefinição"
+
+# seeded from jellyfin-web: MediaInfoDefault
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Predefinido"
+
+msgctxt "guide navigation"
+msgid "Later"
+msgstr "Mais tarde"
+
+#, fuzzy
+msgctxt "update banner"
+msgid "Later"
+msgstr "Mais tarde"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Repetir"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Repetir"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Confirmar"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Confirmar"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Topo"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Topo"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Fundo"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Fundo"
+
 #~ msgid "MPV UI with thumbnails"
 #~ msgstr "Interface do MPV com miniaturas"
 

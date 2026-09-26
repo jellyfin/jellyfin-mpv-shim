@@ -405,6 +405,106 @@ class MouseRoutingTest(unittest.TestCase):
             "no node table and pointer input cannot recover it")
 
 
+    # -- the skip button, and what it leaves behind (#737 / A4) ------------
+
+    def _hud_idle(self, click_pauses):
+        """HUD mode with the bar auto-hidden -- most of playback.
+
+        Not summoned: `phud_skip_bind` returns early while the bar is
+        `shown`, and the standalone Skip button only exists when it is not.
+        `hide` is short so nothing here waits on a real auto-hide.
+        """
+        self.app.set_active(False)
+        time.sleep(0.3)
+        self.app.set_hud(True, {"hide": 2, "mode": "hover",
+                                "click": click_pauses})
+        self._wait(lambda: self._state().get("phud_mode") is True,
+                   "the renderer never entered HUD mode, so neither the "
+                   "skip button nor the summon bindings exist")
+        self._wait(lambda: not self._state().get("phud_shown"),
+                   "the HUD came up shown; the bindings under test are the "
+                   "hidden bar's")
+
+    def test_a_real_click_still_activates_after_a_skip_segment(self):
+        """#737, through mpv rather than through the renderer's handlers.
+
+        With `mouse_click_pauses` off, `phud_skip_bind` forces `mbtn_left`
+        as `mpvtk_skip_click` for the few seconds the standalone Skip button
+        is up -- and a forced binding outranks the browser's own
+        `mpvtk_mouse` section, so if the segment ends without releasing it,
+        every later click runs its else-branch (`begin-vo-dragging`) instead
+        of reaching a tile. The reporter's words: "the UI becomes
+        unresponsive after a few videos ... switching back to left click to
+        pause this behavior never occurs".
+
+        **This is the leg the Lua suite cannot be.** `tests/lua/fake_mp.lua`
+        dispatches by binding NAME, so it can show the binding is gone and
+        not that a leaked one would have preempted anything -- the fake says
+        so itself. The preemption is mpv's section stack, and that needs
+        mpv.
+
+        Control: deleting `mp.remove_key_binding('mpvtk_skip_click')` from
+        `phud_skip_unbind` turns this red on the click, and leaves every
+        other test in this file green.
+        """
+        self._hud_idle(click_pauses=False)
+        self.app.set_hud_skip("Skip Intro")
+        # Well inside `PHUD_SKIP_S` (10s), which is the button's own
+        # auto-hide: a wait that outlasts it would watch the segment arm
+        # and disarm, and then report that it never armed.
+        self._wait(lambda: self._state().get("phud_skip") is True,
+                   "no skip segment ever armed within 5s, so "
+                   "`mpvtk_skip_click` was never bound and there is nothing "
+                   "to leak", timeout=5.0)
+        self.app.set_hud_skip("")
+        self._wait(lambda: not self._state().get("phud_skip"),
+                   "the skip button never went away")
+
+        self.app.set_hud(False)
+        time.sleep(0.3)
+        self.app.set_active(True)
+        time.sleep(0.4)
+        self._repaint()
+        self._assert_a_click_activates(
+            "a real left click is dead in the library after one skip "
+            "segment -- a forced mbtn_left outlived the button and is "
+            "dragging the window instead of reaching the tile")
+
+    def test_the_right_button_pauses_over_a_hidden_hud(self):
+        """A4, through a real MBTN_RIGHT rather than on a node.
+
+        In mpv's modality (`mouse_click_pauses` off) the left button drags
+        the window and the right one pauses. `on_rclick` does that only
+        while the bar is `shown`; the bar is hidden for most of playback,
+        and what used to cover the gap was mpv's own default. Our pin move
+        took it away -- v0.41.0 binds MBTN_RIGHT to `cycle pause`, master to
+        `script-binding select/context-menu` -- so right click over a hidden
+        HUD did nothing at all.
+
+        The two existing MBTN_RIGHT presses in this file are both on library
+        tiles, which is a different question with the same button.
+
+        Control: removing the `mpvtk_phud_rclick` binding from
+        `phud_bind_summon` turns this red.
+        """
+        self._hud_idle(click_pauses=False)
+        st = self._state()
+        # Mid-window, where a hidden HUD is nothing but picture. The skip
+        # button is down, so `hit_skip` cannot claim this press.
+        self.handle.command("mouse", int((st.get("w") or 2) / 2),
+                            int((st.get("h") or 2) / 2))
+        time.sleep(0.3)
+        before = bool(self.handle.pause)
+        self.handle.command("keydown", "MBTN_RIGHT")
+        time.sleep(0.1)
+        self.handle.command("keyup", "MBTN_RIGHT")
+        self._wait(
+            lambda: bool(self.handle.pause) != before,
+            "a real right click over a hidden HUD did not toggle pause "
+            "(pause is still %r) -- nothing of ours holds MBTN_RIGHT and "
+            "mpv's own default on this pin is the context menu" % before,
+            timeout=5.0)
+
     def _navigate(self, label, route):
         """Go to a screen by route, then wait for the renderer to hold it.
 
@@ -416,10 +516,43 @@ class MouseRoutingTest(unittest.TestCase):
         self.browser.navigate(dict(route))
         self.assertEqual(self.browser.route.get("kind"), route["kind"],
                          "%s did not become the current route" % label)
-        self._wait(lambda: not self.browser.route.get("_loading"),
+        self._wait(self._page_has_arrived,
                    "%s never finished loading, so its scene is a spinner "
-                   "and a right click would land on nothing" % label)
+                   "and a right click would land on nothing" % label,
+                   # A server round trip, not a repaint, so it is sized for
+                   # one. A server whose `Optimize database` task has not
+                   # run yet answers any query returning a FOLDER in seconds
+                   # rather than milliseconds (measured 2026-09-11: 3.6s,
+                   # and a series page asks two such questions in
+                   # sequence). That clears itself within six hours, or at
+                   # once if you run the task by hand -- but a wait sized
+                   # for a repaint turns it into a failure that names the
+                   # mouse.
+                   timeout=40.0)
         self._repaint()
+
+    def _page_has_arrived(self):
+        """Has this route got something to draw yet?
+
+        **Not `not route["_loading"]`**, which is what this asked for and is
+        the reason the test above spent a release racing the load. That key
+        is the PAGING guard: `pagination`, `grid`, `music` and `livetv` set
+        it, and a detail or series page never does -- so on exactly the
+        screens this test uses, the wait returned on its first poll and the
+        scroll then hunted for a tile in a scene that was still a spinner.
+        A guard that cannot fire reads as a guard that passed.
+
+        The shell's own "this route has nothing" test is the honest one
+        (`app.py`, the `_data is None and not _items and not _error` branch
+        that decides whether to load at all), so this mirrors it rather than
+        inventing a second answer.
+        """
+        r = self.browser.route
+        if r.get("_error"):
+            return True          # arrived at a failure; the caller will say so
+        if r.get("_loading"):
+            return False
+        return r.get("_data") is not None or bool(r.get("_items"))
 
     def _scroll_to(self, prefix, label):
         """Wheel down until a `prefix` tile has an aim point on screen.

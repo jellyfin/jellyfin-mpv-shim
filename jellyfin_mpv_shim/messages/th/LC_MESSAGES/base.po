@@ -5236,6 +5236,32 @@ msgstr "โปรไฟล์การเล่นวิดีโอ"
 msgid "Select Shader Profile"
 msgstr "เลือกโปรไฟล์ Shader"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "ค่าเริ่มต้น"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "ค่าเริ่มต้น"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "ด้านบน"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "ด้านบน"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "ด้านล่าง"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "ด้านล่าง"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

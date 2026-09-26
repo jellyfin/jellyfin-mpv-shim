@@ -5656,6 +5656,50 @@ msgstr "Профил репродукције снимка"
 msgid "Select Shader Profile"
 msgstr "Изабери шедера (Shader) профил"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Подразумевано"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Подразумевано"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Понови"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Понови"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Потврди"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Потврди"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Горе"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Горе"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Доле"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Доле"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

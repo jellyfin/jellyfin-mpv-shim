@@ -5605,6 +5605,40 @@ msgstr "Próifílí Athsheinm Físe"
 msgid "Select Shader Profile"
 msgstr "Roghnaigh Próifíl an Scáthóra"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Réamhshocrú"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Réamhshocrú"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Athdhéan"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Athdhéan"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Barr"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Barr"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Bun"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Bun"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

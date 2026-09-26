@@ -5190,6 +5190,24 @@ msgstr "Профілі прайгравання відэа"
 msgid "Select Shader Profile"
 msgstr "Выберыце профіль шэйдара"
 
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Зверху"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Зверху"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Знізу"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Знізу"
+
 #, fuzzy
 #~| msgid "SyncPlay enabled."
 #~ msgid "SyncPlay Enabled"

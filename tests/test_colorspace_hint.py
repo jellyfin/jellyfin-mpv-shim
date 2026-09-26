@@ -25,6 +25,7 @@ if __name__ == "__main__":
         os.path.dirname(os.path.abspath(__file__))))
 
 import sys
+import threading
 import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
@@ -138,6 +139,70 @@ class ColorspaceHintTest(unittest.TestCase):
         pm._mpv_alive = False
         pm.suspend_colorspace_hint()
         self.assertEqual(pm._player.writes, [])
+
+
+class _InterleavingPlayer(_Player):
+    """Forces the #771 interleaving: the first park's write of "no" waits
+    until a second thread has read the hint, and that read waits until the
+    first park has finished. Every wait is bounded, so a caller that cannot
+    get in -- which is the fix -- costs the timeout rather than a hang."""
+
+    WAIT = 0.5
+
+    def __init__(self, hint="auto"):
+        super().__init__(hint)
+        for name in ("first_wrote", "second_read", "first_done"):
+            object.__setattr__(self, name, threading.Event())
+        object.__setattr__(self, "reads", 0)
+
+    def __getattribute__(self, name):
+        if name != HINT:
+            return object.__getattribute__(self, name)
+        value = object.__getattribute__(self, name)
+        n = object.__getattribute__(self, "reads") + 1
+        object.__setattr__(self, "reads", n)
+        if n == 2:
+            self.second_read.set()
+            self.first_done.wait(self.WAIT)
+        return value
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name == HINT and len(self.writes) == 1:
+            self.first_wrote.set()
+            self.second_read.wait(self.WAIT)
+
+
+class ConcurrentParkTest(unittest.TestCase):
+    """#771: a stop parks the hint from two threads at once -- the browser's
+    `on_browse_enter` and `stop_to_browser` -- and a second park that reads
+    the first one's "no" saves it as the user's value. Every later start then
+    restores "no", and HDR passthrough is gone until the shim restarts."""
+
+    def test_two_parks_at_once_keep_the_users_value(self):
+        player = _InterleavingPlayer(hint="auto")
+        pm = ColorspaceHintTest._pm(None, player)
+
+        def first():
+            pm.suspend_colorspace_hint()
+            player.first_done.set()
+
+        a = threading.Thread(target=first)
+        a.start()
+        self.assertTrue(player.first_wrote.wait(5))
+        b = threading.Thread(target=pm.suspend_colorspace_hint)
+        b.start()
+        a.join(5)
+        b.join(5)
+        self.assertFalse(a.is_alive() or b.is_alive())
+
+        # Several start/stop cycles: a poisoned value would come back from
+        # every one of them, not just the first.
+        for _ in range(3):
+            pm.resume_colorspace_hint()
+            self.assertEqual(player.writes[-1], "auto")
+            pm.suspend_colorspace_hint()
+            self.assertEqual(player.writes[-1], "no")
 
 
 class BrowseWindowIntegrationTest(unittest.TestCase):

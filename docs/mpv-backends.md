@@ -26,10 +26,66 @@ established, so the code does not have to.
 | unknown attribute | `__getattr__` issues a **property read** | plain `AttributeError` |
 | a core in this process | yes | no — mpv is a child process |
 | property read cost | in-process call | synchronous IPC command |
+| `command("set", name, 5.0)` | works — the value is coerced to a string | **`MPVError: invalid parameter`** |
+
+**mpv's `set` command takes its value as a string**, and only one binding says
+so for you: python-mpv runs every argument through `_mpv_coax_proptype`, while
+python-mpv-jsonipc puts the raw JSON on the socket and mpv refuses a number.
+Measured both ways on mpv 0.41. So a `command("set", …)` written and tested on
+libmpv works there and silently does nothing on the external backend — silently
+because the callers that use this form wrap it, having been written for a
+*different* failure (`_apply_resume_offset` catches so that a resume which
+cannot be applied does not abort the playback start). That is how the resume
+position came to be applied on one backend only, and what caught it was the
+external-backend e2e leg, not any unit test. **Pass `str(value)`.**
 
 `_mpv_errors` is the tuple to catch. `mpv_events.wait_property` and
 `PlayerManager._observe` both discriminate on the **class**, not on a module
 flag, so they carry no global state and stay testable against a fake.
+
+### A refused property write becomes a Python attribute — on both
+
+Neither binding reports a property write mpv would not take. Both absorb it
+into `object.__setattr__`, and because `__getattr__` only runs when normal
+lookup fails, the attribute they leave behind answers every later read of that
+property **for the life of the process**. A later *successful* write does not
+clear it; only a restart does (measured, python-mpv 1.0.8).
+
+|  | swallows an absent property | swallows an unavailable one |
+|---|---|---|
+| libmpv (`python-mpv`) | yes — `AttributeError`, −8 | yes — `PropertyUnavailableError`, −10, which **subclasses** `AttributeError` |
+| external (`python-mpv-jsonipc`) | yes — the name is not in the `property-list` read at connect | no — the name *is* in that list, so the write goes out and errors |
+
+So it is not a libmpv-only defect; only the unavailable half is. A bad *value*
+raises `TypeError` on both and is not absorbed.
+
+The shipped instance is #761/#765: `_apply_resume_offset` wrote
+`playback_time`, playback ended between the duration gate and the write, and
+every later read reported the resume offset — so `_check_stalled_finish` saw a
+file parked at the end and advanced the queue on a timer, which reads as the
+server stalling. The second site is `set_osd_settings`, where a `try/except`
+written for exactly this absence cannot fire, and `get_osd_settings` then reads
+the shadow back as a border style the mpv does not have.
+
+**Which of the 84 property writes this reaches is a property of the user's mpv
+build**, not of this tree, so the live sites cannot be enumerated by reading
+them. `mpv_guard.guarded` is therefore one interception point: a subclass of
+whichever backend is live, overriding `__setattr__`, installed in
+`_construct_mpv` and armed once construction has returned — after the point,
+because both libraries assign their own bookkeeping through `__setattr__` on
+the way up and some of it genuinely is a plain Python attribute (python-mpv's
+`osd`/`raw`/`lazy`/`overlays`, jsonipc's `observer_id`, which it keeps
+assigning once per observer for the life of the object).
+
+**It never raises**, and that was ruled the other way first. 14 of the 84
+writes have further statements after them inside the same `try` — six after
+`keepaspect` at `player_window.py:522`, the picture-view/playback handoff that
+made every film play stretched — so a raise makes a test run take a path
+production never takes. What it does instead is record and log, and the
+*assertion* lives in the suite: `_harness.watch_refused_writes` is registered
+for every integration and e2e case without one opting in, so an mpv on this box
+that lacks a property the shim writes fails a test rather than quietly wearing
+a shadow.
 
 ### Which option an exception blames
 
@@ -284,6 +340,45 @@ which is mpv's own behaviour everywhere else.
 purpose — while the library or the HUD is up the pointer really is over a UI —
 and enables them only for as long as it is. The player's sections are enabled for
 the life of the process.
+
+### Forced does not mean first — the later section wins
+
+Two forced sections holding the same key is the normal case, not a corner one:
+`renderer.lua` forces ENTER, ESC, the arrows and `any_unicode`, and so do mpv's
+own `console.lua` and `context_menu.lua`. Which one gets the key is decided by
+**order**, not by the word "forced".
+
+Measured with `tools/probe_key_precedence.py`, which presses the key and reports
+the handler that ran rather than reading `priority` off `input-bindings`. Same
+answer for the console and the context menu, on two master builds:
+
+| when | who receives ENTER |
+|---|---|
+| nothing open | ours |
+| the overlay opens *after* our binding | the overlay's |
+| we re-bind while the overlay is up | **ours, and the overlay stays drawn** |
+
+Only the third row is an exposure, and it is not hypothetical: the HUD
+re-installs its nav keys on pointer movement and on every lifecycle event, so an
+overlay that came up first can lose its keyboard a moment later and remain on
+screen with nothing to activate. That is what the `user-data/mpv/console/open`
+handler exists for — it drops our claims for as long as the console is up.
+`any_unicode` does **not** escape the ordering rule, and it is worth being
+precise because the renderer depends on it not escaping: it outranks an exact
+key installed *before* it, and loses to one installed after. That is exactly why
+`ui_resume` binds the browse block **first** and says so at `renderer.lua:5771` —
+installed last it swallowed a printable `ui_select_key` (#717). The console
+handler still has to release it, because the console's own keys go in after
+ours.
+
+**The comment on that handler said the opposite for a release** — that our
+bindings outranked the console — and the handler was right for a reason its own
+comment did not give. The rule was in the file the whole time: `:5771` states it
+correctly, 1,200 lines away, because getting it wrong there had cost #717. One
+rule, right at one site and wrong at another, which is the shape
+`docs/RISK_MAP_2026-09.md` §2 is a table of. `tools/audit_key_bindings.py:PUBLISHED` now enumerates
+every `user-data/mpv/*` property mpv's builtin scripts set, with what the
+renderer owes each; `context-menu/open` is recorded there as watched by nothing.
 
 ### Which keys the shim binds, and why so few (#16)
 
@@ -1056,8 +1151,22 @@ putting our queue into MPV's."
 Upstream thumbfast publishes `{width, height, scale_factor, disabled,
 available, socket, thumbnail, overlay_id}`. `socket` and `thumbnail` are
 artifacts of its second-mpv-instance design — an IPC socket and an output file
-— and the shim has neither, so it does not fake them. `scale_factor` *is*
-sent, always `1`: `width`/`height` already arrive pre-multiplied exactly as
-upstream sends them, so nothing needs it, but an OSC that divides by it to
-recover a logical size gets an arithmetic error on `nil` rather than a
+— and the shim has neither, so it does not fake them. `scale_factor` is the factor
+the frame is drawn at (`thumbnail_scale`, or the display's) with
+`width`/`height` already multiplied by it, which is what upstream's means too:
+its `scale_factor` is the `dw`/`dh` enlargement. It is sent even at `1`, since
+an OSC that divides by it gets an arithmetic error on `nil` rather than a
 thumbnail.
+
+### `thumbfast-render` is not implemented; `shim-thumbfast-render` is
+
+Upstream lets an OSC draw the frame itself: it asks with empty `x`/`y` and its
+script name, and is sent a `thumbfast-render` naming a file that holds **one**
+frame. The shim's file holds a window of them (`docs/artwork-pipeline.md` §11),
+so an OSC following that contract would draw the window's first frame for every
+position — and honouring it faithfully would mean writing a single-frame file
+per frame change. So the same request is answered with
+`shim-thumbfast-render {available, file, offset, frame_width, frame_height,
+width, height, scale_factor, overlay_id}`, once per frame, with
+`available: false` when the position is outside the loaded window. An OSC
+written for upstream never registers that message and simply gets nothing.

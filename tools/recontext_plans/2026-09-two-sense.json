@@ -1,0 +1,83 @@
+[
+  {
+    "msgid": "Default",
+    "why": "A choice in the scrim dropdown ('change nothing, let MPV decide') and a Media Info flag marking the stream a player picks. jellyfin-web needs Default and MediaInfoDefault, and 15 of its languages translate them differently. The settings sense is the older one: it entered the catalogue on 2026-08-01, the flag on 2026-08-08 (3eea6e47).",
+    "contexts": [
+      {
+        "ctx": "setting value",
+        "web_key": "Default",
+        "web_sibling": "MediaInfoDefault",
+        "since": "3eea6e47^"
+      },
+      {
+        "ctx": "media stream flag",
+        "web_key": "MediaInfoDefault",
+        "web_sibling": "Default"
+      }
+    ]
+  },
+  {
+    "msgid": "Later",
+    "why": "The guide's 'forward a few hours' and the update banner's 'put it off'. The guide sense reached the catalogue on 2026-07-28; the banner one on 2026-08-22 (04a6ae5f), so anything translated before that commit is the guide.",
+    "contexts": [
+      {
+        "ctx": "guide navigation",
+        "since": "04a6ae5f^"
+      },
+      {
+        "ctx": "update banner"
+      }
+    ]
+  },
+  {
+    "msgid": "Repeat",
+    "why": "A Live TV guide badge (an adjective: this episode has been shown before) and the loop button on the now-playing bar (a verb). jellyfin-web's single Repeat key sits with RepeatAll/RepeatOne/RepeatMode, so every seeded value is the playback sense; the badge arrived on 2026-07-28 (07ad2c26).",
+    "contexts": [
+      {
+        "ctx": "playback control",
+        "since": "07ad2c26^"
+      },
+      {
+        "ctx": "guide badge"
+      }
+    ]
+  },
+  {
+    "msgid": "Confirm",
+    "why": "The Set PIN dialog's 'type it again' field label (a verb) and the default title of the yes/no dialog (a noun). Both senses arrived in the same commit, so there is no earlier one to inherit and nothing to date against: every locale is fuzzy on both.",
+    "contexts": [
+      {
+        "ctx": "form label"
+      },
+      {
+        "ctx": "dialog heading"
+      }
+    ]
+  },
+  {
+    "msgid": "Top",
+    "why": "Where subtitles are drawn on screen, and the queue and playlist editors' button that moves rows to the start of the list. The subtitle sense has been in the catalogue since 2020-08-10; the list one arrived on 2026-07-24 (ad0a141b).",
+    "contexts": [
+      {
+        "ctx": "subtitle position",
+        "since": "ad0a141b^"
+      },
+      {
+        "ctx": "list position"
+      }
+    ]
+  },
+  {
+    "msgid": "Bottom",
+    "why": "Where subtitles are drawn on screen, and the queue and playlist editors' button that moves rows to the end of the list. Same dates as Top.",
+    "contexts": [
+      {
+        "ctx": "subtitle position",
+        "since": "ad0a141b^"
+      },
+      {
+        "ctx": "list position"
+      }
+    ]
+  }
+]

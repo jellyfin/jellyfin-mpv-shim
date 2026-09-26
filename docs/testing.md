@@ -135,6 +135,36 @@ The case histories, because the abstract rule is easy to nod at and hard to appl
 `tests/integration/test_playback_start.py` is what fixing `FakeMPV` unlocked: the
 three ways a start fails, which a real mpv cannot be asked to perform on cue.
 
+### The field `FakeMPV` did not model was failure
+
+It refused an unmodelled **read** and accepted an unmodelled **write** — and a
+refused write is the whole subject of `mpv_guard` (docs/mpv-backends.md section 1).
+So the fake takes an injectable absent-property set, empty by default, through
+`property_is_absent("osd-border-style")`: one set and one branch in a
+`__setattr__` that already existed, and the only way to exercise the version-skew
+path without owning fourteen mpv builds.
+
+Deliberately not the other way round. A fake that refused every name it does not
+model would enumerate mpv's property list inside this repository and then assert
+the shim agrees with it, which is the *self-agreeing* shape rather than a fact
+about mpv — and it would fail on the first legitimate name somebody adds.
+
+The assertion around it is `_harness.watch_refused_writes`, registered by
+`build_player` on the case that called it and by `E2ETestCase.setUp` for every e2e
+case, so **nothing opts in**. Integration has no shared base to put a cleanup in,
+and a base added now would cover only the files somebody remembered to re-parent;
+`build_player` is the one thing all 47 sites call, which is why its `test`
+parameter is enforced by `tools/audit_build_player_calls.py` (via
+`tests/test_no_unwatched_players.py`) rather than remembered.
+
+What it is worth differs by suite, and saying so is the point. Against a real mpv
+(e2e, and the three integration files that run the real `_init_mpv`) it is a
+version-skew detector, and different boxes and CI images carry different builds, so
+the population gets covered over runs rather than per run. Against `FakeMPV` it can
+only fire for a property a test declared absent — a hook that cannot otherwise
+fail, which is the shape section 7 is about. It is installed for what it stops
+somebody doing later: making the fake lenient again with nothing to notice.
+
 `tools/probe_hover_overlay_cost.py` is the number behind that last one: it drives a
 real mpv, sweeps the pointer across a grid, and prints the overlay traffic per move
 from the renderer's own `ov_adds` / `ov_bytes`. Measured on Windows (d3d11/WARP,
@@ -149,6 +179,25 @@ against what each stand-in provides, and `tests/test_no_fake_gaps.py` runs it. S
 standing as the stale-capture audit — a lead generator, with an `accepted` list per
 pair for what genuinely needs no modelling. It knows what is *reached for*, never
 whether the answer is honest.
+
+**And it cannot see a field that is present and permanently dead.** The audit asks
+which field a stand-in *omitted*, so a fake that names every column and populates six
+of them satisfies it completely. Measured 2026-09-12: seven test modules built
+downloads rows with `content_server_id` unset — an **orphan**, which is a separate
+contract that never syncs — and one of them filed twenty-two userdata writes onto the
+orphan key while the suite stayed green, because the write and its read were re-keyed
+together and pass/fail cannot see that. The worst offender was
+`{c: None for c in COLUMNS}`, which omits nothing.
+
+Two instruments came out of it, and the split is the useful part.
+`tools/audit_row_fixtures.py` (via `tests/test_no_orphan_fixtures.py`) is the lint: it
+reads dict keys, subscripts **and keyword arguments**, the last because a helper ending
+in `row.update(kw)` is how the honest modules set the column, and leaving keywords out
+reported one of them as broken. The lint is file-level and cannot say which *row* is
+unhomed; that needs the other instrument — wrapping the writers to record the physical
+key each call resolves to, which is a measurement you run once, not a check you keep.
+**When a column's absence changes meaning rather than coverage, the absence check is
+the wrong shape.**
 
 ## 5. "In which order" — the journal
 
@@ -271,6 +320,29 @@ is one process and nothing splits it.
 `tests/test_parallel_runner.py` pins the one invariant the runner cannot check
 about itself: the modules it would run are the modules discover collects. A
 module it silently skips reports exactly like a module that passed.
+
+### The parallel runner cannot see cross-module interference, and that is the trade
+
+One process per module means a module that poisons the interpreter poisons only
+itself, so `run_tests_parallel.py` is green on exactly the failures the
+whole-suite run exists to find. **`discover tests` is still the command that has
+to pass before shipping**, and this is why.
+
+Measured, and it is not hypothetical. `tests/test_interface_language.py` patched
+`gettext.translation` and called `i18n.configure()` — which stores what it gets
+in the module global every `_()` in the app reads. The patch came off; the stored
+MagicMock did not. Every module imported after it alphabetically got a `_()` that
+returned a mock, so **around 340 assertions about user-facing strings failed**,
+in modules with nothing to do with i18n, on both platforms. Per-module it passed.
+Under the parallel runner it passed. It failed only under the one command that
+runs everything in one interpreter, which had been red for long enough that the
+noise read as the baseline.
+
+Two things follow. A test that mutates process-global state restores it in
+`addCleanup`, *including state a `mock.patch` context put there indirectly* —
+the patch covers the function, never what the caller did with its return value.
+And a whole-suite run that is red is not a baseline: it is a leak, and it hides
+the next one.
 
 ### The integration matrix stays serial
 
@@ -413,3 +485,132 @@ Two symptoms to recognise, because neither names the layout:
 long before the library is usable, and `stdjflib serve` runs a rescan at the
 end. Poll `/ScheduledTasks` for `RefreshLibrary` to reach `State == "Idle"`
 before trusting any result; alive is not correct.
+
+## 12. A fixture is a suspect whenever it is what makes a repair provable
+
+The review round on `sync-and-lifecycle-fixes` found seven defects **inside
+the previous round's own fixes**, and the repairs were reverted rather than
+patched a third time. Two of those failures were not code at all: a test
+manufactured the one condition that made a wrong repair look right. The
+repairs were redone afterwards, and the same shape appeared twice more —
+four instances in one arc, which is why it is written here rather than in a
+commit message.
+
+All four have the same silhouette. The fixture is the thing standing between
+the assertion and the truth, and it is written by whoever most wants the
+repair to work.
+
+- **It supplied a value no caller supplies.** A cross-server test called
+  `_add_row` with an explicit `server_id`; the only real caller read that out of
+  the apiclient's config, under a key that client never assigns
+  (`docs/do-not-fix.md` 1). The repair scoped on that column and was green —
+  against a catalog where the column was `NULL` on every row ever written, and
+  which has since been dropped outright.
+- **It cleared the cache that would have failed the assertion.** The same
+  test emptied `_library_ids` between the two writes, so the process-wide
+  cache the defect lived in was never exercised.
+- **It left behind state a real transition removes.** A test for a login
+  that outlives a user switch kept the credential in the manager's live
+  list. `_adopt_active_user` repoints that list at the user now active, so
+  the real path has no such entry — and the mutation that should have failed
+  passed.
+- **It gave the wrong thing enough time to finish.** A test that the connect
+  no longer waits for a name lookup held the resolver for two seconds and
+  gave the connect five to return, so a lookup still *on* the connect path
+  completed inside the wait and the test passed. The budgets have to be
+  lopsided the other way.
+
+**The check that finds these is a mutation, not a re-reading.** Each was
+caught by breaking the code the test claims to pin and watching the test stay
+green — not by inspecting the fixture, which reads as reasonable in all four
+cases. So: after writing a test for a repair, put the defect back and watch
+it fail. If it does not, the fixture is the reason.
+
+The corollary for reviewing someone else's green test: ask *which field of
+the real object did this stand-in not model*, and *what does this fixture set
+up that the real path would have torn down*.
+
+### Running a round: `tools/mutate_round.py`
+
+A plan under `tools/mutation_plans/` lists `(what breaking this represents,
+file, old, new)` and a `SELECT` of `-k` filters. The runner checks every
+`old` matches exactly once, runs the baseline, then breaks and restores one
+mutation at a time. A survivor is a claim without evidence.
+
+```sh
+python3 tools/mutate_round.py <plan> --list        # what is in it
+python3 tools/mutate_round.py <plan> --dry-run     # do the patterns still apply?
+xvfb-run -a python3 tools/mutate_round.py <plan> -p            # the round
+xvfb-run -a python3 tools/mutate_round.py <plan> --only retreat -p
+python3 tools/mutate_round.py --restore            # after a killed round
+```
+
+**`--only` is the negative control**, and it is the one to reach for the
+moment a survivor gets a new test: one mutation instead of thirty, so seconds
+instead of half an hour. A round you can only run in twenty-five minute
+blocks is one you run once and then work alongside, which is the whole
+problem below.
+
+`-p` is a smaller win than it sounds and the measurement is recorded so
+nobody re-derives it: 38.7 s per suite run against 47 s serial on this plan,
+about 18%. A parallel run costs its slowest module, and `test_sync_manager.py`
+is ~40 s on its own. Use it for the *report* rather than the clock — a serial
+failure says `FAILED (failures=1)` and a parallel one names the module that
+killed the mutation. It also carries a deadline (`-t`, default 300 s): a
+mutation can turn a loop infinite, and a hung worker inside a round holds a
+mutation in the working tree for as long as it lasts.
+
+**While a round runs, the working tree is not yours.** It rewrites the
+plan's files under you and, until 2026-09-13, left no trace of having done
+so. Three failures in one session, and the runner now has one guard each:
+
+- **A killed round left a mutation in the tree.** `finally: restore` does not
+  survive SIGKILL and nothing recorded which file was broken, so a mutation
+  sat in `sync/db.py` looking exactly like code somebody had written; the
+  suite found it three modules later. Every write is now journalled to
+  `.git/mutate-round/` *before* it happens, and the next invocation puts it
+  back — `--restore` does only that.
+- **Editing source mid-round reverts it, twenty minutes later.** Backups are
+  taken once, up front, so an edit made during mutation 4 is overwritten by
+  the restore for mutation 19. The runner now hashes what it wrote and
+  **rescues** anything different into `.git/mutate-round/rescued/` with a
+  loud line, rather than throwing it away.
+- **A live round is invisible.** The journal carries a pid, and a second
+  invocation refuses while it is alive.
+
+`.git/mutate-round/` rather than `/tmp`, for the same reason the diagnose
+tooling keeps its evidence there: outside the working tree, so no revert
+carries it off, and findable after a reboot without remembering a random
+directory name.
+
+`-p` runs the SELECTed modules concurrently through `run_tests_parallel.py`'s
+own worker, so the argv neutralisation and the `sys.path` insert stay in one
+place. It declines when a `-k` pattern does not name a module file, because
+`-k` also matches class and method names and a module-level split would then
+run a different set than the serial round does. Same trade as §9: it cannot
+see cross-module interference.
+
+### Known flakes on this hardware
+
+Re-run before believing any of these; each has been seen once in a full run
+and passed in isolation.
+
+- `test_mpvtk_browser.TestRealMousePosPath.test_the_real_pointer_hovers_leaves_and_comes_back`
+  (integration, libmpv) — `mouse-pos` comes back `{hover: False, x: -1,
+  y: -1}`. It drives a real mpv window with `mouse x y` and reads back after
+  a fixed delay, which is the timing this class of test cannot promise under
+  Xvfb. Passed on jsonipc in the same run and on re-run.
+- `test_offline_sync.PushedUserDataReachesTheCatalogTest.test_not_even_the_one_that_finishes_it`
+  (e2e, Windows VM, seen 2026-09-12) — asserts that a completing progress
+  report announces nothing, and received a payload of ~100 items with season
+  and series roll-ups (`PlayedPercentage: 100`, `UnplayedItemCount: 0`). That
+  is a *series-wide mark*, which is not what the test does: it is
+  `test_a_series_mark_fans_out_the_way_the_server_does` arriving late, and
+  the test's own docstring already names that hazard ("the previous action's
+  event arriving after the inbox was cleared"). Passed alone and in a clean
+  full re-run. Two logical CPUs make a late websocket delivery much likelier
+  here than on the Linux box.
+- Leftover playlists from an e2e run killed mid-flight — a killed process
+  never runs its cleanup. Section 11.
+- `test_playback_advance` under heavy machine load: the episode it advances
+  into is ten seconds long and plays out while the earlier waits run.

@@ -5551,6 +5551,32 @@ msgstr "Uppspelningsprofiler"
 msgid "Select Shader Profile"
 msgstr "Välj shaderprofil"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Upprepa"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Upprepa"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Längst upp"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Längst upp"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Längst ner"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Längst ner"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

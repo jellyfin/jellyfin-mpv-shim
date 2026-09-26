@@ -5598,6 +5598,40 @@ msgstr "Videoavspillingsprofiler"
 msgid "Select Shader Profile"
 msgstr "Velg shaderprofil"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Standard"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Standard"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Gjenta"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Gjenta"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Øverst"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Øverst"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Nederst"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Nederst"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

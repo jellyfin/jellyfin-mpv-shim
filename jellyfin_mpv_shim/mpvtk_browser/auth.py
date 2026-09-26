@@ -12,7 +12,8 @@ core's ``navigate`` / ``nav_stack``.
 
 import logging
 
-from ..i18n import _
+from ..constants import REAUTH_WRONG_SERVER
+from ..i18n import _, _p
 from ..mpvtk.widgets import (
     Box,
     Busy,
@@ -27,7 +28,7 @@ from ..mpvtk.widgets import (
     TextBox,
 )
 from . import theme
-from .components import chrome
+from .components import chrome, server_icon
 
 log = logging.getLogger("mpvtk_browser.auth")
 
@@ -139,7 +140,8 @@ class AuthMixin:
             rows += [
                 self._pin_field(_("New PIN"), "ps-new", state, "new",
                                 on_submit=save),
-                self._pin_field(_("Confirm"), "ps-confirm", state, "confirm",
+                self._pin_field(_p("form label", "Confirm"), "ps-confirm",
+                                state, "confirm",
                                 on_submit=save),
                 Checkbox(_("Require this PIN at startup"), state["startup"],
                          id="ps-startup",
@@ -215,18 +217,47 @@ class AuthMixin:
 
     # --------------------------------------------------------------- login
 
-    def show_login(self):
+    def show_login(self, reauth=None):
         """Show the add-server / login screen.
 
         Only resets the nav stack when there is nowhere to go back *to*: with
         servers already connected this is "add another", and cancelling has
         to return you to the library rather than trapping you on the form.
+
+        ``reauth`` is a saved server whose token the server no longer accepts
+        -- ``{"uuid", "name", "address", "username"}``. The same form, because
+        it is the same three fields and the same two ways to fill them, but
+        the login is sent as a **replacement** for that server rather than as
+        a new one: see ``ClientManager.reauthenticate`` for why the identity
+        has to survive. Without this the only way back into a signed-out
+        server was to remove it and add it again, which silently orphaned
+        every download made from it.
         """
-        route = {"kind": "login", "title": _("Add Server")}
-        if self.server is None:
+        route = {"kind": "login",
+                 "title": _("Sign In Again") if reauth else _("Add Server")}
+        if reauth:
+            route["_reauth"] = dict(reauth)
+            # Seeded here, on the navigation, rather than in the builder: a
+            # builder runs on every repaint and would overwrite whatever the
+            # user was halfway through typing (docs/browser-shell.md 3).
+            self._login["server"] = reauth.get("address") or ""
+            self._login["user"] = reauth.get("username") or ""
+            self._login["pass"] = ""
+            self._login_error = None
+        # Cleared on every arrival, not accumulated: a stale list from the
+        # last time this screen was open would offer addresses that may no
+        # longer be there, and the scan below is a second away.
+        self._discovered = []
+        if self.server is None and not reauth:
             self.navigate(route, reset=True)
         else:
             self.navigate(route)
+        # Not while re-authenticating: every row here fills in a DIFFERENT
+        # server's address, which is the one edit that turns that form back
+        # into "add a server" without saying so -- the same reason the known
+        # servers block is hidden there.
+        if not reauth:
+            self._scan_for_servers()
 
     def _render_login(self, route, size):
         def field(fid, ph, key, mask=False):
@@ -243,23 +274,47 @@ class AuthMixin:
             ], gap=12, align="center")
 
         qc = route.get("_qc")
-        rows = [Text(_("Connect to Jellyfin"), size="hero", bold=True)]
+        reauth = route.get("_reauth")
+        if reauth:
+            rows = [
+                Text(_("Sign In Again"), size="hero", bold=True),
+                # Named, because this form is reachable for two different
+                # servers and the fields are pre-filled either way -- a user
+                # who cannot see which one they are signing into has to
+                # guess whose password to type.
+                Text(_("Your saved login for %s is no longer accepted. "
+                       "Signing in again keeps its downloads and settings.")
+                     % (reauth.get("name") or reauth.get("address") or ""),
+                     size="small", color=theme.SUBTLE_FG, wrap=True, w=460),
+            ]
+        else:
+            rows = [Text(_("Connect to Jellyfin"), size="hero", bold=True)]
         if self._login_error:
             rows.append(Text(self._login_error, size="small", color=theme.FAV_RED))
 
         known = []
-        if self.controller is not None and not qc:
+        # Not offered while re-authenticating: every entry fills in a
+        # *different* server's address, which is the one edit that turns this
+        # form back into "add a server" without saying so.
+        if self.controller is not None and not qc and not reauth:
             try:
                 known = self.controller.known_servers() or []
             except Exception:
                 known = []
+        # Above the saved list, because this is the block that answers "what
+        # is my server's address" for somebody who has never typed one.
+        if not qc and not reauth:
+            rows += self._discovered_rows(route)
         if known:
             rows.append(Text(_("Previously added servers"), size="small",
                              color=theme.SUBTLE_FG))
             for i, k in enumerate(known):
                 addr = k.get("address", "")
                 rows.append(Row([
-                    Icon("radio", 16, color=theme.SUBTLE_FG),
+                    # These are addresses, not connections -- nothing has
+                    # been tried yet -- so the glyph says only where each
+                    # one is.
+                    Icon(server_icon(k), 16, color=theme.SUBTLE_FG),
                     Text(k.get("name") or addr, size="normal", flex=1),
                     Button(_("Use"), id="login-known-%d" % i, size="small",
                            on_click=lambda a=addr: self._use_known_server(a)),
@@ -269,7 +324,7 @@ class AuthMixin:
                     # starting over — on the one screen where the point is
                     # not to type anything.
                     Button(_("Quick Connect"), id="login-known-qc-%d" % i,
-                           size="small", icon="radio",
+                           size="small", icon="phonelink_lock",
                            on_click=lambda a=addr: self._quick_connect_to(
                                route, a)),
                 ], id="login-known-row-%d" % i, pad=8, gap=10, radius=6,
@@ -297,8 +352,11 @@ class AuthMixin:
                 field("login-user", _("Username"), "user"),
                 field("login-pass", _("Password"), "pass", mask=True),
                 Row([
+                    # jellyfin-web's own Quick Connect icon. It was a radio
+                    # receiver, which reads as broadcast only if you already
+                    # knew what the button did.
                     Button(_("Use Quick Connect"), id="login-qc",
-                           icon="radio",
+                           icon="phonelink_lock",
                            on_click=lambda: self._start_quick_connect(route)),
                     Spacer(),
                     # Only offer Cancel when there's something to go back to;
@@ -306,7 +364,8 @@ class AuthMixin:
                     Button(_("Cancel"), id="login-cancel",
                            on_click=self.go_back)
                     if len(self.nav_stack) > 1 else Spacer(h=0),
-                    Button(_("Connect"), id="login-connect",
+                    Button(_("Sign In") if reauth else _("Connect"),
+                           id="login-connect",
                            on_click=self._do_login),
                 ], gap=10, align="center"),
             ]
@@ -317,6 +376,64 @@ class AuthMixin:
                     Row([Spacer(), form, Spacer()]),
                     Spacer()],
                    flex=1, direction="column", align="stretch", gap=10)
+
+    def _scan_for_servers(self):
+        """Look for servers on this network, in the background.
+
+        A second of broadcast on the loop thread would freeze the form for a
+        second, and the answer is worth nothing if the user cannot type while
+        it arrives.
+
+        Nothing is selected and nothing is signed into: the replies are not
+        authenticated -- anything on the network can answer with any name and
+        any address -- so this offers addresses and the user chooses one.
+        """
+        if self.controller is None:
+            return
+        scan = getattr(self.controller, "discover_servers", None)
+        if scan is None:
+            return
+        ep = self._epoch
+
+        def done(found):
+            self._discovered = list(found or [])
+            if self._discovered:
+                self.invalidate()
+
+        self.run_async(lambda: scan(), done, ep)
+
+    def _discovered_rows(self, route):
+        """The "Servers on your network" block, or [] when nothing answered.
+
+        **The address is shown, not only the name.** A discovery reply is
+        unauthenticated, so the name is whatever the answering machine chose
+        to call itself and the address is the only part a user can judge --
+        see the apiclient's `discovery` module, which says the same thing to
+        its own callers.
+        """
+        found = [s for s in (self._discovered or []) if s.get("Address")]
+        if not found:
+            return []
+        rows = [Text(_("Servers on your network"), size="small",
+                     color=theme.SUBTLE_FG)]
+        for i, server in enumerate(found):
+            address = server.get("Address") or ""
+            name = server.get("Name") or address
+            rows.append(Row([
+                Icon("lan", 16, color=theme.SUBTLE_FG),
+                # Two lines rather than one: the name is the thing you
+                # recognise and the address is the thing you check, and at
+                # 460px one line of "Name -- http://10.0.0.5:8096" ellipsizes
+                # away exactly the half that is evidence.
+                Column([
+                    Text(name, size="normal"),
+                    Text(address, size="small", color=theme.SUBTLE_FG),
+                ], gap=2, flex=1),
+                Button(_("Use"), id="login-found-%d" % i, size="small",
+                       on_click=lambda a=address: self._use_known_server(a)),
+            ], id="login-found-row-%d" % i, pad=8, gap=10, radius=6,
+               align="center", bg=theme.PANEL_BG))
+        return rows
 
     def _use_known_server(self, address):
         self._login["server"] = address
@@ -349,20 +466,30 @@ class AuthMixin:
                 qc["status"] = _("Waiting for approval…")
                 self.invalidate()
 
-        def work():
-            return self.controller.quick_connect(
-                server, on_code,
-                lambda: (route.get("_qc") or {}).get("cancelled", True))
+        reauth = route.get("_reauth")
 
-        def done(ok):
+        def cancelled():
+            return (route.get("_qc") or {}).get("cancelled", True)
+
+        def work():
+            if reauth:
+                return self.controller.reauthenticate_quick_connect(
+                    reauth["uuid"], on_code, cancelled, address=server)
+            return (self.controller.quick_connect(server, on_code, cancelled),
+                    None)
+
+        def done(result):
+            ok, reason = result
             if (route.get("_qc") or {}).get("cancelled"):
                 return
             route.pop("_qc", None)
             if ok:
                 self._login_error = None
-                self._after_login(before)
+                self._after_login(before,
+                                  landing=reauth["uuid"] if reauth else None)
             else:
-                self._login_error = _("Quick Connect was not approved.")
+                self._login_error = self._login_failure(
+                    reason, _("Quick Connect was not approved."))
         self.run_async(work, done, ep)
 
     def _cancel_quick_connect(self, route):
@@ -372,26 +499,57 @@ class AuthMixin:
         route.pop("_qc", None)
         self.invalidate()
 
+    @staticmethod
+    def _login_failure(reason, fallback):
+        """The error line under the form.
+
+        Only a reason the user would act on differently earns its own
+        string. A wrong address is that: the generic line asks them to check
+        their details, and someone whose password is right retypes it
+        instead of looking at the field that is actually wrong.
+        """
+        if reason == REAUTH_WRONG_SERVER:
+            return _("That address is a different server. To sign in to it, "
+                     "add it as a new server instead.")
+        return fallback
+
     def _do_login(self):
         if self.controller is None:
             return
         info = dict(self._login)
+        reauth = (self.route or {}).get("_reauth")
         self._login_error = _("Connecting…")
         self.invalidate()
         ep = self._epoch
         before = self._known_server_uuids()
 
         def work():
+            if reauth:
+                return self.controller.reauthenticate(
+                    reauth["uuid"], info["user"], info["pass"],
+                    address=info["server"])
+            # Normalised to the re-auth shape here rather than at `done`,
+            # so the unpacking below has one case instead of two.
             return self.controller.add_server(
-                info["server"], info["user"], info["pass"])
+                info["server"], info["user"], info["pass"]), None
 
-        def done(ok):
+        def done(result):
+            ok, reason = result
             if ok:
                 self._login_error = None
-                self._after_login(before)
+                # A re-auth adds no server, so the "which one is new"
+                # difference is empty by construction and the landing server
+                # has to be named. Without it `_pick_server` falls back to
+                # the last one browsed -- which, having just signed in to a
+                # different server on purpose, is the wrong one.
+                self._after_login(before,
+                                  landing=reauth["uuid"] if reauth else None)
             else:
-                self._login_error = _(
-                    "Could not connect. Please check your details.")
+                generic = (
+                    _("Could not sign in. Please check your details.")
+                    if reauth else
+                    _("Could not connect. Please check your details."))
+                self._login_error = self._login_failure(reason, generic)
         self.run_async(work, done, ep)
 
     def _known_server_uuids(self):
@@ -401,7 +559,7 @@ class AuthMixin:
         except Exception:
             return set()
 
-    def _after_login(self, before=None):
+    def _after_login(self, before=None, landing=None):
         """Land on the server that was just added, not the last one browsed.
 
         `set_source` with no uuid asks `_pick_server`, whose fallback is
@@ -411,12 +569,17 @@ class AuthMixin:
         reads as the login having done nothing.
 
         Identified by difference rather than by plumbing a uuid back through
-        `add_server` -> `clientManager.login` -> `_finalize_login`: a login
-        can also re-authenticate a server already in the list (and
-        `force_unique` deliberately reuses its uuid), and there the honest
-        answer is "nothing new", which is exactly what an empty difference
-        says. `before=None` keeps the old behaviour for any caller that did
+        `add_server` -> `clientManager.login` -> `_finalize_login`: this form
+        can also re-authenticate a server already in the list, which keeps its
+        uuid (`replacing_uuid`), and there the honest answer is "nothing new" --
+        exactly what an empty difference says. `before=None` keeps the old behaviour for any caller that did
         not sample it.
+
+        ``landing`` names the server outright, for the one case the
+        difference cannot answer: re-authenticating adds nothing, so the
+        difference is empty by construction and the fallback would land on
+        whichever server was browsed last rather than the one just signed
+        back into.
         """
         source = None
         if self.controller is not None:
@@ -426,8 +589,8 @@ class AuthMixin:
                 log.warning("rebuild_source failed", exc_info=True)
         if source is None:
             return
-        added = None
-        if before is not None:
+        added = landing
+        if added is None and before is not None:
             try:
                 added = next((s.get("uuid") for s in (source.servers() or [])
                               if s.get("uuid") not in before), None)

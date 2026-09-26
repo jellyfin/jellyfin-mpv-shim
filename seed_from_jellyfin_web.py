@@ -101,7 +101,27 @@ CONTEXT_KEYS = {
     ("series recording rule setting", "Channels"): "LabelChannels",
     ("dialog heading", "Download"): "Download",
     ("home screen section type", "None"): "None",
+    # jellyfin-web splits this pair too, and 15 of its languages translate
+    # the two differently. tools/po_recontext.py already seeded the locales
+    # that had a translation when the split happened; this is what keeps a
+    # later sweep sending each sense to the right key.
+    ("setting value", "Default"): "Default",
+    ("media stream flag", "Default"): "MediaInfoDefault",
 }
+
+#: Contexts with no jellyfin-web key at all, listed so a reader does not go
+#: looking. `Later`, `Confirm`, `Top` and `Bottom` are ours: jellyfin-web has
+#: one key or none for each English word, so it can neither seed them nor
+#: have detected that they carry two senses. They were found by reading the
+#: call sites while writing the .pot's translator comments, and they are the
+#: half of the ambiguity problem the canary cannot reach.
+UNSEEDABLE_CONTEXTS = (
+    ("guide navigation", "Later"), ("update banner", "Later"),
+    ("form label", "Confirm"), ("dialog heading", "Confirm"),
+    ("subtitle position", "Top"), ("list position", "Top"),
+    ("subtitle position", "Bottom"), ("list position", "Bottom"),
+    ("playback control", "Repeat"), ("guide badge", "Repeat"),
+)
 
 BRACE = re.compile(r"\{([^{}]*)\}")
 PRINTF = re.compile(r"%(?:\(([^)]*)\))?[-#0 +]*[\d*]*(?:\.[\d*]+)?[hlL]?([a-zA-Z%])")

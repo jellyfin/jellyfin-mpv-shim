@@ -18,6 +18,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
 
+import os
 import sys
 import unittest
 
@@ -249,6 +250,96 @@ class ScriptPassingTest(SettingsCase):
         opts = self.build("default", [])
         self.assertNotIn("script", opts)
         self.assertNotIn("scripts", opts)
+
+
+class BundledCpluginTest(SettingsCase):
+    """#772: the Flatpak ships `mpv_inhibit_gnome.so`, the manifest grants it
+    `org.gnome.SessionManager`, and it has never loaded -- measured as zero
+    `Inhibit` calls during playback on the shipped 3.0.0 build.
+
+    Both halves are asserted because neither works alone: the explicit path
+    (because `config_dir` stops mpv scanning for it) and the `RTLD_GLOBAL`
+    promote (because python-mpv loads libmpv `RTLD_LOCAL`, so the plugin fails
+    with `undefined symbol: mpv_observe_property`).
+    """
+
+    def _sandbox(self, *names):
+        """A Flatpak with these files in its cplugin directory."""
+        root = _tmpdirs.tmpdir("jms-flatpak-")
+        for name in names:
+            # Binary: these are empty marker files, not text
+            # (tests/test_no_platform_text_reads.py).
+            open(os.path.join(root, name), "wb").close()
+        marker = os.path.join(root, ".flatpak-info")
+        open(marker, "wb").close()
+        return (mock.patch.object(mpv_options, "FLATPAK_MARKER", marker),
+                mock.patch.object(mpv_options, "FLATPAK_CPLUGIN_DIR", root),
+                root)
+
+    def test_inside_the_flatpak_the_plugin_is_named_and_libmpv_promoted(self):
+        marker, plugin_dir, root = self._sandbox("mpv_inhibit_gnome.so")
+        self.set(mpv_ext=False)
+        with marker, plugin_dir, \
+                mock.patch.object(mpv_options.ctypes, "CDLL") as cdll, \
+                mock.patch.object(sys, "platform", "linux"):
+            opts = self.build("default", ["a.lua"])
+
+        self.assertEqual(
+            "a.lua:" + os.path.join(root, "mpv_inhibit_gnome.so"),
+            opts["scripts"],
+            "the bundled cplugin was not named, so config_dir keeps mpv from "
+            "ever scanning for it")
+        cdll.assert_called_once_with("libmpv.so.2",
+                                     mode=mpv_options.ctypes.RTLD_GLOBAL)
+
+    def test_outside_a_flatpak_nothing_happens(self):
+        """The control, and the reason this is a constant rather than a check
+        of `/.flatpak-info` inline: every other install must be untouched."""
+        self.set(mpv_ext=False)
+        with mock.patch.object(mpv_options, "FLATPAK_MARKER",
+                               "/nonexistent/.flatpak-info"), \
+                mock.patch.object(mpv_options.ctypes, "CDLL") as cdll, \
+                mock.patch.object(sys, "platform", "linux"):
+            opts = self.build("default", ["a.lua"])
+
+        self.assertEqual("a.lua", opts["scripts"])
+        self.assertFalse(cdll.called, "libmpv was promoted outside a Flatpak")
+
+    def test_the_external_backend_loads_its_own(self):
+        """A real mpv binary scans for and loads its own cplugins, and there
+        is no in-process libmpv whose symbols could need promoting."""
+        marker, plugin_dir, root = self._sandbox("mpv_inhibit_gnome.so")
+        self.set(mpv_ext=True)
+        with marker, plugin_dir, \
+                mock.patch.object(mpv_options.ctypes, "CDLL") as cdll:
+            opts = self.build("default", ["a.lua"], ext_mpv=True)
+
+        self.assertEqual(["a.lua"], opts["script"])
+        self.assertFalse(cdll.called)
+
+    def test_no_libmpv_to_promote_means_no_plugin(self):
+        """Naming a cplugin that cannot resolve its symbols only makes mpv
+        fail louder, so the two go together or not at all."""
+        marker, plugin_dir, _root = self._sandbox("mpv_inhibit_gnome.so")
+        self.set(mpv_ext=False)
+        with marker, plugin_dir, \
+                mock.patch.object(mpv_options.ctypes, "CDLL",
+                                  side_effect=OSError("no libmpv")), \
+                mock.patch.object(sys, "platform", "linux"):
+            opts = self.build("default", ["a.lua"])
+
+        self.assertEqual("a.lua", opts["scripts"])
+
+    def test_an_empty_plugin_directory_adds_nothing(self):
+        marker, plugin_dir, _root = self._sandbox()
+        self.set(mpv_ext=False)
+        with marker, plugin_dir, \
+                mock.patch.object(mpv_options.ctypes, "CDLL") as cdll, \
+                mock.patch.object(sys, "platform", "linux"):
+            opts = self.build("default", ["a.lua"])
+
+        self.assertEqual("a.lua", opts["scripts"])
+        self.assertFalse(cdll.called)
 
 
 class ConfigDirTest(SettingsCase):

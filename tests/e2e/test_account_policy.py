@@ -44,6 +44,21 @@ class RestrictedLibrariesTest(unittest.TestCase):
 
     ALLOWED = {"Movies", "Shows"}
 
+    #: Views the **server materialises per user**, which are not libraries an
+    #: admin configured and are not granted through `EnabledFolders`. Neither
+    #: appears in `/Library/VirtualFolders`, so neither is the subject of a
+    #: test about which libraries this account may see. Measured on the 12.0
+    #: QA server, 2026-09-18: `qa-restricted`'s `EnabledFolders` is exactly
+    #: the Movies and Shows ids, while `/Users/<id>/Views` also answers
+    #: `livetv` and `playlists` -- and every playlist it can see resolves to
+    #: **zero** members, because the members are Music the account cannot
+    #: reach. The view is present and correctly empty, which is the
+    #: distinction this test is about.
+    #:
+    #: Keyed on `CollectionType`, not on the display name: the names are
+    #: localised and "Live TV" was already being discarded by one.
+    AUTO_VIEWS = {"livetv", "playlists"}
+
     def setUp(self):
         self.session = _e2e.Session("qa-restricted")
         self.addCleanup(self.session.stop)
@@ -51,11 +66,9 @@ class RestrictedLibrariesTest(unittest.TestCase):
         self.addCleanup(self.source.stop)
 
     def test_only_the_permitted_libraries_are_visible(self):
-        names = {lib["Name"] for lib in
-                 self.source.get_libraries(_e2e.SOURCE_UUID)}
-        # Live TV is a view rather than a library and is granted separately,
-        # so it is allowed to be here and is not the subject of this test.
-        names.discard("Live TV")
+        names = {lib["Name"] for lib
+                 in self.source.get_libraries(_e2e.SOURCE_UUID)
+                 if lib.get("CollectionType") not in self.AUTO_VIEWS}
         self.assertEqual(
             names, self.ALLOWED,
             "a restricted user sees libraries they have no access to")

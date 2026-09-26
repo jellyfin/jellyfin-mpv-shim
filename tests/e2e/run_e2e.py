@@ -18,12 +18,23 @@ A 10.11 container alongside a 12.0 source build is two commands —
 
     ./stdjflib.py serve ~/Desktop/std-jf-lib --live-tv            # 12.0
     ./stdjflib.py container ~/Desktop/std-jf-lib --port 8097 \
+        --image docker.io/jellyfin/jellyfin:10.11.11 \
         --keep-running --server-name "stdjflib QA 10.11"          # 10.11
 
-and the differences are not hypothetical: `Filters=IsUnplayed,IsPlayed`
-is **HTTP 400 on 12.0 and an empty result on 10.11**, and the audio
-language picker has options on 12.0 and none on 10.11. Unset, that leg
-skips and everything else is unchanged.
+**`--image` is load-bearing, not decoration.** `jellyfin/jellyfin:latest` is
+12.0 now, so without it the container is 12.0 *calling itself* "stdjflib QA
+10.11" — and the ALT leg spent some unknown time comparing 12.0 with itself
+and passing. `test_filter_matrix` refuses two servers reporting the same
+major.minor for that reason; the server name proves nothing.
+
+The differences the leg exists for are not hypothetical:
+`Filters=IsUnplayed,IsPlayed` is **HTTP 400 on 12.0 and an empty result on
+10.11**, and the audio language picker has options on 12.0 and none on 10.11.
+Unset, that leg skips and everything else is unchanged.
+
+Servers bind to 127.0.0.1 only. Add `--listen 192.168.122.1` to `serve` or
+`container` for a run from the Windows VM, which also needs
+`JMS_E2E_ADMIN_PASSWORD` — see `tests/e2e/README.md`.
 
 Every module runs once per mpv backend, in a fresh interpreter with
 `JMS_TEST_BACKEND` set — player.py picks its backend at import time and wires
@@ -81,6 +92,36 @@ CONTRACT = [
     # suite can only assume, because it builds the DTO it then reads.
     "tests.e2e.test_music_playlist",
     "tests.e2e.test_items_endpoint",
+    # Signing back in, and the uuid that must survive it -- the identity the
+    # download catalog and the auto-download allow-list are written in, so a
+    # fresh one orphans every download from that server. Also the refusal of
+    # a wrong address BEFORE the password goes out, which needs two real
+    # servers with two ServerIds and cannot be asked of a fake at all.
+    "tests.e2e.test_login_lifecycle",
+    # Gaps in a season, against the four virtual episodes injected into the
+    # QA library's BaseItems. The listing must SHOW them (web's behaviour)
+    # and the play queue must not -- and a filter Jellyfin does not recognise
+    # answers exactly as sending nothing does, so a dropped IsMissing is
+    # invisible from this side until an unplayable episode is queued.
+    "tests.e2e.test_missing_episodes_live",
+    # The sort is a CROSS-CLIENT write: it lands in the DisplayPreferences
+    # CustomPrefs document under jellyfin-web's own key names, and a wrong
+    # key is not a crash -- the shim reads back what it wrote and web reads
+    # back what it wrote, diverging silently. The fake stores whatever key it
+    # is handed, so only a server can say.
+    "tests.e2e.test_sort_persistence_live",
+    # The refresh request, replayed against both majors from the method that
+    # builds it. Everything this feature rested on was read rather than
+    # measured and one reading was wrong (`Recursive` is not a parameter);
+    # the unit test asserts our own outgoing dict and structurally cannot
+    # see that. Also pins the non-admin refusal that §7's fail-open relies on.
+    "tests.e2e.test_refresh_metadata",
+    # Discovery against a server that really answers the UDP broadcast. The
+    # unit suite draws the login screen from dicts this repo wrote, so the
+    # exchange it is named after -- broadcast, reply, parse -- was assumed by
+    # both sides. Skips unless the QA server was started `--autodiscovery`,
+    # and unless the installed apiclient has the module (1.19.0+).
+    "tests.e2e.test_server_discovery_live",
     # The server-truth backing for batch 4 -- CanDelete absent unless
     # asked, TranscodeReasons in the TranscodingUrl, StartItemId
     # inclusive, the shader library-scope lookup. It was added to
@@ -107,6 +148,13 @@ CONTRACT = [
     # cannot disagree with, because a fake is written from the same reading
     # of the API the code is.
     "tests.e2e.test_books",
+    # A downloaded *video* -- the case the whole feature is about, and the
+    # one no other module covered. The bytes off the real endpoint, the
+    # local copy standing in for a stream while the server is still
+    # reachable (which needs a live client, so the unit tests structurally
+    # cannot ask it), two real accounts not leaking watched state into each
+    # other, and a delete that takes the files with the row.
+    "tests.e2e.test_download_lifecycle",
     # The audiobook resume rule, which is a different rule from the video
     # one and is stated in MINUTES -- so a book under ten minutes can hold
     # no position at all. Pinned because reading it wrong looks exactly

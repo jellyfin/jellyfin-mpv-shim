@@ -25,8 +25,13 @@ log = logging.getLogger("mpvtk_browser.config")
 # every exit — editing them in a form the app then overwrites is a setting
 # that appears not to work. The preference that governs them,
 # remember_window_size, stays visible.
+# auto_download_servers is the legacy allow-list, adopted into users.json on
+# the first load after the upgrade and then always empty -- editing it under
+# Advanced would be a text field that does nothing. The live control is the
+# per-server Auto-download checkbox in the Servers tab.
 _HIDDEN = {"language_config", "client_uuid", "config_version",
-           "window_width", "window_height", "window_maximized"}
+           "window_width", "window_height", "window_maximized",
+           "auto_download_servers"}
 
 # Passthrough toggles, in the order they should appear, paired with the mpv
 # codec name that decides whether the current audio mode offers them at all.
@@ -224,6 +229,11 @@ TAB_SECTIONS = {
                           "auto_download_next_up_limit",
                           "auto_download_lookahead", "auto_download_max_gb",
                           "auto_download_delete_watched",
+                          # Under the toggle it qualifies, not beside the
+                          # other number: it is a modifier on "once
+                          # watched", and next to "Delete Unwatched After"
+                          # the two read as a pair of independent timers.
+                          "auto_download_keep_watched_hours",
                           "auto_download_keep_days",
                           "auto_download_interval_mins"]),
         # Behind the disclosure, directly under the settings they qualify
@@ -573,7 +583,7 @@ LABELED_ENUMS = {
         (_("Fit Page"), "page"),
     ],
     "hud_scrim": [
-        (_("Default"), "default"),
+        (_p("setting value", "Default"), "default"),
         (_("Panel behind the controls"), "panel"),
         (_("None (shadowed text)"), "none"),
     ],
@@ -644,6 +654,8 @@ LABEL_OVERRIDES = {
     "auto_download_lookahead": _("Episodes to Keep Ahead (0 = off)"),
     "auto_download_max_gb": _("Storage Limit for Automatic Downloads (GB)"),
     "auto_download_delete_watched": _("Delete Automatic Downloads Once Watched"),
+    "auto_download_keep_watched_hours": _(
+        "Keep Watched Downloads For (hours, 0 = delete right away)"),
     "auto_download_keep_days": _("Delete Unwatched After (days, 0 = never)"),
     "auto_download_interval_mins": _("Check Every (minutes)"),
     "auto_download_lookahead_min": _("Top Up When Fewer Than (episodes)"),
@@ -729,6 +741,29 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # The trap this exists for: the list *looks* like the control and is inert
+    # on its own, because both switches below it default off -- so somebody
+    # who edits the languages and sees nothing change has found nothing
+    # wrong. It also says what the filter reaches, since the name promises
+    # more than it does: the track MENUS, not what gets chosen for you.
+    "lang_filter": _(
+        "This list does nothing on its own -- turn on one of the two "
+        "switches below it. It changes which tracks the audio and subtitle "
+        "menus offer you, not which one is picked automatically; the preset "
+        "above is what does that. \"und\" means untagged, so removing it "
+        "hides untagged tracks as well."),
+    # What each preset writes is otherwise only readable in
+    # `language_config.preset_rules`, and one of those rules is a fact nobody
+    # could guess from the dropdown: every "subbed" preset assumes the
+    # original audio is Japanese. Said here rather than only in the docs,
+    # because this is where the choice is made.
+    "language_preference": _(
+        "\"Subbed\" keeps the original audio and adds full subtitles in your "
+        "language. \"Dubbed\" prefers audio in your language with signs and "
+        "songs subtitles, and falls back to subbed where there is no dub. "
+        "The \"shows only\" pair leaves films at whatever the server picks. "
+        "The subbed presets assume the original audio is Japanese; if yours "
+        "is not, choose Custom and write the rules yourself."),
     # The percentage is the point of the note as much as the restart is: a
     # language at 30% is mostly English and picking it should not look like
     # a fault. Translating is where that number moves, so the note says so.
@@ -783,6 +818,15 @@ NOTES = {
                        "changing it hands Enter back to MPV. The game "
                        "controller's Confirm button and a phone's Select "
                        "follow it."),
+    # "grace", "household" and "rewatch" are all words somebody types into
+    # the search box looking for this, and none of them is in the label.
+    # The second sentence is the one that stops it reading as a bug report:
+    # a full download folder still evicts inside the window.
+    "auto_download_keep_watched_hours": _(
+        "A grace period after you finish something: it stays downloaded for "
+        "this long, so you can rewatch it or somebody else in the house can "
+        "catch up, instead of going on the next check. Running out of "
+        "storage still removes watched downloads before the time is up."),
     # A blank numeric field meaning "use the setting above" is not
     # guessable from a label, and these three are the ones where leaving
     # them alone is the right answer for almost everybody.

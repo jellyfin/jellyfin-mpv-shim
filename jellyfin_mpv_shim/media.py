@@ -985,6 +985,24 @@ class Video(object):
         )
 
         self.media_source = self.get_best_media_source(self.srcid)
+        if self.media_source is None:
+            # A virtual episode -- one the server lists out of the series
+            # metadata with no file behind it -- answers PlaybackInfo with
+            # `MediaSources: []`, and everything below dereferences this.
+            # `play()` already has the guard for an unplayable item (its "no
+            # URL found" branch, which also revokes the auth header), and it
+            # was unreachable from here: the dereference is three lines down,
+            # so what reached the caller was a TypeError -- on the DEFAULT
+            # configuration, since the segment lookup runs whenever any
+            # segment type is not "off" and two of them default to "ask".
+            #
+            # A cast from another client, and a server whose state changed
+            # between the listing and the press, both arrive here having
+            # passed every filter upstream. This is the layer that has to
+            # hold for them.
+            log.warning("This item has no media source; there is nothing to "
+                        "play.")
+            return None
         if conf.any_segment_wanted():
             self.get_intro(self.media_source["Id"])
 
@@ -1054,7 +1072,12 @@ class Video(object):
         try:
             from .sync.manager import syncManager
 
-            syncManager.mirror_watched(self.item_id, watched)
+            from .clients import clientManager
+
+            # Whose mark it is: the login this item is playing from.
+            syncManager.mirror_watched(
+                self.item_id, watched,
+                server_uuid=clientManager.uuid_for_client(self.client))
         except Exception:
             log.debug("Could not mirror the watched mark for %s",
                       self.item_id, exc_info=True)

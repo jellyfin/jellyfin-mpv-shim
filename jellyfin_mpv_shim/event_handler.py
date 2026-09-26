@@ -304,7 +304,14 @@ class EventHandler(object):
         try:
             from .sync.manager import syncManager
 
-            syncManager.apply_userdata_event(arguments)
+            # Which socket it arrived on, which makes the payload's own
+            # ServerId a cross-check rather than the only answer. A client
+            # does not carry its uuid; the registry is uuid -> client and
+            # `uuid_for_client` is the documented read back.
+            from .clients import clientManager
+
+            syncManager.apply_userdata_event(
+                arguments, clientManager.uuid_for_client(client))
         except Exception:
             # Never let the catalog take the browser's nudge down with it:
             # a stale row is a cosmetic problem, a dropped event is the

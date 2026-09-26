@@ -87,7 +87,26 @@ ICON_NAMES = [
     # and on a ten-foot UI a coloured word does not say that.
     "open_in_new",
     "movie",
+    # Only `mpvtk/demo.py`'s widget showcase now. It used to label Quick
+    # Connect, on the reading of "radio" as broadcast -- but the glyph is a
+    # radio receiver, and the control is "type this code on your phone".
     "radio",
+    # Quick Connect. jellyfin-web's own icon for it, so somebody arriving
+    # from that client recognises the button rather than learning it twice.
+    "phonelink_lock",
+    # A server, by where it is: on this network or out on the internet.
+    # Every server gets one, which is also what pays for the icon gutter --
+    # a dropdown indents every row as soon as ANY item has an icon, so a
+    # list where only the broken entries were marked spent the width on all
+    # of them and gave the names back an ellipsis.
+    "lan",
+    "cloud",
+    # ...and one that did not answer. Deliberately the same glyph for a LAN
+    # server as for a remote one: `cloud_off` is the conventional "no
+    # connection" mark rather than a statement about clouds, and a switcher
+    # row cannot colour its icon (per-item icons carry no colour), so shape
+    # is the only channel left for the state.
+    "cloud_off",
     # by-name screens (genres, networks) -- the same two jellyfin-web uses
     # for them, so a user coming from that client recognises the buttons.
     "label",

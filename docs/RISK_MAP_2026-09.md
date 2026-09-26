@@ -162,9 +162,11 @@ write-gated and read-ungated, with the key hidden from the settings form.
 
 ### 3.5 State with no clear path — **medium-high**
 
-Verified: `_sync_path` (SET 1 / CLEAR 0) is a never-cleared mirror that **wins
+Verified: `_sync_path` (SET 1 / CLEAR 0) was a never-cleared mirror that **wins
 over** the saved setting the visible field was drawn from, and drives a
-recursive relocation of the download store; `ThumbnailStore._gone` records
+relocation of the download store -- **fixed**, see `docs/do-not-fix.md` F42;
+the mirror is now dropped on the first frame its field is not drawn, which is
+the clear site the count was looking for. `ThumbnailStore._gone` records
 401/403 as permanent absence, keyed without server or user; `mpv.TIMEOUT` is
 lowered 120s→5s for teardown and never restored, from a call site that also
 runs on the *minimize* path.
@@ -284,7 +286,7 @@ Applied by measurement, not judgement. A setting is reachable if it appears in
 
 | finding | how a user reaches it |
 |---|---|
-| `_sync_path` drives a download-store move from a stale mirror | Settings → Downloads → Move. **Destructive, and the visible field disagrees with what happens.** |
+| ~~`_sync_path` drives a download-store move from a stale mirror~~ | **Fixed** (`do-not-fix.md` F42). Was: Settings → Browse → Move, destructive, with the visible field disagreeing with what happens. |
 | `ThumbnailStore._gone` caches 401/403 as permanent absence | sign out, switch server, or any fetch in flight across `set_auth` |
 | R7 / F15 — `set_picture_view` has no `_video`/`_loading` guard | open a comic, let a remote start playback, scroll the page |
 | R11 — HUD gear menu gated on `_video is not None` | play music, press the menu key (needs a product read first) |
@@ -316,6 +318,11 @@ them needs a config-file edit to reach*. By this rule it is post-3.0.0 work. It
 should still be built, because R10 proves the class is live and growing; it
 should not be built first.
 
+**BUILT (last, per that rule), and the class was indeed growing: seven open
+rows, not four.** R2 turned out to have a second site, and two more are in the
+HUD's summon bindings. None repaired — the reachability argument above is
+unchanged. `docs/POSTMORTEM_3.0.0.md` §5.1.
+
 **One platform exception.** `conf.py:413` is
 `mpv_ext: bool = sys.platform.startswith("darwin")` — **the external backend is
 the default on macOS.** So `mpv.TIMEOUT` (jsonipc-only, lowered 120s→5s and
@@ -327,11 +334,15 @@ without the platform qualifier gets this backwards for every Mac user.
 
 - `tools/audit_act_targets.py` stays first among the lints: it covers R7 and R8
   (Tier 1 and Tier 2) and its Rule B reach-throughs are in `gateway/hud.py`,
-  which no setting gates.
+  which no setting gates. **BUILT.** Ten sites, all declared; three of the four
+  writes have an unused `PlayerManager` method waiting, and the fourth is the
+  aspect-override commit on `enrich-e2e-tests`. `docs/POSTMORTEM_3.0.0.md` §5.3.
 - The four declared entries on `tools/audit_owned_state.py` (`_sync_path`,
   `ThumbnailStore._gone`, `mpv.TIMEOUT`, `_login["pass"]`) are the cheapest
-  Tier-1 coverage available — a bookkeeping extension to a tool that exists,
-  not new machinery.
+  Tier-1 coverage available — ~~a bookkeeping extension to a tool that exists,
+  not new machinery.~~ **DONE, and three of the four needed the tool to grow
+  first: a directory scope for the browser's mixins, and a way to name state
+  that does not hang off `self`.** `docs/POSTMORTEM_3.0.0.md` §5.2.
 - `test_config_cells.py` drops: its verified cell is `headless`-gated, i.e.
   Tier 3.
 - The `_MpvHandle` capsule is unaffected — mpv re-creation is reached by

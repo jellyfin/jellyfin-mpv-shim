@@ -5521,6 +5521,40 @@ msgstr "Proffiliau Chwarae"
 msgid "Select Shader Profile"
 msgstr "Dewis Proffil Cysgodydd"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Diofyn"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Diofyn"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Ailadrodd"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Ailadrodd"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Top"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Top"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Gwaelod"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Gwaelod"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

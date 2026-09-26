@@ -5595,6 +5595,40 @@ msgstr "வீடியோ பின்னணி சுயவிவரங்க�
 msgid "Select Shader Profile"
 msgstr "ஷேடர் சுயவிவரத்தைத் தேர்ந்தெடுக்கவும்"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "இயல்புநிலை"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "இயல்புநிலை"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "மீண்டும்"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "மீண்டும்"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "மேலே"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "மேலே"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "கீழே"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "கீழே"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

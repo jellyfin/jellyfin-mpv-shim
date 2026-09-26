@@ -5362,6 +5362,32 @@ msgstr "भिडियो प्लेब्याक प्रोफाइल�
 msgid "Select Shader Profile"
 msgstr "शेडर प्रोफाइल चयन गर्नुहोस्"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "पूर्वनिर्धारित"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "पूर्वनिर्धारित"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "माथि"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "माथि"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "तल"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "तल"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

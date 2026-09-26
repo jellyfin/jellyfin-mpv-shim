@@ -5556,6 +5556,40 @@ msgstr "Beine oinatu profaily"
 msgid "Select Shader Profile"
 msgstr "Şeider profailyn tañdau"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Ädepkı"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Ädepkı"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Qaitalau"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Qaitalau"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Joğaryda"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Joğaryda"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Tömende"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Tömende"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

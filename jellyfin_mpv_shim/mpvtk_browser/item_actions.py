@@ -66,8 +66,14 @@ class ItemActions:
         self._edit_ok = None
         #: Cached recording-capability probe; see can_record.
         self._record_ok = None
-        #: item_id -> name for books whose download was started by a Read
-        #: press and which should be opened when it lands. See read_book.
+        #: item_id -> (name, server_uuid) for books whose download was
+        #: started by a Read press and which should be opened when it lands.
+        #: See read_book.
+        #:
+        #: **The server is part of the value, not derivable from the key**:
+        #: item ids collide across servers, so `flush_pending_reads` has to ask
+        #: the catalog about the server this book was pressed on or it can open
+        #: another server's file (CX7).
         self._pending_reads: dict = {}
 
     # -- plumbing ----------------------------------------------------------
@@ -276,6 +282,24 @@ class ItemActions:
 
         self.run.run(work, done, ep)
 
+    def shuffle_season(self, series_id, season_id, server):
+        """Shuffle one season. The season queue, not the series one: it is
+        season-scoped and carries web's filters that keep missing and
+        unaired episodes out (repository.get_season_queue)."""
+        ep = self.run.epoch
+        source = self.services.source
+
+        def work():
+            return [e.get("Id") for e in
+                    source.get_season_queue(server, series_id, season_id)
+                    if e.get("Id")]
+
+        def done(ids):
+            if ids:
+                self.play_shuffle(ids, server, audio=False)
+
+        self.run.run(work, done, ep)
+
     # -- user data ---------------------------------------------------------
 
     def toggle_watched(self, item, server):
@@ -474,6 +498,56 @@ class ItemActions:
         except Exception:
             return True
 
+    def can_refresh_metadata(self, server=None):
+        """Whether to offer Refresh Metadata. Fails OPEN, like its siblings.
+
+        The exception this repository tolerates rather than one it forgot:
+        every other fail-open gate here hides a feature the user *might* not
+        have, and this one can offer an administrator-only endpoint to a
+        non-administrator whose policy we could not read. It needs two things
+        at once and only one of them is common: `IsAdministrator` is in every
+        policy on every server that has the endpoint, so this branch needs a
+        failed policy fetch *and* a non-administrator. The failed fetch alone
+        is ordinary -- `policy_for` answers `{}` after any exception from
+        `get_user`, so a timeout, a 504 from a reverse proxy, an expired token
+        or a malformed body all reach it. The conjunction is what makes it
+        rare, not the state being impossible.
+
+        `docs/PERMISSION_GAPS.md` §7 holds the reasoning and the trade; this
+        says only enough to stop the next reader closing the gate.
+        """
+        source = getattr(self.services, "source", None)
+        ask = getattr(source, "can_refresh_metadata", None)
+        if ask is None or server is None:
+            return True
+        try:
+            return bool(ask(server))
+        except Exception:
+            return True
+
+    def refresh_metadata(self, item, server):
+        """Ask the server to re-read this item's metadata.
+
+        Reports rather than waits: the server queues the refresh and answers
+        at once, so there is nothing to show progress for and nothing to
+        reload -- what lands later arrives through the websocket item update
+        the shell already listens for.
+        """
+        iid = item.get("Id")
+        if not iid:
+            return
+        name = item.get("Name") or ""
+        ctl = self.services.controller
+        if ctl is None:
+            return
+
+        def queued():
+            self.services.set_status(
+                _("The server is refreshing %s.") % name)
+
+        self.edit(lambda c: c.refresh_item(server, iid), on_ok=queued,
+                  error=_("%s could not be refreshed.") % name)
+
     def can_download(self, server=None):
         """Whether this user may fetch bytes from ``server`` at all.
 
@@ -623,7 +697,16 @@ class ItemActions:
         elif kind == "Season":
             ctl.delete_download(series_id=item.get("SeriesId"), season_id=iid)
         elif kind == "Playlist":
-            ctl.delete_download(playlist_id=iid)
+            # Two servers can hold a playlist with this id, so the delete needs
+            # both halves. The offline library spells them as one id and the
+            # catalog wants them apart; `split_offline_playlist_id` answers an
+            # online id unchanged, so this is one path for both.
+            from ..constants import split_offline_playlist_id
+
+            real_id, offline_scope = split_offline_playlist_id(iid)
+            ctl.delete_download(
+                playlist_id=real_id,
+                playlist_server_id=offline_scope or item.get("ServerId"))
         else:
             ctl.delete_download(item_id=iid)
 
@@ -722,7 +805,7 @@ class ItemActions:
         name = item.get("Name") or ""
 
         def work():
-            status, path = ctl.book_download_state(iid)
+            status, path = ctl.book_download_state(iid, server)
             if path:
                 # Already on disk. Read opens it; Download has nothing left
                 # to do and says so rather than silently doing nothing.
@@ -754,7 +837,7 @@ class ItemActions:
         def done(result):
             what, _extra = result
             if what == "open":
-                ok, _method = ctl.open_downloaded_file(iid)
+                ok, _method = ctl.open_downloaded_file(iid, server)
                 self.services.set_status(
                     _("Opening %s…") % name if ok else
                     _("Nothing on this system could open %s.") % name)
@@ -771,7 +854,7 @@ class ItemActions:
                     _("%s has not been downloaded.") % name)
             else:
                 if then_open:
-                    self._pending_reads[iid] = name
+                    self._pending_reads[iid] = (name, server)
                 self.services.set_status(
                     self.downloading_message(name))
             # However it ended, the catalog may now say something different
@@ -827,9 +910,9 @@ class ItemActions:
         ctl = self.services.controller
         if ctl is None:
             return
-        for iid, name in list(self._pending_reads.items()):
+        for iid, (name, server) in list(self._pending_reads.items()):
             try:
-                status, path = ctl.book_download_state(iid)
+                status, path = ctl.book_download_state(iid, server)
             except Exception:
                 log.debug("could not read download state for %s", iid,
                           exc_info=True)
@@ -842,7 +925,7 @@ class ItemActions:
                 # launch the user's reader application twice for one book.
                 if self._pending_reads.pop(iid, None) is None:
                     continue
-                ok, _method = ctl.open_downloaded_file(iid)
+                ok, _method = ctl.open_downloaded_file(iid, server)
                 self.services.set_status(
                     _("Opening %s…") % name if ok else
                     _("Nothing on this system could open %s.") % name)

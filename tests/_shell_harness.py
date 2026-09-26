@@ -160,7 +160,12 @@ class FakeSource:
         self.has_poster = False
 
     def servers(self):
-        return [{"uuid": "srv1", "name": "Home Server"}]
+        # `address`, because the real LibrarySource reports it and the top
+        # bar reads it -- the switcher marks each entry by where the server
+        # is. A fake that left it out would not leave that path uncovered,
+        # it would make it unreachable while every assertion still passed.
+        return [{"uuid": "srv1", "name": "Home Server",
+                 "address": self.server_address("srv1")}]
 
     def server_address(self, server_uuid):
         """A real address per server, not one constant: the jellyfin-web link
@@ -376,9 +381,15 @@ class FakeSource:
         # exercise the omitted-serverId branch -- and would stay green if
         # this screen started composing its link from something other than
         # the season's own DTO.
+        # `Overview` on the first and NOT on the second, deliberately: the
+        # page has to draw one and must not draw an empty paragraph, and a
+        # library really is like this -- seasons are described unevenly. It
+        # is also the field this fixture did not model, which is what left
+        # the season page's missing synopsis unobservable.
         return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
                  "SeriesId": series_id, "SeriesName": "A Show",
                  "ServerId": "SRVID",
+                 "Overview": "Where the show finds its feet.",
                  "ExternalUrls": [
                      {"Name": "TheTVDB",
                       "Url": "https://thetvdb.example/series/1/seasons/1"}]},
@@ -694,7 +705,11 @@ class FakeController:
         #: item_id -> (status, absolute path or None), as the real gateway
         #: answers. Tests set entries to put a book on disk.
         self.book_downloads = {}
+        #: (item_id, server_uuid) pairs `book_download_state` was asked, and
+        #: the servers `open_downloaded_file` was given. See those methods.
+        self.book_state_asked = []
         self.opened = []
+        self.opened_on = []
         self.open_result = (True, "fake")
         #: Urls handed to the desktop browser, in order, and what
         #: ``open_url`` answers -- settable so a test can drive the
@@ -745,6 +760,18 @@ class FakeController:
         self.restart_possible = True
         #: The pending-settings set handed to each restart_app call.
         self.restart_pending = []
+        #: Unattended downloading, as the Servers rows see it:
+        #: {login uuid: bool}. Declared rather than left to __getattr__,
+        #: which answers None -- every row would then draw unticked and the
+        #: toggle would record a call that changed nothing, so a test for
+        #: the checkbox could not fail.
+        #:
+        #: **Keyed on the uuid, which the real gateway is not**: it stores
+        #: the account behind the login, so two addresses for one server
+        #: move together. That property belongs to `users.set_auto_download`
+        #: and is pinned there (tests/test_auto_download_accounts.py); do
+        #: not write it against this fake, which cannot express it.
+        self.auto_download = {}
 
     def can_restart(self):
         return self.restart_possible
@@ -904,11 +931,19 @@ class FakeController:
         """
         return (set(self.book_downloads), set(), set(), set())
 
-    def book_download_state(self, item_id):
+    def book_download_state(self, item_id, server_uuid):
+        #: Every (item, server) this was asked about, in order. Recorded
+        #: because the *scope* is the property CX7 is about: item ids collide
+        #: across servers, so a caller that forgot the server would hand the
+        #: reader another server's file -- and a fake that let the argument be
+        #: omitted could not fail that test. Keyed answers stay by item alone;
+        #: the server is what tests assert on.
+        self.book_state_asked.append((item_id, server_uuid))
         return self.book_downloads.get(item_id, (None, None))
 
-    def open_downloaded_file(self, item_id):
+    def open_downloaded_file(self, item_id, server_uuid):
         self.opened.append(item_id)
+        self.opened_on.append(server_uuid)
         return self.open_result
 
     def open_url(self, url):
@@ -944,6 +979,20 @@ class FakeController:
                 = int(ticks)
         self.positions_written.append((item_id, int(ticks)))
         return self.set_position_ok
+
+    def auto_download_on(self, server_uuid):
+        return bool(self.auto_download.get(server_uuid))
+
+    def auto_download_any(self):
+        return any(self.auto_download.values())
+
+    def set_auto_download(self, server_uuid, enabled):
+        # Applied rather than recorded: the Checkbox is drawn from the read
+        # above, so a stand-in that only logged the write would pass a test
+        # that ticked the wrong row.
+        before = bool(self.auto_download.get(server_uuid))
+        self.auto_download[server_uuid] = bool(enabled)
+        return before != bool(enabled)
 
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without
@@ -1251,8 +1300,10 @@ class SearchConfig(FakeConfig):
 
 class MultiServerSource(FakeSource):
     def servers(self):
-        return [{"uuid": "srv1", "name": "Home"},
-                {"uuid": "srv2", "name": "Remote"}]
+        return [{"uuid": "srv1", "name": "Home",
+                 "address": self.server_address("srv1")},
+                {"uuid": "srv2", "name": "Remote",
+                 "address": self.server_address("srv2")}]
 
 class DownloadsController(FakeController):
     """Controller whose downloads catalog has real hierarchy."""
@@ -1285,6 +1336,7 @@ class DownloadsController(FakeController):
     def __init__(self):
         super().__init__()
         self.deleted = []
+        self.deleted_playlist_server = []
         self.deleted_watched_only = []
 
     def list_downloads(self):
@@ -1292,8 +1344,15 @@ class DownloadsController(FakeController):
         return copy.deepcopy(self.TREE)
 
     def delete_download(self, item_id=None, series_id=None, season_id=None,
-                        playlist_id=None, watched_only=False):
+                        playlist_id=None, watched_only=False,
+                        playlist_server_id=None):
         self.deleted.append((item_id, series_id, season_id, playlist_id))
+        #: Which server's playlist each delete named. Kept apart from
+        #: `deleted` so the tuples every existing test asserts by equality
+        #: keep their shape -- and kept at all because "delete the playlist"
+        #: is ambiguous without it: two servers can hold one with the same
+        #: id, and an unscoped delete took both.
+        self.deleted_playlist_server.append(playlist_server_id)
         self.deleted_watched_only.append(bool(watched_only))
 
     def download_activity(self):

@@ -42,7 +42,7 @@ class DeleteAtCommitRaceTest(h.TmpDirTest):
         # but before the row is marked COMPLETE must win — the item ends deleted,
         # never left COMPLETE. We pin the interleaving with a barrier: the fake
         # stream finishes the .part, then blocks until the deleter has run
-        # delete_item (which flags _cancelled because _active_item is set), then
+        # delete_item (which flags _cancelled because the claim is held), then
         # returns into the commit check.
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, "a", size_bytes=100)
@@ -78,7 +78,7 @@ class DeleteAtCommitRaceTest(h.TmpDirTest):
         self.assertIsNone(m.db.get("a"), "delete lost to a COMPLETE row")
         self.assertFalse(os.path.exists(item_dir), "files left after delete")
         self.assertNotIn("a", m._cancelled)
-        self.assertIsNone(m._active_item)
+        self.assertEqual(m._active_ids(), set())
 
 
 class ShortReadStallEscalationTest(h.TmpDirTest):
@@ -124,7 +124,7 @@ class TransientErrorResumeTest(h.TmpDirTest):
         with self.assertRaises(manager_module.requests.RequestException):
             m._download(m.db.get("a"))
         self.assertEqual(m.db.get("a")["status"], STATUS_PENDING)
-        self.assertIsNone(m._active_item)
+        self.assertEqual(m._active_ids(), set())
 
     def test_http_4xx_is_permanent_error(self):
         # Contrast: a 4xx (gone/forbidden) is permanent -> ERROR, not resumed.
@@ -176,7 +176,7 @@ class StopMidDownloadTest(h.TmpDirTest):
         self.assertFalse(m._worker.is_alive(), "worker not joined by stop()")
         self.assertEqual(m.db._conn, None, "catalog left open after stop()")
         # The .part must survive so the resume path can pick it up next launch.
-        part = m._item_dir({"server_id": "srv", "item_id": "a"})
+        part = m._item_dir({"item_id": "a"})
         self.assertTrue(os.path.exists(os.path.join(part, "media.mkv.part")))
 
     def test_interrupted_download_resumes_from_part(self):

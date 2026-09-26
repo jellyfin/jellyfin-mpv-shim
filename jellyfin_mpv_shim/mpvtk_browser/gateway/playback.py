@@ -17,6 +17,12 @@ class PlaybackMixin(GatewayCore):
         from ...player import playerManager
         # mpvtk_active tells the player the in-window UI is on screen — it
         # gates the idle-quit and makes `q` return to the library.
+        # Everything the HUD queued belongs to the session that just ended,
+        # and the drain runs AFTER the clears below -- so say so first. It
+        # covers every gear-menu state at once (aspect, deinterlace, the
+        # stats overlay), which is why it is here rather than beside any one
+        # of them. See PlayerManager.end_hud_session.
+        playerManager.end_hud_session()
         playerManager.mpvtk_active = True
         # Logo-free, free-resizing browse window (not force_window()'s menu
         # splash) — removes the Jellyfin icon and stops aspect-ratio snapping.
@@ -32,6 +38,7 @@ class PlaybackMixin(GatewayCore):
         # per episode -- so returning to the library is one of the two
         # places it ends. The other is on_minimize; see there.
         playerManager.clear_deinterlace_override()
+        playerManager.clear_aspect_override()
 
     def apply_browser_fullscreen(self):
         """Push a just-written ``browser_fullscreen`` at the window (#729).
@@ -51,6 +58,9 @@ class PlaybackMixin(GatewayCore):
         # eventually drops mpv entirely and gives back its memory and GPU
         # context. It comes back on the next play or when the tray reopens
         # the library (see UserInterface.on_mpv_recreated).
+        # The other end of the same statement; see on_browse_enter. Closing
+        # the window comes through HERE and not through there.
+        playerManager.end_hud_session()
         playerManager.mpvtk_active = False
         # The other end of the per-session deinterlace force, and it is not
         # redundant with on_browse_enter: closing the window comes through
@@ -59,6 +69,7 @@ class PlaybackMixin(GatewayCore):
         # only goes away when the window is closed -- it renders the
         # library -- which makes this the last moment anything is watching.
         playerManager.clear_deinterlace_override()
+        playerManager.clear_aspect_override()
         playerManager.enable_osc(playerManager.osc_enabled)
         playerManager.set_browse_window(False)
 
@@ -219,8 +230,15 @@ class PlaybackMixin(GatewayCore):
             # starting a playlist partway through is the common case.
             first = (item_ids[start_index]
                      if 0 <= start_index < len(item_ids) else None)
+            # Unscoped deliberately, and now said so: there is no connected
+            # client, so there is no second server whose id could collide
+            # with this one, and the catalog is the only source of items
+            # there is. One of the two structurally-unscoped callers the
+            # amendment-1 classification found; the other is
+            # `servers.has_downloads`.
+            from ...sync.db import ANY_SERVER
             if not (first and syncManager.db
-                    and syncManager.db.is_complete(first)):
+                    and syncManager.is_complete(first, ANY_SERVER)):
                 log.warning("mpvtk play: no connected client for %s and no "
                             "local copy of %s", server_uuid, first)
                 return

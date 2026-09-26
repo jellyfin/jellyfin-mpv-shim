@@ -5240,6 +5240,24 @@ msgstr "កម្រងព័ត៌មានការចាក់វីដេអ
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "កំពូល"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "កំពូល"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "បាត"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "បាត"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

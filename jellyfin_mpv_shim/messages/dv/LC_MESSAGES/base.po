@@ -4966,5 +4966,13 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "ޑީފޯލްޓް"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "ޑީފޯލްޓް"
+
 #~ msgid "Password:"
 #~ msgstr "ފާސްބަސް"

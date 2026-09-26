@@ -5300,6 +5300,42 @@ msgstr "Videowiedergabeprofiler"
 msgid "Select Shader Profile"
 msgstr ""
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "Standard"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "Standard"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Wiederhuelen"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Wiederhuelen"
+
+#, fuzzy
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Uewen"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Uewen"
+
+#, fuzzy
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Ënnen"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Ënnen"
+
 # seeded from jellyfin-web: Display
 #, fuzzy
 #~ msgid "Display"

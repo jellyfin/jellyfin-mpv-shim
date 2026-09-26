@@ -5519,6 +5519,42 @@ msgstr "Video atskaņošanas profils"
 msgid "Select Shader Profile"
 msgstr "Izvēlieties ēnotāja profilu"
 
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "Atkārtot"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "Atkārtot"
+
+#, fuzzy
+msgctxt "form label"
+msgid "Confirm"
+msgstr "Apstiprināt"
+
+#, fuzzy
+msgctxt "dialog heading"
+msgid "Confirm"
+msgstr "Apstiprināt"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "Augšā"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "Augšā"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "Apakšā"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "Apakšā"
+
 #~ msgid "Could not copy the text."
 #~ msgstr "Nevarēja kopēt tekstu."
 

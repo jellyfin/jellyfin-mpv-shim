@@ -5453,6 +5453,40 @@ msgstr "פרופילים לניגון וידאו"
 msgid "Select Shader Profile"
 msgstr "בחר פרופיל Shader"
 
+msgctxt "setting value"
+msgid "Default"
+msgstr "ברירת מחדל"
+
+msgctxt "media stream flag"
+msgid "Default"
+msgstr "ברירת מחדל"
+
+msgctxt "playback control"
+msgid "Repeat"
+msgstr "חזרה"
+
+msgctxt "guide badge"
+msgid "Repeat"
+msgstr "חזרה"
+
+msgctxt "subtitle position"
+msgid "Top"
+msgstr "ראש"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Top"
+msgstr "ראש"
+
+msgctxt "subtitle position"
+msgid "Bottom"
+msgstr "תחתית"
+
+#, fuzzy
+msgctxt "list position"
+msgid "Bottom"
+msgstr "תחתית"
+
 #~ msgid "Could not copy the text."
 #~ msgstr "לא ניתן היה להעתיק את הטקסט."
 

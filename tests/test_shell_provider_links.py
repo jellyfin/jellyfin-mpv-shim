@@ -438,7 +438,8 @@ class SeasonHeaderSpacingTest(unittest.TestCase):
     @staticmethod
     def _actions_gap(nodes):
         acts = sorted((n for n in nodes
-                       if n.get("id") in ("se-nextup", "se-watched")),
+                       if n.get("id") in ("se-nextup", "se-shuffle",
+                                          "se-watched")),
                       key=lambda n: n["x"])
         return round(acts[1]["x"] - (acts[0]["x"] + acts[0]["w"]))
 

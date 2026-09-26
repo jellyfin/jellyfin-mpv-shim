@@ -14,7 +14,10 @@ the code that is actually starting a player.
 Before editing this file, read ``docs/mpv-backends.md``.
 """
 
+import ctypes
+import glob
 import logging
+import os
 import platform
 import sys
 from collections import OrderedDict
@@ -267,6 +270,72 @@ def mpv_scripts(osc_style, trickplay):
         # under "default" too.
         scripts.append(get_resource("thumbfast.lua"))
     return scripts
+
+
+#: The file that exists only inside a Flatpak sandbox.
+FLATPAK_MARKER = "/.flatpak-info"
+
+#: Where the Flatpak manifest installs mpv's cplugins. **Not derivable from
+#: `sys.prefix`**, which is `/usr` inside the sandbox while these live under
+#: `/app` -- measured, not assumed.
+FLATPAK_CPLUGIN_DIR = "/app/etc/mpv/scripts"
+
+
+def bundled_cplugins(ext_mpv):
+    """mpv cplugins this package ships that mpv will not find by itself.
+
+    Only the Flatpak has any: ``mpv_inhibit_gnome.so``, which asks
+    ``org.gnome.SessionManager`` not to blank the screen during playback -- a
+    bus name the manifest has granted, and a plugin it has installed, since
+    3.0.0. **It has never once loaded.** Measured against the shipped Flathub
+    build with a stand-in session manager on the bus: zero ``Inhibit`` calls
+    during playback, and one with the two changes below.
+
+    Two independent reasons it does not load, and **neither fix works without
+    the other**:
+
+    * ``--config-dir`` (set below unless the user asked for
+      ``mpv_ext_no_ovr``) switches off every other config directory, the
+      global one included, so ``/app/etc/mpv/scripts`` is never scanned. mpv's
+      own man page says so and a probe confirms it: a script in ``MPV_HOME``
+      loads with ``MPV_HOME`` alone and stops the moment ``config_dir`` is
+      set. Naming the file explicitly is what gets past that.
+    * python-mpv ``dlopen``s libmpv ``RTLD_LOCAL``, so a cplugin linked
+      against it fails with ``undefined symbol: mpv_observe_property``.
+      Promoting those symbols to global scope is what gets past *that*, and
+      promoting an object that is already loaded works -- so there is **no
+      import-order rule here to get wrong** and this is strictly additive.
+
+    **The promotion does not by itself load anything.** With ``config_dir``
+    set nothing is scanned, so making libmpv's symbols global only makes a
+    cplugin *able* to load; the explicit paths below decide which ones do.
+
+    Those paths are every ``.so`` this package installs into
+    ``FLATPAK_CPLUGIN_DIR`` -- one file today (the GNOME inhibitor, see the
+    Flatpak manifest), and whatever a later release puts beside it. That is
+    the intended reach and not an accident: a cplugin we ship into our own
+    ``/app`` is one we mean to load. Said plainly because this paragraph used
+    to say "one plugin", which was a true statement about what ships and a
+    loose one about what the code does.
+
+    libmpv only: the external backend runs a real mpv binary, which scans for
+    and loads its own cplugins, and on a box with no libmpv the ``CDLL``
+    raises ``OSError``.
+    """
+    if ext_mpv or not os.path.exists(FLATPAK_MARKER):
+        return []
+    plugins = sorted(glob.glob(os.path.join(FLATPAK_CPLUGIN_DIR, "*.so")))
+    if not plugins:
+        return []
+    try:
+        ctypes.CDLL("libmpv.so.2", mode=ctypes.RTLD_GLOBAL)
+    except OSError:
+        # No libmpv to promote, so a cplugin that links against it would only
+        # fail louder. Nothing here is worth a startup failure.
+        log.debug("could not promote libmpv's symbols for a bundled cplugin",
+                  exc_info=True)
+        return []
+    return plugins
 
 
 def mpv_binary_location():
@@ -562,6 +631,11 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
         # Writing the property afterwards instead loaded mpv's built-in OSC
         # underneath theirs. Both measured; docs/mpv-backends.md section 12.
         mpv_options["osc"] = True
+
+    # Appended rather than prepended: a cplugin is not part of the lua load
+    # order these are otherwise in, and the one we ship watches playback
+    # rather than drawing anything.
+    scripts = list(scripts) + bundled_cplugins(ext_mpv)
 
     if scripts:
         if settings.mpv_ext:

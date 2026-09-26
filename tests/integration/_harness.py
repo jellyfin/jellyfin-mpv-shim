@@ -532,6 +532,18 @@ class FakeMPV:
         # simulate an mpv that died under us).
         self.fail_with = None
 
+        # Properties this mpv does not have, so a write of one is refused --
+        # the field this fake did not model, and the one mpv_guard is about.
+        # Empty by default, and injected per test through
+        # `property_is_absent`: the point is to be able to say "this mpv is
+        # older than osd-border-style" without owning fourteen mpv builds.
+        #
+        # Deliberately NOT the other way round -- a list of every property
+        # mpv does have would assert agreement between this fake and a list
+        # in the same repository, which is the self-agreeing shape, and would
+        # fail on the first legitimate name somebody adds.
+        self._absent_properties = set()
+
         # Recording starts here. Shared with the other stand-ins when
         # build_player hands one in, so the ordering ACROSS collaborators is
         # readable -- which is the half no per-object recorder can show.
@@ -556,7 +568,18 @@ class FakeMPV:
         writes the attribute on mpv's behalf -- that is a `prop:` event, the
         opposite direction, and recording it as a `set:` would let a test
         about "the shim wrote this" match mpv reporting it.
+
+        A name in ``_absent_properties`` raises ``AttributeError``, which is
+        what the *inner* write does on both real backends -- libmpv from
+        ``_set_property``, jsonipc by the name being outside the property list
+        it read at connect. What each library's ``__setattr__`` then does with
+        that is the defect ``mpv_guard`` replaces, so the layer modelled here
+        is the one below it. ``__dict__.get`` because ``__init__`` writes
+        attributes before the set exists.
         """
+        if not name.startswith("_") and name in self.__dict__.get(
+                "_absent_properties", ()):
+            raise AttributeError(name)
         object.__setattr__(self, name, value)
         if name.startswith("_") or name in self._ALIASES:
             # An alias is not a second property. `fs` writes `fullscreen`
@@ -591,6 +614,28 @@ class FakeMPV:
     @fs.setter
     def fs(self, value):
         self.fullscreen = value
+
+    def _jms_write(self, name, value):
+        """The write itself, called by ``mpv_guard``'s subclass instead of
+        letting the backend swallow a refusal.
+
+        Pure delegation -- the refusal lives in ``__setattr__`` above, so an
+        unguarded fake behaves the same way. Its *existence* is what tells
+        ``mpv_guard._writer_for`` this class models its own write rather than
+        needing one of the two real ones, which is the only way a stand-in
+        that stores its properties as ordinary attributes can be guarded at
+        all.
+        """
+        FakeMPV.__setattr__(self, name, value)
+
+    def property_is_absent(self, *names):
+        """Make this an mpv that does not have these properties.
+
+        Spelled either way: `osd-border-style` and `osd_border_style` are the
+        same property, and the shim writes the second.
+        """
+        self._absent_properties.update(
+            name.replace("-", "_") for name in names)
 
     def _read_raw(self, name):
         """One property read by its full path name, for both backends'
@@ -1041,7 +1086,99 @@ def import_player_with_fake_mpv():
     return player_module
 
 
-def build_player(player_module, video=None):
+#: A refused property write that is a **decision**, not a defect, with the
+#: reason -- the executable form of the "deliberately absent" list, in the
+#: shape `tests/integration/test_mpv_state_restored.py`'s ALLOWED already
+#: uses. An entry here is somebody's decision, and adding one is how you say
+#: an absence is intended rather than accidental.
+ALLOWED_REFUSED_WRITES = {
+    "osd_border_style": (
+        "set_osd_settings writes it inside a try/except for an mpv that "
+        "predates the property; the site is correct and stays. What changed "
+        "is that the refusal is now visible, so on a box with such an mpv "
+        "every OSD settings write would otherwise fail this assertion"),
+}
+
+
+def watch_refused_writes(test, pm):
+    """Fail ``test`` if mpv refuses a property write during it.
+
+    Registered by ``build_player`` for every integration case and by
+    ``E2ETestCase.setUp`` for every e2e one, so **nothing opts in** -- which
+    is the whole requirement: a check each test has to remember to call is
+    absent exactly where it is needed.
+
+    Worth different amounts in the two suites, and saying which is the point.
+    Against a **real mpv** (e2e, and the three integration files that run the
+    real ``_init_mpv``) this is a version-skew detector: it fails on the box
+    whose mpv lacks a property the shim writes, and different boxes and CI
+    images carry different builds, so the population gets covered over runs
+    rather than per run. Against ``FakeMPV`` it can only fire for a property
+    a test declared absent -- said plainly, because a hook that cannot fail
+    is the "tests that cannot fail" shape.
+
+    The mark is taken here rather than counting from zero: the guard records
+    on the *class*, so that a re-created mpv mid-test still reports, and the
+    e2e player is process-wide and outlives the case.
+
+    **The mark is one number per guarded class, not one number.** The window
+    is a question about every class the case touched, and a case can touch a
+    class the manager is not holding at either end of it -- mpv re-created
+    from a re-imported module gets a *different* guarded class, whose counter
+    starts at zero. Observing only the class at mark time and the class at
+    cleanup gets this wrong in both directions: `A -> B -> A` never asks B at
+    all, and a case that ends on B asks B from zero, which reports the
+    refusals of every earlier case in the process. The registry in
+    `mpv_guard` is the complete list, so a snapshot over it diffed at cleanup
+    answers both.
+
+    ``pm`` is **not read**. It stays in the signature because every caller has
+    one and passing it is what says which player the case is about, but the
+    window is per guarded class now and the registry already holds every
+    class -- including ones no manager is pointing at.
+    """
+    from jellyfin_mpv_shim import mpv_guard
+
+    # Classes, not the player: `guarded` caches one class per base and the
+    # counter lives there, so the instance was never the thing being asked --
+    # and a class that has no live instance by cleanup is exactly the one the
+    # old two-instant window dropped.
+    mark = {cls: mpv_guard.refused_count(cls)
+            for cls in mpv_guard.guarded_classes()}
+    test.addCleanup(_assert_no_refused_writes, test, mark)
+
+
+def _assert_no_refused_writes(test, mark):
+    from jellyfin_mpv_shim import mpv_guard
+
+    # SINCE the mark, not the whole record: it is shared by every instance of
+    # the guarded class and so by every case in the process, and reading all
+    # of it fails this case for the refusal of the one before it.
+    #
+    # One window per guarded class, over every class that exists NOW. A class
+    # absent from the snapshot was built during this case, so its whole record
+    # is inside the window and it is asked from zero -- correctly, where
+    # asking a pre-existing class from zero would over-report.
+    windows = [(cls, mark.get(cls, 0))
+               for cls in mpv_guard.guarded_classes()]
+    #
+    # Names only. The record carries the value, and libmpv puts it in the
+    # exception's own args -- `http_header_fields` is this server's
+    # Authorization header, so neither belongs in a failure message.
+    names = sorted({r.name
+                    for window, since in windows
+                    for r in mpv_guard.refusals_since(window, since)}
+                   - set(ALLOWED_REFUSED_WRITES))
+    if not names:
+        return
+    test.fail(
+        "mpv refused these property writes, so each one was a write this "
+        "code believed it had made: %s. Either the property is wrong for "
+        "this mpv, or the absence is deliberate and belongs in "
+        "_harness.ALLOWED_REFUSED_WRITES with its reason." % ", ".join(names))
+
+
+def build_player(player_module, video=None, test=None):
     """Construct a ``PlayerManager`` bypassing ``__init__`` and wire the minimal
     state the state-machine methods touch, backed by a fresh :class:`FakeMPV`.
 
@@ -1067,7 +1204,17 @@ def build_player(player_module, video=None):
     # through the fake module, which cannot be handed a journal, so without
     # this the record stops at the first re-creation.
     use_journal(pm.journal)
-    pm._player = fake_mpv_class()(journal=pm.journal)
+    # Through the same subclass `_construct_mpv` uses, so the object every
+    # integration test drives has production's shape. This function
+    # deliberately skips the option plumbing; it must not also skip the one
+    # interception point every property write goes through.
+    # `passthrough=()` because FakeMPV stores its properties as ordinary
+    # attributes, so the snapshot arm() takes by default would exempt exactly
+    # the properties a test injects an absence into.
+    from jellyfin_mpv_shim import mpv_guard
+
+    pm._player = mpv_guard.guarded(fake_mpv_class())(journal=pm.journal)
+    mpv_guard.arm(pm._player, passthrough=())
     pm._video = video
     pm.evt_queue = Queue()
     pm._lock = RLock()
@@ -1141,6 +1288,11 @@ def build_player(player_module, video=None):
     # does not skip a write, it raises into `_play_media`'s broad except
     # and leaves the whole feature untested and green.
     pm._deinterlace_override = None
+    pm._aspect_override = None
+    # `_aspect_pristine` and `_hud_generation` are deliberately NOT seeded
+    # here: PlayerManager carries them as class attributes precisely so the
+    # two dozen stand-ins that skip `__init__` do not each have to learn
+    # about them. See the note beside them in player.py.
     pm._no_deinterlace_auto = False
     pm._render_written = set()
     # The real player snapshots this in `_init_mpv`, which build_player
@@ -1211,6 +1363,17 @@ def build_player(player_module, video=None):
     pm.update_check = _FakeUpdateCheck()
     from jellyfin_mpv_shim.osc_bridge import OscBridge
     pm.osc_bridge = OscBridge(pm)
+
+    # Registered HERE rather than in a base class, and that is what makes it
+    # automatic: the integration suite has no shared base -- its cases
+    # inherit unittest.TestCase directly -- so a base added now would cover
+    # only the files somebody remembered to re-parent. This function is the
+    # one thing they all call. `test` is optional in the signature and
+    # mandatory in practice: tools/audit_build_player_calls.py fails a call
+    # site that does not pass it, so the opt-in is enforced rather than
+    # remembered.
+    if test is not None:
+        watch_refused_writes(test, pm)
     return pm
 
 
