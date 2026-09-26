@@ -27,10 +27,9 @@ default, because a QA server that answers broadcasts appears in every Jellyfin
 client on the network). Without it nothing answers and these skip, saying so:
 a configuration this test needs and cannot create is a skip, not a failure.
 
-Likewise skipped where the installed apiclient has no `discovery` module --
-it landed in 1.19.0 and the shim's floor is deliberately older, which is the
-`try` in `ServersMixin.discover_servers` and the reason this suite must not
-assume it.
+Likewise skipped where the installed apiclient has no `discovery` module
+(added in 1.19.0, the floor): an environment that predates the floor is the
+`try` in `ServersMixin.discover_servers`, and this suite must not fail there.
 """
 
 import os
@@ -66,8 +65,8 @@ class LiveDiscoveryTest(unittest.TestCase):
     def setUpClass(cls):
         if not _discovery_available():
             raise unittest.SkipTest(
-                "this apiclient has no discovery module (added in 1.19.0); "
-                "the shim's floor is >=1.18.0 on purpose")
+                "this apiclient has no discovery module (added in 1.19.0, "
+                "the shim's floor); upgrade jellyfin-apiclient-python")
         cls.session = _e2e.Session()
         cls.server_id = cls.session.server_id()
         # What the server calls itself, asked over HTTP on the address this

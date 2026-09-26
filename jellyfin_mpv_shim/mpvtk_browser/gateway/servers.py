@@ -256,10 +256,11 @@ class ServersMixin(GatewayCore):
 
         ``[{"Id", "Name", "Address", ...}]``, one per server, empty when
         nothing answers -- and empty when the installed apiclient has no
-        discovery module, which is the case this `try` is for: the module
-        landed in 1.19.0 and the shim's floor is older. That is the project's
-        own optional-dependency pattern applied one step wider, at the module
-        rather than the package (CONTRIBUTING.md).
+        discovery module, which is the case this `try` is for. The floor is
+        1.19.0, where the module landed, but a build that pins its own wheel
+        rather than resolving `pyproject.toml` -- the Flathub manifest -- can
+        still ship an older one, and one optional affordance is not worth a
+        client that will not start (CONTRIBUTING.md).
 
         **Blocks for the whole timeout** -- nothing says when the last server
         has answered -- so callers run it off the UI thread. It never raises
