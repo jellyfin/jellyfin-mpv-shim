@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-23 23:21+0000\n"
-"Last-Translator: Sakura <sakura2026@users.noreply.translate.jellyfin.org>\n"
+"PO-Revision-Date: 2026-09-26 13:52+0000\n"
+"Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
 "Language: ja\n"
@@ -289,7 +289,7 @@ msgstr "字幕の変更"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Change Video Quality"
-msgstr "画質の変更"
+msgstr "動画品質の変更"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -334,7 +334,7 @@ msgstr "動画設定"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Player Preferences"
-msgstr "プレイヤー設定"
+msgstr "プレーヤー設定"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Close Menu"
@@ -531,7 +531,7 @@ msgstr "アウトロをスキップしました"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
-msgstr "サムネイルのプレビューの有効化"
+msgstr "サムネールのプレビューを有効に"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -789,14 +789,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "サーバーに接続しています…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -864,10 +858,8 @@ msgid "Ready to cast"
 msgstr "キャストができるようになりました"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Jellyfinでメディアを選択してこちらで再生します"
+msgstr "Jellyfinでメディアを選択してここで再生します"
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -921,10 +913,8 @@ msgstr "オーディオ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "字幕のサイズ: {0}"
+msgstr "字幕"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -992,10 +982,8 @@ msgid "Codec tag"
 msgstr "コーデックタグ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "新しいグループ"
+msgstr "プロファイル"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1053,7 +1041,7 @@ msgstr "ビットレート"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d kbps"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1121,10 +1109,8 @@ msgid "Default"
 msgstr "デフォルト"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " 強制"
+msgstr "強制"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1193,10 +1179,8 @@ msgid "%.1f Mbps"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "直パス"
+msgstr "ダイレクト再生"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1210,30 +1194,28 @@ msgstr "リミキシング"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (トランスコード)"
+msgstr "トランスコード"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The container is not supported"
-msgstr "サポートされていないコンテナです"
+msgstr "コンテナがサポートされていません"
 
 # seeded from jellyfin-web: VideoCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video codec is not supported"
-msgstr "映像のコーデックがサポートされていません"
+msgstr "動画コーデックがサポートされていません"
 
 # seeded from jellyfin-web: AudioCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio codec is not supported"
-msgstr "音声のコーデックがサポートされていません"
+msgstr "音声コーデックがサポートされていません"
 
 # seeded from jellyfin-web: SubtitleCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The subtitle codec is not supported"
-msgstr "字幕のコーデックがサポートされていません"
+msgstr "字幕コーデックがサポートされていません"
 
 # seeded from jellyfin-web: AudioIsExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1243,7 +1225,7 @@ msgstr "音声ストリームが外部です"
 # seeded from jellyfin-web: SecondaryAudioNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Secondary audio tracks are not supported"
-msgstr "第2音声トラックはサポートされていません"
+msgstr "第2音声トラックがサポートされていません"
 
 # seeded from jellyfin-web: VideoProfileNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1253,32 +1235,32 @@ msgstr "動画コーデックのプロファイルがサポートされていま
 # seeded from jellyfin-web: VideoLevelNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video codec's level is not supported"
-msgstr "動画コーデックのレベルはサポートされていません"
+msgstr "動画コーデックレベルがサポートされていません"
 
 # seeded from jellyfin-web: VideoResolutionNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's resolution is not supported"
-msgstr "映像の解像度はサポートされていません"
+msgstr "動画の解像度がサポートされていません"
 
 # seeded from jellyfin-web: VideoBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's bit depth is not supported"
-msgstr "動画のbit深度はサポートされていません"
+msgstr "動画のビット深度がサポートされていません"
 
 # seeded from jellyfin-web: VideoFramerateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's framerate is not supported"
-msgstr "映像のフレームレートはサポートされていません"
+msgstr "動画のフレームレートがサポートされていません"
 
 # seeded from jellyfin-web: RefFramesNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Reference frames are not supported"
-msgstr "リファレンスフレームはサポートされていません"
+msgstr "リファレンスフレームがサポートされていません"
 
 # seeded from jellyfin-web: AnamorphicVideoNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Anamorphic video is not supported"
-msgstr "アナモルフィック動画はサポートされていません"
+msgstr "アナモルフィック動画がサポートされていません"
 
 # seeded from jellyfin-web: InterlacedVideoNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1313,7 +1295,7 @@ msgstr "動画のビットレートが制限を超えています"
 # seeded from jellyfin-web: VideoBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's bitrate is not supported"
-msgstr "動画のビットレートはサポートされていません"
+msgstr "動画のビットレートがサポートされていません"
 
 # seeded from jellyfin-web: AudioBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1811,11 +1793,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "「次に再生」にふくめる"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "「次に再生」の要検討エントリー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
@@ -1880,10 +1862,8 @@ msgid "Player Controls Style"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "サムネイルのプレビューの有効化"
+msgstr "トリックプレー サムネールを有効に"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
@@ -2986,10 +2966,8 @@ msgstr ""
 "接続設定を確認してください。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Automatic"
 msgid "Automatic: Next Up"
-msgstr "自動"
+msgstr "自動 : 次に再生"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, fuzzy
@@ -3062,7 +3040,7 @@ msgstr "失敗"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlist"
-msgstr "プレイリスト"
+msgstr "プレーリスト"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
@@ -3117,7 +3095,7 @@ msgstr "再生を続ける"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Next Up"
-msgstr "まずは"
+msgstr "次に再生"
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
@@ -3275,7 +3253,7 @@ msgstr ""
 # seeded from jellyfin-web: LabelPlayMethod
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Play method"
-msgstr "プレイ方法"
+msgstr "再生方法"
 
 # seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -4651,7 +4629,7 @@ msgstr "テレビ番組"
 # seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlists"
-msgstr "プレイリスト"
+msgstr "プレーリスト"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
@@ -4868,7 +4846,7 @@ msgstr ""
 # seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
-msgstr "「まずは…」と「続きを見る」のセクションにエピソードの画像を利用する"
+msgstr "「次に再生」と「視聴をつづける」のセクションにエピソードの画像を利用する"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
