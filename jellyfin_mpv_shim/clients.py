@@ -273,10 +273,32 @@ class ClientManager(object):
         `client_factory` passes `allow_multiple_clients`, so this cannot reach
         the apiclient's process-wide websocket stop.
         """
-        try:
-            client.stop()
-        except Exception:
-            log.debug("could not stop an abandoned client", exc_info=True)
+        ClientManager._stop_client(client)
+
+    @staticmethod
+    def _stop_client(client):
+        """Stop an apiclient client; never raises. Every stop goes through here.
+
+        The apiclient's WSClient assigns its KeepAlive before starting it, so a
+        stop landing between the two joins an unstarted thread and raises
+        RuntimeError (seen from remove_client in a Windows e2e run). The raise
+        also skips the rest of the apiclient's stop -- the websocket close,
+        the HTTP session, the ping thread -- so it is retried once: the window
+        is two adjacent lines, and by then the thread has started and the join
+        succeeds. Unguarded, a raise also abandoned every later client in
+        stop_all_clients. tests/test_client_stop.py.
+        """
+        for attempt in (1, 2):
+            try:
+                client.stop()
+                return
+            except Exception:
+                if attempt == 2:
+                    log.warning("could not stop a client cleanly",
+                                exc_info=True)
+                    return
+                log.debug("client stop raised; retrying once", exc_info=True)
+                time.sleep(0.05)
 
     def _update_account(self, server: str, username: str, password: str):
         """Sign a saved account back in from the CLI, keeping its identity.
@@ -921,7 +943,7 @@ class ClientManager(object):
                     # server — a reconnect may have replaced it while we were
                     # probing. Stop our stale handle and leave the registry
                     # alone.
-                    client.stop()
+                    self._stop_client(client)
             return False
 
         return True
@@ -1410,7 +1432,7 @@ class ClientManager(object):
                 # `switch_user` clears the ledger anyway). A reason filed here
                 # would be about a server nothing is looking at, keyed by a
                 # uuid another profile may hold. CR10.
-                client.stop()
+                self._stop_client(client)
                 return False
             with self._client_lock:
                 self._connect_failures.pop(uuid, None)
@@ -1449,7 +1471,7 @@ class ClientManager(object):
         # rebuild a server we just deliberately disconnected.
         client.callback = lambda *_: None
         client.callback_ws = lambda *_: None
-        client.stop()
+        self._stop_client(client)
         return True
 
     def switch_user(self, user_id):
@@ -1516,7 +1538,7 @@ class ClientManager(object):
         with self._client_lock:
             clients, self.clients = dict(self.clients), {}
         for client in clients.values():
-            client.stop()
+            self._stop_client(client)
 
     def _server_is_connected(self, server):
         """Whether this *server* already has a live client — not whether this
