@@ -640,3 +640,36 @@ message>`: review the diff like a scene snapshot, and write each reason by hand.
 Outside release mode nothing fails that used to pass. The only change is the per-leg
 `[run, skipped]` counts in the e2e summary, and one earlier exit: `JMS_E2E_SERVER` set
 to a server that does not answer.
+
+## 14. The real-app harness (`tests/e2e/_app.py`)
+
+Every earlier e2e tier builds the app in-process and replaces something on the path
+under test: a browser with `controller=None`, a patched `userManager`, a
+`SyncManager` that was never started, timeline threads swapped for Events. The e2e
+audits (September 2026) found that most of their false greens came from exactly that.
+The harness runs the **shipped `run.py`** as a subprocess instead, against a fresh
+config directory, and drives it only from outside:
+
+- **Control channel:** through user-facing configuration. For libmpv, that is
+  `input-ipc-server=` in the config dir's `mpv.conf`. For jsonipc, it is `mpv_ext` and
+  `mpv_ext_ipc` in `conf.json`; that backend's own command line overrides `mpv.conf`.
+- **Input:** real keypresses over that channel, through mpv's input layer. The OS
+  input layer below it is left to the hand checks.
+- **Observation:** a test-only observer in `renderer.lua`, enabled by
+  `JMS_TEST_OBSERVE`, publishes each *finished* frame to `user-data/mpvtk/observe`:
+  nodes with on-screen rects and viewport visibility, focus/nav, occluders, and
+  text-field contents (masked fields as length only). It also keeps a ring of
+  per-frame summaries. The observer proves what was submitted, not what the VO
+  showed; that is what pixel checks are for.
+- **Network:** `tests/e2e/_relay.py`, a relay the test owns (pass / cut / stall,
+  with confirmation probes). Its fault contract is unit-tested in
+  `tests/test_e2e_relay.py`.
+- **Process ownership:** the harness owns the whole process tree. On POSIX the app
+  runs in its own session; on Windows it runs in a Job Object and is started
+  suspended until it is in the job. `quit()` asserts a clean exit **before** anything
+  is killed. `JMS_E2E_KEEP_CONFIG=1` keeps the config dir, and its `log.txt`, after
+  a run.
+
+A bug the harness has found and that is not fixed yet is marked expected-failure on
+the affected backend only, citing its id (`test_app_smoke`, B7). The day it passes,
+the manifest check reports an unexpected success and the marker has to go.
