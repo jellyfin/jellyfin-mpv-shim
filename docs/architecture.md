@@ -600,10 +600,37 @@ action loop, the switch worker, a finishing login), so a truncate-in-place write
 interrupted or interleaved would lose all of them. The `RLock` guards the user list and
 the active id against concurrent switches, and is **never held across network I/O**.
 
+**Atomic is not durable, so the write is also fsynced and there is a backup.** The
+rename is atomic with respect to readers and says nothing about the contents having
+reached the disk; without a flush, a power cut can leave an atomically renamed file of
+zero length, and this file is the one whose loss strands every queued offline viewing —
+nothing else can say who one belongs to. So `_write_durably` flushes and fsyncs the
+temp file, renames, and then fsyncs the directory entry (best effort: Windows cannot
+open a directory as a file), and `save()` refreshes `users.json.bak` with the same
+payload **only after the real file has landed**. The invariant is that the two are
+never both bad: interrupted between them, the backup holds the previous payload;
+interrupted during the backup, the primary is already correct.
+
+`load()` therefore prefers the backup to a loss. **Three cases, not two**, and the
+third is the one the recovery path opens itself: a primary that will not parse; one
+that parses to a registry with nobody in it, which this build never writes and
+`delete_user` cannot produce; and one that is **not there at all**, which is what an
+interruption between `_set_aside`'s rename and the `save()` that follows it leaves
+behind. Each is set aside as `users.json.unreadable-<ts>` where there are bytes to
+keep, and the backup is read instead; a successful restore writes the registry back,
+so the next launch is an ordinary one. A first run — neither file present — is none of
+these and still migrates `cred.json`. Only when neither is usable does `load_failed` go true, and
+that flag is not cosmetic: `sync/manager.py:_actor_resolver` withholds the catalog's
+actor resolver while it is set, because "cannot ask" must not be spelled the same way
+as "has been told nobody". Ruling R12; `tests/test_users.py:RegistryDurabilityTest`.
+
 ### 7.1 What is per-user and what is per-server
 
-Per **user**: the device id, the device name, the PIN, the credential list, and
-`last_server` — the uuid of the server this user was last browsing, so the next launch
+Per **user**: the device id, the device name, the PIN, the credential list,
+`auto_download` — the accounts this profile fetches unattended for, as
+`(ServerId, UserId)` pairs, which used to be a list of login uuids in the
+global config (R14; `docs/offline-sync.md` section 4) — and
+`last_server`, the uuid of the server this user was last browsing, so the next launch
 lands where they left off instead of on whichever server happened to connect first. It
 is a *hint*: the server may since have been removed or have failed to connect, so it is
 only usable if it is still in the live server list. `set_last_server` no-ops when

@@ -147,10 +147,11 @@ class VideoProfileManager:
         #: Which scope decided the loaded profile ("series"/"library"/
         #: "default"), so the menu can say why this film looks different.
         self.active_scope = "default"
-        #: item or series id -> the CollectionFolder it lives in, or None
-        #: for "asked and there is not one". Negative entries are kept: the
-        #: answer does not change within a session and re-asking would be a
-        #: request per playback.
+        #: (Jellyfin ServerId, item or series id) -> the CollectionFolder
+        #: it lives in, or None for "asked and there is not one". Negative
+        #: entries are kept: the answer does not change within a session and
+        #: re-asking would be a request per playback. Keyed by _library_key,
+        #: never by the lookup alone -- see there.
         self._library_ids = {}
         #: The scope the next profile pick writes to. Set by the scope menu.
         self._menu_scope = "default"
@@ -431,27 +432,27 @@ class VideoProfileManager:
         item DTO carries ``SeriesId`` but nothing naming its library, and
         the shim reaches items by search and by-name screens where there is
         no library in the route either. Measured at 15-19 ms against a local
-        server, cached per lookup id, and -- see :meth:`scope_keys` -- not
+        server, cached per `_library_key`, and -- see :meth:`scope_keys` -- not
         asked at all unless a library override exists to match.
 
         Keyed on the SERIES where there is one: every episode of a show is
         in the same library, so a whole series costs one request rather than
         one per episode.
         """
-        item = item or {}
-        lookup = item.get("SeriesId") or item.get("Id")
-        if not lookup:
+        key = self._library_key(item)
+        if key is None:
             return None
+        lookup = key[1]
         # The local catalog first, always -- online too. A downloaded item
         # recorded its library at download time, which is authoritative,
         # free, and answerable with the server away. This is what keeps the
         # offline play path from making a request at all, and it was
         # reaching for the PREVIOUS item's client to do it.
-        local = self._catalog_library_id(lookup)
+        local = self._catalog_library_id(key)
         if local:
-            self._library_ids[lookup] = local
+            self._library_ids[key] = local
             return local
-        cached = self._library_ids.get(lookup, ASK_PLAYER)
+        cached = self._library_ids.get(key, ASK_PLAYER)
         if cached is not ASK_PLAYER and (cached is not None or not force):
             # A positive answer is permanent. A NEGATIVE one is only cached
             # to keep the read path from asking once per playback -- it may
@@ -475,33 +476,69 @@ class VideoProfileManager:
             # lookup must not become a request per playback.
             log.debug("could not resolve the library for %s", lookup,
                       exc_info=True)
-        self._library_ids[lookup] = found
+        self._library_ids[key] = found
         return found
 
     def _cached_library_id(self, item):
         """The library id **without asking the server** -- the local catalog
         (free, and right for anything downloaded) then the session cache."""
-        lookup = (item or {}).get("SeriesId") or (item or {}).get("Id")
-        if not lookup:
+        key = self._library_key(item)
+        if key is None:
             return None
-        local = self._catalog_library_id(lookup)
+        local = self._catalog_library_id(key)
         if local:
-            self._library_ids[lookup] = local
+            self._library_ids[key] = local
             return local
-        cached = self._library_ids.get(lookup)
+        cached = self._library_ids.get(key)
         return cached if cached else None
 
     @staticmethod
-    def _catalog_library_id(lookup):
-        """The library id the downloader recorded for this item or series,
-        or None. Never raises and never blocks on the network."""
+    def _library_key(item):
+        """``(ServerId, series or item id)`` for ``item``, or None if there
+        is nothing to ask about.
+
+        The one place the key is built, because it is both the cache key and
+        the catalog scope and they must not drift apart. **The server half is
+        load-bearing:** Jellyfin derives an item id from the media's path, so
+        two servers over one library hand out identical ids -- and this cache
+        lives for the session, so without it one server's library came back
+        for another server's item with no lookup running at all.
+        """
+        item = item or {}
+        lookup = item.get("SeriesId") or item.get("Id")
+        return (item.get("ServerId"), lookup) if lookup else None
+
+    @staticmethod
+    def _catalog_library_id(key):
+        """The library id the downloader recorded for this item or series on
+        this server, or None. Never raises and never blocks on the network.
+
+        The key's first half is already the Jellyfin ServerId, which is the
+        catalog's content key -- so this hands it straight over. It used to
+        translate it into a set of saved logins first, which was the same
+        answer by a longer route.
+
+        **A falsy ServerId answers for no rows, and that is intended.**
+        `_content_clause` scopes a falsy value to nothing, so a key without a
+        server gets no library id and the item simply has no library-scoped
+        profile. The case it costs is narrow: every live server sends
+        ``ServerId``, and `_add_row` has refused a DTO without one since
+        ``ecfd316c``, so only a catalog row written before that can arrive here
+        falsy. A download whose server was *removed* is **not** such a case --
+        its row keeps the ``content_server_id`` it was written with, and its
+        ``item_json`` still names the server -- so answering unscoped here
+        would buy nothing and risk another server's library id through a
+        colliding item id, which `_library_key` above calls load-bearing.
+        Ruled 2026-09-19.
+        """
+        server_id, lookup = key
         try:
             from .sync.manager import syncManager
 
             db = getattr(syncManager, "db", None)
             if db is None:
                 return None
-            return db.library_id(lookup)
+            return db.library_id(lookup, server_id=server_id)
         except Exception:
             log.debug("could not read the catalog's library id",
                       exc_info=True)
@@ -539,7 +576,7 @@ class VideoProfileManager:
         # (the catalog answers for anything downloaded) rather than making a
         # request while _play_media holds the player lock. What it misses,
         # _warm_library_later picks up on the action thread.
-        known = (item.get("SeriesId") or item.get("Id")) in self._library_ids
+        known = self._library_key(item) in self._library_ids
         if force or known or self.overrides.has_any("library"):
             library_id = (self._library_id(item, client, force) if force
                           else self._cached_library_id(item))
@@ -614,8 +651,8 @@ class VideoProfileManager:
             if self.suppressed or not self.overrides.has_any("library"):
                 return
             item = item or {}
-            lookup = item.get("SeriesId") or item.get("Id")
-            if not lookup or lookup in self._library_ids:
+            key = self._library_key(item)
+            if key is None or key in self._library_ids:
                 return
             self._library_id(item, client)
         except Exception:
@@ -643,9 +680,8 @@ class VideoProfileManager:
         """
         if not self.overrides.has_any("library"):
             return
-        item = item or {}
-        lookup = item.get("SeriesId") or item.get("Id")
-        if not lookup or lookup in self._library_ids:
+        key = self._library_key(item)
+        if key is None or key in self._library_ids:
             return
         put_task = getattr(self.playerManager, "put_task", None)
         if put_task is None:

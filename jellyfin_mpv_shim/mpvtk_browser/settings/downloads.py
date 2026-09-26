@@ -117,6 +117,10 @@ class DownloadsTabMixin:
                 route, group,
                 series_id=group.get("id") if kind == "series" else None,
                 playlist_id=group.get("id") if kind == "playlist" else None,
+                # Two servers can hold a playlist with the same id, so the
+                # gesture has to say which one is on screen.
+                playlist_server_id=(group.get("server_id")
+                                    if kind == "playlist" else None),
                 # Groups without a server-side id (the flat "Movies &
                 # Videos" bucket) delete their own rows explicitly. Passing
                 # no scope at all used to reach syncManager.delete() with
@@ -137,6 +141,8 @@ class DownloadsTabMixin:
                     series_id=group.get("id") if kind == "series" else None,
                     playlist_id=(group.get("id") if kind == "playlist"
                                  else None),
+                    playlist_server_id=(group.get("server_id")
+                                        if kind == "playlist" else None),
                     item_ids=(None if kind in ("series", "playlist")
                               else self._dl_group_item_ids(group)))
                 if kind in ("series", "playlist")
@@ -212,18 +218,17 @@ class DownloadsTabMixin:
         return [i for i in out if i]
     def _dl_delete_cb(self, route, entry, item_id=None, series_id=None,
                       season_id=None, playlist_id=None, item_ids=None,
-                      watched_only=False):
+                      watched_only=False, playlist_server_id=None):
         def go():
             self._confirm(
                 (_("Delete the watched downloads in %s?") if watched_only
                  else _("Delete the downloaded copy of %s?"))
                 % entry.get("title", ""),
-                lambda: self._delete_download(route, item_id=item_id,
-                                              series_id=series_id,
-                                              season_id=season_id,
-                                              playlist_id=playlist_id,
-                                              item_ids=item_ids,
-                                              watched_only=watched_only),
+                lambda: self._delete_download(
+                    route, item_id=item_id, series_id=series_id,
+                    season_id=season_id, playlist_id=playlist_id,
+                    item_ids=item_ids, watched_only=watched_only,
+                    playlist_server_id=playlist_server_id),
                 title=_("Delete Download"), yes=_("Delete"))
         return go
     def _poll_downloads(self, route):
@@ -278,7 +283,7 @@ class DownloadsTabMixin:
                        always=lambda: route.__setitem__("_dl_loading", False))
     def _delete_download(self, route, item_id=None, series_id=None,
                          season_id=None, playlist_id=None, item_ids=None,
-                         watched_only=False):
+                         watched_only=False, playlist_server_id=None):
         """Delete, then re-read the catalog — in that order, on one worker.
 
         Submitting the delete and the reload as separate tasks raced: the
@@ -300,7 +305,8 @@ class DownloadsTabMixin:
                 self.controller.delete_download(
                     item_id=item_id, series_id=series_id,
                     season_id=season_id, playlist_id=playlist_id,
-                    watched_only=watched_only)
+                    watched_only=watched_only,
+                    playlist_server_id=playlist_server_id)
             return self.controller.list_downloads()
 
         def done(rows):

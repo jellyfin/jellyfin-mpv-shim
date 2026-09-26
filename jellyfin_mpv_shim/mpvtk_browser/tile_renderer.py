@@ -779,7 +779,16 @@ class TileRenderer:
         # bug this line was added for.
         if t == "Season":
             return iid in self._downloaded_seasons
-        return t == "Playlist" and iid in self._downloaded_playlists
+        if t != "Playlist":
+            return False
+        # The offline library spells a playlist's id with its server in it
+        # (two servers hand out the same one), and the badge set holds the
+        # catalog's plain ids. Split rather than compared raw, or every
+        # playlist tile in the offline library loses its tick -- while every
+        # other tile there keeps one.
+        from ..constants import split_offline_playlist_id
+
+        return split_offline_playlist_id(iid)[0] in self._downloaded_playlists
     #: Banner widths are rounded up to a multiple of this before they reach
     #: the artwork cache, because the cache keys on exact pixel dimensions and
     #: a continuous width asks for a new picture on every pixel of a drag

@@ -537,3 +537,47 @@ class TestNoneChildren(unittest.TestCase):
 
         nodes, _h = layout(Column([None, None]), 400, 300)
         self.assertEqual([n for n in nodes if n["t"] == "text"], [])
+
+
+class TestADropdownWithIconsAsksForTheIconsRoom(unittest.TestCase):
+    """A closed select draws the selected item's icon before its label and
+    shortens the label to fit. Its natural width did not know that, so a
+    picker with icons asked for exactly enough room for its longest name and
+    then spent part of that room on a glyph -- which is an ellipsis nothing
+    gained anything from.
+    """
+
+    def _width(self, **kw):
+        nodes, _h = layout(
+            Row([Dropdown("d", ["Living Room Media Server"],
+                          on_select=lambda i, v: None, **kw)]),
+            1600, 900)
+        return by_id(nodes, "d")["w"]
+
+    def test_an_icon_widens_the_closed_control(self):
+        self.assertGreater(self._width(icons=["lan"]), self._width())
+
+    def test_and_the_label_still_fits(self):
+        """The assertion that says the extra is the *right* extra rather
+        than merely some. 40 for the arrow and padding, plus the indent the
+        renderer applies, is what the label has to survive."""
+        d = Dropdown("d", ["Living Room Media Server"], icons=["lan"],
+                     on_select=lambda i, v: None)
+        nodes, _h = layout(Row([d]), 1600, 900)
+        node = by_id(nodes, "d")
+        indent = int(node["size"] * 1.1) + 6
+        self.assertGreaterEqual(node["w"] - 40 - indent,
+                                text_width(d.items[0], d.size))
+
+    def test_a_picker_with_no_icons_is_unchanged(self):
+        nodes, _h = layout(
+            Row([Dropdown("d", ["A", "B"], on_select=lambda i, v: None)]),
+            1600, 900)
+        node = by_id(nodes, "d")
+        self.assertAlmostEqual(node["w"],
+                               text_width("A", node["size"]) + 44, places=1)
+
+    def test_an_all_empty_icon_list_is_not_an_icon_column(self):
+        """`icons=[None, None]` is a list that reserves nothing, and paying
+        for it is the defect this pair exists either side of."""
+        self.assertEqual(self._width(icons=[None]), self._width())

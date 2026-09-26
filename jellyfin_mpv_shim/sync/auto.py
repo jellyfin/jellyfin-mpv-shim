@@ -113,6 +113,13 @@ def _expand_failed():
     return ExpandFailed
 
 
+def manager_collision():
+    """``manager.DownloadCollision``, imported per call, for the reason
+    above."""
+    from .manager import DownloadCollision
+    return DownloadCollision
+
+
 class AutoDownloader:
     """Policy and scheduling for automatic downloads.
 
@@ -193,7 +200,6 @@ class AutoDownloader:
     def run(self):
         """One full pass: reap, then fill the freed space. Returns a summary
         dict (used by tests and the log line)."""
-        self._watched_cache = {}
         reaped = self.reap()
         if self._interrupted():
             return {"queued": 0, "reaped": reaped}
@@ -279,7 +285,14 @@ class AutoDownloader:
             size = sum((r["downloaded_bytes"] or 0) for r in keep)
             # keep is already oldest-first (list_auto orders by completed_at).
             for row in keep:
-                if size <= cap or self._interrupted():
+                # `<`, not `<=`: at *exactly* the cap nothing would be
+                # evicted, free_budget() would return zero and the planner
+                # would queue nothing -- and a capped store settles into
+                # exactly that state. With a watched-grace default of 24h
+                # that is a full day of downloading nothing, so cap pressure
+                # wins at the boundary. docs/configuration.md
+                # already promises the budget overrides the grace.
+                if size < cap or self._interrupted():
                     break
                 if not self._is_watched(row):
                     continue
@@ -291,8 +304,23 @@ class AutoDownloader:
 
     def _retire_reason(self, row):
         """Why this auto-download should be deleted, or None to keep it."""
-        if settings.auto_download_delete_watched and self._is_watched(row):
-            return "watched"
+        if not self._is_watched(row):
+            # **Outside the delete-watched gate**, because nothing else in
+            # the app writes `watched_at` and this is the only thing that
+            # clears it. Gated, a stamp outlived the un-watch that should
+            # have voided it whenever the rule was off in between -- and the
+            # next viewing then measured its window from one the user had
+            # already taken back, so the item was deleted on the first pass
+            # with none of the grace the setting promises. A no-op for a row
+            # that has no stamp, which is nearly all of them.
+            self._forget_watched_at(row)
+        elif settings.auto_download_delete_watched:
+            # Returned whatever the answer is, so a watched item inside its
+            # grace window does NOT fall through to the age rule and get
+            # deleted as "unwatched for N days" -- the one thing it is
+            # definitely not. With no grace configured the answer is always
+            # "watched", so this is the old control flow.
+            return self._watched_retire_reason(row)
         days = int(settings.auto_download_keep_days or 0)
         if days > 0:
             stamp = row["completed_at"] or row["added_at"] or 0
@@ -300,36 +328,104 @@ class AutoDownloader:
                 return "unwatched for %d days" % days
         return None
 
-    def _is_watched(self, row):
-        """Watched according to the freshest thing we have.
+    def _watched_grace_seconds(self):
+        """How long a watched auto-download is kept anyway, in seconds.
 
-        The catalog's userdata is a download-time snapshot, so it says
-        "unwatched" forever if we trust it alone. Ask the server when one is
-        reachable and fall back to the snapshot when offline — an item simply
-        does not get reaped until we can confirm it, which is the safe way to
-        be wrong.
+        A hand-typed negative is read as "no grace" rather than declined:
+        unlike the lookahead pair, there is no second value it could
+        contradict and no reading of "-3 hours" but this one. The cap's
+        negative is different and must stay different -- there a negative
+        budget means "allow nothing", which is a real instruction.
         """
-        item_id = row["item_id"]
-        cache = getattr(self, "_watched_cache", None)
-        if cache is not None and item_id in cache:
-            # The cap loop re-checks every survivor the retention loop
-            # already asked about; without this that is a second HTTP round
-            # trip per row, per pass.
-            return cache[item_id]
-        client = self.manager.get_client(row["server_uuid"])
-        if client is not None:
-            try:
-                data = client.jellyfin.get_userdata_for_item(item_id)
-                if data is not None:
-                    played = bool(data.get("Played"))
-                    if cache is not None:
-                        cache[item_id] = played
-                    return played
-            except Exception:
-                log.debug("Could not refresh userdata for %s", item_id,
-                          exc_info=True)
         try:
-            return bool(json.loads(row["userdata_json"] or "{}").get("Played"))
+            hours = int(settings.auto_download_keep_watched_hours or 0)
+        except (TypeError, ValueError):
+            return 0
+        return max(0, hours) * 3600
+
+    def _watched_retire_reason(self, row):
+        """A watched auto-download: delete it, or hold it until its grace is up?
+
+        The clock starts the first time **this app** sees the item finished,
+        which is what `watched_at` records. Not the server's
+        `LastPlayedDate`: that is absent with the server away, absent on some
+        Mark Played paths, and the whole point of the window is that the file
+        is still here -- an anchor that can fail to exist would decide by
+        accident which side of it an item falls on.
+
+        The cost is that an episode finished on a phone while this machine
+        was off starts its window when the machine next looks. That is the
+        harmless direction: the item was never going to be deleted during a
+        stretch when nothing was running to delete it.
+        """
+        grace = self._watched_grace_seconds()
+        if grace <= 0:
+            return "watched"
+        stamp = row["watched_at"]
+        if not stamp:
+            self._stamp_watched_at(row)
+            return None
+        if (self._now() - stamp) < grace:
+            return None
+        return "watched %d h ago" % ((self._now() - stamp) // 3600)
+
+    def _stamp_watched_at(self, row):
+        """Record that we have now seen this item as played."""
+        try:
+            self.manager.db.update(row["item_id"], watched_at=int(self._now()))
+        except Exception:
+            # Keeping the item is the safe way to be wrong, and the cap
+            # still evicts watched items, so the footprint stays bounded
+            # even if this never succeeds. Warn rather than debug: silently
+            # never reaping is the failure that looks like nothing at all.
+            log.warning("Could not stamp the watched time for %s; it will be "
+                        "kept until the next pass that can.",
+                        row["item_id"], exc_info=True)
+
+    def _forget_watched_at(self, row):
+        """Un-watched again: the window restarts if it is watched a second
+        time, rather than counting from a viewing that was taken back."""
+        if not row["watched_at"]:
+            return
+        try:
+            self.manager.db.update(row["item_id"], watched_at=None)
+        except Exception:
+            log.debug("Could not clear the watched time for %s",
+                      row["item_id"], exc_info=True)
+
+    def _is_watched(self, row):
+        """Watched according to the catalog. **No network here.**
+
+        This used to ask the server per row, because the catalog's userdata
+        was a download-time snapshot that said "unwatched" forever. It is not
+        one any more: the sweep writes into it, `apply_userdata_event` writes
+        into it, and `mirror_playstate` writes into it for every item played
+        whether or not the copy on disk is the one being watched. So the
+        question the round trip answered is now answered by an ordering --
+        the pass runs behind a sweep (`SyncManager._auto_after_sweep`) and
+        reads what the sweep wrote.
+
+        Removed rather than kept as a fallback, and that is the
+        point: a per-row live read is a second authority over watched state,
+        and with the per-actor split it is one that disagrees. It asked as
+        `row["server_uuid"]` -- the login that *downloaded* the copy -- so on
+        a shared machine it answered with the downloader's account, and on a
+        box reached through two addresses it often answered with nobody at
+        all. The catalog answers for everyone here, which is what the
+        deletion question actually needs.
+        """
+        try:
+            # Any actor: the reaper deletes one shared file, so the question
+            # is whether this machine has finished with it.
+            # docs/offline-sync.md section 1 -- and the named future work, a
+            # claim system recording
+            # who *asked* for each download, is what would make it narrower.
+            #
+            # A deferred account's stale `played = 1` is deletion-authoritative
+            # here and can lose an unwatched file. Accepted with its reasons:
+            # docs/do-not-fix.md F46, and the lazy-per-account rule it falls
+            # out of in docs/offline-sync.md section 3.
+            return bool(self.manager.db.played_by_anyone(row["item_id"]))
         except Exception:
             return False
 
@@ -353,7 +449,8 @@ class AutoDownloader:
             # so without this the next pass re-downloads it and the cycle
             # repeats every keep_days, forever.
             try:
-                self.manager.db.mark_discarded(row["item_id"])
+                self.manager.db.mark_discarded(
+                    row["item_id"], server_id=row.get("content_server_id"))
             except Exception:
                 log.debug("Could not record the discard for %s",
                           row["item_id"], exc_info=True)
@@ -373,11 +470,23 @@ class AutoDownloader:
         """
         queued = 0
         cap = _per_pass()
-        try:
-            discarded = self.manager.db.discarded_ids()
-        except Exception:
-            log.debug("Could not read the discard list", exc_info=True)
-            discarded = set()
+        # Per server, because a tombstone is now about one server's copy of
+        # an id and the candidate stream spans servers. Memoized for the pass
+        # rather than read once up front: two indexed reads per server beats
+        # one unscoped read that answers for the wrong one.
+        discarded_by_server = {}
+
+        def discarded_for(server_uuid):
+            content = self.manager.content_id_for(server_uuid)
+            if content not in discarded_by_server:
+                try:
+                    discarded_by_server[content] = \
+                        self.manager.db.discarded_ids(server_id=content)
+                except Exception:
+                    log.debug("Could not read the discard list",
+                              exc_info=True)
+                    discarded_by_server[content] = set()
+            return discarded_by_server[content]
         capped = False
         for server_uuid, item, origin in self._candidates():
             if queued >= cap:
@@ -392,12 +501,20 @@ class AutoDownloader:
             item_id = item.get("Id")
             if not item_id or self.manager.db.get(item_id):
                 continue        # downloaded, queued, or errored — leave it
-            if item_id in discarded:
+            if item_id in discarded_for(server_uuid):
                 continue        # reaped on age; do not fetch it again
             try:
                 added = self.manager.enqueue(server_uuid, item_id,
                                              item.get("Type") or "Episode",
                                              origin=origin)
+            except manager_collision():
+                # The same id is already held from another server, and the
+                # catalog can only keep one. Skip it exactly as an expand
+                # failure is skipped -- ending the pass would block every
+                # candidate behind it, one pass after another.
+                log.debug("Auto-download: %s is held from another server; "
+                          "skipping it.", item_id)
+                continue
             except _expand_failed():
                 # Skip the item, do not end the pass. Letting this propagate
                 # to tick()'s catch would abort the whole run, and the next
@@ -428,27 +545,44 @@ class AutoDownloader:
         return sources[0].get("Size") or _UNKNOWN_SIZE
 
     @staticmethod
-    def allowed_servers():
-        """Server uuids the scheduler may pull from.
+    def allowed_accounts():
+        """Accounts the scheduler may pull for, as ``(ServerId, UserId)``.
 
         Empty means none. A logged-in server is not necessarily *your*
         server, and unattended downloads are a rude thing to point at a
         friend's box, so this is an explicit allow-list rather than an
         opt-out. The settings screen seeds it with the server you were
         looking at when you switched auto-download on.
+
+        **Accounts, not login uuids** (R14). `clients._connect_all` groups a
+        server's credentials by `Id` and registers the client under whichever
+        address answered first, so a uuid list is an allow-list keyed on
+        something the connect path chooses: on a server reachable at two
+        addresses, unattended fetching was configured, enabled, and silently
+        idle whenever the other address won. Stored per profile in
+        `users.json`; the config key it replaced is adopted at load.
         """
-        raw = (settings.auto_download_servers or "").strip()
-        return {s.strip() for s in raw.split(",") if s.strip()}
+        from ..users import userManager
+        try:
+            return userManager.auto_download_accounts()
+        except Exception:
+            # A registry that will not load must not turn into "every
+            # server is allowed"; it means we cannot say, so nothing runs.
+            log.warning("Could not read the auto-download allow-list.",
+                        exc_info=True)
+            return set()
 
     def _candidates(self):
         """(server_uuid, item DTO, origin) for everything worth downloading,
         best first. A generator so an exhausted budget stops the API calls
         too. The origin travels with the item so the downloads manager can
         show each source as its own subtree."""
-        allowed = self.allowed_servers()
+        from ..users import userManager
+
+        allowed = self.allowed_accounts()
         if not allowed:
-            # Reachable by hand-editing the config (the settings screen always
-            # seeds a server when switching this on). Say so — enabled but
+            # Reachable by unticking every server (the settings screen always
+            # seeds one when switching this on). Say so — enabled but
             # silently doing nothing is otherwise indistinguishable from a bug.
             log.warning("Auto-download is on but no servers are selected; "
                         "tick one in Settings -> Servers.")
@@ -456,7 +590,9 @@ class AutoDownloader:
         for server_uuid, client in (self.get_clients() or {}).items():
             if client is None:
                 continue
-            if server_uuid not in allowed:
+            # The live login's account, so a second address for the same
+            # server is the same permission rather than an unticked one.
+            if userManager.actor_for(server_uuid) not in allowed:
                 continue
             api = getattr(client, "jellyfin", None)
             if api is None:
@@ -551,7 +687,16 @@ class AutoDownloader:
         """
         held = {STATUS_COMPLETE, STATUS_PENDING, STATUS_DOWNLOADING}
         try:
-            rows = self.manager.db.list(series_id=series_id)
+            # The CONTENT key, not the login. "Do we already hold this
+            # episode" is a property of the server and the media, so two
+            # logins on one box get one answer -- this compared the login,
+            # and the second account's lookahead therefore read a series it
+            # already holds as empty and sized its top-up against nothing.
+            # Scoped in SQL rather than filtered here, so the NULL policy has
+            # one author (`_content_clause`).
+            rows = self.manager.db.list(
+                series_id=series_id,
+                server_id=self.manager.content_id_for(server_uuid))
         except Exception:
             log.debug("Could not read held episodes for %s", series_id,
                       exc_info=True)
@@ -560,8 +705,7 @@ class AutoDownloader:
             # removed. The caller skips the series this time instead.
             return None
         return {row.get("item_id") for row in rows
-                if row.get("server_uuid") == server_uuid
-                and row.get("status") in held}
+                if row.get("status") in held}
 
     @staticmethod
     def _watch_position(api, series_id):
@@ -583,9 +727,29 @@ class AutoDownloader:
         return items[0].get("Id") if items else None
 
     def _followed_series(self, server_uuid):
-        """Series ids we hold at least one completed download for, on one
-        server. This is the scope of the lookahead: the shows the user has
-        shown some interest in, as opposed to Next Up's whole library."""
+        """Series ids we hold at least one completed download for, for one
+        **login**. This is the scope of the lookahead: the shows the user has
+        shown some interest in, as opposed to Next Up's whole library.
+
+        **Keyed on the login, deliberately, unlike its neighbour
+        `_held_ids`.** An early enumeration classified both as content
+        reads and it is wrong about this one: "do we hold this file"
+        is content, but "which shows is this account following" is the
+        account's. Content-keying it would let one account's lookahead chase
+        series another account downloaded, which is the download explosion
+        [iw] declined when ruling that auto-download stays single-account
+        ("deliberately don't support multiple accounts with auto download for
+        now due to the potential explosion of downloads and edge cases for
+        automatic deletion"). Do not "fix" this to match the line above it:
+        "do we hold this" is content-keyed and "whose auto-download is this"
+        is account-keyed, and they are not the same question.
+
+        The allow-list used to cite itself here as a fellow login-keyed
+        value; it is keyed on the **account** now (R14), and that is not an
+        argument for changing this one. "Which shows is this account
+        following" is still the account's question, and the login is how a
+        row records which of its addresses fetched it.
+        """
         return {row["series_id"]
                 for row in self.manager.db.list(status=STATUS_COMPLETE)
                 if row["server_uuid"] == server_uuid and row["series_id"]}

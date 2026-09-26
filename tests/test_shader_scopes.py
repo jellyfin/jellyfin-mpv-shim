@@ -21,8 +21,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
 
-import errno
-import os
+import contextlib
 import errno
 import os
 import sys
@@ -123,6 +122,31 @@ def make_manager(item=EPISODE, library="lib1", path=None):
     mgr.suppressed = False
     mgr.api = api
     return mgr
+
+
+@contextlib.contextmanager
+def _a_downloaded_episode(library):
+    """Put EPISODE in a real catalog, written the way a download writes it.
+
+    `_add_row` and `SyncDB` both, because the defect this guards was the
+    seam between them: the value was resolved correctly, handed over
+    correctly, and discarded by the INSERT. Anything that stands in for
+    either half cannot see that.
+    """
+    from jellyfin_mpv_shim.sync import manager as sync_manager
+    from jellyfin_mpv_shim.sync.db import SyncDB
+
+    root = _tmpdirs.tmpdir()
+    db = SyncDB(os.path.join(root, "catalog.db"))
+    sm = sync_manager.SyncManager()
+    sm.root, sm.db = root, db
+    sm.get_client = lambda uuid: FakeClient(FakeApi(library))
+    try:
+        sm._add_row("uuid", dict(EPISODE, Type="Episode", Name="E"))
+        with mock.patch.object(sync_manager.syncManager, "db", db):
+            yield db
+    finally:
+        db.close()
 
 
 class StoreTest(unittest.TestCase):
@@ -231,16 +255,35 @@ class ResolutionCostTest(unittest.TestCase):
         """The library is recorded in the catalog at download time, so an
         offline play resolves its scope with the server away — which is
         what stopped the play path reaching for the previous item's client
-        to ask a server it already knew was unreachable."""
+        to ask a server it already knew was unreachable.
+
+        **Through a real catalog, written by the real download path.** This
+        stubbed `_catalog_library_id` and so asserted only that the play
+        path trusts an answer -- while the write that was supposed to supply
+        one dropped it on the floor for the whole life of the feature,
+        because `library_id` was missing from `db.COLUMNS`. The stub is the
+        reason that was invisible: it stood in for exactly the call whose
+        real answer was always None.
+        """
         m = make_manager()
         m.overrides.set("library", "srv/lib1", "b")
-        with mock.patch.object(m, "_catalog_library_id", return_value="lib1"), \
+        with _a_downloaded_episode("lib1"), \
                 mock.patch.object(m, "load_profile",
                                   return_value=True) as load:
             m.apply_for_item(EPISODE)
         self.assertEqual(m.api.calls, [])
         self.assertEqual(m.playerManager.tasks, [])
         load.assert_called_once_with("b")   # ...and the override applied
+
+    def test_and_a_download_with_no_library_recorded_still_asks(self):
+        """The negative control for the line above: the catalog is real and
+        present, it just has nothing to say, so the request is still made.
+        Without this, a catalog lookup that raised would read the same as
+        one that answered."""
+        m = make_manager()
+        with _a_downloaded_episode(None):
+            m.scope_keys(EPISODE, force=True)
+        self.assertEqual(m.api.calls, ["show1"])
 
 
     def test_a_warmed_cache_makes_the_row_appear_without_a_request(self):
@@ -546,3 +589,79 @@ class SavingIsAtomicTest(unittest.TestCase):
         self.assertEqual(
             shader_overrides.ShaderOverrides(path).get("series", "s3"),
             shader_overrides.UNSET)
+
+
+@contextlib.contextmanager
+def _credential_store(*users):
+    """One argument per local user, each a list of ``(ServerId, uuid)``
+    credentials filed the way a login files them. Separate arguments
+    because the download catalog is one store for the whole machine, so the
+    translation spans users rather than the active one."""
+    from jellyfin_mpv_shim.users import userManager
+
+    stored = [{"id": "local%d" % n,
+               "credentials": [{"Id": server_id, "uuid": uuid}
+                               for server_id, uuid in creds]}
+              for n, creds in enumerate(users)]
+    with mock.patch.object(userManager, "users", stored):
+        yield
+
+
+class TheCatalogAnswersForOneServerTest(unittest.TestCase):
+    """The play-path half of the cross-server defect.
+
+    Jellyfin derives an item id from the media's path, so two servers over
+    one library hand out identical ids. A wrong answer here corrupts
+    nothing -- `key_for` already carries the ServerId, so the key names a
+    library the asking server does not have and matches no override -- but
+    it is the same defect at the same seam. Why the ids collide at all:
+    docs/jellyfin-api-notes.md 13b.
+    """
+
+    def test_another_servers_download_does_not_answer(self):
+        m = make_manager()
+        with _a_downloaded_episode("lib1"), \
+                _credential_store([("srv", "uuid")], [("other", "uuid2")]):
+            self.assertIsNone(
+                m._cached_library_id(dict(EPISODE, ServerId="other")),
+                "answered with a library that exists on the other server")
+            self.assertEqual(m._cached_library_id(EPISODE), "lib1",
+                             "and stopped answering for its own")
+
+    def test_a_server_we_hold_no_credential_for_still_answers(self):
+        """The unscoped floor, and the only path that can reach it.
+
+        Removing a server does not remove its downloads, so a ServerId with
+        nothing to translate it runs the query the way it ran before it was
+        scoped at all. Answering None instead is how the reverted repair
+        took the feature away from everyone, which is why the floor is
+        here rather than a refusal. The download path cannot reach this --
+        it substitutes its own uuid -- so this is the test that pins it.
+        """
+        m = make_manager()
+        with _a_downloaded_episode("lib1"), \
+                _credential_store([("some-other-server", "u2")]):
+            self.assertEqual(m._cached_library_id(EPISODE), "lib1")
+
+    def test_the_session_cache_does_not_cross_servers(self):
+        """Scoping the catalog query is not enough: `_library_ids` is a
+        session cache keyed on the lookup, so the first server's answer came
+        back for the second without any lookup running at all."""
+        m = make_manager()
+        first = m._library_id(dict(EPISODE, ServerId="SA"),
+                              FakeClient(FakeApi("libA")))
+        second = m._library_id(dict(EPISODE, ServerId="SB"),
+                               FakeClient(FakeApi("libB")))
+        self.assertEqual((first, second), ("libA", "libB"))
+
+    def test_a_negative_answer_does_not_silence_the_other_server(self):
+        """The negative entries are cached too -- deliberately, to keep a
+        failed lookup from becoming a request per playback -- so they cross
+        servers in exactly the same way and are the half a query-only fix
+        would leave behind."""
+        m = make_manager()
+        first = m._library_id(dict(EPISODE, ServerId="SA"),
+                              FakeClient(FakeApi(None)))
+        second = m._library_id(dict(EPISODE, ServerId="SB"),
+                               FakeClient(FakeApi("libB")))
+        self.assertEqual((first, second), (None, "libB"))

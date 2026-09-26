@@ -7,6 +7,7 @@ Split out of the single 1,154-line ``PlayerGateway``; see
 import logging
 
 from ...conf import settings
+from ...constants import OFFLINE_SERVER_UUID
 from . import deps
 from .base import GatewayCore
 
@@ -56,19 +57,180 @@ class ServersMixin(GatewayCore):
     def list_servers(self):
         """Saved servers with a connection badge, for the Settings panel —
         the whole credential list, not just the connected ones _collect_servers
-        returns (an offline server must still be removable)."""
+        returns (an offline server must still be removable).
+
+        ``problem`` says *why* a disconnected one is disconnected, which is
+        what decides whether the row offers Retry or Sign In Again. None on a
+        connected server and on one nothing has tried yet."""
         out = []
         for cred in list(deps.clientManager.credentials):
             uuid = cred.get("uuid")
             client = deps.clientManager.clients.get(uuid)
+            try:
+                problem = deps.clientManager.connection_problem(uuid)
+            except Exception:
+                log.debug("connection_problem failed", exc_info=True)
+                problem = None
+            try:
+                on_lan = deps.clientManager.server_is_local(uuid)
+            except Exception:
+                log.debug("server_is_local failed", exc_info=True)
+                on_lan = None
             out.append({
                 "uuid": uuid,
                 "name": cred.get("Name") or cred.get("address") or "?",
                 "address": cred.get("address") or "",
                 "username": cred.get("Username") or cred.get("username") or "",
                 "connected": client is not None,
+                "problem": problem,
+                # None when nothing has connected to it, which is not the
+                # same as False -- the icon falls back to reading the URL
+                # rather than claiming the server is out on the internet.
+                "local": on_lan,
             })
         return out
+
+    def auto_download_on(self, server_uuid):
+        """Is unattended downloading on for this saved login's account?
+
+        Keyed on the account rather than on the uuid the Servers row carries,
+        so two addresses for one server answer alike -- R14. The registry is the
+        store, not the config: see `users.set_auto_download`.
+        """
+        from ...users import userManager
+        try:
+            return bool(userManager.auto_download_on(server_uuid))
+        except Exception:
+            log.debug("could not read the auto-download list", exc_info=True)
+            return False
+
+    def auto_download_logins(self):
+        """Which saved logins have unattended downloading on, in one read.
+
+        For a screen asking about several rows: `auto_download_on` takes the
+        registry lock per call, and that lock is held across `save()`'s two
+        durable writes and two directory fsyncs. Same answer per uuid, still
+        keyed on the account -- `users.auto_download_logins` says why.
+        """
+        from ...users import userManager
+        try:
+            return set(userManager.auto_download_logins())
+        except Exception:
+            log.debug("could not read the auto-download list", exc_info=True)
+            return set()
+
+    def auto_download_any(self):
+        """Is unattended downloading on for any account at all?
+
+        What decides whether switching the feature on has to seed a server:
+        empty means none, so without a seed it would come on and do nothing.
+        """
+        from ...users import userManager
+        try:
+            return bool(userManager.auto_download_accounts())
+        except Exception:
+            log.debug("could not read the auto-download list", exc_info=True)
+            return False
+
+    def set_auto_download(self, server_uuid, enabled):
+        """Turn unattended downloading on or off for a login's account.
+
+        Returns whether anything changed -- False for a login the registry
+        cannot resolve to an account, which the caller shows as unchanged
+        rather than reporting a save that did not happen.
+        """
+        from ...users import userManager
+        try:
+            return bool(userManager.set_auto_download(server_uuid, enabled))
+        except Exception:
+            log.error("could not persist the auto-download list",
+                      exc_info=True)
+            return False
+
+    def switcher_servers(self):
+        """Every saved server, in credential order, for the top-bar switcher.
+
+        **Including the ones that are not connected**, which is the change
+        from listing what the source holds. A server that did not answer
+        simply vanished from the switcher, so the only evidence a machine had
+        two servers configured was the Settings tab — and there was nothing to
+        press to get the second one back.
+
+        Names come from the credential rather than from the source, so an
+        entry keeps its name while it is down; the source is still the
+        authority for anything that will be *browsed*.
+        """
+        try:
+            live = {sv["uuid"]: sv for sv in _collect_servers()}
+            saved = self.list_servers()
+        except Exception:
+            # The caller is the render path, where an escape kills the UI,
+            # and it falls back to the source's own list — which is the
+            # behaviour this method replaced, so failing is a downgrade and
+            # never a blank bar.
+            log.debug("switcher_servers failed", exc_info=True)
+            return []
+        out = []
+        for row in saved:
+            row = dict(row)
+            row["connected"] = row["uuid"] in live
+            if row["connected"]:
+                row["name"] = live[row["uuid"]].get("name") or row["name"]
+            out.append(row)
+        return out
+
+    def retry_server(self, uuid):
+        """Try to connect one saved server again.
+
+        Returns ``(ok, problem)``: on failure ``problem`` is a CONNECT_*
+        reason, which is what tells the caller whether to offer another Retry
+        or to ask for the password. Blocking — the connect carries the
+        apiclient's own timeouts — so call it off the loop thread.
+        """
+        cred = next((c for c in list(deps.clientManager.credentials)
+                     if c.get("uuid") == uuid), None)
+        if cred is None:
+            return False, None
+        try:
+            if deps.clientManager.connect_client(cred):
+                return True, None
+        except Exception:
+            log.error("mpvtk retry_server failed", exc_info=True)
+        try:
+            return False, deps.clientManager.connection_problem(uuid)
+        except Exception:
+            log.debug("connection_problem failed", exc_info=True)
+            return False, None
+
+    def reauthenticate(self, uuid, username, password, address=None):
+        """Sign in again to a server we already have, **keeping its uuid**.
+
+        Not "remove it and add it back": that was the only route the UI
+        offered and it mints a new uuid, which is the identity the download
+        catalog and the auto-download allow-list are written in. See
+        ``ClientManager.reauthenticate``.
+
+        Returns ``(ok, reason)`` like ``retry_server``: on failure ``reason``
+        is a REAUTH_* constant or None, which is what lets the form tell a
+        wrong address from a wrong password.
+        """
+        try:
+            return deps.clientManager.reauthenticate(
+                uuid, username, password, address=address)
+        except Exception:
+            log.error("mpvtk reauthenticate failed", exc_info=True)
+            return False, None
+
+    def reauthenticate_quick_connect(self, uuid, code_callback=None,
+                                     should_cancel=None, address=None):
+        """The passwordless half of ``reauthenticate``, same return."""
+        try:
+            return deps.clientManager.reauthenticate_with_quick_connect(
+                uuid, code_callback=code_callback,
+                should_cancel=should_cancel, address=address)
+        except Exception:
+            log.error("mpvtk quick connect reauth failed", exc_info=True)
+            return False, None
 
     def remove_server(self, uuid):
         try:
@@ -124,7 +286,13 @@ class ServersMixin(GatewayCore):
         The connecting screen gates its Work Offline button on this."""
         from ...sync.manager import syncManager
         try:
-            if syncManager.downloaded_item_ids():
+            # Unscoped, and now said so: the question is whether there is
+            # anything to browse offline at all, which is not about any one
+            # server. The second of the two structurally-unscoped callers;
+            # `None` here would now mean "a login that resolves to nothing"
+            # and answer with nothing, which is the opposite question.
+            from ...sync.db import ANY_SERVER
+            if syncManager.downloaded_item_ids(ANY_SERVER):
                 return True
             db = getattr(syncManager, "db", None)
             return bool(db is not None and db.list_playlists())
@@ -142,8 +310,13 @@ class ServersMixin(GatewayCore):
         if not path:
             return None
         try:
-            source = OfflineLibrarySource(path)
-            if not source.get_libraries("offline"):
+            from ...users import userManager
+            # Who is browsing, so the resume positions and ticks shown are
+            # this profile's and not whoever downloaded the copy.
+            source = OfflineLibrarySource(
+                path, actor_on=userManager.actor_on,
+                server_name=userManager.server_name_for)
+            if not source.get_libraries(OFFLINE_SERVER_UUID):
                 return None
         except Exception:
             log.error("mpvtk offline source failed", exc_info=True)

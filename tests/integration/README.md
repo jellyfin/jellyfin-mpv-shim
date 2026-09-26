@@ -172,6 +172,7 @@ passes — exactly the visibility the maintainer asked for.
 | --- | --- | --- | --- |
 | `test_clients_concurrency` | agnostic | connect/disconnect registry races (see above); **#295/#344** failed-health-check reconnect *without a restart* (dead-code fix `077a42d`) | — |
 | `test_sync_manager_races` | agnostic | download worker / delete / stop races | — |
+| `test_download_relocate` | agnostic | **moving the download folder**, against a real catalog with real media on a real filesystem: every move that must work (including an existing empty folder, a pasted quoted path, and a genuinely cross-volume copy), every guard that must refuse, and the rollback after a failure. Each case ends by asserting the store can still describe and produce its downloads, which a return value cannot say. | The cross-volume legs skip without `JMS_ALT_VOLUME`; the EXDEV *code path* is still covered by forcing `os.rename` to refuse. A folder this process may not write to is POSIX-only (`chmod` does not describe an NTFS ACL), so the Windows half asserts the write probe directly. |
 | `test_syncplay_generation` | agnostic | `sync_generation`-guarded callbacks | — |
 | `test_single_instance_multiproc` | agnostic | multi-process primary election; **#505** no orphaned child/forkserver survives acquire→release→exit (process-group scan) | — |
 | `test_player_state_machine` | per-backend fake | EOF/abort/shutdown epoch + `_finished_lock` races, backend `_mpv_errors` matrix; **#458** close-crash mid-`update()`/`send_timeline()` survives + torn-down item not reported at full duration/watched; **#503** external broken-pipe in `send_timeline` (jsonipc only); **#157/#323** resume-at-EOF not watched/advanced (both backends, incl. `resume_playback=False`) | — |
@@ -187,6 +188,7 @@ passes — exactly the visibility the maintainer asked for.
 * Tier 1: `test_clients_concurrency` (8), `test_player_state_machine` (19,
   incl. backend matrix + issue regressions #458/#503/#157/#323),
   `test_syncplay_generation` (6), `test_sync_manager_races` (7),
+  `test_download_relocate` (28, two skipped without a second volume),
   `test_single_instance_multiproc` (6), `test_keyboard_controls` (17),
   `test_lifecycle` (9), `test_mpv_lifecycle` (17) — commit `012961c` mpv
   process-lifecycle (incl. the stale-queue re-open drain lock).

@@ -14,15 +14,24 @@ import os
 import tempfile
 import unittest
 
-from jellyfin_mpv_shim.sync.db import (COLUMNS, SyncDB, STATUS_COMPLETE,
+from jellyfin_mpv_shim.sync.db import (NO_ACTOR, COLUMNS, SyncDB, STATUS_COMPLETE,
                                        STATUS_PENDING)
 from jellyfin_mpv_shim.mpvtk_browser.repository import OfflineLibrarySource
 from jellyfin_mpv_shim.mpvtk_browser.pages.home import HomePage
 
 
+#: The Jellyfin ServerId these fixtures' rows belong to. Set deliberately:
+#: a downloads row with no content server is an ORPHAN, and the orphan path
+#: is a distinct contract (docs/offline-sync.md section 1).
+#: A fixture that omits this silently tests the orphan path under another
+#: name -- which is what every row in this file used to do.
+CONTENT_SERVER = "srv-content"
+
+
 def make_row(item_id, **overrides):
     row = {c: None for c in COLUMNS}
     row["item_id"] = item_id
+    row["content_server_id"] = CONTENT_SERVER
     row.update(overrides)
     return row
 
@@ -109,7 +118,8 @@ class OfflineResumePositionTest(unittest.TestCase):
                 "UserData": {"Played": False, "PlaybackPositionTicks": 0},
             })))
         # The 30s periodic record during offline playback.
-        db.update_userdata("ep1", position_ticks=self.RUNTIME // 2)
+        db.update_userdata("ep1", position_ticks=self.RUNTIME // 2,
+                           actor=(CONTENT_SERVER, NO_ACTOR))
         db.close()
         self.addCleanup(self.tmp.cleanup)
 
@@ -132,7 +142,8 @@ class OfflineResumePositionTest(unittest.TestCase):
         # point like the server does, not leave "resume from the very end".
         db = SyncDB(self.catalog)
         db.update_userdata("ep1", played=True,
-                           position_ticks=self.RUNTIME)
+                           position_ticks=self.RUNTIME,
+        actor=(CONTENT_SERVER, NO_ACTOR))
         db.close()
         source = OfflineLibrarySource(self.catalog)
         item = source.get_item("offline", "ep1")
@@ -145,8 +156,10 @@ class OfflineResumePositionTest(unittest.TestCase):
         # cleared the resume point. The near-end guard must not let it
         # re-create "Resume from <the very end>" on the watched item.
         db = SyncDB(self.catalog)
-        db.update_userdata("ep1", played=True, position_ticks=self.RUNTIME)
-        db.update_userdata("ep1", position_ticks=self.RUNTIME)  # stop report
+        db.update_userdata("ep1", played=True, position_ticks=self.RUNTIME,
+                           actor=(CONTENT_SERVER, NO_ACTOR))
+        db.update_userdata("ep1", position_ticks=self.RUNTIME,
+                           actor=(CONTENT_SERVER, NO_ACTOR))  # stop report
         db.close()
         source = OfflineLibrarySource(self.catalog)
         item = source.get_item("offline", "ep1")
@@ -157,8 +170,10 @@ class OfflineResumePositionTest(unittest.TestCase):
         # The near-end guard must not block a genuine mid-file rewatch resume
         # point on an already-watched item (server semantics allow both).
         db = SyncDB(self.catalog)
-        db.update_userdata("ep1", played=True, position_ticks=self.RUNTIME)
-        db.update_userdata("ep1", position_ticks=self.RUNTIME // 4)
+        db.update_userdata("ep1", played=True, position_ticks=self.RUNTIME,
+                           actor=(CONTENT_SERVER, NO_ACTOR))
+        db.update_userdata("ep1", position_ticks=self.RUNTIME // 4,
+                           actor=(CONTENT_SERVER, NO_ACTOR))
         db.close()
         source = OfflineLibrarySource(self.catalog)
         item = source.get_item("offline", "ep1")
@@ -184,7 +199,8 @@ class OfflineResumePositionTest(unittest.TestCase):
                 "PlayedPercentage": 20.0,
                 "PlaybackPositionTicks": self.RUNTIME // 5,
             })))
-        db.update_userdata("ep3", position_ticks=self.RUNTIME // 2)
+        db.update_userdata("ep3", position_ticks=self.RUNTIME // 2,
+                           actor=(CONTENT_SERVER, NO_ACTOR))
         db.close()
         source = OfflineLibrarySource(self.catalog)
         item = source.get_item("offline", "ep3")
@@ -204,27 +220,44 @@ class OfflineResumePositionTest(unittest.TestCase):
             }),
             userdata_json=json.dumps({"PlayedPercentage": 42.0})))
         db.update_userdata("ep4", played=True,
-                           position_ticks=self.RUNTIME)
+                           position_ticks=self.RUNTIME,
+        actor=(CONTENT_SERVER, NO_ACTOR))
         db.close()
         source = OfflineLibrarySource(self.catalog)
         item = source.get_item("offline", "ep4")
         self.assertTrue(item["UserData"]["Played"])
         self.assertNotIn("PlayedPercentage", item["UserData"])
 
-    def test_snapshot_alone_still_works(self):
-        # Rows with no live userdata (never played offline) keep the snapshot.
+    def test_a_row_with_no_viewing_of_its_own_reads_as_unwatched(self):
+        """**Reversed 2026-09-19, and this test used to assert the defect.**
+        It said a row with no live userdata "keeps the snapshot" -- but the
+        snapshot is the DTO the server sent, stored verbatim, so its
+        `UserData` is the watched flag and resume position of the account
+        that *asked for the download*. Showing it to whoever is browsing is
+        how a second profile saw, and could resume from, somebody else's
+        viewing.
+
+        Ruled: nobody inherits a snapshot. The other keys of the frozen DTO
+        still come through; only the five that describe a viewing are
+        overwritten.
+        """
         db = SyncDB(self.catalog)
         db.upsert(make_row(
             "ep2", type="Movie", name="Other", status=STATUS_COMPLETE,
             file_path="ep2/file.mkv",
             item_json=json.dumps({
                 "Id": "ep2", "Name": "Other", "Type": "Movie",
-                "UserData": {"Played": True},
+                "UserData": {"Played": True, "Key": "ep2-key"},
             })))
         db.close()
         source = OfflineLibrarySource(self.catalog)
         item = source.get_item("offline", "ep2")
-        self.assertTrue(item["UserData"]["Played"])
+        self.assertFalse(item["UserData"]["Played"],
+                         "the downloader's watched flag was shown as this "
+                         "reader's")
+        self.assertEqual("ep2-key", item["UserData"].get("Key"),
+                         "the overlay replaced the whole snapshot instead of "
+                         "the five fields that describe a viewing")
 
 
 class OfflineReloadTest(unittest.TestCase):

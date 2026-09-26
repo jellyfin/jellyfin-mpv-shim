@@ -78,7 +78,7 @@ class ReaderPage(Page):
             item = source.get_item(srv, item_id)
             state = (None, None)
             try:
-                state = self.ctx.player.book_download_state(item_id)
+                state = self.ctx.player.book_download_state(item_id, srv)
             except Exception:
                 log.debug("book download state unavailable", exc_info=True)
             return {"item": item, "state": state}
@@ -108,7 +108,11 @@ class ReaderPage(Page):
         if not item.get("Id"):
             return
         try:
-            data["state"] = self.ctx.player.book_download_state(item["Id"])
+            # The route's server, not the item's `ServerId`: this hook can
+            # fire while the browser is on a different server, and the state
+            # being refreshed is the one this screen drew.
+            data["state"] = self.ctx.player.book_download_state(
+                item["Id"], self.route.get("server") or self.ctx.server)
         except Exception:
             log.debug("book download state unavailable", exc_info=True)
             return

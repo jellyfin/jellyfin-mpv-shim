@@ -1,10 +1,13 @@
-"""Item-derived strings and small layout maths.
+"""Item- and server-derived strings, and small layout maths.
 
 Moved verbatim from ``TilesMixin`` — these never used ``self``, so being
 methods only made them look coupled. Each carries the comment explaining the
 bug it encodes; those are the reason to keep the logic rather than "simplify"
 it later.
 """
+
+import ipaddress
+import urllib.parse
 
 
 #: Types whose caption is a LISTING -- "which channel, and when" rather
@@ -353,3 +356,75 @@ def human_size(n):
             return ("%d %s" % (n, unit) if unit == "B"
                     else "%.1f %s" % (n, unit))
         n /= 1024
+
+
+#: Hostname suffixes that only ever name something on this network. `.local`
+#: is mDNS/Bonjour, which is how a Jellyfin box on a home LAN most often
+#: announces itself; the rest are the conventional private zones a router or
+#: a homelab hands out. `.internal` is also Google Cloud's private zone,
+#: which is the right answer there too -- it is unreachable from outside.
+_LOCAL_SUFFIXES = (".local", ".lan", ".home", ".internal", ".localdomain")
+
+
+def is_local_server(address):
+    """Is this address on the user's own network rather than out on the
+    internet -- **going only by how it is spelled**?
+
+    The fallback, not the answer. `clients.server_is_local` resolves the
+    name when it connects and that verdict reaches here as the entry's
+    `local` key; this runs when nothing has connected, so there is nothing
+    to resolve from and no connection to describe.
+
+    Syntactic because it runs on the render path, where a name lookup is a
+    blocking call to decide an icon. It cannot see split-horizon DNS at all
+    -- a self-hoster's own domain resolves to a LAN address at home and a
+    public one away, and the spelling is identical -- which is exactly why
+    the resolved verdict outranks it.
+
+    A bare hostname with no dot counts as local: `http://mediaserver:8096`
+    is a name only a LAN resolver (mDNS, NetBIOS, the router's own DNS) can
+    answer, which is what makes it one.
+    """
+    if not address:
+        return False
+    try:
+        host = urllib.parse.urlsplit(str(address)).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    host = host.rstrip(".").lower()
+    try:
+        # Covers loopback, RFC1918, link-local and IPv6 ULA in one rule --
+        # and correctly says *remote* for 100.64/10, which is carrier-grade
+        # NAT as often as it is a private overlay.
+        return ipaddress.ip_address(host).is_private
+    except ValueError:
+        pass
+    return (host == "localhost" or "." not in host
+            or host.endswith(_LOCAL_SUFFIXES))
+
+
+def server_icon(server):
+    """The glyph for one server entry: where it is, or that it is not there.
+
+    Every server gets one, which is the point as much as the meaning is. A
+    dropdown indents every row as soon as any item carries an icon, so a
+    list that marked only the broken entries paid that width on all of them
+    and gave the names back an ellipsis in exchange for nothing.
+
+    ``connected`` absent means connected -- the login screen's list of
+    previously added servers is addresses, with no connection state to
+    report.
+
+    ``local`` is the resolved verdict from the connection itself, and it
+    wins whenever there is one: reading the URL cannot tell a domain that
+    points at a LAN address from one that does not, and for anybody running
+    their own domain at home that is every server they have.
+    """
+    if not server.get("connected", True):
+        return "cloud_off"
+    on_lan = server.get("local")
+    if on_lan is None:
+        on_lan = is_local_server(server.get("address"))
+    return "lan" if on_lan else "cloud"
