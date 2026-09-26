@@ -368,6 +368,39 @@ local ch = last_event("change")
 ok(ch ~= nil and ch.value == "pasted", "ctrl+v falls back to a helper",
    ch and ch.value or "no change event")
 
+-- A copied line ends in a newline -- `get_my_password | xsel -b` -- and a
+-- password field that keeps it (as a space, which is what a line break
+-- inside the text becomes) fails the login for a reason nobody can see.
+-- Line breaks at either end go; one inside still reads as a space.
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = "hunter2\r\n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl", "") })
+click("clipnl")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, "hunter2", "a pasted line loses its trailing newline")
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = "\nfirst\r\nsecond\n\n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl2", "") })
+click("clipnl2")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, "first second",
+   "an inner line break is one space, the ends are trimmed")
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = " pass \n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl3", "") })
+click("clipnl3")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, " pass ", "spaces are the user's and are kept")
+
 -- Nothing at all: the user gets told which package to install, rather
 -- than a text field that silently ignores ctrl+v.
 fake.subprocess = nil       -- every helper fails, as if not installed
