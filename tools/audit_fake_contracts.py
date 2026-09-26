@@ -149,6 +149,11 @@ PAIRS = [
             # (the standalone demo). The production path is AdoptBackend,
             # which uses event_callback on both.
             "on_event",
+            # jsonipc-only: set by _init_mpv under `is_using_ext_mpv`. On
+            # python-mpv an attribute write is taken for an mpv property, so
+            # modelling it here would make the libmpv leg accept a write the
+            # real handle refuses.
+            "quit_callback",
         },
         notes="what the shim thinks it is talking to on the libmpv leg",
     ),
