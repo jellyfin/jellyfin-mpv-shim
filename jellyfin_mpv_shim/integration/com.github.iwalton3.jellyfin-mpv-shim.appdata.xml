@@ -82,13 +82,12 @@
     <release version="3.1.0" date="2026-09-21">
       <description>
         <p>
-          Fixes for playback position, volume and missing episodes, and a
+          Fixes for playback position and missing episodes, and a
           handful of things the library browser could not do yet.
         </p>
         <p>Changes:</p>
         <ul>
           <li>Fixed a resume that could pin the playback position for the rest of the session, making episodes skip themselves</li>
-          <li>Your own volume setting in mpv.conf is no longer overwritten, and the volume memory can be turned off</li>
           <li>Missing and unaired episodes are marked as such, cannot be played, and stay out of play queues</li>
           <li>The mouse can summon the player controls again on Windows</li>
           <li>Libraries remember how you sorted them, shared with the Jellyfin web client</li>
