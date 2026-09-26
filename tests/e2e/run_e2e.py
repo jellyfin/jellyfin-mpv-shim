@@ -97,6 +97,9 @@ CONTRACT = [
     # suite can only assume, because it builds the DTO it then reads.
     "tests.e2e.test_music_playlist",
     "tests.e2e.test_items_endpoint",
+    # The server dates a watched mark (LastPlayedDate), which the
+    # deliberate-unwatch replay rule (D1) depends on. Both majors.
+    "tests.e2e.test_userdata_contract",
     # Signing back in, and the uuid that must survive it -- the identity the
     # download catalog and the auto-download allow-list are written in, so a
     # fresh one orphans every download from that server. Also the refusal of
@@ -243,6 +246,10 @@ PER_BACKEND = [
     # the network through a relay the test owns (tests/e2e/_app.py). The
     # base every rebuilt e2e test moves onto; see the release-gate plan.
     "tests.e2e.test_app_smoke",
+    # Slice S1: offline sync at the keyboard of the real app, with the
+    # network cut by a relay. Asserts the offline-sync rulings on screen,
+    # in the catalog and at the server.
+    "tests.e2e.test_offline_ui",
 ]
 
 MODULES = CONTRACT + PER_BACKEND

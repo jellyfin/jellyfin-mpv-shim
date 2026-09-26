@@ -2146,6 +2146,7 @@ if os.getenv('JMS_TEST_OBSERVE') then
                 nodes[#nodes + 1] = {
                     id = node.id, t = node.t, text = node.text,
                     x = ex, y = ey, w = node.w, h = node.h, vis = vis,
+                    mod = node.mod, fill = node.fill,
                 }
             end
         end
