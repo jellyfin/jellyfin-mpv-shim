@@ -7,11 +7,10 @@ gained `discovery.discover_servers` for it.
 Three things here are requirements rather than decoration:
 
 * **the block is optional at the module level.** `discover_servers` arrived in
-  apiclient 1.19.0 and the shim's floor is older, so the import is guarded and
-  the block simply is not drawn on an older one. That is the project's
-  optional-dependency rule applied one step wider than usual (a module, not a
-  package), and it is the half a developer with the new apiclient installed
-  would never otherwise exercise;
+  apiclient 1.19.0, which is the floor, but a build that pins its own wheel
+  (the Flathub manifest) can ship an older one -- so the import is guarded and
+  the block simply is not drawn there. It is the half a developer with the new
+  apiclient installed would never otherwise exercise;
 * **the address is shown and nothing is selected.** A discovery reply is not
   authenticated: anything on the network can answer with any name and any
   address, so the name is whatever the answering machine chose to call itself
@@ -201,9 +200,9 @@ class TheGatewayDegradesTest(unittest.TestCase):
         return ServersMixin.__new__(ServersMixin)
 
     def test_an_apiclient_without_the_module_answers_empty(self):
-        """`discovery` landed in 1.19.0 and the shim's floor is older, so
-        this is the state a supported install can be in -- and the one a
-        developer with the new apiclient never reaches by accident."""
+        """A build that pins its own apiclient wheel can be older than the
+        1.19.0 floor -- the one state a developer with the new apiclient
+        never reaches by accident."""
         real_import = __builtins__["__import__"] if isinstance(
             __builtins__, dict) else __builtins__.__import__
 
@@ -216,13 +215,9 @@ class TheGatewayDegradesTest(unittest.TestCase):
             self.assertEqual([], self._gateway().discover_servers())
 
     def _with_discovery(self, fn):
-        """Stand the module in through `sys.modules`, because the apiclient
-        installed here does not have it.
-
-        That is not a gap in the fixture, it is the shipped state: the module
-        landed in 1.19.0 and the floor is older, so on this box the guarded
-        import above is the LIVE path and these two tests are the only way to
-        reach the other one.
+        """Stand the module in through `sys.modules`, so these run the same
+        whichever apiclient is installed -- and so the fake decides what the
+        broadcast returns.
         """
         import types
 
