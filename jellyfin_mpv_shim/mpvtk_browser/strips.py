@@ -87,6 +87,23 @@ def _aa_mask(w, h, radius=None):
     return mask
 
 
+def _card_mask(g, radius):
+    """The rounded card's silhouette as an ``L`` mask, tile-sized, for
+    clipping anything painted edge to edge into a rounded tile.
+
+    Hard-edged on purpose, unlike ``_aa_mask``: it has to match the card,
+    which ``_paint_poster`` draws with a plain ``rounded_rectangle``. Art
+    clipped softer than the card would leave the card's own edge showing
+    round the curve.
+    """
+    from PIL import Image as PILImage, ImageDraw
+
+    mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, g.tile_w - 1, g.tile_h - 1], radius=radius, fill=255)
+    return mask
+
+
 def _aa_fill(img, box, colour, radius=None):
     """Fill ``box`` (``[x0, y0, x1, y1]``, inclusive) in ``img`` with an
     antialiased ellipse or rounded rectangle.
@@ -763,7 +780,7 @@ class StripStore:
         return {"src": src, "iw": iw2, "ih": ih2, "lw": lw, "lh": lh, "v": v}
 
     def _paint_poster(self, img, dr, x, t, g):
-        from PIL import Image as PILImage, ImageDraw, ImageOps
+        from PIL import Image as PILImage, ImageOps
 
         # The card's SHAPE is theme-driven -- a "rounded" theme draws
         # jellyfin-web-style rounded corners, the stock look is a square
@@ -831,9 +848,7 @@ class StripStore:
                     # Clip the art to the same rounded rect so its corners
                     # match. A square card needs no clip: the art is now
                     # exactly the card, edge to edge.
-                    mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
-                    ImageDraw.Draw(mask).rounded_rectangle(
-                        [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
+                    mask = _card_mask(g, r)
                 if poster.mode == "RGBA":
                     # paste() takes ONE mask, so the art's own transparency has
                     # to be folded into the corner clip — passing the rounded
@@ -849,10 +864,26 @@ class StripStore:
                 if poster.size != (g.tile_w, g.tile_h):
                     poster = poster.copy()
                     poster.thumbnail((g.tile_w, g.tile_h), lanczos)
-                px = x + (g.tile_w - poster.width) // 2
+                px = (g.tile_w - poster.width) // 2
                 py = (g.tile_h - poster.height) // 2
-                img.paste(poster, (px, py),
-                          poster if poster.mode == "RGBA" else None)
+                if rounded:
+                    # Contained art can still reach the corners -- a Thumb
+                    # the tile's own shape, a logo inked to its edge -- and
+                    # pasted square it fills the pixels the silhouette leaves
+                    # transparent (#777). Lay it into a tile-sized layer and
+                    # clip that. No mask on the inner paste: it would square
+                    # the art's alpha.
+                    from PIL import ImageChops
+
+                    layer = PILImage.new("RGBA", (g.tile_w, g.tile_h),
+                                         (0, 0, 0, 0))
+                    layer.paste(poster.convert("RGBA"), (px, py))
+                    layer.putalpha(ImageChops.multiply(
+                        layer.getchannel("A"), _card_mask(g, r)))
+                    img.paste(layer, (x, 0), layer)
+                else:
+                    img.paste(poster, (x + px, py),
+                              poster if poster.mode == "RGBA" else None)
         elif t.glyph:
             # A muted centred mark so a blank tile still reads. Usually a
             # Material icon -- jellyfin-web's own per-type default, so a
@@ -985,11 +1016,8 @@ class StripStore:
                      int((g.tile_w - 1) * frac), g.tile_h - 1],
                     fill=theme.rgb(fill, 255),
                 )
-                mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
-                ImageDraw.Draw(mask).rounded_rectangle(
-                    [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
                 layer.putalpha(ImageChops.multiply(layer.getchannel("A"),
-                                                   mask))
+                                                   _card_mask(g, r)))
                 img.paste(layer, (x, 0), layer)
             else:
                 dr.rectangle(

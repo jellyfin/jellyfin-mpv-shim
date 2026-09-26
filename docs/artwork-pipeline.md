@@ -57,8 +57,10 @@ alpha and keeps the black Pillow left underneath, which is how a black-on-transp
 logo rendered as a solid black block.
 
 **The alpha then has to survive compositing.** `paste()` takes **one** mask, so
-`strips._paint_poster`'s rounded path multiplies the art's alpha into the corner
-clip rather than passing the clip alone.
+`strips._paint_poster`'s rounded paths multiply the art's alpha into the corner
+clip rather than passing the clip alone. That is *both* paths, cover and contain:
+contained art can reach the corners too, and anything painted edge to edge into a
+rounded tile goes through `_card_mask` (#777).
 
 ### Plating
 
