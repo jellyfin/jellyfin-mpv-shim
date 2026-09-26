@@ -282,6 +282,24 @@ class ItemActions:
 
         self.run.run(work, done, ep)
 
+    def shuffle_season(self, series_id, season_id, server):
+        """Shuffle one season. The season queue, not the series one: it is
+        season-scoped and carries web's filters that keep missing and
+        unaired episodes out (repository.get_season_queue)."""
+        ep = self.run.epoch
+        source = self.services.source
+
+        def work():
+            return [e.get("Id") for e in
+                    source.get_season_queue(server, series_id, season_id)
+                    if e.get("Id")]
+
+        def done(ids):
+            if ids:
+                self.play_shuffle(ids, server, audio=False)
+
+        self.run.run(work, done, ep)
+
     # -- user data ---------------------------------------------------------
 
     def toggle_watched(self, item, server):

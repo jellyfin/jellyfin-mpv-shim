@@ -2784,6 +2784,52 @@ class TestSeasonPageNextUp(unittest.TestCase):
         nodes, _h = build_scene(b)
         self.assertNotIn("se-nextup", ids(nodes))
 
+
+class TestSeasonPageShuffle(TestSeasonPageNextUp):
+    """Shuffle on the season page, as the series page has one for the show.
+
+    It must ask the SEASON-scoped queue: that is the query carrying
+    jellyfin-web's IsMissing/IsVirtualUnaired filters for this gesture, and
+    the series-wide one would shuffle the whole show under a season's button
+    (the #720 shape). Inherits `_season`; the Next Up cases run again here,
+    which is cheap and keeps the two buttons' conditions from drifting."""
+
+    def _shuffled(self, b):
+        asked, played = [], []
+        real = b.source.get_season_queue
+
+        def season_queue(srv, series_id, season_id):
+            asked.append((series_id, season_id))
+            return real(srv, series_id, season_id)
+
+        b.source.get_season_queue = season_queue
+        b._actions.play_list = (
+            lambda ids, server, pos, audio=True, **kw:
+            played.append((sorted(ids), pos, audio)))
+        return asked, played
+
+    def test_the_button_is_on_the_season_page(self):
+        b, _r = self._season()
+        nodes, handlers = build_scene(b)
+        self.assertIn("se-shuffle", ids(nodes))
+        self.assertIn("se-shuffle", handlers)
+
+    def test_it_shuffles_this_season_as_video(self):
+        b, _r = self._season()
+        asked, played = self._shuffled(b)
+        _n, handlers = build_scene(b)
+        handlers["se-shuffle"]["click"]()
+        self.assertEqual(asked, [("sh1", "sea1")])
+        self.assertEqual(played,
+                         [(["e0", "e1", "e2", "e3", "e4"], 0, False)])
+
+    def test_a_season_with_no_series_id_does_not_offer_it(self):
+        """The season queue is scoped by the series; without one there is
+        nothing to ask."""
+        b, _r = self._season(series_id=None)
+        nodes, _h = build_scene(b)
+        self.assertNotIn("se-shuffle", ids(nodes))
+
 class TestTileAndMetaParity(unittest.TestCase):
     """Small captions that carry most of the information on a tile."""
 
