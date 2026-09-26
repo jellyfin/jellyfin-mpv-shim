@@ -256,7 +256,8 @@ CREATE TABLE IF NOT EXISTS pending_playstate (
     item_id TEXT,
     position_ticks INTEGER,
     played INTEGER,
-    created_at INTEGER
+    created_at INTEGER,
+    marked_at INTEGER
 );
 -- The unique index on (item_id, server_id, user_id) is created by
 -- `_migrate_playstate_actors`, NOT here. `CREATE TABLE IF NOT EXISTS` is a
@@ -653,7 +654,12 @@ class SyncDB:
     #: tables are migrated separately and a name in the wrong list is a
     #: column added to the wrong table.
     _ADDED_PLAYSTATE_COLUMNS = (("server_id", "TEXT NOT NULL DEFAULT ''"),
-                                ("user_id", "TEXT NOT NULL DEFAULT ''"))
+                                ("user_id", "TEXT NOT NULL DEFAULT ''"),
+                                # When a deliberate mark was made -- what
+                                # the unwatch replay compares the server's
+                                # LastPlayedDate against (D1). NULL on every
+                                # entry queued before it existed.
+                                ("marked_at", "INTEGER"))
 
     def _migrate(self):
         """Bring an existing catalog up to the current schema.
@@ -2290,12 +2296,21 @@ class SyncDB:
                     "WHERE pi.owned=1" % column)}
 
     def upsert_playstate(self, item_id, *, actor,
-                         position_ticks=None, played=None):
+                         position_ticks=None, played=None, deliberate=False):
         """Queue what one person still owes one server. One row per pair.
 
         Position advances (max), played sticks True -- the queue is a floor,
         so a client that has been offline cannot rewind the place another
         device reached.
+
+        **Except a deliberate mark** (``deliberate=True``: Mark played /
+        unplayed), which is the one signal authoritative in both directions.
+        It is stored verbatim -- ``played = 0`` is a queued unwatch, distinct
+        from NULL (progress only) -- and stamps ``marked_at``, which replay
+        compares with the server's LastPlayedDate: an unwatch older than a
+        watch made elsewhere loses (D1, docs/offline-sync.md section 3a).
+        Playback finishing after a queued unwatch is later than it, so it
+        sets ``played = 1`` as ever.
 
         **Only a `sync` row may be queued**, and that is `_row_sync_state`'s
         verdict, not a rule re-derived here. The two tables share one
@@ -2335,26 +2350,37 @@ class SyncDB:
             server_id, user_id = key
             try:
                 existing = self._conn.execute(
-                    "SELECT id, position_ticks, played FROM pending_playstate "
+                    "SELECT id, position_ticks, played, marked_at "
+                    "FROM pending_playstate "
                     "WHERE item_id=? AND server_id=? AND user_id=?",
                     (item_id, server_id, user_id)).fetchone()
+                marked = deliberate and played is not None
+                now = int(time.time())
                 if existing:
                     new_pos = existing["position_ticks"]
                     if position_ticks is not None:
                         new_pos = max(new_pos or 0, position_ticks)
                     new_played = existing["played"]
-                    if played:
+                    new_marked = existing["marked_at"]
+                    if marked:
+                        new_played = 1 if played else 0
+                        new_marked = now
+                    elif played:
                         new_played = 1
                     self._conn.execute(
-                        "UPDATE pending_playstate SET position_ticks=?, played=? "
-                        "WHERE id=?", (new_pos, new_played, existing["id"]))
+                        "UPDATE pending_playstate SET position_ticks=?, "
+                        "played=?, marked_at=? WHERE id=?",
+                        (new_pos, new_played, new_marked, existing["id"]))
                 else:
                     self._conn.execute(
                         "INSERT INTO pending_playstate "
                         "(server_id, user_id, item_id, position_ticks, "
-                        "played, created_at) VALUES (?,?,?,?,?,?)",
+                        "played, created_at, marked_at) "
+                        "VALUES (?,?,?,?,?,?,?)",
                         (server_id, user_id, item_id, position_ticks,
-                         1 if played else None, int(time.time())))
+                         (1 if played else 0) if marked
+                         else (1 if played else None),
+                         now, now if marked else None))
                 self._conn.commit()
                 return True
             except sqlite3.Error:
@@ -2370,6 +2396,15 @@ class SyncDB:
         row = self._conn.execute(
             "SELECT 1 FROM pending_playstate "
             "WHERE item_id=? AND server_id=? AND user_id=? AND played=1",
+            (item_id, server_id, user_id)).fetchone()
+        return row is not None
+
+    def _owes_an_unwatch(self, item_id, server_id, user_id):
+        """Is there an undelivered deliberate unwatch (`played = 0`) for this
+        actor and item? Caller holds ``_lock``."""
+        row = self._conn.execute(
+            "SELECT 1 FROM pending_playstate "
+            "WHERE item_id=? AND server_id=? AND user_id=? AND played=0",
             (item_id, server_id, user_id)).fetchone()
         return row is not None
 
@@ -2443,6 +2478,14 @@ class SyncDB:
                 # so the near-end guard does not hold a position back on
                 # behalf of a finish the server has just taken away.
                 was_played = False
+            if (played and allow_retreat
+                    and self._owes_an_unwatch(item_id, server_id, user_id)):
+                # The pull, while a deliberate unwatch made here is still
+                # queued: the server's "watched" is what that unwatch is on
+                # its way to change, so re-ticking from it would undo the
+                # user's own mark until replay. Replay decides (D1); the
+                # next sweep then adopts whatever the server holds.
+                played = None
             if played:
                 if not was_played:
                     fields["played"] = 1

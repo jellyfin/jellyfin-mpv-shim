@@ -1820,6 +1820,89 @@ class ReplayAcknowledgesOnlyWhatItSentTest(unittest.TestCase):
                                "PlaybackPositionTicks": 100}), pushed)
 
 
+class DeliberateUnwatchReplayTest(unittest.TestCase):
+    """Replay of a queued Mark unplayed -- D1, ruled 2026-09-26.
+
+    Sent only when the server's watched mark is OLDER than the unwatch
+    (LastPlayedDate before marked_at): a watch made elsewhere afterwards
+    stands. The server dates every mark on both majors
+    (tests/e2e/test_userdata_contract.py), which is what makes "older"
+    decidable. Both sides are pinned, because a replay that always sent the
+    unwatch -- or never did -- would pass either one alone.
+    """
+
+    SERVER = ReplayAcknowledgesOnlyWhatItSentTest.SERVER
+    SERVER_ID = ReplayAcknowledgesOnlyWhatItSentTest.SERVER_ID
+    USER_ID = ReplayAcknowledgesOnlyWhatItSentTest.USER_ID
+    setUp = ReplayAcknowledgesOnlyWhatItSentTest.setUp
+    _manager = ReplayAcknowledgesOnlyWhatItSentTest._manager
+    _db = ReplayAcknowledgesOnlyWhatItSentTest._db
+    MARKED = 1_800_000_000          # 2027-01-15T08:00:00Z
+
+    def _queue_unwatch(self, db, marked_at=MARKED):
+        actor = (self.SERVER_ID, self.USER_ID)
+        self.assertTrue(db.upsert_playstate("ep1", actor=actor, played=False,
+                                            deliberate=True))
+        # Pinned, so "older" and "newer" below do not depend on the clock.
+        db._conn.execute("UPDATE pending_playstate SET marked_at=?",
+                         (marked_at,))
+        db._conn.commit()
+
+    def _replay(self, db, server):
+        sent = []
+
+        class Api:
+            def get_userdata_for_item(self, item_id):
+                return dict(server)
+
+            def update_userdata_for_item(self, item_id, data):
+                sent.append(("update", item_id, dict(data)))
+
+            def item_played(self, item_id, watched):
+                sent.append(("played", item_id, watched))
+
+        class Client:
+            jellyfin = Api()
+
+        self._manager(db, Client())._sync_playstate()
+        return sent
+
+    def test_an_older_server_watch_is_undone(self):
+        db = self._db()
+        self._queue_unwatch(db)
+        sent = self._replay(db, {"Played": True,
+                                 "LastPlayedDate": "2027-01-15T07:00:00.0000000Z"})
+        self.assertIn(("played", "ep1", False), sent)
+        self.assertEqual([], db.list_playstate(), "the unwatch was not retired")
+
+    def test_a_newer_server_watch_stands(self):
+        db = self._db()
+        self._queue_unwatch(db)
+        sent = self._replay(db, {"Played": True,
+                                 "LastPlayedDate": "2027-01-15T09:00:00.0000000Z"})
+        self.assertNotIn(("played", "ep1", False), sent,
+                         "a watch made elsewhere AFTER the unwatch was undone")
+        self.assertEqual([], db.list_playstate(),
+                         "a decided entry must not be re-sent every reconnect")
+
+    def test_nothing_is_sent_to_a_server_that_already_says_unwatched(self):
+        db = self._db()
+        self._queue_unwatch(db)
+        sent = self._replay(db, {"Played": False})
+        self.assertEqual([], [s for s in sent if s[0] == "played"])
+        self.assertEqual([], db.list_playstate())
+
+    def test_an_entry_from_before_the_timestamp_never_retreats(self):
+        """A `played = 0` with no marked_at cannot be ordered against the
+        server; retreating on it would be the stale-unwatched loss the
+        pull/push split exists to prevent."""
+        db = self._db()
+        self._queue_unwatch(db, marked_at=None)
+        sent = self._replay(db, {"Played": True,
+                                 "LastPlayedDate": "2020-01-01T00:00:00Z"})
+        self.assertEqual([], [s for s in sent if s[0] == "played"])
+
+
 class ExplicitMarksLandAfterTheStopReportTest(unittest.TestCase):
     """"Quit and Mark Unwatched" must not be undone by the stop it follows.
 

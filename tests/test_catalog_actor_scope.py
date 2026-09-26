@@ -27,6 +27,7 @@ import os
 import shutil
 import sqlite3
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -1543,6 +1544,91 @@ class ThePullMayRetreatWhereThePushMayNotTest(unittest.TestCase):
         a retreat would un-watch an item on every progress report."""
         self._pull(played=None, position_ticks=1)
         self.assertTrue(self._played())
+
+
+class ADeliberateUnwatchIsQueuedAndHeldTest(unittest.TestCase):
+    """Mark unplayed, offline, at the store (B1; Q3/D1, ruled 2026-09-26).
+
+    [iw] in the class above: an unwatched state may clobber a remote watched
+    one only when "the user was recorded deliberately marking something as
+    unwatched". This is that record: `played = 0` in the queue with the time
+    it was made, and the pull holding off re-ticking it from the server's
+    stale "watched" until replay has decided.
+    """
+
+    ACTOR = (SERVER, ALICE)
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.path = os.path.join(self.tmp, "c.db")
+        self.db = SyncDB(self.path, actor_for=actor_for)
+        self.addCleanup(self.db.close)
+        self.db.upsert(_row("film"))
+
+    def _queued(self):
+        return [(e["played"], e["marked_at"]) for e in self.db.list_playstate()]
+
+    def _played(self):
+        return bool(self.db.userdata("film", actor=self.ACTOR)["played"])
+
+    def test_it_is_queued_as_zero_with_its_time(self):
+        before = int(time.time())
+        self.assertTrue(self.db.upsert_playstate(
+            "film", actor=self.ACTOR, played=False, deliberate=True))
+        (played, marked), = self._queued()
+        self.assertEqual(0, played, "an unwatch queued as NULL is progress")
+        self.assertIsNotNone(marked)
+        self.assertGreaterEqual(marked, before)
+
+    def test_progress_alone_still_queues_null(self):
+        self.db.upsert_playstate("film", actor=self.ACTOR, position_ticks=50)
+        self.assertEqual([(None, None)], self._queued())
+
+    def test_a_finish_after_the_unwatch_wins(self):
+        self.db.upsert_playstate("film", actor=self.ACTOR, played=False,
+                                 deliberate=True)
+        self.db.upsert_playstate("film", actor=self.ACTOR, played=True)
+        self.assertEqual(1, self._queued()[0][0])
+
+    def test_the_pull_does_not_re_tick_it_until_the_entry_is_gone(self):
+        """Three rounds: the hold must be exactly as long as the entry, or
+        it either loses the user's mark or pins it forever."""
+        for _ in range(3):
+            self.db.set_watched("film", False, actor=self.ACTOR)
+            self.db.upsert_playstate("film", actor=self.ACTOR, played=False,
+                                     deliberate=True)
+            self.db.update_userdata("film", actor=self.ACTOR, played=True,
+                                    allow_retreat=True)
+            self.assertFalse(self._played(),
+                             "the sweep re-ticked a deliberate unwatch")
+            self.db.clear_playstate(
+                [(e["id"], e["position_ticks"], e["played"])
+                 for e in self.db.list_playstate()])
+            self.db.update_userdata("film", actor=self.ACTOR, played=True,
+                                    allow_retreat=True)
+            self.assertTrue(self._played(),
+                            "the hold outlived the entry it was for")
+
+    def test_an_old_catalog_gains_the_column_and_keeps_its_queue(self):
+        """The migration, from a catalog written before marked_at existed,
+        holding queued progress (Codex round 3 on the plan)."""
+        self.db.upsert_playstate("film", actor=self.ACTOR, position_ticks=70,
+                                 played=True)
+        self.db.close()
+        conn = sqlite3.connect(self.path)
+        try:
+            conn.execute("ALTER TABLE pending_playstate DROP COLUMN marked_at")
+            conn.commit()
+        finally:
+            conn.close()
+        db = SyncDB(self.path, actor_for=actor_for)
+        self.addCleanup(db.close)
+        self.assertEqual([(70, 1, None)],
+                         [(e["position_ticks"], e["played"], e["marked_at"])
+                          for e in db.list_playstate()])
+        self.assertTrue(db.upsert_playstate("film", actor=self.ACTOR,
+                                            played=False, deliberate=True))
 
 
 class TheSweepAsksAsWhoeverIsSignedInTest(unittest.TestCase):
