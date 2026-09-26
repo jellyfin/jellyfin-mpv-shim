@@ -245,5 +245,80 @@ class ANewProfileStartsWithAnEmptyLoginTest(unittest.TestCase):
                          "one keypress signed the new profile in as someone "
                          "else")
 
+
+@_e2e.require_server
+class TwoProfilesOfflineTest(unittest.TestCase):
+    """Scenario 4. Two profiles, two people, one downloaded film, offline.
+
+    Rulings (offline-sync.md section 1): watched state belongs to a person;
+    offline the actor is the ACTIVE profile's account on the row's server;
+    D3 case 6 (Izzie, 2026-09-26): the profile switcher shows offline and
+    switching changes whose ticks are shown. B2 (no switcher offline) and B4
+    (offline progress under @none) are what this reproduces."""
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        self.admin = _e2e.Session("qa-admin")
+        films = [i for i in self.session.find_all(item_type="Movie")
+                 if i.get("Name") == FILM_NAME]
+        self.film = films[0]["Id"]
+        for s in (self.session, self.admin):
+            s.reset_played(self.film)
+            self.addCleanup(s.reset_played, self.film)
+        self.server = self.session.server_id()
+        self.alice = (self.server, self.session.user_id)     # qa-user
+        self.bob = (self.server, self.admin.user_id)         # qa-admin
+
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend())
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+
+        self.app.start()
+        _flows.login(self.app, self.relay)                      # (default)
+        _flows.open_by_search(self.app, FILM_QUERY, self.film)
+        _flows.download_open_item(self.app, self.catalog, self.film)
+        _flows.add_profile(self.app, "Bob")
+        self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
+                          what="the profile switcher")
+        _flows.switch_profile(self.app, 1)
+        _flows.add_server_from_anywhere(self.app)
+        _flows.login(self.app, self.relay, account="qa-admin")
+        self.app = _flows.relaunch(self.app, self.relay, cut=True)
+        self.app.wait_for(
+            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
+            timeout=90, what="the film in Bob's offline library")
+
+    def _played(self, actor):
+        row = self.catalog.userdata(self.film).get(actor)
+        return row and row.get("played")
+
+    def test_ticks_follow_the_profile_offline(self):
+        case = _OfflineCase
+        case.open_film(self)
+        case.toggle_watched(self)
+        self.assertEqual(1, self._played(self.bob),
+                         "Bob's offline mark is not filed under Bob")
+        self.assertFalse(self._played(self.alice),
+                         "Bob's mark landed on Alice")
+        nobody = [k for k in self.catalog.userdata(self.film)
+                  if "@none" in k]
+        self.assertEqual([], nobody, "filed under nobody (B4): %r" % nobody)
+
+        # Back to the default profile, offline, through the switcher.
+        self.app.key("ESC")
+        self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
+                          what="the profile switcher while offline (B2)")
+        _flows.switch_profile(self.app, 0)
+        self.app.wait_for(
+            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
+            timeout=30, what="the default profile's offline library")
+        f = case.open_film(self)
+        self.assertFalse(case.watched_on_screen(self, f),
+                         "the default profile shows Bob's tick")
+
 if __name__ == "__main__":
     unittest.main()

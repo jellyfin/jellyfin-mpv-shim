@@ -125,6 +125,9 @@ class App:
         self.mpv = None
         self._job = None
         self.incarnation = 0
+        #: Presses that had no effect and were repeated (press_until). Kept
+        #: so a flaky input path stays visible instead of being absorbed.
+        self.lost_keys = []
 
     # -- configuration, as a user would write it -----------------------
 
@@ -328,29 +331,47 @@ class App:
         return self.wait_for(lambda f: f.get("rev", 0) > rev, timeout=timeout,
                              what="a frame after rev %s" % rev)
 
-    def move_to(self, target, key="TAB", limit=40):
-        """Press ``key`` until keyboard focus (nav) is on ``target``.
+    def press_until(self, key, predicate, what, timeout=30, retry_after=5):
+        """Press ``key`` and wait for ``predicate``. If nothing it asked
+        for happened within ``retry_after`` seconds, press it ONCE more and
+        record the lost press in ``lost_keys``. A person presses again too;
+        the record is what keeps that from hiding a real bug."""
+        self.key(key)
+        try:
+            return self.wait_for(predicate, timeout=retry_after, what=what)
+        except AppError:
+            if not self.alive():
+                raise
+        self.lost_keys.append((key, what))
+        self.key(key)
+        return self.wait_for(predicate, timeout=timeout, what=what)
 
-        A key that changes nothing draws no frame, so each press waits a
-        short while for a newer one and carries on without it. Raises after
-        ``limit`` presses: a target the keyboard cannot reach is a finding,
-        not something to click around."""
+    def move_to(self, target, key=None, limit=60):
+        """Put keyboard focus (nav) on ``target``.
+
+        TAB first, then shift+TAB: a long page (Home, with its rows) can put
+        the top bar further away forwards than backwards. A key that changes
+        nothing draws no frame, so each press waits briefly for a newer one
+        and carries on without it. Raises when neither direction gets there
+        -- a target the keyboard cannot reach is a finding, and carrying on
+        types into whatever has focus instead."""
         f = self.frame() or {}
         if f.get("nav") == target:
             return f
-        for _ in range(limit):
-            rev = (self.frame() or {}).get("rev", 0)
-            self.key(key)
-            try:
-                f = self.after(rev, timeout=2)
-            except AppError:
-                if not self.alive():
-                    raise
-                continue
-            if f.get("nav") == target:
-                return f
-        raise AppError("%s never reached %r in %d presses (nav=%r)"
-                       % (key, target, limit, (self.frame() or {}).get("nav")))
+        for k in ((key,) if key else ("TAB", "shift+TAB")):
+            for _ in range(limit):
+                rev = (self.frame() or {}).get("rev", 0)
+                self.key(k)
+                try:
+                    f = self.after(rev, timeout=2)
+                except AppError:
+                    if not self.alive():
+                        raise
+                    continue
+                if f.get("nav") == target:
+                    return f
+        raise AppError("the keyboard never reached %r (nav=%r)"
+                       % (target, (self.frame() or {}).get("nav")))
 
     def wait_for(self, predicate, timeout=30, what="the condition"):
         """Poll frames until ``predicate(frame)`` is true; returns that frame.
