@@ -412,7 +412,6 @@ class WindowMixin:
         settings precisely because people want different answers for the
         two."""
         self._player.fs = enabled
-        self.fullscreen_disable = not enabled
         if not persist:
             return
         # `_library_showing()`, not `_video is not None`: music keeps
@@ -420,7 +419,16 @@ class WindowMixin:
         # track played was persisted as the VIDEO preference -- which also
         # arms auto-fullscreen for the next film, or turns it off, without
         # the user touching a video setting.
-        key = "browser_fullscreen" if self._library_showing() else "fullscreen"
+        library = self._library_showing()
+        if not (library and self.mpvtk_active):
+            # Below the gate: the user's intent for films, read at the next
+            # start (`_play_media`). Not from the library UI: written there it
+            # turned auto-fullscreen off for every film after (item 17). With
+            # no library UI (CLI mode) mpv's idle window IS the player, so it
+            # counts there (Izzie, 2026-09-28: "Yes, film's choice there").
+            # The update notice leaving fullscreen is not it.
+            self.fullscreen_disable = not enabled
+        key = "browser_fullscreen" if library else "fullscreen"
         if getattr(settings, key) == enabled:
             return
         setattr(settings, key, enabled)

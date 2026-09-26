@@ -638,5 +638,47 @@ class PlaystateSnapshotTest(unittest.TestCase):
         self.assertEqual(seen, [["A"], [], ["C"]])
 
 
+class FullscreenIntentTest(unittest.TestCase):
+    """`fullscreen_disable` is the *user's* "I left fullscreen" and is read at
+    the next playback start. Only a toggle the user made may write it.
+
+    `set_fullscreen(False)` from the update notice (`UpdateChecker.open`) is
+    the app leaving fullscreen for its own reasons -- so the browser can show
+    the release page -- and used to record it as the user's intent: the next
+    film then played windowed with `fullscreen` on. The persisted-setting
+    test in test_mpv_lifecycle could not see this; it checks the setting,
+    not the flag."""
+
+    def _start_after(self, leave_fullscreen):
+        def prepare(pm):
+            pm._player.fs = True
+            leave_fullscreen(pm)
+            self.assertFalse(pm._player.fs, "the setup did not leave fullscreen")
+        return start_media(self, prepare=prepare, fullscreen=True)
+
+    def test_the_update_notice_does_not_cancel_auto_fullscreen(self):
+        from jellyfin_mpv_shim.update_check import UpdateChecker
+
+        def update_notice(pm):
+            with mock.patch("webbrowser.open"):
+                UpdateChecker(pm).open()
+
+        pm = self._start_after(update_notice)
+        self.assertTrue(pm._player.fs,
+                        "the next film started windowed after the update "
+                        "notice left fullscreen")
+
+    def test_a_user_leaving_fullscreen_still_keeps_the_next_film_windowed(self):
+        """The other half, so the fix cannot be "never record it"."""
+        def user_toggle(pm):
+            with mock.patch.object(player_module.settings, "save"):
+                pm.toggle_fullscreen()
+
+        pm = self._start_after(user_toggle)
+        self.assertFalse(pm._player.fs,
+                         "a user's own exit from fullscreen was forgotten "
+                         "by the next start")
+
+
 if __name__ == "__main__":
     unittest.main()
