@@ -245,6 +245,13 @@ class AuthMixin:
             self._login["user"] = reauth.get("username") or ""
             self._login["pass"] = ""
             self._login_error = None
+        else:
+            # A fresh form on every arrival. The last sign-in's server, user
+            # and password stayed here across a profile switch, and one
+            # Connect then signed the new profile in AS the previous person
+            # (B8). Profiles are people (docs/offline-sync.md section 1).
+            self._login = {"server": "", "user": "", "pass": ""}
+            self._login_error = None
         # Cleared on every arrival, not accumulated: a stale list from the
         # last time this screen was open would offer addresses that may no
         # longer be there, and the scan below is a second away.
@@ -576,6 +583,8 @@ class AuthMixin:
             ok, reason = result
             if ok:
                 self._login_error = None
+                # A password outlives nothing it was typed for (B8).
+                self._login["pass"] = ""
                 # A re-auth adds no server, so the "which one is new"
                 # difference is empty by construction and the landing server
                 # has to be named. Without it `_pick_server` falls back to

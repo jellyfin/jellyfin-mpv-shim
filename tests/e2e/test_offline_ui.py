@@ -151,5 +151,99 @@ class MarkWatchedOfflineTest(_OfflineCase):
                         "no deliberate unwatch queued: %r" % queued)
 
 
+
+@_e2e.require_server
+class PlayOfflineTest(_OfflineCase):
+    """Scenario 2. The downloaded copy plays offline, and what it records
+    belongs to the person signed in.
+
+    Ruling (offline-sync.md section 1): offline, the actor is the active
+    profile's account on the row's server. `@none` is for progress nobody
+    can be named for -- and here somebody can. Izzie's own catalog carried
+    offline progress under `@none` (B4)."""
+
+    def test_the_local_copy_plays_and_is_filed_under_this_person(self):
+        self.open_film()
+        self.app.move_to("btn-play")
+        self.app.key("ENTER")
+        # 12 seconds of film, played to its end by the app's own reporter.
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            if self.played_here():
+                break
+            time.sleep(0.5)
+        self.assertEqual(1, self.played_here(),
+                         "playing the local copy to the end left no watched "
+                         "mark for this person\n" + self.log_tail())
+        nobody = [k for k in self.catalog.userdata(self.film)
+                  if "@none" in k]
+        self.assertEqual([], nobody,
+                         "offline progress filed under nobody: %r" % nobody)
+        queued = self.catalog.pending(self.film)
+        self.assertTrue(queued, "nothing queued for the server")
+        self.assertEqual({self.me[1]}, {p["user_id"] for p in queued},
+                         "queued as someone else: %r" % queued)
+
+
+@_e2e.require_server
+class RestartOfflineTest(_OfflineCase):
+    """Scenario 9. Quit while offline and start again, still offline: what
+    was recorded is still there and still this person's."""
+
+    def test_a_mark_and_its_queue_entry_survive_a_restart(self):
+        self.open_film()
+        self.toggle_watched()
+        self.assertEqual(1, self.played_here())
+        self.app = _flows.relaunch(self.app, self.relay)   # still cut
+        self.app.wait_for(
+            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
+            timeout=90, what="the offline library after a restart")
+        f = self.open_film()
+        self.assertTrue(self.watched_on_screen(f),
+                        "the mark did not survive the restart on screen")
+        self.assertEqual(1, self.played_here())
+        queued = [p for p in self.catalog.pending(self.film)
+                  if p["user_id"] == self.me[1]]
+        self.assertTrue(queued and queued[-1]["played"] == 1,
+                        "the queued mark did not survive: %r"
+                        % self.catalog.pending(self.film))
+
+
+@_e2e.require_server
+class ANewProfileStartsWithAnEmptyLoginTest(unittest.TestCase):
+    """Scenario 4a. Profiles are people (offline-sync.md section 1), so a
+    new profile's login form must not arrive filled in with the previous
+    profile's server, username and password: one Connect then signed the
+    new profile in AS the other person (B8, found building scenario 4)."""
+
+    def setUp(self):
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend())
+        self.addCleanup(lambda: self.app.close())
+        self.app.start()
+        _flows.login(self.app, self.relay)
+
+    def test_switching_to_a_new_profile_carries_no_credentials(self):
+        _flows.add_profile(self.app, "Bob")
+        self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
+                          what="the profile switcher")
+        _flows.switch_profile(self.app, 1)
+        f = self.app.wait_for(lambda f: _app.shown(f, "login-connect"),
+                              timeout=30, what="Bob's login screen")
+        for field in ("login-server", "login-user", "login-pass"):
+            self.assertFalse((_app.node(f, field) or {}).get("text"),
+                             "%s arrived pre-filled for the new profile"
+                             % field)
+        self.app.move_to("login-connect")
+        self.app.key("ENTER")
+        time.sleep(5)
+        self.assertEqual([], _flows.credentials(self.app.config_dir)
+                         .get("Bob"),
+                         "one keypress signed the new profile in as someone "
+                         "else")
+
 if __name__ == "__main__":
     unittest.main()
