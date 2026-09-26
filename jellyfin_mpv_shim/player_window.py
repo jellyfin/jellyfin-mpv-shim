@@ -401,9 +401,11 @@ class WindowMixin:
         settings precisely because people want different answers for the
         two."""
         self._player.fs = enabled
-        self.fullscreen_disable = not enabled
         if not persist:
             return
+        # Below the gate: this is the user's intent, read at the next start
+        # (`_play_media`). The update notice leaving fullscreen is not it.
+        self.fullscreen_disable = not enabled
         # `_library_showing()`, not `_video is not None`: music keeps
         # `_video` set and keeps the library up, so a toggle made while a
         # track played was persisted as the VIDEO preference -- which also
