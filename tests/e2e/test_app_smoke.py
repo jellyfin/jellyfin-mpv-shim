@@ -35,6 +35,17 @@ import _relay  # noqa: E402
 FILM_NAME = "The Only Film In Its Set"
 
 
+def _known_bug_on(backend, bug):
+    """`expectedFailure` on one backend only, citing the bug. On the other
+    backend the test runs, and must pass, as normal."""
+    def wrap(fn):
+        if (os.environ.get("JMS_TEST_BACKEND") or "libmpv") == backend:
+            fn = unittest.expectedFailure(fn)
+            fn.__doc__ = (fn.__doc__ or "") + "\n\nKnown bug: %s" % bug
+        return fn
+    return wrap
+
+
 @_e2e.require_server
 class KeyboardSmokeTest(unittest.TestCase):
 
@@ -68,7 +79,9 @@ class KeyboardSmokeTest(unittest.TestCase):
         except OSError:
             return "(no log.txt)"
 
-    def test_login_search_and_play_a_film_to_the_end(self):
+    def _login_search_and_play(self):
+        """The whole keyboard flow, up to the detail page coming back after
+        the film ended. Returns nothing; asserts as it goes."""
         app = self.app
         try:
             app.wait_for(lambda f: _app.shown(f, "login-server"), timeout=60,
@@ -124,12 +137,24 @@ class KeyboardSmokeTest(unittest.TestCase):
             print("\n--- app log (last 60 lines) ---\n"
                   + self._log_on_failure(), file=sys.stderr)
             raise
+
+    def test_login_search_and_play_a_film_to_the_end(self):
+        self._login_search_and_play()
         self.assertEqual([], self.relay.redirects)
         self.assertTrue(any(p.startswith("/Sessions/Playing")
                             for _m, p in self.relay.requests),
                         "no playback report went through the relay")
-        self.assertEqual(0, app.quit(), "the app did not exit cleanly")
 
+    @_known_bug_on("jsonipc", "B7")
+    def test_closing_the_window_after_playback_exits_the_app(self):
+        """What a person does when they are done. On the external-mpv
+        backend the app treats mpv's exit as a crash ("connection LOST; dead
+        until the next play") and stays up with no window -- B7, found by
+        this harness on its first run, on Linux and Windows. Expected to fail
+        there until it is fixed in slice S6; the day it passes, the manifest
+        check reports an unexpected success and this marker has to go."""
+        self._login_search_and_play()
+        self.assertEqual(0, self.app.quit(), "the app did not exit cleanly")
 
 if __name__ == "__main__":
     unittest.main()
