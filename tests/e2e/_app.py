@@ -266,6 +266,11 @@ class App:
 
     def close(self):
         self.kill()
+        if not IS_WINDOWS:
+            try:
+                os.unlink(self.ipc_path)    # mpv leaves its socket behind
+            except OSError:
+                pass
         if getattr(self, "_stdout", None):
             self._stdout.close()
         # JMS_E2E_KEEP_CONFIG keeps it (with log.txt) for reading afterwards.
@@ -323,6 +328,30 @@ class App:
         return self.wait_for(lambda f: f.get("rev", 0) > rev, timeout=timeout,
                              what="a frame after rev %s" % rev)
 
+    def move_to(self, target, key="TAB", limit=40):
+        """Press ``key`` until keyboard focus (nav) is on ``target``.
+
+        A key that changes nothing draws no frame, so each press waits a
+        short while for a newer one and carries on without it. Raises after
+        ``limit`` presses: a target the keyboard cannot reach is a finding,
+        not something to click around."""
+        f = self.frame() or {}
+        if f.get("nav") == target:
+            return f
+        for _ in range(limit):
+            rev = (self.frame() or {}).get("rev", 0)
+            self.key(key)
+            try:
+                f = self.after(rev, timeout=2)
+            except AppError:
+                if not self.alive():
+                    raise
+                continue
+            if f.get("nav") == target:
+                return f
+        raise AppError("%s never reached %r in %d presses (nav=%r)"
+                       % (key, target, limit, (self.frame() or {}).get("nav")))
+
     def wait_for(self, predicate, timeout=30, what="the condition"):
         """Poll frames until ``predicate(frame)`` is true; returns that frame.
 
@@ -339,8 +368,14 @@ class App:
                 if predicate(f):
                     return f
             time.sleep(0.05)
+        f = self.frame() or {}
+        seen = [n["id"] for n in f.get("nodes", [])
+                if n.get("id") and n.get("vis")
+                and not n["id"].startswith("r.")]
         raise AppError("timed out after %ss waiting for %s; last frame "
-                       "rev=%s" % (timeout, what, last))
+                       "rev=%s nav=%r focus=%r modal=%r visible=%s"
+                       % (timeout, what, last, f.get("nav"), f.get("focus"),
+                          f.get("modal_open"), seen[:25]))
 
 
 # -- frame helpers -------------------------------------------------------
@@ -353,10 +388,16 @@ def node(frame, node_id):
 
 
 def shown(frame, node_id):
-    """The node is in the frame, inside its viewport, and not covered."""
+    """The node is in the frame, inside its viewport, and not covered.
+
+    A node of the open dialog (``mod``) is drawn above the dialog's own
+    layer, which is itself registered as an occluder for everything under
+    it; so occluders are not held against dialog nodes."""
     n = node(frame, node_id)
     if not n or not n.get("vis"):
         return False
+    if n.get("mod"):
+        return True
     cx, cy = n["x"] + n["w"] / 2, n["y"] + n["h"] / 2
     for o in frame.get("occluders", []):
         if o["x1"] <= cx <= o["x2"] and o["y1"] <= cy <= o["y2"]:
