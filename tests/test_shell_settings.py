@@ -1328,13 +1328,16 @@ class TestOfflineGates(unittest.TestCase):
         btn = b._download_btn({"Id": "m1", "Type": "Movie"}, "srv1", "d")
         self.assertIn("d-undownload", ids(layout(btn, 1280, 720)[0]))
 
-    def test_offline_hides_the_user_switcher(self):
-        """Switching user reconnects, which cannot work with no server."""
+    def test_offline_shows_the_user_switcher(self):
+        """Offline, the active profile decides whose watched state is shown,
+        so switching is how a second person sees their own (D3 case 6; it
+        was hidden offline, B2). End to end:
+        tests/e2e/test_offline_ui.TwoProfilesOfflineTest."""
         b = self._browser(True)
         b.controller.list_users = lambda: [
             {"id": "u1", "name": "A", "active": True},
             {"id": "u2", "name": "B", "active": False}]
-        self.assertNotIn("nav-user", ids(build_scene(b)[0]))
+        self.assertIn("nav-user", ids(build_scene(b)[0]))
 
     def test_online_shows_it(self):
         b = self._browser(False)

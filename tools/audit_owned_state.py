@@ -200,20 +200,19 @@ OWNED = [
                 "mpvtk_browser/auth.py:_quick_connect_to",
                 "mpvtk_browser/auth.py:_start_quick_connect",
                 "mpvtk_browser/auth.py:_do_login",
+                # _do_login's completion: clears `pass` once a sign-in has
+                # succeeded (B8).
+                "mpvtk_browser/auth.py:done",
                 "mpvtk_browser/auth.py:show_login"),
-        why="The Add Server form's three fields, `pass` among them, held in "
-            "cleartext for as long as the process runs: the sites that set "
-            "it mostly do not clear it, so the form re-seeds with the last "
-            "password typed. Contrast `_pin`, whose one dict IS cleared "
-            "(`auth.py` sets `_pin['pin'] = ''`) -- the same rule, written "
-            "at one of two sites, which is this repo's recurring shape. "
-            "`show_login` is the exception and the pattern to copy: opening "
-            "the form to re-authenticate a server seeds the address and the "
-            "username and blanks `pass`, so that one entrance cannot show a "
-            "password carried over from another server's login. "
-            "Seven owners is a weak scope and it is the honest one: the "
-            "check here is that an EIGHTH reader of a cleartext password "
-            "has to say so out loud.",
+        why="The Add Server form's three fields, `pass` among them, in "
+            "cleartext. They used to live for the whole process, so the "
+            "form re-seeded with the last password typed -- and after a "
+            "profile switch one Connect signed the new profile in as the "
+            "previous person (B8). Now `show_login` starts a fresh form on "
+            "every arrival (a re-auth seeds address and username, never a "
+            "password) and a successful sign-in clears `pass`. The owners "
+            "list is the check: another reader of a cleartext password has "
+            "to say so out loud.",
     ),
     Owned(
         scope=".",

@@ -25,9 +25,9 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import _accounts  # noqa: E402
 import _app  # noqa: E402
 import _e2e  # noqa: E402
+import _flows  # noqa: E402
 import _relay  # noqa: E402
 
 #: 12 seconds, and referenced by no other test, so this module owns its
@@ -73,41 +73,9 @@ class KeyboardSmokeTest(unittest.TestCase):
         the film ended. Returns nothing; asserts as it goes."""
         app = self.app
         try:
-            app.wait_for(lambda f: _app.shown(f, "login-server"), timeout=60,
-                         what="the login screen")
-            app.key("TAB")
-            app.type(self.relay.address)
-            app.key("TAB")
-            app.type("qa-user")
-            app.key("TAB")
-            # Keyed by the upstream server, not the relay's port: the
-            # published password file is per server.
-            app.type(_accounts.password_for("qa-user", _e2e.SERVER))
-            filled = app.wait_for(
-                lambda f: _app.fields(f).get("login-pass") == "*" * 8,
-                timeout=10, what="the password field")
-            self.assertEqual(self.relay.address,
-                             _app.fields(filled).get("login-server"))
-            self.assertEqual("qa-user", _app.fields(filled).get("login-user"))
-            app.key("ENTER")
-
-            app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
-                         what="the home screen")
-            for _ in range(20):
-                rev = app.frame()["rev"]
-                app.key("TAB")
-                if app.after(rev).get("nav") == "nav-search":
-                    break
-            app.type("Only Film")
-            app.key("ENTER")
-            tile = "search-Movies-" + self.film
-            app.wait_for(lambda f: _app.shown(f, tile), timeout=30,
-                         what="the film in the search results")
-            app.wait_for(lambda f: f.get("nav") == tile, timeout=10,
-                         what="keyboard focus on the result")
-            app.key("ENTER")
-            app.wait_for(lambda f: f.get("nav") == "btn-play", timeout=30,
-                         what="the detail page with Play focused")
+            _flows.login(app, self.relay)
+            _flows.open_by_search(app, "Only Film", self.film)
+            app.move_to("btn-play")
             app.key("ENTER")
 
             # Played to the end by the app's own timeline, which reports it;

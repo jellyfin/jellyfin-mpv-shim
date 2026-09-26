@@ -338,9 +338,14 @@ def chrome_bar(b, compact, probe=False, servers=None,
             on_select=lambda i, v: b._switch_server(servers[i]["uuid"])))
     if users is None:
         users = b._users()
-    # Not while offline: switching user reconnects, which cannot work
-    # with no server, and Tk gated it for that reason.
-    if len(users) > 1 and not b._offline:
+    # Offline too (D3 case 6, ruled 2026-09-26). Offline, whose watched
+    # state is shown IS the active profile (docs/offline-sync.md section 1),
+    # so the switcher is how a second person sees their own ticks; the
+    # switch falls back to the offline library when nothing answers
+    # (gateway users.switch_user). It was hidden offline on the Tk-era
+    # reasoning that switching reconnects, which predates per-person state
+    # (B2).
+    if len(users) > 1:
         cur = next((i for i, u in enumerate(users)
                     if u.get("active")), 0)
         right.append(Dropdown(

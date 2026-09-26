@@ -30,7 +30,19 @@ def login(app, relay, account="qa-user"):
     app.type(account)
     app.move_to("login-pass")
     # Keyed by the upstream server: the published password is per server.
-    app.type(_accounts.password_for(account, _e2e.SERVER))
+    password = _accounts.password_for(account, _e2e.SERVER)
+    app.type(password)
+    # What was typed is what the fields hold -- the password as its length
+    # only, which is all the observer ever publishes of a masked field.
+    f = app.wait_for(
+        lambda f: _app.fields(f).get("login-pass") == "*" * len(password),
+        timeout=10, what="the password field filled")
+    got = _app.fields(f)
+    if (got.get("login-server"), got.get("login-user")) != (relay.address,
+                                                           account):
+        raise AssertionError("the login fields hold %r, not what was typed"
+                             % ({k: got.get(k) for k in
+                                 ("login-server", "login-user")},))
     app.key("ENTER")
     app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
                  what="the home screen after signing in as %s" % account)
@@ -46,9 +58,10 @@ def open_by_search(app, query, item_id, section="Movies"):
     app.wait_for(lambda f: _app.shown(f, tile), timeout=30,
                  what="%s in the search results" % item_id)
     app.move_to(tile)
-    app.key("ENTER")
-    app.wait_for(lambda f: f.get("nav") == "btn-play", timeout=30,
-                 what="the detail page with Play focused")
+    # press_until: an ENTER on a result tile has been seen to go unanswered
+    # while the results page settles (candidate finding, see the register).
+    app.press_until("ENTER", lambda f: f.get("nav") == "btn-play",
+                    what="the detail page with Play focused")
 
 
 def download_open_item(app, catalog, item_id, timeout=120):
@@ -127,6 +140,26 @@ def add_profile(app, name):
     app.type(name)
     app.move_to("su-adduser")
     app.key("ENTER")
+
+
+def add_server_from_anywhere(app):
+    """After a profile switch, reach the add-server form: it is either up
+    already, or the profile landed in the offline library (a profile with
+    no servers does, when the machine holds downloads -- gateway
+    users.switch_user) and Configure Servers opens it.
+
+    Only those two destinations are accepted: a switch made from Settings
+    leaves Settings' own Add Server on screen for a frame or two, and taking
+    that stale frame for the destination is how this helper once raced."""
+    f = app.wait_for(lambda f: _app.shown(f, "login-server")
+                     or _app.shown(f, "banner-servers"), timeout=30,
+                     what="the login form or the offline banner")
+    if _app.shown(f, "login-server"):
+        return
+    app.move_to("banner-servers")
+    app.key("ENTER")
+    app.wait_for(lambda f: _app.shown(f, "login-server"), timeout=15,
+                 what="the add-server form from Configure Servers")
 
 
 def switch_profile(app, index):
