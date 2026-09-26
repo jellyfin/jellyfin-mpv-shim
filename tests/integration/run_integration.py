@@ -39,10 +39,14 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+from tests import _manifest  # noqa: E402
 
 # Modules that never import player.py -> backend-agnostic, run once.
 AGNOSTIC = [
@@ -69,6 +73,12 @@ PER_BACKEND_FAKE = [
     "tests.integration.test_keyboard_controls",
     "tests.integration.test_lifecycle",
     "tests.integration.test_mpv_lifecycle",
+    # These three ran only in the whole-suite leg, so a failure there read as
+    # cross-module interference rather than as their own. Every module is in
+    # a named leg now; tests/test_integration_runner.py holds that.
+    "tests.integration.test_mpv_state_restored",
+    "tests.integration.test_picture_options",
+    "tests.integration.test_startup_window",
 ]
 
 # Real mpv / real display legs -> run per backend, wrapped in xvfb when headless.
@@ -173,13 +183,19 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
         env["JMS_TEST_BACKEND"] = backend
     if extra_env:
         env.update(extra_env)
+    # tests._outcomes is `-m unittest` plus a per-test record, which is
+    # what the manifest check reads (tests/_manifest.py).
+    fd, outcomes = tempfile.mkstemp(prefix="jms-outcomes-", suffix=".jsonl")
+    os.close(fd)
+    env["JMS_TEST_OUTCOMES"] = outcomes
     if modules and modules[0] == "discover":
         # `-m unittest -v discover ...` is rejected: -v before the
         # subcommand selects the plain form, which has no `discover`.
-        cmd = [sys.executable, "-u", "-m", "unittest", "discover", "-v",
-               *modules[1:]]
+        cmd = [sys.executable, "-u", "-m", "tests._outcomes", "discover",
+               "-v", *modules[1:]]
     else:
-        cmd = [sys.executable, "-u", "-m", "unittest", "-v", *modules]
+        cmd = [sys.executable, "-u", "-m", "tests._outcomes", "-v",
+               *modules]
     if use_xvfb:
         xvfb = shutil.which("xvfb-run")
         if xvfb:
@@ -252,7 +268,12 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
         proc.stdout.close()
     except Exception:
         pass
-    return label, rc, _counts("".join(captured))
+    records = _manifest.read_outcomes(outcomes)
+    try:
+        os.unlink(outcomes)
+    except OSError:
+        pass
+    return label, rc, _counts("".join(captured)), records
 
 
 #: How long to let a finished leg's buffered output drain before concluding
@@ -334,6 +355,14 @@ def main():
                     help="use the real display instead of xvfb, to watch the "
                          "windows (expect ~25 of them, and a window manager "
                          "that may not honour the requested geometry)")
+    ap.add_argument("--manifest", action="store_true",
+                    help="release mode: fail unless every leg ran exactly what "
+                         "tests/manifests/integration-<platform>.tsv expects "
+                         "(no missing tests, no unapproved skips)")
+    ap.add_argument("--update-manifest", action="store_true",
+                    help="rewrite that manifest from this run (refused if any "
+                         "leg failed); review the diff, and replace each "
+                         "UNAPPROVED skip reason by hand")
     args = ap.parse_args()
     _utf8_stdio()
 
@@ -362,19 +391,20 @@ def main():
         xvfb = True              # no display at all: xvfb or bust
 
     # 1) Backend-agnostic concurrency tests, once.
-    results.append(_run(AGNOSTIC))
+    results.append(_run(AGNOSTIC, label="agnostic"))
 
     # 2) Backend-agnostic Tk browser UI, once (needs a display; xvfb when headless).
-    results.append(_run(DISPLAY_ONCE, use_xvfb=xvfb))
+    results.append(_run(DISPLAY_ONCE, use_xvfb=xvfb, label="display once"))
 
     # 3) Per-backend legs.
     for backend in backends:
         # Fake-mpv state machine / keyboard / lifecycle (no display).
-        results.append(_run(PER_BACKEND_FAKE, backend=backend))
+        results.append(_run(PER_BACKEND_FAKE, backend=backend,
+                            label="fake mpv"))
         # Real-mpv smoke (needs a display; xvfb when headless).
         if not args.no_real:
             results.append(_run(PER_BACKEND_REAL, backend=backend,
-                                use_xvfb=xvfb))
+                                use_xvfb=xvfb, label="real mpv"))
 
     # 4) Everything at once, per backend — catches cross-module interference
     #    that the isolated legs above are blind to by construction.
@@ -388,12 +418,30 @@ def main():
     print("=" * 72)
     failed = 0
     hollow = 0
-    for label, rc, (ran, skipped) in results:
+    for label, rc, (ran, skipped), _records in results:
         status, is_failed, is_hollow = leg_status(rc, ran, skipped)
         failed += is_failed
         hollow += is_hollow
         print("  %-52s %s" % (label, status))
     print("=" * 72)
+    legs = {label: records for label, _rc, _c, records in results}
+    path = _manifest.manifest_path("integration")
+    if args.update_manifest:
+        if failed:
+            print("%d leg(s) FAILED; not updating the manifest from a red "
+                  "run." % failed)
+            return 1
+        _manifest.write(path, _manifest.update(_manifest.load(path), legs))
+        print("Wrote %s -- review the diff; replace every UNAPPROVED reason."
+              % path)
+    if args.manifest:
+        problems = _manifest.check(_manifest.load(path), legs)
+        for p in problems:
+            print("  MANIFEST: %s" % p)
+        if problems:
+            print("%d manifest problem(s) against %s." % (len(problems), path))
+            return 1
+        print("Manifest: every leg ran what %s expects." % path)
     if failed:
         print("%d leg(s) FAILED." % failed)
         return 1

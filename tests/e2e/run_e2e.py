@@ -56,9 +56,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
+import urllib.request
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+from tests import _manifest  # noqa: E402
 
 # Contract tier: never imports player.py, so the mpv backend is irrelevant and
 # these run ONCE and without a display. Seconds, not minutes.
@@ -261,14 +266,38 @@ def run_leg(module, backend, use_xvfb, verbosity):
     env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
-    cmd = [sys.executable, "-m", "unittest", module]
+    # tests._outcomes is `-m unittest` plus a per-test record, which is what
+    # the skip counts and the manifest check read (tests/_manifest.py).
+    fd, outcomes = tempfile.mkstemp(prefix="jms-e2e-outcomes-",
+                                    suffix=".jsonl")
+    os.close(fd)
+    env["JMS_TEST_OUTCOMES"] = outcomes
+    cmd = [sys.executable, "-m", "tests._outcomes", module]
     if verbosity > 1:
         cmd.append("-v")
     if use_xvfb:
         cmd = ["xvfb-run", "-a"] + cmd
     print("\n=== %s [%s] ===" % (module, backend or "contract"), flush=True)
     proc = subprocess.run(cmd, cwd=REPO_ROOT, env=env)
-    return proc.returncode == 0
+    records = _manifest.read_outcomes(outcomes)
+    try:
+        os.unlink(outcomes)
+    except OSError:
+        pass
+    return proc.returncode == 0, records
+
+
+def server_answers(address, timeout=10):
+    """Whether a Jellyfin server answers its public info endpoint.
+
+    A server that is configured and down used to skip every leg, and the
+    summary then read "N/N legs passed". Asked once, before any leg runs."""
+    url = address.rstrip("/") + "/System/Info/Public"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
 
 
 def main():
@@ -281,6 +310,14 @@ def main():
                         help="show the real mpv windows")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("-v", "--verbose", action="count", default=1)
+    parser.add_argument("--manifest", action="store_true",
+                        help="release mode: fail unless every leg ran exactly "
+                             "what tests/manifests/e2e-<platform>.tsv expects; "
+                             "also requires JMS_E2E_SERVER")
+    parser.add_argument("--update-manifest", action="store_true",
+                        help="rewrite that manifest from this run (refused if "
+                             "any leg failed); review the diff, and replace "
+                             "each UNAPPROVED skip reason by hand")
     args = parser.parse_args()
 
     if args.list:
@@ -294,8 +331,20 @@ def main():
               "Start one with:  ./stdjflib.py serve ~/Desktop/std-jf-lib "
               "--live-tv\nthen re-run with "
               "JMS_E2E_SERVER=http://127.0.0.1:8096", file=sys.stderr)
+        if args.manifest or args.update_manifest:
+            print("--manifest needs a server: without one every test skips.",
+                  file=sys.stderr)
+            return 2
     else:
         print("server: %s" % server)
+        for name in ("JMS_E2E_SERVER", "JMS_E2E_SERVER_ALT"):
+            address = os.environ.get(name)
+            if address and not server_answers(address):
+                print("%s=%s does not answer. Every test against it would "
+                      "skip and the run would read as passed; start the "
+                      "server, or unset the variable." % (name, address),
+                      file=sys.stderr)
+                return 2
 
     device, unload_sink = make_dummy_sink()
     if device:
@@ -313,22 +362,43 @@ def main():
     results = []
     # Contract modules once, with no display: they never import player.py.
     for module in [m for m in modules if m in CONTRACT]:
-        ok = run_leg(module, None, False, args.verbose)
-        results.append((module, "contract", ok))
+        ok, records = run_leg(module, None, False, args.verbose)
+        results.append((module, "contract", ok, records))
 
     for backend in backends:
         for module in [m for m in modules if m not in CONTRACT]:
-            ok = run_leg(module, backend, use_xvfb, args.verbose)
-            results.append((module, backend, ok))
+            ok, records = run_leg(module, backend, use_xvfb, args.verbose)
+            results.append((module, backend, ok, records))
 
     print("\n" + "=" * 60)
-    for module, backend, ok in results:
-        print("%-8s %-45s %s" % (backend, module, "PASS" if ok else "FAIL"))
+    for module, backend, ok, records in results:
+        skipped = sum(1 for r in records if r["outcome"] == "skip")
+        print("%-8s %-45s %s%s" % (
+            backend, module, "PASS" if ok else "FAIL",
+            "  [%d run, %d skipped]" % (len(records) - skipped, skipped)))
     if unload_sink:
         unload_sink()
     failed = [r for r in results if not r[2]]
     print("=" * 60)
     print("%d/%d legs passed" % (len(results) - len(failed), len(results)))
+    legs = {"%s [%s]" % (module, backend): records
+            for module, backend, _ok, records in results}
+    path = _manifest.manifest_path("e2e")
+    if args.update_manifest:
+        if failed:
+            print("not updating the manifest from a red run")
+            return 1
+        _manifest.write(path, _manifest.update(_manifest.load(path), legs))
+        print("Wrote %s -- review the diff; replace every UNAPPROVED reason."
+              % path)
+    if args.manifest:
+        problems = _manifest.check(_manifest.load(path), legs)
+        for p in problems:
+            print("  MANIFEST: %s" % p)
+        if problems:
+            print("%d manifest problem(s) against %s." % (len(problems), path))
+            return 1
+        print("Manifest: every leg ran what %s expects." % path)
     return 1 if failed else 0
 
 
