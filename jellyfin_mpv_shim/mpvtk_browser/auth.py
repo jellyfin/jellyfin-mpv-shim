@@ -26,6 +26,7 @@ from ..mpvtk.widgets import (
     Spacer,
     Text,
     TextBox,
+    VScroll,
 )
 from . import theme
 from .components import chrome, server_icon
@@ -301,16 +302,19 @@ class AuthMixin:
                 known = self.controller.known_servers() or []
             except Exception:
                 known = []
+        # Both server lists go in ONE scrolling box above the form (see
+        # _server_box), so the fields and Connect stay put at any count.
+        servers = []
         # Above the saved list, because this is the block that answers "what
         # is my server's address" for somebody who has never typed one.
         if not qc and not reauth:
-            rows += self._discovered_rows(route)
+            servers += self._discovered_rows(route)
         if known:
-            rows.append(Text(_("Previously added servers"), size="small",
-                             color=theme.SUBTLE_FG))
+            servers.append(Text(_("Previously added servers"), size="small",
+                                color=theme.SUBTLE_FG))
             for i, k in enumerate(known):
                 addr = k.get("address", "")
-                rows.append(Row([
+                servers.append(Row([
                     # These are addresses, not connections -- nothing has
                     # been tried yet -- so the glyph says only where each
                     # one is.
@@ -330,10 +334,11 @@ class AuthMixin:
                 ], id="login-known-row-%d" % i, pad=8, gap=10, radius=6,
                    align="center", bg=theme.PANEL_BG))
 
+        rest = []
         if qc:
             # Quick Connect: the user types this code into any signed-in
             # Jellyfin client; we poll until the server authorizes it.
-            rows += [
+            rest += [
                 Text(_("Quick Connect"), size="large", bold=True),
                 Text(_("Enter this code in the Jellyfin app or web client:"),
                      size="small", color=theme.SUBTLE_FG, wrap=True, w=460),
@@ -347,7 +352,7 @@ class AuthMixin:
                 ]),
             ]
         else:
-            rows += [
+            rest += [
                 field("login-server", _("Server URL"), "server"),
                 field("login-user", _("Username"), "user"),
                 field("login-pass", _("Password"), "pass", mask=True),
@@ -370,12 +375,46 @@ class AuthMixin:
                 ], gap=10, align="center"),
             ]
 
-        form = Column(rows, pad=28, gap=16, bg=theme.CARD_BG, radius=12,
-                      border=theme.BORDER, w=560, align="stretch")
+        if servers:
+            rows.append(self._server_box(servers, rows + rest, size))
+        form = Column(rows + rest, pad=self.LOGIN_PAD, gap=self.LOGIN_GAP,
+                      bg=theme.CARD_BG, radius=12, border=theme.BORDER,
+                      w=self.LOGIN_W, align="stretch")
         return Box([Spacer(),
                     Row([Spacer(), form, Spacer()]),
                     Spacer()],
                    flex=1, direction="column", align="stretch", gap=10)
+
+    LOGIN_W = 560
+    LOGIN_PAD = 28
+    LOGIN_GAP = 16
+
+    def _server_box(self, servers, others, size):
+        """The saved and discovered servers, scrolling on their own.
+
+        Both lists used to sit in the form directly, above the fields, so
+        each server pushed Server URL and Connect further down. At 1280x720,
+        three of each was enough to put Connect below the window. This box is
+        as tall as its rows when they fit and capped at whatever the window
+        leaves after the rest of the form when they do not, so the form
+        looks the same with a few servers and stays usable with eighty.
+        """
+        from ..mpvtk.layout import measure_h
+
+        inner_w = self.LOGIN_W - 2 * self.LOGIN_PAD
+        body = Column(servers, gap=self.LOGIN_GAP, align="stretch")
+        natural = measure_h(body, inner_w)
+        spent = measure_h(
+            Column(others, pad=self.LOGIN_PAD, gap=self.LOGIN_GAP,
+                   w=self.LOGIN_W, align="stretch"), self.LOGIN_W)
+        # The inserted box costs one more gap in the form; 24 keeps the card
+        # off the window's edges. The floor keeps a couple of rows visible on
+        # a window too short for the form either way.
+        room = size[1] - spent - self.LOGIN_GAP - 2 * 24
+        cap = max(120, room)
+        if natural <= cap:
+            return body
+        return VScroll(body, id="login-servers", h=cap)
 
     def _scan_for_servers(self):
         """Look for servers on this network, in the background.
