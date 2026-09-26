@@ -22,6 +22,7 @@ Before editing this file, read ``docs/mpv-backends.md``.
 
 import logging
 import sys
+import threading
 from typing import TYPE_CHECKING, Any, Optional
 
 from .conf import settings
@@ -124,6 +125,13 @@ class WindowMixin:
     #: mpv's ``--target-colorspace-hint``, spelled once. Both backends expose
     #: options as attributes with the dashes turned into underscores.
     _COLORSPACE_HINT = "target_colorspace_hint"
+    #: Makes each park or restore one step. A stop parks from two threads at
+    #: once (the browser's on_browse_enter and stop_to_browser), and a second
+    #: park that reads the first one's "no" saves it as the user's value --
+    #: HDR off until restart (#771). A leaf lock: nothing is taken under it.
+    #: Class level so partially-built managers (_init_mpv, test doubles) have
+    #: it too.
+    _colorspace_hint_lock = threading.Lock()
 
     def clear_media_title(self):
         """Put the window title back to the app's own, playback being over.
@@ -176,19 +184,20 @@ class WindowMixin:
         (built without gpu-next, or too old) — the read is how we find out.
         Derivation: ``docs/mpv-backends.md`` §11.
         """
-        if getattr(self, "_colorspace_hint_suspended", False):
-            return
-        if not self._mpv_alive:
-            return
-        try:
-            saved = getattr(self._player, self._COLORSPACE_HINT)
-            setattr(self._player, self._COLORSPACE_HINT, "no")
-        except Exception:
-            wlog.debug("this mpv will not take %s", self._COLORSPACE_HINT,
-                       exc_info=True)
-            return
-        self._colorspace_hint = saved
-        self._colorspace_hint_suspended = True
+        with self._colorspace_hint_lock:
+            if getattr(self, "_colorspace_hint_suspended", False):
+                return
+            if not self._mpv_alive:
+                return
+            try:
+                saved = getattr(self._player, self._COLORSPACE_HINT)
+                setattr(self._player, self._COLORSPACE_HINT, "no")
+            except Exception:
+                wlog.debug("this mpv will not take %s",
+                           self._COLORSPACE_HINT, exc_info=True)
+                return
+            self._colorspace_hint = saved
+            self._colorspace_hint_suspended = True
         wlog.info("colorspace hint parked at no (was %r) <- %s",
                   saved, _caller())
 
@@ -205,17 +214,19 @@ class WindowMixin:
         The flag is cleared only once mpv has taken the value, so a write that
         fails is retried by the next start rather than silently left parked.
         """
-        if not getattr(self, "_colorspace_hint_suspended", False):
-            return
-        if not self._mpv_alive:
-            return
-        try:
-            setattr(self._player, self._COLORSPACE_HINT, self._colorspace_hint)
-        except Exception:
-            wlog.debug("could not restore %s", self._COLORSPACE_HINT,
-                       exc_info=True)
-            return
-        self._colorspace_hint_suspended = False
+        with self._colorspace_hint_lock:
+            if not getattr(self, "_colorspace_hint_suspended", False):
+                return
+            if not self._mpv_alive:
+                return
+            try:
+                setattr(self._player, self._COLORSPACE_HINT,
+                        self._colorspace_hint)
+            except Exception:
+                wlog.debug("could not restore %s", self._COLORSPACE_HINT,
+                           exc_info=True)
+                return
+            self._colorspace_hint_suspended = False
         wlog.info("colorspace hint restored to %r <- %s",
                   self._colorspace_hint, _caller())
 
