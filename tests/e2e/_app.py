@@ -164,7 +164,11 @@ class App:
         env.update(self._extra_env)
         kwargs = {}
         if IS_WINDOWS:
-            kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+            # Suspended until it is in the job: a venv's python.exe is a
+            # launcher that spawns the real interpreter at once, and a child
+            # started before the job is assigned escapes it.
+            kwargs["creationflags"] = (subprocess.CREATE_NEW_PROCESS_GROUP
+                                       | 0x00000004)   # CREATE_SUSPENDED
         else:
             kwargs["start_new_session"] = True
         self._stdout = open(os.path.join(self.config_dir, "app.stdout.txt"),
@@ -174,11 +178,14 @@ class App:
             cwd=REPO_ROOT, env=env, stdout=self._stdout,
             stderr=subprocess.STDOUT, **kwargs)
         if IS_WINDOWS:
-            k32, job = _windows_job()
             import ctypes
-            handle = k32.OpenProcess(0x1F0FFF, False, self.proc.pid)
-            k32.AssignProcessToJobObject(job, handle)
-            k32.CloseHandle(handle)
+            k32, job = _windows_job()
+            handle = int(self.proc._handle)
+            if not k32.AssignProcessToJobObject(job, handle):
+                self.proc.kill()
+                raise AppError("could not put the app in a job object: %s"
+                               % ctypes.get_last_error())
+            ctypes.WinDLL("ntdll").NtResumeProcess(handle)
             self._job = (k32, job)
         self.incarnation += 1
         self._attach(timeout)
