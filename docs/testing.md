@@ -614,3 +614,29 @@ and passed in isolation.
   never runs its cleanup. Section 11.
 - `test_playback_advance` under heavy machine load: the episode it advances
   into is ten seconds long and plays out while the earlier waits run.
+
+## 13. Release mode: the manifests
+
+`OK (skipped=K)` cannot say *which* tests skipped. The old `--strict` failed only a
+leg in which every test skipped, and an e2e server that was configured but down
+skipped every leg under a "N/N legs passed" summary. For a release round both runners
+take `--manifest`:
+
+    xvfb-run -a python3 tests/integration/run_integration.py --manifest
+    JMS_E2E_SERVER=... JMS_E2E_SERVER_ALT=... python3 tests/e2e/run_e2e.py --manifest
+
+Each leg runs through `tests._outcomes` (`-m unittest` plus a per-test record), and
+the records are compared with `tests/manifests/<runner>-<platform>.tsv`. **Any** of
+these fails the run: a test the manifest expects that never reported (uncollected, or
+its class setup failed), a test the manifest has never seen, a skip where the test
+must run, or an approved skip whose reason still starts with `UNAPPROVED`.
+
+A `skip` line is an **approved exclusion**. Its reason names the hand check that
+stands in for the test (for example `H8: custom OSC fixture absent`), and that hand
+check becomes mandatory for the release. `--update-manifest` rewrites the file from a
+clean run, and refuses a red one. New skips come in as `UNAPPROVED: <the test's own
+message>`: review the diff like a scene snapshot, and write each reason by hand.
+
+Outside release mode nothing fails that used to pass. The only change is the per-leg
+`[run, skipped]` counts in the e2e summary, and one earlier exit: `JMS_E2E_SERVER` set
+to a server that does not answer.
