@@ -190,6 +190,59 @@ class TheDiscoveredBlockTest(unittest.TestCase):
                          ids(build_scene(b, size=(1600, 900))[0]))
 
 
+class ManyServersTest(unittest.TestCase):
+    """Somebody with a lot of saved servers, a network with a lot of servers
+    on it, or both.
+
+    Both lists go above the form, so every row pushes the Server URL field
+    and Connect further down. What must hold at any count: the form itself is
+    on screen, and every server offered can still be used. Two window sizes,
+    because the failure is a height budget and a small window is where it
+    runs out first.
+    """
+
+    COUNT = 40
+    SIZES = [(1280, 720), (960, 600)]
+    FORM = ("login-server", "login-user", "login-pass", "login-connect")
+
+    def _controller(self, known, found):
+        ctl = _Discovering(found=[
+            {"Id": "f%d" % i, "Name": "Found %d" % i,
+             "Address": "http://10.0.%d.%d:8096" % (i // 250, i % 250)}
+            for i in range(found)])
+        ctl.known_servers = lambda: [
+            {"address": "http://saved-%d.example" % i,
+             "name": "Saved server %d" % i} for i in range(known)]
+        return ctl
+
+    def _check(self, known, found):
+        for size in self.SIZES:
+            with self.subTest(known=known, found=found, size=size):
+                b = _login(self._controller(known, found))
+                nodes, handlers = build_scene(b, size=size)
+                by_id = {n.get("id"): n for n in nodes if n.get("id")}
+                for fid in self.FORM:
+                    self.assertIn(fid, by_id, "%s is not drawn" % fid)
+                    n = by_id[fid]
+                    self.assertGreaterEqual(n["y"], 0, fid)
+                    self.assertLessEqual(
+                        n["y"] + n["h"], size[1],
+                        "%s is below the bottom of the window" % fid)
+                for i in range(known):
+                    self.assertIn("login-known-%d" % i, handlers)
+                for i in range(found):
+                    self.assertIn("login-found-%d" % i, handlers)
+
+    def test_many_saved_servers(self):
+        self._check(self.COUNT, 0)
+
+    def test_many_servers_on_the_network(self):
+        self._check(0, self.COUNT)
+
+    def test_many_of_both(self):
+        self._check(self.COUNT, self.COUNT)
+
+
 class TheGatewayDegradesTest(unittest.TestCase):
     """The half that is about the apiclient rather than the screen."""
 
