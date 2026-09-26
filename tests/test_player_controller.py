@@ -327,6 +327,7 @@ class TestOfflineWatchedQueue(unittest.TestCase):
             self._complete = set(complete)
             self._rows = list(rows)
             self.playstate = []
+            self.deliberate = []
             self.userdata = []
 
         def is_complete(self, item_id, *, server_id):
@@ -342,7 +343,8 @@ class TestOfflineWatchedQueue(unittest.TestCase):
         def list(self, status=None):
             return self._rows
 
-        def upsert_playstate(self, item_id, *, actor, played=False):
+        def upsert_playstate(self, item_id, *, actor, played=False,
+                             deliberate=False):
             # The real one refuses anything but a `sync` row, so a fake that
             # accepted everything would let a refusal look like a queue.
             from jellyfin_mpv_shim.sync.db import filing_state
@@ -350,6 +352,7 @@ class TestOfflineWatchedQueue(unittest.TestCase):
             if state != "sync":
                 return False
             self.playstate.append((key, item_id, played))
+            self.deliberate.append(deliberate)
             return True
 
         def update_userdata(self, item_id, played=False, *, actor):
@@ -446,14 +449,21 @@ class TestOfflineWatchedQueue(unittest.TestCase):
                          [(db.SERVER_ID, self.USER_ID)] * 2,
                          "a fan-out must file every leaf under one person")
 
-    def test_unwatching_offline_is_refused_not_half_applied(self):
-        """The pending queue is advance-only, so un-watching cannot be
-        represented. Refusing is honest; queueing it would silently drop."""
+    def test_unwatching_offline_is_queued_as_a_deliberate_mark(self):
+        """Mark unplayed offline is the one retreat the queue carries: a
+        deliberate unwatch wins over the server's older watch (Q3/D1, ruled
+        2026-09-26). It used to be refused, which contradicted the ruling
+        and flipped the tick back on screen (B1)."""
         db = self.FakeDB(complete={"m1"})
         self._with_db(db)
         self._offline()
-        self.assertFalse(CTL().set_watched("s1", "m1", False))
-        self.assertEqual(db.playstate, [])
+        self.assertTrue(CTL().set_watched(self.LOGIN, "m1", False))
+        self.assertEqual([i for _a, i, p in db.playstate if p is False],
+                         ["m1"])
+        self.assertEqual([True], db.deliberate,
+                         "an unwatch queued as progress would never retreat")
+        self.assertEqual([("m1", False, (db.SERVER_ID, self.USER_ID))],
+                         db.userdata)
 
     def test_nothing_downloaded_matching_is_a_refusal(self):
         db = self.FakeDB()

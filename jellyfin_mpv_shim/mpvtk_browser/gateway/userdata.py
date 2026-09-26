@@ -55,17 +55,19 @@ class UserDataMixin(GatewayCore):
 
     @staticmethod
     def _queue_offline_watched(server_uuid, item_id, watched):
-        """Queue an offline watched mark.
+        """Queue an offline Mark played / Mark unplayed.
 
-        Only "watched" is representable: the pending queue is advance-only,
-        so un-watching offline is dropped rather than silently half-applied.
-        A series/season id fans out to its downloaded episodes."""
+        Both directions: a deliberate mark is the one signal authoritative
+        either way, so an unwatch is queued (``played = 0``, stamped) and
+        replayed when the server's watch is older (D1, ruled 2026-09-26).
+        This refused every unwatch until then. A series/season id fans out
+        to its downloaded episodes."""
         from ...sync.manager import syncManager
 
         db = getattr(syncManager, "db", None)
-        if db is None or not watched:
-            log.warning("Cannot change watched state for %s while offline.",
-                        item_id)
+        if db is None:
+            log.warning("Cannot change watched state for %s while offline: "
+                        "no catalog.", item_id)
             return False
         try:
             targets = db.watched_targets(
@@ -83,11 +85,12 @@ class UserDataMixin(GatewayCore):
                 # that is whoever downloaded the copy.
                 actor = syncManager.actor_of(acting_login=server_uuid,
                                              server_id=target_server)
-                db.upsert_playstate(target_id, actor=actor, played=True)
+                db.upsert_playstate(target_id, actor=actor,
+                                    played=bool(watched), deliberate=True)
                 # The browser overlay and the watched-based delete read the
                 # per-actor table, not the pending queue -- without this the
                 # mark is invisible until the server syncs.
-                db.set_watched(target_id, True, actor=actor)
+                db.set_watched(target_id, bool(watched), actor=actor)
             if not targets:
                 log.warning("Nothing downloaded matches %s; watched mark "
                             "not queued.", item_id)

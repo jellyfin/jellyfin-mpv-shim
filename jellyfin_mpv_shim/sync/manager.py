@@ -8,6 +8,7 @@ Downloads pull the original file via /Items/{id}/Download.
 import errno
 import glob
 import json
+import datetime
 import logging
 import math
 import os
@@ -411,6 +412,25 @@ def _actor_resolver():
                     "migration is not attributing anything this launch.")
         return None
     return _actor_for
+
+
+def _older_than(stamp, marked_at):
+    """Whether the server's ``LastPlayedDate`` is before ``marked_at`` (epoch
+    seconds). No date on a watched item cannot be ordered, so it is treated
+    as older: the user's explicit unwatch is the only dated fact there is.
+    No ``marked_at`` (an entry queued before the column existed) never
+    retreats anything."""
+    if not marked_at:
+        return False
+    if not stamp:
+        return True
+    head, _, frac = str(stamp).rstrip("Z").partition(".")
+    try:
+        when = datetime.datetime.strptime(head, "%Y-%m-%dT%H:%M:%S").replace(
+            tzinfo=datetime.timezone.utc)
+    except ValueError:
+        return False
+    return when.timestamp() < marked_at
 
 
 class SyncManager:
@@ -3037,8 +3057,16 @@ class SyncManager:
         return routes
 
     def _sync_playstate(self):
-        """Replay offline playstate once a server is reachable — advancing only:
-        mark watched if the server hasn't, and push a later resume position."""
+        """Replay offline playstate once a server is reachable.
+
+        Advancing, as ever: mark watched if the server hasn't, and push a
+        later resume position. **And one retreat, the deliberate unwatch**
+        (``played = 0``, queued by Mark unplayed): it is sent only when the
+        server's watched mark is older than the unwatch (``LastPlayedDate``
+        before ``marked_at``). A watch made elsewhere after it stands, and
+        the next sweep brings it back here. D1, ruled 2026-09-26; the server
+        dates every mark on both majors (tests/e2e/test_userdata_contract).
+        """
         pending = self.db.list_playstate()
         if not pending:
             return
@@ -3057,6 +3085,10 @@ class SyncManager:
                 update = {}
                 if entry.get("played") and not server_ud.get("Played"):
                     update["Played"] = True
+                if (entry.get("played") == 0 and server_ud.get("Played")
+                        and _older_than(server_ud.get("LastPlayedDate"),
+                                        entry.get("marked_at"))):
+                    client.jellyfin.item_played(entry["item_id"], False)
                 local_pos = entry.get("position_ticks") or 0
                 if local_pos > (server_ud.get("PlaybackPositionTicks") or 0):
                     update["PlaybackPositionTicks"] = local_pos

@@ -1099,11 +1099,14 @@ class TestOfflineWatchedQueue(TmpTest):
         for eid in ("e1", "e2"):
             self.assertTrue(self._played(db, eid), "%s not marked" % eid)
 
-    def test_unwatching_offline_is_refused_rather_than_half_applied(self):
-        """The pending queue is advance-only, so un-watching can't be
-        represented — say so instead of pretending it worked."""
+    def test_unwatching_offline_is_recorded(self):
+        """A deliberate unwatch is authoritative (Q3/D1); it used to be
+        refused (B1). Here nobody can be named, so it is local only."""
         ctl, db = self._controller(self._catalog())
-        self.assertFalse(ctl.set_watched("offline", "e1", False))
+        self.assertTrue(ctl.set_watched("offline", "e1", True))
+        self.assertTrue(self._played(db, "e1"))
+        self.assertTrue(ctl.set_watched("offline", "e1", False))
+        self.assertFalse(self._played(db, "e1"))
 
     def test_an_item_with_nothing_downloaded_reports_failure(self):
         ctl, _db = self._controller(self._catalog())
