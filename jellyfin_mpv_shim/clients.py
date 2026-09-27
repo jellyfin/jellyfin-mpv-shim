@@ -145,7 +145,10 @@ class PeriodicHealthCheck(threading.Thread):
     def stop(self):
         self.halt = True
         self.trigger.set()
-        self.join()
+        # Bounded: a check parked in /Sessions under a stalled network runs
+        # ~80 s, which outlived exit_watchdog's deadline. A daemon, and a
+        # check that ends after this sees halt; tests/test_health_check_stop.py.
+        self.join(1.0)
 
     def run(self):
         while not self.halt:
@@ -939,9 +942,11 @@ class ClientManager(object):
     def validate_client(self, client: "JellyfinClient", dry_run=False, server=None):
         # Retries and timeout are bounded for this specific call: the default
         # 30s × 5 retries can wedge the health-check thread for ~2.5 minutes if
-        # the server is unresponsive. On exception, fall through to the "not in
-        # client list" branch below to force a reconnect (a timeout is a broken
-        # connection).
+        # the server is unresponsive. Still ~80 s under a stall -- the session
+        # adapter's own urllib3 retries (http.max_retries) multiply it -- so
+        # nothing may wait on this thread unbounded. On exception, fall
+        # through to the "not in client list" branch below to force a
+        # reconnect (a timeout is a broken connection).
         try:
             client_list = client.jellyfin.sessions(timeout=10, retry=1)
         except Exception:
