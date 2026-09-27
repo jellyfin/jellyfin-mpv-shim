@@ -1353,3 +1353,54 @@ class LoopFileNeverOutlivesAudioTest(unittest.TestCase):
         self.assertIn("_item_is_audio(video)", write,
                       "the loop-file write asks the player, which still holds "
                       "the previous item at this point in the start")
+
+
+class AScriptMessageNeverWaitsOnThePlayerLockTest(unittest.TestCase):
+    """`script_message` is one mpv command and must not wait for `_lock`.
+
+    It did, and `_lock` is held for the whole of a playback start (up to
+    playback_timeout on a stream that will not open). The browser reaches
+    it from inside `on_playstate` -- the handoff's on_browse_leave and
+    on_browse_enter both go through enable_osc -- so the thread delivering
+    a playstate stalled for the start, and a second playstate thread ran
+    ahead of it: on jsonipc the HUD engaged, then the late handoff reset it
+    off and on, and an ENTER in that gap was lost (register, 2026-09-27).
+    A lock held across on_playstate deadlocked the same way that morning.
+    """
+
+    def test_it_returns_while_another_thread_holds_the_lock(self):
+        import threading
+
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._lock = threading.RLock()
+        pm._mpv_alive = True
+        sent = []
+
+        class _Mpv:
+            def command(self, *args):
+                sent.append(args)
+
+        pm._player = _Mpv()
+        held, release = threading.Event(), threading.Event()
+
+        def hold():
+            with pm._lock:
+                held.set()
+                release.wait(10)
+
+        holder = threading.Thread(target=hold)
+        holder.start()
+        self.assertTrue(held.wait(5))
+        try:
+            done = threading.Event()
+            worker = threading.Thread(
+                target=lambda: (pm.script_message("osc-visibility", "never"),
+                                done.set()))
+            worker.start()
+            self.assertTrue(done.wait(2),
+                            "script_message waited for the player lock")
+            self.assertEqual([("script-message", "osc-visibility", "never")],
+                             sent)
+        finally:
+            release.set()
+            holder.join(10)

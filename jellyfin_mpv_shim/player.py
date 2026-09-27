@@ -4669,8 +4669,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self._player.pause = value
         self.push_playstate()
 
-    @synchronous("_lock")
     def script_message(self, command, *args):
+        # No `_lock`: one mpv command, and the lock is held for a whole
+        # playback start. The browser reaches this from inside on_playstate
+        # (on_browse_leave/enter -> enable_osc), so waiting here stalled the
+        # delivering thread and let a later playstate overtake the handoff
+        # (the jsonipc HUD flap, and the shape of a deadlock).
         if not self._mpv_alive:
             return
         try:
