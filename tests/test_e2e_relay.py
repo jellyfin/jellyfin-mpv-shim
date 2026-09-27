@@ -47,7 +47,8 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
-        body = b'{"ServerName": "fake"}'
+        body = (b"x" * 200_000 if self.path == "/big"
+                else b'{"ServerName": "fake"}')
         self.send_response(200)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -191,6 +192,27 @@ class RelayTest(unittest.TestCase):
               b'{"ItemId": "e2", "PositionTicks": %d}' % (n * 10))
              for n in range(3)],
             [(p, bytes(b)) for p, b in self.relay.bodies])
+
+    def test_a_ranged_request_is_recorded_with_its_range(self):
+        conn = self._conn()
+        conn.request("GET", "/big", headers={"Range": "bytes=100-"})
+        conn.getresponse().read()
+        conn.request("GET", "/System/Info/Public")
+        conn.getresponse().read()
+        self.assertEqual([("/big", "bytes=100-")], self.relay.ranges)
+
+    def test_throttle_slows_what_the_server_sends_and_can_be_lifted(self):
+        conn = self._conn(timeout=10)
+        self.relay.throttle(200_000)            # ~1 s for the 200 kB body
+        start = time.monotonic()
+        self.assertEqual(200_000, len(self._get(conn, "/big")[1]))
+        slow = time.monotonic() - start
+        self.relay.throttle(None)
+        start = time.monotonic()
+        self._get(conn, "/big")
+        fast = time.monotonic() - start
+        self.assertGreater(slow, 0.5)
+        self.assertLess(fast, slow / 3)
 
     def test_a_redirect_is_recorded(self):
         self.assertEqual(302, self._get(self._conn(), "/redirect")[0])
