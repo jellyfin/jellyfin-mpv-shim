@@ -199,6 +199,26 @@ class AUserInputConfTest(_LifecycleCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class ThePasswordDoesNotOutliveTheSignInTest(_LifecycleCase):
+    """B8 from the Add Server door: after a sign-in, the form it reuses
+    opens with no password. (What a person can see. The post-sign-in clear
+    itself has no path to the screen -- every entry resets the form first,
+    and a mutant dropping it passes here -- so it is pinned in
+    tests/test_login_form_reset.py.)"""
+
+    def test_add_server_opens_with_no_password(self):
+        _flows.open_settings_tab(self.app, "servers")
+        self.app.move_to("sv-add")
+        f = self.app.press_until("ENTER", lambda f: _app.shown(f, "login-pass"),
+                                 what="the add-server form")
+        typed = _app.fields(f).get("login-pass")
+        shown = (_app.node(f, "login-pass") or {}).get("text")
+        self.assertFalse(typed or shown,
+                         "the form still holds the last password (%d chars)"
+                         % len(typed or shown or ""))
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
 class AnotherLanguageTest(_LifecycleCase):
     """Izzie's gap from the v3.0.0 hand pass: language selection was never
     tested. Chosen in Settings by keys, it asks for a restart (on purpose:

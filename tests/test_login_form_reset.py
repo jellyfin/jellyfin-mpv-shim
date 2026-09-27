@@ -45,6 +45,24 @@ class LoginFormResetTest(unittest.TestCase):
             self.assertEqual({"server": "", "user": "", "pass": ""},
                              b._login)
 
+    def test_a_successful_sign_in_forgets_the_password(self):
+        """B8's second half. No screen can show it -- every way into the
+        form resets it first -- so it is pinned here, in the state: the
+        password is not held for one second longer than the sign-in."""
+        b = self._browser()
+
+        class _SignsIn(FakeController):
+            def add_server(self, *a, **k):
+                return True
+
+        b.controller = _SignsIn()
+        b.show_login()
+        b._login.update(TYPED)
+        b._do_login()
+        self.assertEqual("", b._login["pass"])
+        self.assertEqual(TYPED["user"], b._login["user"],
+                         "the premise: only the password is forgotten")
+
     def test_a_reauth_is_seeded_with_its_own_server_and_no_password(self):
         b = self._browser()
         b._login.update(TYPED)
