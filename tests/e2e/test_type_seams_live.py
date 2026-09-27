@@ -87,9 +87,11 @@ class _ChainCase(_PlaybackCase):
                                msg="%s: picture stretched" % hop)
 
     def leave_by_hud_back(self):
-        self.app.key("ENTER")
-        self.app.wait_for(lambda f: _app.shown(f, "hud-back"), timeout=15,
-                          what="the HUD")
+        # press_until: just after a start, jsonipc's HUD mode goes off and
+        # on again (the handoff reset) and an ENTER in that gap is lost --
+        # a finding in the register, 2026-09-27; a person presses again.
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "hud-back"),
+                             what="the HUD", retry_after=3)
         self.app.move_to("hud-back")
         self.app.key("ENTER")
 
@@ -155,7 +157,9 @@ class _ChainCase(_PlaybackCase):
         self.leave_by_hud_back()
         self.assert_library("after the film")
 
-    def hop_photo(self):
+    def into_photo_album(self):
+        """Home -> Photos -> the "Image Formats" album; returns the album
+        id and the ids of the photos in it."""
         view = self.photos_view()
         self.app.move_to("nav-home")
         tile = "row-libs-" + view
@@ -176,6 +180,10 @@ class _ChainCase(_PlaybackCase):
         self.app.move_to(album_tile)
         photos = {i["Id"] for i in self.session.find_all(
             parent_id=album, item_type="Photo")}
+        return album, photos
+
+    def hop_photo(self):
+        album, photos = self.into_photo_album()
 
         def a_photo(f):
             return next((n["id"] for n in f.get("nodes", [])
@@ -374,6 +382,27 @@ class _MusicUp(_ChainCase):
     def track(self):
         path = self.p("path") or ""
         return next((i for i in self.tracks if i in path), None)
+
+
+class APhotoSlideshowRunsTest(_ChainCase):
+    """Row 19, Play All: from a photo album the slideshow advances by
+    itself (a single photo opened from its tile is held -- the chain)."""
+
+    def test_play_all_moves_on(self):
+        album, photos = self.into_photo_album()
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "grid-playall"),
+                             what="the album's page")
+        self.app.move_to("grid-playall")
+        self.app.key("ENTER")
+        seen = [self.app.playing_path()]
+        # Two advances by themselves. (pause blinks true for a moment at
+        # each change, so it is not the witness.)
+        for _ in range(2):
+            self.assertTrue(_e2e.wait_for(
+                lambda: self.p("path") not in (None,) + tuple(seen),
+                timeout=15), "the slideshow stopped at %d photos" % len(seen))
+            seen.append(self.p("path"))
+        self.assertEqual(0, self.app.quit(timeout=30))
 
 
 class TheReaderMakesRoomForTheBarTest(_MusicUp):
