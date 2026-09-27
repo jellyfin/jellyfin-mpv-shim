@@ -674,6 +674,221 @@ class AnInactiveProfilesDownloadTest(unittest.TestCase):
 
 
 @_e2e.require_server
+class _OfflineEntryCase(unittest.TestCase):
+    OFFLINE_ENTRY = "Offline"
+    CONF = {}
+
+    def setUp(self):
+        session = _e2e.Session()
+        films = [i for i in session.find_all(item_type="Movie")
+                 if i.get("Name") == FILM_NAME]
+        self.film = films[0]["Id"]
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend(), conf=dict(self.CONF))
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relay)
+
+    def entries(self):
+        return _flows.items(self.app.frame(), "nav-server")
+
+    def download_the_film(self):
+        _flows.open_by_search(self.app, FILM_QUERY, self.film)
+        _flows.download_open_item(self.app, self.catalog, self.film)
+        self.app.move_to("nav-home")
+        self.app.press_until("ENTER",
+                             lambda f: _app.shown(f, "row-libs"),
+                             what="Home")
+
+    def pick_offline(self):
+        entries = self.app.wait_for(
+            lambda f: self.OFFLINE_ENTRY in _flows.items(f, "nav-server"),
+            timeout=30, what="an Offline entry in the server drop-down")
+        _flows.pick(self.app, "nav-server",
+                    _flows.items(entries, "nav-server")
+                    .index(self.OFFLINE_ENTRY))
+        return self.app.wait_for(
+            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
+            timeout=30, what="the offline library after picking Offline")
+
+
+
+class TheOfflineEntryTest(_OfflineEntryCase):
+    """Scenario 11, D3 (ruled 2026-09-26): drop to offline while a server is
+    unreliable and come back, without a restart or faking an outage. The
+    server drop-down carries an Offline entry (folder icon) once something
+    is downloaded; picking it is the whole-browser switch, and picking the
+    server again reconnects -- or stays offline and says why. Asserts the
+    requirement through the widget Izzie chose; the widget is not sacred."""
+
+    def test_offline_is_offered_picked_and_left_without_a_restart(self):
+        self.assertNotIn(self.OFFLINE_ENTRY, self.entries(),
+                         "Offline is offered with nothing downloaded "
+                         "(D3 case 4)")
+        self.download_the_film()
+        pid = self.app.proc.pid
+        f = self.pick_offline()                                  # case 2
+        self.assertEqual("pass", self.relay.mode)
+        self.assertEqual(pid, self.app.proc.pid, "the app restarted")
+        entries = _flows.items(f, "nav-server")
+        self.assertEqual(entries.index(self.OFFLINE_ENTRY),
+                         _flows.selected(f, "nav-server"),
+                         "offline, but the drop-down does not say so")
+        # Back: the server is right there, so this reconnects (case 3).
+        server = next(i for i, e in enumerate(entries)
+                      if e != self.OFFLINE_ENTRY)
+        _flows.pick(self.app, "nav-server", server)
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs")
+                          and not _app.shown(f, DOWNLOADED_TILE % self.film),
+                          timeout=60, what="the server's Home again")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+    def test_picking_the_server_while_it_is_down_stays_offline(self):
+        self.download_the_film()
+        f = self.pick_offline()
+        self.relay.cut()
+        self.assertTrue(self.relay.probe_refused())
+        entries = _flows.items(f, "nav-server")
+        server = next(i for i, e in enumerate(entries)
+                      if e != self.OFFLINE_ENTRY)
+        _flows.pick(self.app, "nav-server", server)
+        # Case 3's failure half: told why, and still in the offline library.
+        f = self.app.wait_for(lambda f: f.get("modal_open"), timeout=60,
+                              what="a message saying the server is down")
+        self.assertTrue(_app.shown(f, DOWNLOADED_TILE % self.film)
+                        or _app.node(f, DOWNLOADED_TILE % self.film),
+                        "left the offline library for a server that is down")
+        self.app.key("ESC")
+        f = self.app.wait_for(lambda f: not f.get("modal_open"), timeout=10,
+                              what="the message dismissed")
+        self.assertTrue(_app.shown(f, DOWNLOADED_TILE % self.film))
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+    @unittest.expectedFailure
+    def test_the_switcher_does_not_keep_showing_the_server_that_refused(self):
+        """mpvtk ends a drop-down's pending pick only when the app answers
+        with a value DIFFERENT from where the pick began; a refusal answers
+        with that same value, so the refused server stays shown while the
+        downloads are on screen. Needs a toolkit way to say "refused"
+        (register, "Scenario 11")."""
+        self.download_the_film()
+        f = self.pick_offline()
+        self.relay.cut()
+        self.assertTrue(self.relay.probe_refused())
+        entries = _flows.items(f, "nav-server")
+        _flows.pick(self.app, "nav-server",
+                    next(i for i, e in enumerate(entries)
+                         if e != self.OFFLINE_ENTRY))
+        self.app.wait_for(lambda f: f.get("modal_open"), timeout=60,
+                          what="the refusal")
+        self.app.key("ESC")
+        f = self.app.wait_for(lambda f: not f.get("modal_open"), timeout=10,
+                              what="the message dismissed")
+        self.assertEqual(entries.index(self.OFFLINE_ENTRY),
+                         _flows.selected(f, "nav-server"))
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+    def test_launching_with_the_server_down_selects_offline(self):
+        self.download_the_film()
+        self.app = _flows.relaunch(self.app, self.relay, cut=True)
+        f = self.app.wait_for(
+            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
+            timeout=90, what="the offline library at launch")   # case 5
+        f = self.app.wait_for(
+            lambda f: self.OFFLINE_ENTRY in _flows.items(f, "nav-server"),
+            timeout=30, what="the Offline entry at launch")
+        self.assertEqual(_flows.items(f, "nav-server")
+                         .index(self.OFFLINE_ENTRY),
+                         _flows.selected(f, "nav-server"))
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class ABounceDoesNotPullYouOutTest(_OfflineEntryCase):
+    """Not ruled in D3; inferred (register, "Scenario 11"): Offline is what
+    you pick while a server keeps bouncing, so its coming back is not you
+    leaving. The bounce that matters is the one clientManager sees -- the
+    health check drops the server, then reconnects it, and the second half
+    is what rebuilt the live source (ui._on_server_connected). A bare
+    websocket redial is not it: the apiclient redials inside WSClient and
+    tells nobody, and a first version of this test bounced that way and
+    passed with the guard removed. Carve-out: health_check_interval seeded
+    short, as in scenario 8."""
+
+    CONF = {"health_check_interval": 10}
+
+    def server_label(self):
+        return next((e for e in self.entries() if e != self.OFFLINE_ENTRY),
+                    "")
+
+    def test_the_server_coming_back_leaves_you_offline(self):
+        self.download_the_film()
+        self.pick_offline()
+        self.relay.cut()
+        self.assertTrue(self.relay.probe_refused())
+        self.app.wait_for(
+            lambda f: "needs reconnect" in self.server_label(), timeout=90,
+            what="a health check to drop the server")
+        self.relay.restore()
+        # The reconnect lands, and the library must still be there after.
+        self.app.wait_for(
+            lambda f: self.server_label()
+            and "needs reconnect" not in self.server_label(), timeout=90,
+            what="a health check to bring the server back")
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            f = self.app.frame()
+            self.assertTrue(_app.shown(f, DOWNLOADED_TILE % self.film),
+                            "the server coming back took the offline "
+                            "library away")
+            time.sleep(0.25)
+        self.assertEqual(_flows.items(f, "nav-server")
+                         .index(self.OFFLINE_ENTRY),
+                         _flows.selected(f, "nav-server"))
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class AMidPageDropTest(_OfflineEntryCase):
+    """D3 case 1: the server drops while you are on a page. Nothing switches
+    by itself; the server's entry reads "needs reconnect"; the next fetch
+    shows its normal load error. A search is that fetch here -- a failed
+    HOME load drops to the downloads by design (app._offline_fallback),
+    which case 1 does not mention (register, "Scenario 11"). Carve-out:
+    health_check_interval seeded short, as in scenario 8."""
+
+    CONF = {"health_check_interval": 10}
+
+    def test_nothing_switches_and_the_entry_says_so(self):
+        _flows.open_by_search(self.app, FILM_QUERY, self.film)
+        _flows.download_open_item(self.app, self.catalog, self.film)
+        self.app.wait_for(
+            lambda f: self.OFFLINE_ENTRY in _flows.items(f, "nav-server"),
+            timeout=30, what="the Offline entry once downloaded")
+        self.relay.cut()
+        self.assertTrue(self.relay.probe_refused())
+        self.app.wait_for(
+            lambda f: any("needs reconnect" in e
+                          for e in _flows.items(f, "nav-server")),
+            timeout=60, what="the server's entry to read needs reconnect")
+        f = self.app.frame()
+        self.assertTrue(_app.shown(f, "btn-play"),
+                        "the page did not stay put when the server dropped")
+        self.assertNotEqual(_flows.items(f, "nav-server")
+                            .index(self.OFFLINE_ENTRY),
+                            _flows.selected(f, "nav-server"),
+                            "switched to Offline by itself")
+        self.app.clear_field("nav-search")
+        self.app.type_into("nav-search", "Only")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "route-retry"),
+                          timeout=120, what="the search's load error")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+@_e2e.require_server
 class AStalledNetworkTest(unittest.TestCase):
     """Scenario 8. The network stops answering without closing anything (a
     dropped Wi-Fi, a sleeping router): the app must keep answering keys, and

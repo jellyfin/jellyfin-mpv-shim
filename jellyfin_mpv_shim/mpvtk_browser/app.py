@@ -282,6 +282,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Banners: update-available notice + offline indicator.
         self._update = None       # {"version", "url"} or None
         self._offline = False
+        # Offline because the person picked it, not because nothing answered.
+        # A background reconnect must not undo that (ui._on_server_connected):
+        # dropping to offline is what you do while a server keeps bouncing.
+        self._offline_chosen = False
         # Settings changed in this session that need a restart before they
         # do anything (config.RESTART_REQUIRED). Keys, not labels, so the
         # banner can translate them at draw time -- and a set, so changing
@@ -2770,6 +2774,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # assigned here directly, which left set_offline with no production
         # caller at all — a public method only the tests reached.
         self.set_offline(isinstance(source, OfflineLibrarySource))
+        if not self._offline:
+            self._offline_chosen = False
         # NOT `self._locked = False`. Connections are deliberately not
         # deferred until unlock -- the gate is about what is on screen, not
         # about the network -- so a server coming up while the PIN is
@@ -3132,6 +3138,29 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self.server = uuid
         self._remember_server(uuid)
         self.navigate({"kind": "home", "server": uuid}, reset=True)
+
+    @property
+    def offline_chosen(self):
+        return self._offline_chosen
+
+    def go_offline(self):
+        """The server switcher's Offline entry (D3 case 2): browse the
+        downloads, with every server left as it is. Stays until a server is
+        picked -- see ``_offline_chosen``."""
+        if self._offline or self.controller is None:
+            return
+        old = self.server
+
+        def done(source):
+            if source is None:
+                self.set_status(_("Nothing is downloaded to browse offline."))
+                self.invalidate()
+                return
+            self._leave_syncplay_on(old)
+            self.set_source(source)
+            self._offline_chosen = True
+
+        self.run_async(self.controller.offline_source, done, self._epoch)
 
     def _leave_syncplay_on(self, uuid):
         """Leave the SyncPlay group held on ``uuid``, if there is one.

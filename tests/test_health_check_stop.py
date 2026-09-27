@@ -72,5 +72,24 @@ class QuitDuringAHealthCheckTest(unittest.TestCase):
             self.assertEqual(seen, self.calls)
 
 
+class ADroppedServerIsAnnouncedTest(unittest.TestCase):
+    """Every disconnect changes what the switcher offers, so each one says
+    so -- over several drops, not one."""
+
+    def test_each_disconnect_announces_the_change(self):
+        manager = clients.ClientManager()
+        seen = []
+        manager.on_servers_changed = lambda: seen.append(1)
+        for n in range(3):
+            client = mock.Mock()
+            server = {"uuid": "srv%d" % n}
+            manager.clients[server["uuid"]] = client
+            with mock.patch.object(clients.ClientManager, "_stop_client"):
+                self.assertTrue(manager._disconnect_client(
+                    server=server, expected_client=client))
+            self.assertEqual(n + 1, len(seen))
+            self.assertFalse(server["connected"])
+
+
 if __name__ == "__main__":
     unittest.main()

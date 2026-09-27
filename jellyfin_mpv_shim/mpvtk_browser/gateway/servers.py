@@ -192,6 +192,15 @@ class ServersMixin(GatewayCore):
         if cred is None:
             return False, None
         try:
+            # A registered client is not an answer: right after a cut it is
+            # still registered, and connect_client would say "connected"
+            # without a request -- picking the server from Offline then
+            # switched to a Home that could not load. validate_client asks
+            # the server and drops the client when it does not answer, so
+            # the connect below is a real attempt.
+            client = deps.clientManager.clients.get(uuid)
+            if client is not None:
+                deps.clientManager.validate_client(client, server=cred)
             if deps.clientManager.connect_client(cred):
                 return True, None
         except Exception:

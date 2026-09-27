@@ -558,9 +558,11 @@ class TheSwitcherListsWhatIsSavedTest(unittest.TestCase):
                         "the offline server is missing from the switcher: "
                         "%r" % items)
 
-    def test_it_says_the_server_is_offline(self):
+    def test_it_says_the_server_needs_a_reconnect(self):
+        # "needs reconnect", not "offline": the switcher also carries an
+        # Offline entry (D3), and the server is not that.
         items = self._switcher(_browser(RecoveryController()))
-        self.assertTrue(any("Away" in t and "offline" in t.lower()
+        self.assertTrue(any("Away" in t and "needs reconnect" in t
                             for t in items),
                         "an entry that looks available and then refuses is "
                         "worse than one that says so first: %r" % items)

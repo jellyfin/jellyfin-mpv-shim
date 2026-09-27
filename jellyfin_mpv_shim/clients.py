@@ -1510,6 +1510,10 @@ class ClientManager(object):
         client.callback = lambda *_: None
         client.callback_ws = lambda *_: None
         self._stop_client(client)
+        try:
+            self.on_servers_changed()
+        except Exception:
+            log.debug("servers-changed notification failed", exc_info=True)
         return True
 
     def switch_user(self, user_id):
