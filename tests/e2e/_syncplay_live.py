@@ -31,6 +31,7 @@ agreeing with each other is not synchronisation if they agree on the wrong
 frame.
 """
 
+import sys
 import time
 import uuid
 
@@ -211,7 +212,13 @@ class LiveMember:
             self.manager.process_command(dict(data))
         elif event_name == "SyncPlayGroupUpdate":
             self.manager.client = self.session.client
-            self.manager.process_group_update(dict(data))
+            try:
+                self.manager.process_group_update(dict(data))
+            except Exception:
+                # The listener's traceback names the line, not the update.
+                sys.stderr.write("%s: the group update that raised: %r\n"
+                                 % (self.label, data))
+                raise
 
     # -- readings the assertions are made of
     @property
