@@ -23,10 +23,18 @@ from test_playback_lifecycle import LONG_NAME, _PlaybackCase  # noqa: E402
 
 COMIC = "A Test Comic 001"
 EPUB = "The Standard Reference"
-BROWSE_BG = "#FF141414"
 
 
 class _ChainCase(_PlaybackCase):
+
+    def setUp(self):
+        super().setUp()
+        # The library's background as this app paints it: the theme's, so
+        # read at launch rather than spelled here.
+        self.assertTrue(_e2e.wait_for(
+            lambda: self.p("idle-active") is True
+            and self.p("background-color"), timeout=15))
+        self.browse_bg = self.p("background-color")
 
     def named(self, name, **kw):
         found = [i for i in self.session.find_all(**kw)
@@ -60,7 +68,7 @@ class _ChainCase(_PlaybackCase):
         """Nothing playing, and the window is the library's: free aspect,
         no zoom, the UI's background."""
         want = {"idle-active": True, "keepaspect": False, "video-zoom": 0.0,
-                "background-color": BROWSE_BG, "loop-file": False}
+                "background-color": self.browse_bg, "loop-file": False}
 
         def now():
             return {k: self.p(k) for k in want}
@@ -109,7 +117,7 @@ class _ChainCase(_PlaybackCase):
         self.assertTrue(_app.shown(f, "nav-settings") and not
                         f.get("phud_mode"),
                         "music took the library away (the #C seam)")
-        self.assertEqual(BROWSE_BG, self.p("background-color"),
+        self.assertEqual(self.browse_bg, self.p("background-color"),
                          "music painted a video background")
         self.app.move_to("np-stop")
         self.app.key("ENTER")
@@ -151,7 +159,7 @@ class _ChainCase(_PlaybackCase):
         self.assertEqual(0.0, self.p("video-zoom"),
                          "film: zoomed (a comic's fit leaked, R7/F15)")
         self.assertEqual(0.0, self.p("panscan"))
-        self.assertNotEqual(BROWSE_BG, self.p("background-color"),
+        self.assertNotEqual(self.browse_bg, self.p("background-color"),
                             "film: the library's grey letterbox")
         self.assert_not_stretched("film")
         self.leave_by_hud_back()
@@ -296,7 +304,7 @@ class AMixedPlaylistTwiceRoundTest(_PlaylistCase):
                         and _app.shown(f, "nav-settings")
                         and not f.get("phud_mode"),
                         timeout=15, what="%s: the library + bar" % hop)
-                    self.assertEqual(BROWSE_BG, self.p("background-color"),
+                    self.assertEqual(self.browse_bg, self.p("background-color"),
                                      hop)
                     # Next from the last entry does not end the queue, so
                     # the round ends with Stop.
@@ -341,7 +349,7 @@ class AMusicPlaylistFromItsTileTest(_PlaylistCase):
                               timeout=15, what="the now-playing bar")
         self.assertFalse(f.get("phud_mode"), "a song playlist yielded")
         self.assertTrue(_app.shown(f, "nav-settings"))
-        self.assertEqual(BROWSE_BG, self.p("background-color"))
+        self.assertEqual(self.browse_bg, self.p("background-color"))
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
@@ -440,6 +448,57 @@ class APhotoSlideshowRunsTest(_ChainCase):
                 lambda: self.p("path") not in (None,) + tuple(seen),
                 timeout=15), "the slideshow stopped at %d photos" % len(seen))
             seen.append(self.p("path"))
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class TheThemeLetsThePictureThroughTest(_ChainCase):
+    """Row 26 (PM 9fd940bb): under jf-wmc, whose window gradient is a
+    bitmap -- and bitmaps composite ABOVE mpv's video output -- a comic
+    page and a film show untinted. Measured as mpv's bare picture
+    (screenshot "video") against what the window shows ("window") over the
+    middle of the picture: equal, give or take scaling."""
+
+    CONF = {"theme": "jf-wmc"}
+
+    def tint(self, name):
+        from PIL import Image, ImageChops, ImageStat
+        base = os.path.join(self.app.config_dir, name)
+        self.app.mpv.command("screenshot-to-file", base + "-v.png", "video")
+        self.app.mpv.command("screenshot-to-file", base + "-w.png", "window")
+        d = self.p("osd-dimensions")
+        box = (d["ml"], d["mt"], d["w"] - d["mr"], d["h"] - d["mb"])
+        bw, bh = box[2] - box[0], box[3] - box[1]
+        win = Image.open(base + "-w.png").convert("RGB").crop(box)
+        vid = Image.open(base + "-v.png").convert("RGB").resize((bw, bh))
+        mid = (bw // 4, bh // 4, 3 * bw // 4, 3 * bh // 4)
+        diff = ImageChops.difference(win.crop(mid), vid.crop(mid))
+        return max(ImageStat.Stat(diff).mean)
+
+    def test_a_comic_and_a_film_are_not_tinted(self):
+        comic = self.named(COMIC, library="Books")
+        self.fresh(comic)
+        _flows.open_by_search(self.app, COMIC, comic, section="Books",
+                              landed="bk-read")
+        self.app.move_to("bk-read")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "cm-page"), timeout=30,
+                          what="the comic reader")
+        self.app.playing_path()
+        time.sleep(1.5)
+        self.assertLess(self.tint("comic"), 12,
+                        "the theme's gradient is drawn over the comic page")
+        self.app.key("ESC")
+        self.assert_library("after the comic")
+        film = self.movie(LONG_NAME)
+        self.fresh(film)
+        _flows.open_by_search(self.app, LONG_NAME, film)
+        self.play()
+        self.assertTrue(_e2e.wait_for(lambda: (self.p("time-pos") or 0) > 3,
+                                      timeout=30))
+        self.app.mpv.command("set", "pause", "yes")   # a still frame to shoot
+        time.sleep(1)
+        self.assertLess(self.tint("film"), 12,
+                        "the theme's gradient is drawn over the film")
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
