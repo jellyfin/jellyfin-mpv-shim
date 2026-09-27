@@ -2192,6 +2192,7 @@ if os.getenv('JMS_TEST_OBSERVE') then
             -- selection (the cursor starts there when nothing moved it).
             nav_pidx = state.nav_pidx, dropdowns = state.dd,
             clicks = state.obs_clicks, navs = state.obs_navs,
+            keys = state.obs_keys,
         })
         pcall(mp.set_property_native, 'user-data/mpvtk/observe_hist', hist)
     end
@@ -3065,11 +3066,24 @@ end
 
 local text_key_names = {}
 
+-- Test observer only: the keys the text paths received, and every time
+-- the bindings they arrive through came or went (the lost-keystroke chase,
+-- register 2026-09-27).
+function obs_key(what, detail)
+    if not state.observe then return end
+    local c = state.obs_keys or {}
+    c[#c + 1] = { w = what, d = detail, t = mp.get_time() }
+    if #c > 96 then table.remove(c, 1) end
+    state.obs_keys = c
+end
+
 -- The any_unicode handler, hoisted out of the binding so the debug hook
 -- (mpvtk-debug cmd=text) drives the same code a real keypress does. They
 -- were separate, which made every "type into a box" test pass against a
 -- renderer that had stopped delivering keystrokes entirely.
 function tb_key_text(e)
+    obs_key('text', tostring(e and e.key_text) .. '/' .. tostring(e and e.event)
+            .. (state.focus and '' or '/nofocus'))
     if not e or e.event == 'up' then return end
     local t = e.key_text
     if not t or t == '' or t:byte(1) < 0x20 then return end
@@ -3078,6 +3092,7 @@ end
 
 local function bind_text_keys()
     if text_keys_bound then return end
+    obs_key('bind', 'text on')
     text_keys_bound = true
     text_key_names = {}
     local function bind(key, bname, fn)
@@ -3130,6 +3145,7 @@ end
 
 local function unbind_text_keys()
     if not text_keys_bound then return end
+    obs_key('bind', 'text off')
     text_keys_bound = false
     for _, bname in ipairs(text_key_names) do
         mp.remove_key_binding(bname)
@@ -5047,6 +5063,7 @@ end
 -- These hang off `keyclaim` rather than being file-scope functions because
 -- this chunk is AT LuaJIT's 200-local ceiling; see tests/test_renderer_lua.py.
 function keyclaim.block_take(e)
+    obs_key('block', tostring(e and e.key_text) .. '/' .. tostring(e and e.event))
     if not e or e.event == 'up' then return end
     local t = e.key_text
     if not t or t == '' or t:byte(1) < 0x20 then return end
@@ -5088,12 +5105,14 @@ function keyclaim.block_bind()
     end
     mp.add_forced_key_binding('any_unicode', 'mpvtk_block',
         keyclaim.block_take, { repeatable = true, complex = true })
+    obs_key('bind', 'block on')
     state.kb_block = true
 end
 
 function keyclaim.block_unbind()
     if not state.kb_block then return end
     mp.remove_key_binding('mpvtk_block')
+    obs_key('bind', 'block off')
     state.kb_block = false
 end
 

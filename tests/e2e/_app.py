@@ -337,11 +337,19 @@ class App:
                                  timeout=timeout,
                                  what="%s to hold what was typed" % field)
         except AppError:
-            got = fields(self.frame()).get(field)
-            raise AppError("%s holds %r after typing %r: keystrokes lost"
+            f = self.frame() or {}
+            got = fields(f).get(field)
+            # What the renderer's text paths received, and when their
+            # bindings came and went (renderer obs_key): the evidence for
+            # where a lost key went.
+            keys = [(round(k.get("t") or 0, 3), k.get("w"), k.get("d"))
+                    for k in (f.get("keys") or [])][-48:]
+            raise AppError("%s holds %r after typing %r: keystrokes lost\n"
+                           "renderer key trace: %r"
                            % (field, got if not masked else
                               "<%d chars>" % len(got or ""),
-                              text if not masked else "<%d chars>" % len(text)))
+                              text if not masked else "<%d chars>" % len(text),
+                              keys))
 
     def prop(self, name):
         """An mpv property of the app's own player, over its IPC. None when
