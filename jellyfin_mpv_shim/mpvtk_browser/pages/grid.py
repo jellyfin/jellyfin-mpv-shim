@@ -450,8 +450,12 @@ class GridPage(Page):
             yi = years.index(filters["year"]) + 1
         active = self._active_filters()
         bar = Row([
+            # force: the stored sort reaches the route in the LOAD, after
+            # this has already drawn once at 0, and an unforced drop-down
+            # keeps its first selection -- after a relaunch it said "Name"
+            # over items sorted by the stored sort (#758).
             Dropdown("grid-sort", [s[0] for s in self._sorts()],
-                     selected=route.get("_sort", 0), w=180,
+                     selected=route.get("_sort", 0), w=180, force=True,
                      on_select=lambda i, v: self._set_sort(i)),
             # One button instead of the three drop-downs and two
             # checkboxes that used to live here. The bar had 277px spare
