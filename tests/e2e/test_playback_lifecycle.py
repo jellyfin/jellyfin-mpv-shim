@@ -52,7 +52,8 @@ class _PlaybackCase(unittest.TestCase):
         host, _, port = upstream.partition(":")
         self.relay = _relay.Relay((host, int(port or 80)))
         self.addCleanup(self.relay.close)
-        self.app = _app.App(backend=_backend(), conf=dict(self.CONF))
+        self.app = _app.App(backend=_backend(), conf=dict(self.CONF),
+                            files=dict(getattr(self, "FILES", {})))
         self.addCleanup(lambda: self.app.close())
         self.app.start()
         _flows.login(self.app, self.relay)
