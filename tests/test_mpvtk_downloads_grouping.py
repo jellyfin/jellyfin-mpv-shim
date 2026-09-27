@@ -233,6 +233,13 @@ class TestStatusText(unittest.TestCase):
 
     def test_queued_and_failed_are_words(self):
         self.assertEqual(status_text({"status": "pending"}), "Queued")
+        # D2: queued for a person nobody present can fetch it as.
+        self.assertEqual(
+            status_text({"status": "pending", "waiting_for": "Bob"}),
+            "Waiting for Bob to sign in…")
+        self.assertEqual(
+            status_text({"status": "pending", "waiting_for": ""}),
+            "Waiting for its profile to sign in…")
         self.assertEqual(status_text({"status": "error"}), "Failed")
 
     def test_complete_says_nothing_because_the_size_already_does(self):

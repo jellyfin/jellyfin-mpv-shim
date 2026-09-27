@@ -562,6 +562,16 @@ class UserManager:
 
     # -- credential syncing (called by ClientManager) ----------------------
 
+    def profile_name_for(self, server_id, account_id):
+        """The profile holding a saved login for this server account, or
+        None. A download names the person who queued it this way."""
+        for user in list(self.users):
+            for cred in (user.get("credentials") or ()):
+                if (cred.get("Id"), cred.get("UserId")) == (server_id,
+                                                            account_id):
+                    return user.get("name")
+        return None
+
     def credentials_of(self, user_id):
         """A copy of one user's saved credentials, or ``[]`` if there is no
         such user.

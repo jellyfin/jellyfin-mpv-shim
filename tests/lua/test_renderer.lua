@@ -3881,6 +3881,31 @@ eq(dd_sel("fdd"), 1, "sanity: the click moved it")
 forced_dd(2)
 eq(dd_sel("fdd"), 2, "a third answer did not end the gesture")
 
+-- A REFUSAL that keeps the original value is an answer too, but it looks
+-- exactly like a stale repaint (same `sel` as when the pick began). So the
+-- app says it with `ack`: a value it changes when it answers "no". A push
+-- with the old value and the SAME ack is still a stale repaint; a new ack
+-- ends the gesture and the scene's value wins. The server switcher's failed
+-- reconnect is the case: without it the refused server stayed drawn as
+-- chosen over the offline library.
+local function acked_dd(sel, ack)
+    scene({ { id = "adh", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+              size = 18, items = { "Home", "Offline" },
+              sel = sel, force = true, ack = ack } })
+end
+acked_dd(1, 0)
+eq(dd_sel("adh"), 1, "sanity: the scene's value")
+for round = 1, 3 do                     -- a refusal must work every time
+    click("adh")
+    fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 0 }))
+    eq(dd_sel("adh"), 0, "sanity: the pick moved it")
+    acked_dd(1, round - 1)              -- a repaint before the answer
+    eq(dd_sel("adh"), 0, "a repaint with the same ack reverted the pick")
+    acked_dd(1, round)                  -- the app says no
+    eq(dd_sel("adh"), 1, "a refusal (same value, new ack) left the "
+                         .. "refused choice drawn")
+end
+
 -- Without force the renderer keeps its own selection, which is the
 -- behaviour every unforced dropdown relies on.
 scene({ { id = "udd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,

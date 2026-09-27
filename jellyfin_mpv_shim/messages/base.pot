@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-26 21:59-0400\n"
+"POT-Creation-Date: 2026-09-26 23:36-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4105,6 +4105,20 @@ msgstr ""
 msgid "Downloading"
 msgstr ""
 
+#. Status of one queued download in Settings > Downloads, in place of
+#. "Queued": it was queued by another profile whose saved login no longer
+#. works, so it waits for that person to sign in. %s is the profile's name.
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#, python-format
+msgid "Waiting for %s to sign in…"
+msgstr ""
+
+#. Same status as "Waiting for %s to sign in…", when no profile on this
+#. computer holds the login that queued the download any more.
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+msgid "Waiting for its profile to sign in…"
+msgstr ""
+
 #. State of a download waiting for its turn.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Queued"
@@ -6849,6 +6863,19 @@ msgstr ""
 #. Tooltip of the update banner's Ignore button.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Do not mention this version again"
+msgstr ""
+
+#. Banner across the top of the library after something the user asked
+#. for failed because the server could not be reached. Followed by the
+#. "Retry" and "Go Offline" buttons.
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "The server isn't answering."
+msgstr ""
+
+#. Button on the "server isn't answering" banner: browse only what is
+#. downloaded to this computer instead.
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Go Offline"
 msgstr ""
 
 #. Banner shown when no server could be reached and only downloaded items

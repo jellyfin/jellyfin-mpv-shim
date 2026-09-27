@@ -196,7 +196,8 @@ class ServersTabMixin:
 
     # -------------------------------------------- getting a server back
 
-    def reconnect_server(self, uuid, on_success=None, switch=True):
+    def reconnect_server(self, uuid, on_success=None, switch=True,
+                         on_refused=None):
         """Try a saved server again, and say what happened either way.
 
         Shared by the Servers tab's Retry button and by picking an offline
@@ -254,9 +255,13 @@ class ServersTabMixin:
                     # and its wording ("It may be switched off") is the
                     # opposite of what is going on. CR10.
                     self.set_status(_("Already reconnecting."))
+                    if on_refused is not None:
+                        on_refused()
                     self.invalidate()
                     return
                 self.set_status("")
+                if on_refused is not None:
+                    on_refused()
                 self._server_problem_dialog(server or {"uuid": uuid}, problem)
                 return
             source = None
@@ -272,6 +277,8 @@ class ServersTabMixin:
                 # left, remember the new one -- and running it here drops the
                 # user out of a group and persists a server the UI is not
                 # showing. CR2.
+                if on_refused is not None:
+                    on_refused()
                 self.invalidate()
                 return
             # Write-then-invalidate, from this thread, which is the shell's

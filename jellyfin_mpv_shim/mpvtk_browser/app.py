@@ -146,6 +146,16 @@ USERDATA_KINDS = {"home", "series", "season"}
 LIVE_POLL_SECS = 120
 
 
+def _is_unreachable(exc):
+    """Whether a failed fetch means the server did not answer -- refused,
+    timed out, unreachable -- rather than that it answered with an error."""
+    if getattr(exc, "status", None) in ("ServerUnreachable", "ReadTimeout"):
+        return True
+    import requests
+    return isinstance(exc, (requests.exceptions.ConnectionError,
+                            requests.exceptions.Timeout))
+
+
 class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                    MusicMixin, ViewsMixin, TilesMixin, CastMixin):
 
@@ -286,6 +296,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # A background reconnect must not undo that (ui._on_server_connected):
         # dropping to offline is what you do while a server keeps bouncing.
         self._offline_chosen = False
+        # A fetch the person asked for failed because the server did not
+        # answer (not because it answered with an error). Raises the retry /
+        # offline banner; the next load that lands clears it.
+        self._unreachable = False
+        # Bumped when a pick in the server switcher is refused: the mpvtk
+        # Dropdown `ack`, without which the refused entry stays drawn as
+        # chosen (a refusal keeps the value the pick began on).
+        self._server_pick_ack = 0
         # Settings changed in this session that need a restart before they
         # do anything (config.RESTART_REQUIRED). Keys, not labels, so the
         # banner can translate them at draw time -- and a set, so changing
@@ -1422,6 +1440,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # reappearing in Continue Watching is this half.
             if route.get(self.LOAD_ID_KEY) != load_id:
                 return
+            if self._unreachable and not self._offline:
+                self._unreachable = False
+                self.invalidate()
             on_done(data)
 
         def failed(exc):
@@ -1444,6 +1465,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # come back, and it must be holding the error and a Retry rather
             # than spinning.
             route["_error"] = _("Failed to load. Check the connection.")
+            if (route is self.route and not self._offline
+                    and _is_unreachable(exc)):
+                self._unreachable = True
+                self.invalidate()
             # The fallback is not a rollback: set_source throws the nav stack
             # away and drops the user on the offline home. Only do that while
             # this route is still the screen —
@@ -2776,6 +2801,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self.set_offline(isinstance(source, OfflineLibrarySource))
         if not self._offline:
             self._offline_chosen = False
+        self._unreachable = False
         # NOT `self._locked = False`. Connections are deliberately not
         # deferred until unlock -- the gate is about what is on screen, not
         # about the network -- so a server coming up while the PIN is
@@ -3132,12 +3158,24 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 self._leave_syncplay_on(old)
                 self._remember_server(uuid)
 
-            self.reconnect_server(uuid, on_success=arrived)
+            self.reconnect_server(uuid, on_success=arrived,
+                                  on_refused=self.refuse_server_pick)
             return
         self._leave_syncplay_on(old)
         self.server = uuid
         self._remember_server(uuid)
         self.navigate({"kind": "home", "server": uuid}, reset=True)
+
+    def refuse_server_pick(self):
+        self._server_pick_ack += 1
+        self.invalidate()
+
+    def retry_unreachable(self):
+        """The unreachable banner's Retry: ask again for what failed. If the
+        server still does not answer, the failure raises the banner again."""
+        self._unreachable = False
+        self._retry_route(self.route)
+        self.invalidate()
 
     @property
     def offline_chosen(self):
@@ -3154,7 +3192,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         def done(source):
             if source is None:
                 self.set_status(_("Nothing is downloaded to browse offline."))
-                self.invalidate()
+                self.refuse_server_pick()
                 return
             self._leave_syncplay_on(old)
             self.set_source(source)

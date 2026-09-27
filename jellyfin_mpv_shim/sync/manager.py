@@ -450,6 +450,9 @@ class SyncManager:
         self.credential_client = None
         self._credential_routes = {}
         self._credential_refused = set()
+        # ...and the people with no saved credential to fetch as. Not a
+        # block like a refusal: asked again each pass, it only says "waiting".
+        self._credential_missing = set()
         self.on_change = lambda: None
         self.on_progress = lambda item_id, name, downloaded, total: None
         # Built in start(); None until then so the worker loop (which tests
@@ -2961,6 +2964,8 @@ class SyncManager:
             # last word on this person (D2).
             self.__dict__.setdefault("_credential_refused", set()).discard(
                 actor)
+            self.__dict__.setdefault("_credential_missing", set()).discard(
+                actor)
             return client
         try:
             live = bool(self.get_clients())
@@ -3000,6 +3005,23 @@ class SyncManager:
             return route[1]
         return self.get_client(row.get("server_uuid"))
 
+    def waiting_for(self, row):
+        """Whose sign-in a queued row waits for, or None when it does not
+        wait: nobody present can fetch it as its person, because their saved
+        login was refused or there is none (D2). The profile's name, or ""
+        when no profile holds that login any more; the Downloads screen says
+        "waiting" either way. Known only once the queue has tried the row."""
+        actor = (row.get("requested_server_id"), row.get("requested_user_id"))
+        if not (actor in self.__dict__.get("_credential_refused", ())
+                or actor in self.__dict__.get("_credential_missing", ())):
+            return None
+        try:
+            from ..users import userManager
+            return userManager.profile_name_for(*actor) or ""
+        except Exception:
+            log.debug("could not name the waiting profile", exc_info=True)
+            return ""
+
     def _credential_route(self, actor):
         """D2: a download-only client for an absent person, from their saved
         credential. One per person, reused while their queue lasts, dropped
@@ -3020,8 +3042,11 @@ class SyncManager:
         except Exception:
             log.debug("could not build a client for %r", actor, exc_info=True)
             made = None
+        missing = self.__dict__.setdefault("_credential_missing", set())
         if not made:
+            missing.add(actor)
             return None
+        missing.discard(actor)
         _uuid, client = made
         routes[actor] = client
         log.info("Fetching a queued download with the saved login of a "

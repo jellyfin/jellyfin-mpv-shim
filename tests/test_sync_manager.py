@@ -1783,6 +1783,32 @@ class AnAbsentPersonsQueueUsesTheirOwnCredentialTest(
         row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
         self.assertIsNone(m._client_for_row(row))
 
+    def test_the_downloads_screen_is_told_it_waits_for_a_sign_in(self):
+        """Izzie, 2026-09-26: "Might be worth making it say 'waiting...'".
+        Both ways it can wait -- no saved login, and one the server refused
+        -- and it stops saying so once the person is signed in."""
+        m = self._mgr(self.THEIRS)
+        self._with_builder(m, answer=None)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIsNone(m.waiting_for(row), "nothing tried yet")
+        for _ in range(3):
+            self.assertIsNone(m._client_for_row(row))
+            self.assertIsNotNone(m.waiting_for(row))
+        self._with_builder(m)
+        self.assertIs(self.built, m._client_for_row(row))
+        self.assertIsNone(m.waiting_for(row))
+
+        def refused(*a, **k):
+            raise _http_error(401)
+
+        m._stream = refused
+        m._download(m.db.get("film"))
+        self.assertIsNotNone(m.waiting_for(row))
+        self.clients[self.WAN] = FakeClient()   # the person signs in
+        m._client_for_row(row)
+        self.assertIsNone(m.waiting_for(row))
+        self.clients.pop(self.WAN)
+
     def test_a_refused_credential_waits_until_the_person_signs_in(self):
         m = self._mgr(self.THEIRS)
         self._with_builder(m)

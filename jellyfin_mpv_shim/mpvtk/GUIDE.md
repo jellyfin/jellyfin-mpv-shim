@@ -114,6 +114,14 @@ from the draw, so the frame after a click shows the pre-click value —
 not a race, every time. The dropdown was the last of the three to get the
 guard; `tests/lua/test_renderer.lua` pins all of it.
 
+**A refusal is the one answer that rule cannot see.** An app that says "no"
+to a pick keeps the value the pick began on, which is exactly what a stale
+repaint carries, so the refused choice stayed drawn. A `Dropdown` therefore
+takes `ack=`: change it (a counter is enough) when answering a pick with
+"no", and the pending pick ends with the scene's value. Only needed with
+`force`, and only where a pick can be refused — the server switcher's
+reconnect is the case it exists for.
+
 Containers: `HScroll`/`VScroll` (optional scrollbar; `on_scroll` for
 windowed/infinite content — fires leading-edge-throttled every 150ms
 during scrolling).
@@ -289,7 +297,7 @@ scroll container id), `top` (floating layer), `mod` (modal layer).
 | img | src (path or `&addr`), iw, ih, v (cache-bust) |
 | scroll | axis, cw/ch (content), bar, watch |
 | textbox | text, ph, size, mask, force |
-| dropdown | items, sel, size, force |
+| dropdown | items, sel, size, force, ack |
 | slider | min, max, value, force |
 | busy | — |
 | menu | items, size, ih (floating; x/y absolute) |

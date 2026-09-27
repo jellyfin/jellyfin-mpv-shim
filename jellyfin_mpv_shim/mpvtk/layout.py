@@ -879,6 +879,8 @@ def _arrange_dropdown(ctx, el, x, y, w, h, sc, path):
         node["icons"] = _icon_paths(el.icons)
     if el.force:
         node["force"] = True
+    if el.ack is not None:
+        node["ack"] = el.ack
     if el.trigger_icon or getattr(el, "popup_w", None):
         # How wide the OPEN list wants to be, which is not the control's
         # width in two cases: an icon trigger has no width to speak of, and
