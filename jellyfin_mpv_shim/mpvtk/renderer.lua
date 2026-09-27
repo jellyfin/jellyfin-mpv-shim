@@ -2175,8 +2175,10 @@ if os.getenv('JMS_TEST_OBSERVE') then
                 break
             end
         end
+        local freq = state.focus_req
         hist[#hist + 1] = { rev = state.obs_rev, shown = shown,
-                            nav = state.nav, top = top }
+                            nav = state.nav, top = top,
+                            freq = freq and (freq.id or '<af>') or nil }
         if #hist > 512 then table.remove(hist, 1) end
         pcall(mp.set_property_native, 'user-data/mpvtk/observe', {
             rev = state.obs_rev, w = state.w, h = state.h,
@@ -2188,6 +2190,7 @@ if os.getenv('JMS_TEST_OBSERVE') then
             -- An open dropdown's keyboard cursor, and each dropdown's
             -- selection (the cursor starts there when nothing moved it).
             nav_pidx = state.nav_pidx, dropdowns = state.dd,
+            clicks = state.obs_clicks,
         })
         pcall(mp.set_property_native, 'user-data/mpvtk/observe_hist', hist)
     end
@@ -3513,6 +3516,13 @@ end
 -- Click payload carries the modifier state of the press (shift/ctrl
 -- range and additive selection in tables). Omitted when unset.
 local function send_click(node)
+    if state.observe then
+        -- Test observer only: which code path clicked what.
+        local c = state.obs_clicks or {}
+        c[#c + 1] = { id = node.id, line = debug.getinfo(2, 'l').currentline }
+        if #c > 8 then table.remove(c, 1) end
+        state.obs_clicks = c
+    end
     local m = state.mods or {}
     send({
         t = 'click', id = node.id,
