@@ -315,6 +315,30 @@ class App:
 
     _KEY_NAMES = {" ": "SPACE", "#": "SHARP", "\n": "ENTER"}
 
+    def point(self, x, y):
+        """Move the pointer to (x, y). mpv drops a move to where it already
+        is, so nudge first: the move is then always an event."""
+        self.mpv.command("mouse", int(x) + 8, int(y) + 8)
+        time.sleep(0.15)
+        self.mpv.command("mouse", int(x), int(y))
+
+    def press(self, button):
+        """A button down and up where the pointer is, with no move."""
+        self.mpv.command("keydown", button)
+        time.sleep(0.1)
+        self.mpv.command("keyup", button)
+
+    def click(self, node_id, button="MBTN_LEFT", timeout=5):
+        """Point at ``node_id``'s centre, wait until the renderer says the
+        pointer is on it, then press: a click that proves where it went."""
+        n = node(self.frame(), node_id)
+        if n is None:
+            raise AppError("%s is not on screen to click" % node_id)
+        self.point(n["x"] + n["w"] / 2, n["y"] + n["h"] / 2)
+        self.wait_for(lambda f: f.get("hover") == node_id, timeout=timeout,
+                      what="the pointer to rest on %s" % node_id)
+        self.press(button)
+
     def type(self, text):
         """Type ``text`` key by key through mpv's input layer."""
         for ch in text:
