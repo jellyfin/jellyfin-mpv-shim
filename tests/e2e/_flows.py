@@ -37,9 +37,10 @@ def login(app, relay, account="qa-user"):
                  what="the home screen after signing in as %s" % account)
 
 
-def open_by_search(app, query, item_id, section="Movies"):
+def open_by_search(app, query, item_id, section="Movies", landed=None):
     """Search from the top bar and open the result: ends on its detail page
-    with Play focused."""
+    with Play focused, or, for a page with no Play (a series), once
+    ``landed`` is on screen."""
     # The box keeps the last query, so a second search would append to it.
     app.clear_field("nav-search")
     app.type_into("nav-search", query)
@@ -50,7 +51,14 @@ def open_by_search(app, query, item_id, section="Movies"):
     app.move_to(tile)
     # press_until: an ENTER on a result tile has been seen to go unanswered
     # while the results page settles (candidate finding, see the register).
-    app.press_until("ENTER", lambda f: f.get("nav") == "btn-play",
+    if landed:
+        app.press_until("ENTER", lambda f: _app.shown(f, landed),
+                        what="%s's page" % item_id)
+        return
+    # Play, or Resume when the item holds a position: that is what gets
+    # focus then, and waiting for Play made the retry press Resume.
+    app.press_until("ENTER",
+                    lambda f: f.get("nav") in ("btn-play", "btn-resume"),
                     what="the detail page with Play focused")
 
 

@@ -42,6 +42,9 @@ class _Flow:
         self.upstream = None
         self.closed = False
         self.held = False
+        #: Index into relay.bodies of the request whose body is still
+        #: arriving on this flow, or None.
+        self.open_body = None
 
     def start(self):
         try:
@@ -79,7 +82,7 @@ class _Flow:
                     time.sleep(0.02)
                 if self.closed:
                     break
-            self.relay._observe(data, outbound)
+            self.relay._observe(data, outbound, self)
             try:
                 dst.sendall(data)
             except OSError:
@@ -112,6 +115,10 @@ class Relay:
         self.upstream = upstream
         self.mode = "pass"
         self.requests = []          # [(method, path)] in the order sent
+        #: [(path, bytearray)] for every request carrying a body, in order:
+        #: what a stop report SAID. Bodies can arrive in a later chunk than
+        #: their request line, so each flow tracks the one still open.
+        self.bodies = []
         self.redirects = []         # [status] of every 3xx seen
         self.request_tokens = []    # [(path, token or None)] in order sent
         self._hold = None           # compiled pattern for hold()
@@ -233,10 +240,24 @@ class Relay:
                 self._flows.add(flow)
             flow.start()
 
-    def _observe(self, data, outbound):
+    def _observe(self, data, outbound, flow=None):
         with self._lock:
             if outbound:
-                for m in _REQUEST_LINE.finditer(data):
+                starts = list(_REQUEST_LINE.finditer(data))
+                if not starts and flow is not None \
+                        and flow.open_body is not None:
+                    self.bodies[flow.open_body][1].extend(data)
+                for i, m in enumerate(starts):
+                    end = starts[i + 1].start() if i + 1 < len(starts) \
+                        else len(data)
+                    head, sep, rest = data[m.start():end].partition(
+                        b"\r\n\r\n")
+                    if m.group(1) in (b"POST", b"PUT") and flow is not None:
+                        self.bodies.append((m.group(2).decode("latin-1"),
+                                            bytearray(rest if sep else b"")))
+                        flow.open_body = len(self.bodies) - 1
+                    elif flow is not None:
+                        flow.open_body = None
                     self.requests.append((m.group(1).decode(),
                                           m.group(2).decode("latin-1")))
                     tail = data[m.start():m.start() + 4096]

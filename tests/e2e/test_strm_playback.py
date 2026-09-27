@@ -13,7 +13,8 @@ play — while depending on nobody.
 Two classes still need a host on the internet, and it is a length problem
 rather than a preference:
 
-* `StrmResumeTest` needs an item over `MinResumeDurationSeconds` (300). The
+* Resuming (test_playback_lifecycle's StrmStopAndResumeTest now, at the real
+  app) needs an item over `MinResumeDurationSeconds` (300). The
   local clips are 30 seconds, so the server would discard any position they
   held and the failure would read as a shim bug. The catalogue fixture is ~11
   minutes.
@@ -45,7 +46,8 @@ class LocalOriginPlaybackTest(_e2e.E2ETestCase):
     """A stream file plays, and starts where it is told to.
 
     Thirty seconds, served from loopback. Too short to hold a resume position
-    — that is `StrmResumeTest`'s job — but long enough to prove the seek
+    — that is test_playback_lifecycle's StrmStopAndResumeTest, at the real
+    app — but long enough to prove the seek
     itself, which is the part that is remote-specific: with `direct_paths`
     off the shim streams through Jellyfin, which range-requests the origin.
     (stdjflib's origin server answers 206 for exactly this reason; a handler
@@ -104,65 +106,6 @@ class LocalOriginPlaybackTest(_e2e.E2ETestCase):
             timeout=45)
         self.assertTrue(advanced,
                         "playback did not advance past the resume point")
-
-
-@_strm.require_origin(_strm.LONG_MOVIE)
-@_e2e.require_server_and_mpv
-class StrmResumeTest(_e2e.E2ETestCase):
-    """A stream file holds a resume position like any other item.
-
-    It can only do so because the shim asks for `PlaybackInfo` before it
-    reports anything, which is what makes the server probe the origin and
-    learn a runtime — see `test_strm_source.NoRuntimeResumeTest` for what
-    happens to an item whose runtime the server never learns.
-
-    **This needs a long item, and that is the server's rule rather than a
-    choice.** Jellyfin discards a resume position for anything shorter than
-    `MinResumeDurationSeconds` (300, confirmed against this server's
-    `/System/Configuration`) and clamps to `MinResumePct` 5% /
-    `MaxResumePct` 90%. `LONG_MOVIE` is stdjflib's 400-second local-origin
-    clip, built for exactly this and the only item in the library that can
-    hold a position at all; the usable window is 20s–360s.
-    """
-
-    SEEK_TO = 200.0     # half way: clear of the 5% floor and the 90% cap
-
-    def setUp(self):
-        super().setUp()
-        self.item = self.session.find(_strm.LONG_MOVIE, library="Movies")
-        self.session.reset_played(self.item["Id"])
-        self.addCleanup(self.session.reset_played, self.item["Id"])
-
-    def test_stopping_midway_leaves_a_resume_position(self):
-        video = strm_media(self.session, [self.item["Id"]]).video
-        self.assertIsNotNone(video, "Media built no video for a .strm")
-        self.pm.play(video, is_initial_play=True)
-        self.assertTrue(self.pm._player.duration,
-                        "mpv never reported a duration for the stream")
-        self.assertGreater(
-            video.get_duration() or 0, 300,
-            "this fixture is too short to hold a resume position at all")
-
-        self.pm.seek(self.SEEK_TO, absolute=True, exact=True)
-        arrived = self.pump_until(
-            lambda: (self.pm._player.playback_time or 0) >= self.SEEK_TO - 5,
-            timeout=60)
-        self.assertTrue(arrived, "mpv never reached the seek target")
-        self.pm.send_timeline()
-        self.pm.stop()
-
-        ticks = _e2e.wait_for(
-            lambda: self.session.user_data(self.item["Id"])
-            .get("PlaybackPositionTicks"))
-        self.assertTrue(ticks, "a .strm recorded no resume position")
-        seconds = ticks / 10000000
-        self.assertGreater(seconds, self.SEEK_TO - 60,
-                           "resume position is well short of where we stopped")
-        self.assertLess(seconds, self.SEEK_TO + 60,
-                        "resume position is well past where we stopped")
-        self.assertFalse(
-            self.session.user_data(self.item["Id"]).get("Played"),
-            "a .strm stopped in the middle was marked watched")
 
 
 @_strm.require_origin(_strm.LOCAL_MOVIE)

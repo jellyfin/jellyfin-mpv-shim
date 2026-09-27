@@ -53,8 +53,23 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        self.send_response(204)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def log_message(self, *a):
         pass
+
+
+def _wait(predicate, timeout=3.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.02)
+    return predicate()
 
 
 class RelayTest(unittest.TestCase):
@@ -154,6 +169,28 @@ class RelayTest(unittest.TestCase):
         conn.getresponse().read()
         self.assertIn(("/System/Info/Public", "tok-123"),
                       self.relay.request_tokens)
+
+    def test_a_request_body_is_recorded_even_when_it_arrives_apart(self):
+        """What a stop report said, not just that one was sent. The body
+        is sent here in a separate write from the headers, as a client
+        library may, so it lands in a later chunk than its request line."""
+        conn = self._conn()
+        for n in range(3):
+            body = b'{"ItemId": "e2", "PositionTicks": %d}' % (n * 10)
+            conn.putrequest("POST", "/Sessions/Playing/Stopped")
+            conn.putheader("Content-Length", str(len(body)))
+            conn.endheaders()
+            time.sleep(0.05)
+            conn.send(body)
+            resp = conn.getresponse()
+            resp.read()
+            self.assertEqual(204, resp.status)
+        self.assertTrue(_wait(lambda: len(self.relay.bodies) == 3))
+        self.assertEqual(
+            [("/Sessions/Playing/Stopped",
+              b'{"ItemId": "e2", "PositionTicks": %d}' % (n * 10))
+             for n in range(3)],
+            [(p, bytes(b)) for p, b in self.relay.bodies])
 
     def test_a_redirect_is_recorded(self):
         self.assertEqual(302, self._get(self._conn(), "/redirect")[0])
