@@ -260,6 +260,7 @@ PER_BACKEND = [
     "tests.e2e.test_input_live",
     "tests.e2e.test_type_seams_live",
     "tests.e2e.test_reconnect_remote",
+    "tests.e2e.test_downloads_store",
 ]
 
 MODULES = CONTRACT + PER_BACKEND

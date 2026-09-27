@@ -31,6 +31,7 @@ import time
 _REQUEST_LINE = re.compile(
     rb"(GET|POST|PUT|DELETE|HEAD|OPTIONS|PATCH) (\S+) HTTP/1\.[01]\r\n")
 _STATUS_LINE = re.compile(rb"^HTTP/1\.[01] (3\d\d) ")
+_RANGE = re.compile(rb"\r\nRange: *([^\r\n]+)", re.I)
 _TOKEN = re.compile(rb'(?:Token="([^"]+)"|X-Emby-Token: *([^\r\n]+)|'
                     rb'[?&]api_key=([^&\s]+))', re.I)
 
@@ -83,6 +84,9 @@ class _Flow:
                 if self.closed:
                     break
             self.relay._observe(data, outbound, self)
+            rate = self.relay.rate
+            if rate and not outbound:
+                time.sleep(len(data) / float(rate))
             try:
                 dst.sendall(data)
             except OSError:
@@ -121,6 +125,9 @@ class Relay:
         self.bodies = []
         self.redirects = []         # [status] of every 3xx seen
         self.request_tokens = []    # [(path, token or None)] in order sent
+        self.ranges = []            # [(path, Range header)] for ranged GETs
+        #: Bytes per second, server -> app, or None: throttle().
+        self.rate = None
         self._hold = None           # compiled pattern for hold()
         self._flows = set()
         self._held = []             # sockets accepted while stalled
@@ -140,6 +147,12 @@ class Relay:
     def cut(self):
         self.mode = "cut"
         self._close_all()
+
+    def throttle(self, bytes_per_second=None):
+        """Slow what the server sends to ``bytes_per_second`` (None: full
+        speed), so a download is still running when the test acts on it.
+        Per flow, not shared: a rough cap, not a shaper."""
+        self.rate = bytes_per_second
 
     def stall(self):
         self.mode = "stall"
@@ -260,6 +273,10 @@ class Relay:
                         flow.open_body = None
                     self.requests.append((m.group(1).decode(),
                                           m.group(2).decode("latin-1")))
+                    r = _RANGE.search(head)
+                    if r:
+                        self.ranges.append((m.group(2).decode("latin-1"),
+                                            r.group(1).decode("latin-1")))
                     tail = data[m.start():m.start() + 4096]
                     t = _TOKEN.search(tail)
                     token = next((g for g in t.groups() if g), None) if t \
