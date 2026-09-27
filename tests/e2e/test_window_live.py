@@ -12,6 +12,7 @@ window manager to ask).
   again at a usable size.
 """
 
+import json
 import os
 import sys
 import unittest
@@ -19,7 +20,10 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _app  # noqa: E402
+import _e2e  # noqa: E402
+import _flows  # noqa: E402
 from test_browse_routes import _BrowseCase  # noqa: E402
+from test_input_live import _InputCase  # noqa: E402
 
 
 def grid_tiles(frame):
@@ -109,6 +113,59 @@ class ATooSmallWindowDoesNotCrashItTest(_WindowCase):
         f = self.app.press_until("RIGHT", lambda f: f.get("nav") != was,
                                  what="focus moving after the tiny window")
         self.assertTrue(f.get("nav"), "the keyboard lands nowhere")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class FullscreenIsTwoPreferencesTest(_WindowCase):
+    """Row 28: the library and playback keep separate fullscreen
+    preferences (player_window.set_fullscreen). The library's applies live
+    from Settings both ways (#729); the HUD's toggle writes playback's
+    only; and back in the library its own preference returns. xvfb has no
+    window manager, so this reads mpv's `fullscreen`, not what a WM drew.
+
+    Not asserted: a film started from a FULLSCREEN library stays
+    fullscreen with playback's preference off -- playback start only ever
+    turns fullscreen on (browse_yield, _play_media). Whether that is the
+    intent is a question in the register, not a finding."""
+
+    def conf(self):
+        with open(os.path.join(self.app.config_dir, "conf.json"),
+                  encoding="utf-8") as fh:
+            return json.load(fh)
+
+    def fs(self, want, what):
+        self.assertTrue(_e2e.wait_for(
+            lambda: self.app.prop("fullscreen") is want, timeout=10),
+            "%s: fullscreen is %r" % (what, self.app.prop("fullscreen")))
+
+    def test_the_library_and_playback_each_keep_their_own(self):
+        _flows.open_settings_tab(self.app, "general")
+        self.app.wait_for(lambda f: _app.node(f, "set-browser_fullscreen"),
+                          timeout=15, what="the Browser Fullscreen setting")
+        self.app.move_to("set-browser_fullscreen", key="DOWN")
+        for want in (True, False):
+            self.app.key("ENTER")
+            self.fs(want, "Browser Fullscreen ticked %s" % want)
+            self.assertIs(want, self.conf().get("browser_fullscreen"))
+        self.assertFalse(self.conf().get("fullscreen"))
+
+        _InputCase.open_film(self)
+        self.play()
+        self.assertTrue(_e2e.wait_for(lambda: (self.time_pos() or 0) > 1,
+                                      timeout=30), "the film never played")
+        self.fs(False, "a film, with both preferences off")
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "hud-fs"),
+                             what="the HUD", retry_after=3)
+        self.app.move_to("hud-fs")
+        self.app.key("ENTER")
+        self.fs(True, "the HUD's fullscreen button")
+        self.assertIs(True, self.conf().get("fullscreen"),
+                      "the HUD's toggle did not write playback's")
+        self.assertIs(False, self.conf().get("browser_fullscreen"),
+                      "the HUD's toggle wrote the library's")
+
+        _InputCase.leave_by_hud_back(self)
+        self.fs(False, "back in the library, whose preference is off")
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
