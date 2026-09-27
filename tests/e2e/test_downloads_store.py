@@ -251,6 +251,85 @@ class AMusicPlaylistDownloadsAsOneTest(unittest.TestCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+@_e2e.require_server
+class AutoDownloadAndTheReaperTest(unittest.TestCase):
+    """Row 64 under the REAL timers -- a long leg (~20 minutes): the settle
+    (60 s), the userdata sweep floor (300 s) and the reap hold (900 s from
+    launch) are constants, not settings. A show put into Next Up downloads
+    its next episodes by itself; one of them watched on the server is
+    reaped (watched grace 0 h), the next is kept; and only auto-downloads
+    are ever reaped."""
+
+    SHOW = "The Standard Show"
+    CONF = {"auto_download_enable": True, "auto_download_next_up": True,
+            "auto_download_lookahead": 2,
+            "auto_download_keep_watched_hours": 0,
+            "auto_download_delete_watched": True,
+            "auto_download_interval_mins": 1}
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        show = next(s for s in self.session.find_all(item_type="Series")
+                    if s.get("Name") == self.SHOW)
+        eps = self.session._request("/Shows/%s/Episodes?UserId=%s"
+                                    % (show["Id"], self.session.user_id)
+                                    )["Items"]
+        # Real episodes of season 1 on: specials (season 0) sort first and
+        # are not what Next Up offers after the first episode.
+        eps = [e for e in eps if e.get("LocationType") != "Virtual"
+               and (e.get("ParentIndexNumber") or 0) >= 1]
+        eps.sort(key=lambda e: (e.get("ParentIndexNumber") or 0,
+                                e.get("IndexNumber") or 0))
+        self.eps = [e["Id"] for e in eps[:5]]
+        self.assertEqual(5, len(self.eps), "the show needs five episodes")
+        for e in self.eps:
+            self.session.reset_played(e)
+            self.addCleanup(self.session.reset_played, e)
+        self.session.api.item_played(self.eps[0], True)   # Next Up: E02
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend(), conf=dict(self.CONF))
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.launched = time.monotonic()
+        self.app.start()
+        _flows.login(self.app, self.relay)
+
+    def row(self, item_id):
+        return self.catalog.download(item_id) or {}
+
+    def test_next_up_downloads_itself_and_the_watched_one_is_reaped(self):
+        _flows.open_settings_tab(self.app, "servers")
+        self.app.move_to("sv-auto-0")
+        self.app.key("ENTER")
+        e2, e3 = self.eps[1], self.eps[2]
+        self.assertTrue(_e2e.wait_for(
+            lambda: all(self.row(e).get("status") == "complete"
+                        for e in (e2, e3)), timeout=600),
+            "Next Up never downloaded by itself (rows %r)"
+            % [(e, self.row(e).get("status")) for e in (e2, e3)])
+        self.assertTrue(all(str(self.row(e).get("origin") or "")
+                            .startswith("auto") for e in (e2, e3)),
+                        "not recorded as auto-downloads: %r"
+                        % [self.row(e).get("origin") for e in (e2, e3)])
+        self.assertFalse(self.row(self.eps[0]),
+                         "the watched episode before Next Up was fetched")
+        self.session.api.item_played(e2, True)
+        # The hold runs from launch; then the next sweep and reap pass.
+        budget = max(0, 900 - (time.monotonic() - self.launched)) + 600
+        self.assertTrue(_e2e.wait_for(lambda: not self.row(e2),
+                                      timeout=budget),
+                        "the watched auto-download was never reaped")
+        self.assertFalse(os.path.exists(os.path.join(
+            self.app.config_dir, "offline", "server", e2)),
+            "its files outlived its row")
+        self.assertEqual("complete", self.row(e3).get("status"),
+                         "the reaper took the unwatched next episode")
+        self.assertEqual(0, self.app.quit(timeout=40))
+
+
 class ATruncatedCatalogIsRestoredTest(_StoreCase):
     """Row 66 (INV N6): catalog.db cut to nothing between launches. The
     .bak comes back, and the download is still a download."""
