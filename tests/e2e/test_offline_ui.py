@@ -19,6 +19,7 @@ in the same test.)
 
 import os
 import sys
+import threading
 import time
 import unittest
 import urllib.request
@@ -629,6 +630,68 @@ class UnwatchOnlineReachesTheCopyTest(unittest.TestCase):
 
 
 @_e2e.require_server
+class ASweepHoldsAQueuedUnwatchTest(_OfflineCase):
+    """B1's sweep hold (e8b2064d), unit-only until now (fix-coverage audit):
+    back online with a deliberate unwatch still QUEUED, a sweep that reads
+    the server's older "watched" must not re-tick the local copy -- the
+    unwatch is on its way to change exactly that. The relay fails every
+    attempt at the delivery, so the unwatch stays queued while the sweep
+    runs. Mutation-checked: without the hold (sync/db.py) the copy re-ticks."""
+
+    def test_the_local_unwatch_stands_until_it_is_sent(self):
+        self.session._request("/UserPlayedItems/%s" % self.film, "POST")
+        time.sleep(1.2)                       # the server's watch is older
+        self.open_film()
+        self.toggle_watched()                 # watched (locally)
+        self.toggle_watched()                 # deliberately unwatched
+        self.assertEqual(0, self.played_here())
+        seen = len(self.relay.requests)
+        self.relay.hold(r"PlayedItems/" + self.film)
+        self.relay.restore()
+        self.app.key("ESC")
+        self.app.move_to("banner-retry")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(lambda: self.relay.held_count() >= 1,
+                                      timeout=90),
+                        "the premise: the unwatch's delivery never started")
+        # FAIL each attempt rather than hold it: replay and the sweep share
+        # one worker, replay first, and urllib3 retries a read timeout three
+        # times -- a held delivery blocks the sweep for minutes. A delivery
+        # that fails fast leaves the unwatch queued, and the same worker pass
+        # goes on to the sweep: the window the hold protects.
+        pattern = r"PlayedItems/" + self.film
+        failing = threading.Event()
+        failing.set()
+
+        def fail_each_attempt():
+            while failing.is_set():
+                if self.relay.held_count():
+                    self.relay.drop_held()
+                    self.relay.hold(pattern)
+                time.sleep(0.1)
+        threading.Thread(target=fail_each_attempt, daemon=True).start()
+        self.addCleanup(failing.clear)
+
+        def swept():
+            return any(m == "GET" and "ids=" in path.lower()
+                       and self.film in path
+                       for m, path in self.relay.requests[seen:])
+        self.assertTrue(_e2e.wait_for(swept, timeout=150),
+                        "no sweep read the film after the failed delivery")
+        self.assertTrue(any(p["user_id"] == self.me[1]
+                            for p in self.catalog.pending(self.film)),
+                        "the premise: the unwatch is no longer queued")
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            self.assertEqual(0, self.played_here(),
+                             "a sweep re-ticked the copy from the server's "
+                             "older watch while the unwatch was still queued")
+            time.sleep(0.5)
+        failing.clear()
+        self.relay.drop_held()
+        self.assertEqual(0, self.app.quit(timeout=40))
+
+
 class ConflictsAtReconnectTest(_OfflineCase):
     """Scenario 6. What the offline session sends when the server has moved
     on meanwhile (G2; D1 ruled 2026-09-26).
