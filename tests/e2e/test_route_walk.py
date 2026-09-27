@@ -563,7 +563,22 @@ class RouteWalkTest(unittest.TestCase):
                        dict(self._base(playlists[0]), kind="playlist"))
             self._walk("playlist_edit",
                        dict(self._base(playlists[0]), kind="playlist_edit"))
-        self._walk("queue", {"kind": "queue", "server": _e2e.SOURCE_UUID})
+        # Not the queue: with no player behind this browser it can only
+        # draw "The queue is empty." (audit A2:145). Walked with a real
+        # queue in type_seams_live -- see covered_elsewhere below.
+
+    def test_every_settings_tab_and_the_cast_screen(self):
+        """The overlays PAGES does not list (audit A2:144): each settings
+        tab, from the browser's own list so a new tab is walked without
+        anyone remembering to, and the cast screen."""
+        for tab in self.browser.SETTINGS_TABS:
+            self.browser.open_settings(tab)
+            self.assertEqual("settings", self.browser.route.get("kind"))
+            self.assertEqual(tab, self.browser.route.get("_tab"))
+            self._render("settings/" + tab)
+        self.browser.show_cast()
+        self.assertEqual("cast", self.browser.route.get("kind"))
+        self._render("cast")
 
     def test_live_tv_screens(self):
         """The screens `b97dd523` took down. The channel page is the one that
@@ -602,7 +617,7 @@ class RouteWalkTest(unittest.TestCase):
         walked = {
             "home", "grid", "music", "series", "season", "detail", "album",
             "artist", "music_genre", "person", "search", "favorites",
-            "genres", "playlist", "playlist_edit", "queue", "livetv",
+            "genres", "playlist", "playlist_edit", "livetv",
             "channel", "program", "books", "book", "audiobook", "reader",
         }
         # Reached by a Studio or Genre tile rather than by a library, and
@@ -620,10 +635,12 @@ class RouteWalkTest(unittest.TestCase):
         # existence is asserted below rather than trusted, because an excuse
         # justified by coverage elsewhere becomes a lie the moment the
         # elsewhere is renamed or deleted, and a comment cannot notice that.
-        excused = {"byname", "list", "comic"}
+        excused = {"byname", "list", "comic", "queue"}
+        here = os.path.dirname(os.path.abspath(__file__))
         covered_elsewhere = {
-            "comic": os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                  "test_comic_reader.py"),
+            "comic": os.path.join(here, "test_comic_reader.py"),
+            # A queue needs a player to be anything but empty.
+            "queue": os.path.join(here, "test_type_seams_live.py"),
         }
         for kind, path in covered_elsewhere.items():
             self.assertTrue(

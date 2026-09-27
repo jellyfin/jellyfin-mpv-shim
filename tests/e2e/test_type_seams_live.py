@@ -443,6 +443,30 @@ class APhotoSlideshowRunsTest(_ChainCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class TheQueueScreenTest(_MusicUp):
+    """The queue screen on a REAL queue (the route walk's could only ever
+    be empty, audit A2:145): opened from the bar during an album, it lists
+    every track, and a row's play button sends playback there."""
+
+    def test_it_lists_the_queue_and_a_row_plays(self):
+        self.play_album()
+        self.press("np-queue")
+        n = len(self.tracks)
+        self.app.wait_for(lambda f: all(_app.node(f, "q-%d" % i)
+                                        for i in range(n)), timeout=15,
+                          what="all %d tracks on the queue screen" % n)
+        self.assertIsNone(_app.node(self.app.frame(), "q-%d" % n),
+                          "the queue lists more than the album")
+        # A queue row SELECTS (it is a multi-select list); its play button
+        # is the one-press jump (tile_renderer.track_list).
+        self.press("q-play-1")
+        self.assertTrue(_e2e.wait_for(lambda: self.track() == self.tracks[1],
+                                      timeout=15),
+                        "the second row's play button did not play the "
+                        "second track")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
 class TheReaderMakesRoomForTheBarTest(_MusicUp):
     """Row 20: with music playing, the epub's page area ends above the
     now-playing bar, and when the music stops it grows back (the
