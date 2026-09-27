@@ -407,8 +407,30 @@ class OfflineVideo(Video):
             return None
 
     def set_played(self, watched=True):
-        # The local catalog gets it either way -- see _mirror_locally.
-        self._mirror_locally(played=watched or None)
+        """The player's deliberate marks -- Quit and Mark Unwatched, Mark
+        Watched and Skip, the force_set_played finish -- on a downloaded copy.
+
+        A deliberate mark is verbatim in BOTH directions (docs/offline-sync.md
+        section 1), unlike playback progress: so the copy is written with
+        `set_watched`, not the advance-only `_mirror_locally`, and offline the
+        mark is queued as deliberate either way (D1 decides at replay).
+        Before, an unwatch reached only the server and the copy stayed
+        watched (B6), and offline it was not queued at all.
+        """
+        watched = bool(watched)
+        try:
+            actor = syncManager.actor_of(
+                acting_login=self._acting_login(),
+                server_id=self._content_server_id)
+        except Exception:
+            log.debug("could not resolve who is marking", exc_info=True)
+            actor = None
+        if actor is not None:
+            try:
+                syncManager.db.set_watched(self.item_id, watched, actor=actor)
+            except Exception:
+                log.debug("Failed to record the mark on the copy",
+                          exc_info=True)
         if self.client is not None:
             try:
                 self.client.jellyfin.item_played(self.item_id, watched)
@@ -416,18 +438,13 @@ class OfflineVideo(Video):
             except Exception:
                 log.warning("Failed to report watched online; queueing.",
                             exc_info=True)
-        # Offline: only queue advances (watched), never un-watches.
-        if watched:
-            try:
-                actor = syncManager.actor_of(
-                    acting_login=self._acting_login(),
-                    server_id=self._content_server_id)
-                syncManager.db.upsert_playstate(
-                    self.item_id, actor=actor, played=True)
-                # The stored userdata was already updated above, online or
-                # off -- this branch is only the replay queue.
-            except Exception:
-                log.debug("Failed to queue offline playstate", exc_info=True)
+        if actor is None:
+            return
+        try:
+            syncManager.db.upsert_playstate(
+                self.item_id, actor=actor, played=watched, deliberate=True)
+        except Exception:
+            log.debug("Failed to queue offline playstate", exc_info=True)
 
     def record_offline_progress(self, position_ticks, finished=False):
         """Record playback progress on a downloaded item.

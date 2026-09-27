@@ -401,5 +401,92 @@ class ReconnectDeliversAsEachPersonTest(_TwoProfilesCase):
         self.assertTrue(_e2e.wait_for(
             lambda: not self._queued_for(self.bob), timeout=30))
 
+
+@_e2e.require_server
+class UnwatchOnlineReachesTheCopyTest(unittest.TestCase):
+    """Scenario 7, this app's half. Online, with the film downloaded:
+    unmarking it -- from the library, or from the player's "Quit and Mark
+    Unplayed" -- must reach the copy on disk at once, not only the server.
+
+    Ruling (offline-sync.md section 1): a deliberate mark is verbatim both
+    ways, at every call site, whether or not the item is downloaded. B3 was
+    Izzie's report that an online unwatch left the copy watched; B6 is the
+    player path writing nothing to the copy (offline_media.set_played passes
+    played=None for an unwatch)."""
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        films = [i for i in self.session.find_all(item_type="Movie")
+                 if i.get("Name") == FILM_NAME]
+        self.film = films[0]["Id"]
+        self.session.reset_played(self.film)
+        self.addCleanup(self.session.reset_played, self.film)
+        self.me = (self.session.server_id(), self.session.user_id)
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend())
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relay)
+        _flows.open_by_search(self.app, FILM_QUERY, self.film)
+        _flows.download_open_item(self.app, self.catalog, self.film)
+        # Watched, from the detail page, online.
+        _OfflineCase.toggle_watched(self)
+        self.assertTrue(_e2e.wait_for(lambda: self._server_played(),
+                                      timeout=30))
+        self.assertTrue(_e2e.wait_for(lambda: self._copy_played() == 1,
+                                      timeout=15),
+                        "the online mark did not reach the copy")
+
+    def _server_played(self):
+        return bool((self.session.user_data(self.film) or {}).get("Played"))
+
+    def _copy_played(self):
+        row = self.catalog.userdata(self.film).get(self.me)
+        return row and row.get("played")
+
+    def test_unmarking_from_the_library_reaches_the_copy(self):
+        _OfflineCase.toggle_watched(self)
+        self.assertTrue(_e2e.wait_for(lambda: not self._server_played(),
+                                      timeout=30))
+        self.assertTrue(_e2e.wait_for(lambda: self._copy_played() == 0,
+                                      timeout=15),
+                        "the copy on disk still says watched (B3)")
+
+    def test_another_clients_unwatch_arrives_with_the_sweep(self):
+        """F47 (ratified): an unwatch made in ANOTHER client is not applied
+        from the websocket's announcement; it reaches the copy at the next
+        sweep. A sweep runs at launch (after the 60 s settle), so the step
+        that triggers it is a relaunch -- online, nothing cut."""
+        self.session._request("/UserPlayedItems/%s" % self.film, "DELETE")
+        self.assertFalse(self._server_played())
+        time.sleep(3)
+        self.assertEqual(1, self._copy_played(),
+                         "the copy retreated before a sweep: the websocket "
+                         "path is advance-only by ruling (F47)")
+        self.app = _flows.relaunch(self.app)
+        self.assertTrue(_e2e.wait_for(lambda: self._copy_played() == 0,
+                                      timeout=180),
+                        "the sweep after relaunch did not bring the other "
+                        "client's unwatch to the copy")
+
+    def test_quit_and_mark_unplayed_reaches_the_copy(self):
+        self.app.move_to("btn-play")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: f.get("phud_mode") or not _app.shown(
+            f, "btn-play"), timeout=30, what="playback to start")
+        time.sleep(2)
+        self.app.key("u")                       # kb_unwatched
+        self.assertTrue(_e2e.wait_for(lambda: not self._server_played(),
+                                      timeout=30),
+                        "the server was not told")
+        self.assertTrue(_e2e.wait_for(lambda: self._copy_played() == 0,
+                                      timeout=15),
+                        "the copy on disk still says watched (B6): %r"
+                        % self.catalog.userdata(self.film))
+
 if __name__ == "__main__":
     unittest.main()
