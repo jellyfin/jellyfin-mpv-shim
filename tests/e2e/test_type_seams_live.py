@@ -354,5 +354,118 @@ class AnAudiobookKeepsTheLibraryTest(_ChainCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class _MusicUp(_ChainCase):
+    def play_album(self):
+        album = self.album()
+        self.tracks = [s["Id"] for s in self.session.find_all(
+            item_type="Audio", parent_id=album["Id"])]
+        _flows.open_by_search(self.app, album["Name"], album["Id"],
+                              section="Albums", landed="album-play")
+        self.app.move_to("album-play")
+        self.app.key("ENTER")
+        self.app.playing_path()
+        self.app.wait_for(lambda f: _app.shown(f, "np-stop"), timeout=30,
+                          what="the now-playing bar")
+
+    def press(self, node_id):
+        self.app.move_to(node_id)
+        self.app.key("ENTER")
+
+    def track(self):
+        path = self.p("path") or ""
+        return next((i for i in self.tracks if i in path), None)
+
+
+class TheReaderMakesRoomForTheBarTest(_MusicUp):
+    """Row 20: with music playing, the epub's page area ends above the
+    now-playing bar, and when the music stops it grows back (the
+    measurement that had never once succeeded, CL0907-fix section 2)."""
+
+    def area_bottom(self):
+        n = _app.node(self.app.frame(), "rd-area")
+        return n["y"] + n["h"]
+
+    def test_the_page_shrinks_for_the_bar_and_grows_back(self):
+        self.play_album()
+        epub = self.named(EPUB, library="Books")
+        self.fresh(epub)
+        _flows.open_by_search(self.app, EPUB, epub, section="Books",
+                              landed="bk-read")
+        self.press("bk-read")
+        f = self.app.wait_for(lambda f: _app.shown(f, "rd-area")
+                              and _app.shown(f, "np-stop"), timeout=30,
+                              what="the reader with the bar")
+        bar_top = min(n["y"] for n in f["nodes"]
+                      if (n.get("id") or "").startswith("np-")
+                      and n.get("vis"))
+        with_bar = self.area_bottom()
+        self.assertLessEqual(with_bar, bar_top + 1,
+                             "the page runs under the now-playing bar")
+        self.press("np-stop")
+        self.app.wait_for(lambda f: not _app.shown(f, "np-stop")
+                          and _app.shown(f, "rd-area"), timeout=15,
+                          what="the bar gone, the reader still up")
+        self.app.wait_for(lambda f: self.area_bottom() > with_bar,
+                          timeout=10, what="the page to grow back")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class MusicTransportAndRepeatTest(_MusicUp):
+    """Row 25: the bar's buttons, pressed. Next and previous move the
+    track, play/pause pauses, repeat cycles none -> all -> one where one is
+    mpv looping the file -- and repeat is music-only: a film never loops.
+    The favourite reaches the server."""
+
+    def test_the_bar_drives_the_music(self):
+        self.play_album()
+        first = self.track()
+        self.assertIsNotNone(first)
+        self.press("np-next")
+        self.assertTrue(_e2e.wait_for(lambda: self.track() not in
+                                      (None, first), timeout=15),
+                        "np-next did not move the track")
+        self.press("np-prev")
+        self.assertTrue(_e2e.wait_for(lambda: self.track() == first,
+                                      timeout=15), "np-prev did not go back")
+        self.press("np-pp")
+        self.assertTrue(_e2e.wait_for(lambda: self.p("pause") is True,
+                                      timeout=5), "np-pp did not pause")
+        self.press("np-pp")
+        seen = []
+        for _ in range(3):
+            self.press("np-repeat")
+            time.sleep(0.8)
+            seen.append(self.p("loop-file"))
+        self.assertEqual(1, sum(1 for s in seen if s in ("inf", True)),
+                         "repeat one is not a looping file, once per cycle "
+                         "(loop-file over three presses: %r)" % (seen,))
+        # Leave it on "one", then a film: it must not loop.
+        while self.p("loop-file") not in ("inf", True):
+            self.press("np-repeat")
+            time.sleep(0.8)
+        self.assertIsNone(self.session.user_data(first).get("IsFavorite")
+                          or None)
+        self.addCleanup(self.session._request,
+                        "/UserFavoriteItems/%s" % first, "DELETE")
+        self.press("np-fav")
+        self.assertTrue(_e2e.wait_for(
+            lambda: (self.session.user_data(self.track()) or {})
+            .get("IsFavorite"), timeout=15), "the favourite never reached "
+                                             "the server")
+        film = self.movie(LONG_NAME)
+        self.fresh(film)
+        _flows.open_by_search(self.app, LONG_NAME, film)
+        self.app.move_to("btn-play")
+        self.app.key("ENTER")
+        # The FILM's path: the song's is still there when the key goes in.
+        self.assertTrue(_e2e.wait_for(
+            lambda: film in (self.p("path") or "")
+            and (self.p("time-pos") or 0) > 1, timeout=30),
+            "the film never started")
+        self.assertIn(self.p("loop-file"), (False, "no"),
+                      "a film loops because music's repeat-one was on")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
 if __name__ == "__main__":
     unittest.main()
