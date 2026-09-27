@@ -426,6 +426,39 @@ class ClientManager(object):
 
         return client
 
+    def credential_client(self, server_id, user_id):
+        """A client for one person built from their saved credential alone.
+
+        D2 (ruled 2026-09-26): a download queued by a profile that is not
+        active is fetched with THAT profile's saved credential. So this looks
+        in every profile, not just the active one, for a login whose server
+        and account are exactly this pair, and brings up an HTTP session with
+        its token -- no websocket and no posted capabilities (Izzie: "it
+        doesn't need a websocket connection or posted session capabilities,
+        just a credential"). It is not registered in `self.clients`, so
+        nothing else in the app sees it or speaks through it.
+
+        Returns ``(uuid, client)`` or None when no such credential exists.
+        The caller owns the client and must `stop()` it.
+        """
+        from .users import userManager
+        for user in list(userManager.users):
+            for cred in (user.get("credentials") or ()):
+                if (cred.get("Id"), cred.get("UserId")) != (server_id,
+                                                            user_id):
+                    continue
+                token = cred.get("AccessToken")
+                address = cred.get("address")
+                if not (token and address):
+                    continue
+                client = self.client_factory()
+                client.config.auth(address, user_id, token,
+                                   not settings.ignore_ssl_cert)
+                client.logged_in = True
+                client.start(websocket=False)
+                return cred.get("uuid"), client
+        return None
+
     def _connect_all(self):
         is_logged_in = False
 

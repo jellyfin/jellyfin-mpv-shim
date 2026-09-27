@@ -117,9 +117,8 @@ class Catalog:
 def add_profile(app, name):
     """Settings > Servers & Users > Add User. Leaves Settings open."""
     app.move_to("nav-settings")
-    app.key("ENTER")
-    app.wait_for(lambda f: _app.shown(f, "stab-servers"), timeout=15,
-                 what="the settings tabs")
+    app.press_until("ENTER", lambda f: _app.shown(f, "stab-servers"),
+                    what="the settings tabs")
     app.move_to("stab-servers")
     app.key("ENTER")
     app.wait_for(lambda f: _app.shown(f, "su-newuser"), timeout=15,

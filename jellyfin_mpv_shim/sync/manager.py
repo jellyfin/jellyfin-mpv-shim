@@ -444,6 +444,12 @@ class SyncManager:
         #: `_registry_unreadable`.
         self.unavailable = None
         self.get_client = lambda server_uuid: None
+        # D2: download-only clients built from an absent person's saved
+        # credential, keyed on that person; and the people whose credential
+        # the server refused (401), until a sign-in replaces it.
+        self.credential_client = None
+        self._credential_routes = {}
+        self._credential_refused = set()
         self.on_change = lambda: None
         self.on_progress = lambda item_id, name, downloaded, total: None
         # Built in start(); None until then so the worker loop (which tests
@@ -528,7 +534,8 @@ class SyncManager:
 
     # -- lifecycle ---------------------------------------------------------
 
-    def start(self, get_client, get_clients=None, is_busy=None):
+    def start(self, get_client, get_clients=None, is_busy=None,
+              credential_client=None):
         """get_clients (() -> {uuid: client}) and is_busy (() -> bool) power
         auto-download; both optional so existing callers and the tests keep
         working, in which case auto-download simply finds no servers.
@@ -560,6 +567,9 @@ class SyncManager:
         self.get_client = get_client
         if get_clients is not None:
             self.get_clients = get_clients
+        # D2: build a client from an absent person's saved credential, for
+        # fetching their own queued downloads only. See _credential_route.
+        self.credential_client = credential_client
         self.auto = AutoDownloader(self, get_clients=get_clients,
                                    is_busy=is_busy,
                                    should_stop=lambda: self._stop)
@@ -1259,6 +1269,7 @@ class SyncManager:
         False. Shutdown paths can ignore it: the thread is a daemon and the
         process is going away regardless.
         """
+        self._release_credential_routes()
         self._stop = True
         self._wake.set()
         # Join the worker so it isn't killed mid-write, then close the catalog.
@@ -2897,7 +2908,12 @@ class SyncManager:
                       exc_info=True)
             routes = {}
         blocked = 0
-        for row in self.db.list(status=STATUS_PENDING):
+        pending = self.db.list(status=STATUS_PENDING)
+        # D2's clients live exactly as long as their person's queue does.
+        self._release_credential_routes(
+            keep={(r.get("requested_server_id"), r.get("requested_user_id"))
+                  for r in pending})
+        for row in pending:
             if self._client_for_row(row, routes=routes) is not None:
                 if blocked:
                     log.debug("Skipped %d pending download(s) whose server is "
@@ -2941,6 +2957,10 @@ class SyncManager:
         actor = (row.get("requested_server_id"), row.get("requested_user_id"))
         client = self._client_for_actor(*actor)
         if client is not None:
+            # Signed in again: a refused saved credential is no longer the
+            # last word on this person (D2).
+            self.__dict__.setdefault("_credential_refused", set()).discard(
+                actor)
             return client
         try:
             live = bool(self.get_clients())
@@ -2948,6 +2968,11 @@ class SyncManager:
             log.debug("could not read the connected server list", exc_info=True)
             live = False
         if live and actor[1] and actor[1] != NO_ACTOR:
+            # Their own saved credential, if there is one (D2): never anyone
+            # else's, and nothing but this person's downloads go through it.
+            client = self._credential_route(actor)
+            if client is not None:
+                return client
             # The row knows whose it is and that person is not signed in.
             # Falling through would fetch their file as whoever else is on
             # that server, under their token and their permissions.
@@ -2974,6 +2999,45 @@ class SyncManager:
         if route is not None:
             return route[1]
         return self.get_client(row.get("server_uuid"))
+
+    def _credential_route(self, actor):
+        """D2: a download-only client for an absent person, from their saved
+        credential. One per person, reused while their queue lasts, dropped
+        when it empties (_release_credential_routes), when the credential is
+        gone, or when the server refuses it (_credential_refused)."""
+        builder = getattr(self, "credential_client", None)
+        if builder is None:
+            return None
+        routes = self.__dict__.setdefault("_credential_routes", {})
+        if actor in routes:
+            return routes[actor]
+        if actor in self.__dict__.setdefault("_credential_refused", set()):
+            return None
+        # A refusal lasts until the person signs in again: _client_for_row
+        # drops it the moment they have a live client of their own.
+        try:
+            made = builder(*actor)
+        except Exception:
+            log.debug("could not build a client for %r", actor, exc_info=True)
+            made = None
+        if not made:
+            return None
+        _uuid, client = made
+        routes[actor] = client
+        log.info("Fetching a queued download with the saved login of a "
+                 "profile that is not signed in (its own credential only).")
+        return client
+
+    def _release_credential_routes(self, keep=()):
+        """Stop every credential client whose person has nothing left
+        pending. ``keep`` is the set of actors that still do."""
+        routes = self.__dict__.get("_credential_routes") or {}
+        for actor in [a for a in routes if a not in keep]:
+            client = routes.pop(actor)
+            try:
+                client.stop()
+            except Exception:
+                log.debug("could not stop a credential client", exc_info=True)
 
     def _client_for_actor(self, server_id, user_id):
         """A live client that can speak for this person, or None.
@@ -3799,6 +3863,22 @@ class SyncManager:
             # busy) — keep the row PENDING to resume from the .part. 4xx means
             # the item is gone or forbidden — permanent, mark ERROR.
             status = getattr(getattr(exc, "response", None), "status_code", None)
+            routes = self.__dict__.get("_credential_routes") or {}
+            owner = next((a for a, c in routes.items() if c is client), None)
+            if status == 401 and owner is not None:
+                # D2's saved credential was refused (signed out or revoked
+                # elsewhere): the download waits for that person to sign in,
+                # rather than being failed for good as a forbidden item.
+                log.warning("A saved login was refused while fetching %s; it "
+                            "waits for that profile to sign in again.",
+                            row.get("name") or item_id)
+                self.__dict__.setdefault("_credential_refused", set()).add(
+                    owner)
+                self._release_credential_routes(
+                    keep=set(routes) - {owner})
+                self.db.update(item_id, status=STATUS_PENDING)
+                self._notify_change()
+                return
             if status is not None and (status >= 500 or status == 429):
                 log.warning("Download of %s got HTTP %s; will resume.",
                             row.get("name") or item_id, status)

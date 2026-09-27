@@ -571,5 +571,106 @@ class ConflictsAtReconnectTest(_OfflineCase):
             self._server().get("PlaybackPositionTicks") or 0, far,
             "the offline position rewound the server's newer progress")
 
+
+@_e2e.require_server
+class AnInactiveProfilesDownloadTest(unittest.TestCase):
+    """Scenario 6b. D2, ruled 2026-09-26: a download queued by a profile
+    that is no longer active is fetched with THAT profile's saved credential
+    -- "just a credential", no websocket -- and never with anyone else's.
+
+    The relay holds the default profile's file request; the app switches to
+    Bob and quits with it still held; the request is dropped and the app
+    relaunched with Bob active. The row is then picked up fresh with nobody
+    signed in for it, so the only way it finishes is D2 -- and the relay's
+    token record settles whose credential fetched it. Checked to fail with
+    D2 unwired."""
+
+    DOWNLOAD = r"^/Items/[^/?]+/Download"
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        films = [i for i in self.session.find_all(item_type="Movie")
+                 if i.get("Name") == FILM_NAME]
+        self.film = films[0]["Id"]
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend())
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relay)                   # (default)
+        _flows.add_profile(self.app, "Bob")
+        self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
+                          what="the profile switcher")
+        _flows.switch_profile(self.app, "Bob")
+        _flows.add_server_from_anywhere(self.app)
+        _flows.login(self.app, self.relay, account="qa-admin")
+        _flows.switch_profile(self.app, "(default)")
+
+    def _tokens(self):
+        reg = _flows.users(self.app.config_dir) or {}
+        out = {}
+        for u in reg.get("users", []):
+            for c in u.get("credentials") or ():
+                out[u.get("name")] = c.get("AccessToken")
+        return out
+
+    def test_it_is_finished_as_the_person_who_queued_it(self):
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="the default profile's home")
+        _flows.open_by_search(self.app, FILM_QUERY, self.film)
+        self.relay.hold(self.DOWNLOAD)
+        self.app.move_to("act-download")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "dl-ok"), timeout=15,
+                          what="the download dialog")
+        self.app.move_to("dl-ok")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(lambda: self.relay.held_count() > 0,
+                                      timeout=60),
+                        "the file request never reached the relay")
+        _flows.switch_profile(self.app, "Bob")
+        # Still holding, so no retry can finish on the old session: a
+        # stopped client's HTTP session keeps working, and a retry inside
+        # the same download finished the file as the default profile
+        # without D2 ever being asked (this test's first version did exactly
+        # that, and passed with D2 unwired). Quit with the request held,
+        # drop it, and start again as Bob: the row is then picked up fresh,
+        # with nobody signed in for it.
+        self.app.quit(timeout=90)
+        self.relay.drop_held()
+        # Left "downloading"; startup requeues it (SyncManager.start).
+        self.assertNotEqual("complete",
+                            (self.catalog.download(self.film) or {})
+                            .get("status"),
+                            "the download finished before the quit")
+        self.relay.request_tokens.clear()
+        self.app = _app.App(backend=_backend(),
+                            config_dir=self.app.config_dir)
+        self.app.start()
+        self.assertEqual("Bob", _flows.active_profile(self.app.config_dir))
+
+        deadline = time.monotonic() + 120
+        row = None
+        while time.monotonic() < deadline:
+            row = self.catalog.download(self.film)
+            if row and row.get("status") == "complete":
+                break
+            time.sleep(0.5)
+        self.assertEqual("complete", (row or {}).get("status"),
+                         "the default profile's queued download never "
+                         "finished while Bob was active: %r" % row)
+        self.assertEqual(self.session.user_id, row["requested_user_id"])
+        tokens = self._tokens()
+        fetched = [tok for path, tok in self.relay.request_tokens
+                   if "/Download" in path]
+        self.assertIn(tokens["(default)"], fetched,
+                      "the file was not fetched with the default profile's "
+                      "own credential")
+        self.assertNotIn(tokens["Bob"], fetched,
+                         "the default profile's file was fetched as Bob")
+
 if __name__ == "__main__":
     unittest.main()

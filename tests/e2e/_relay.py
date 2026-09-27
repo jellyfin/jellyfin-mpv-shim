@@ -31,6 +31,8 @@ import time
 _REQUEST_LINE = re.compile(
     rb"(GET|POST|PUT|DELETE|HEAD|OPTIONS|PATCH) (\S+) HTTP/1\.[01]\r\n")
 _STATUS_LINE = re.compile(rb"^HTTP/1\.[01] (3\d\d) ")
+_TOKEN = re.compile(rb'(?:Token="([^"]+)"|X-Emby-Token: *([^\r\n]+)|'
+                    rb'[?&]api_key=([^&\s]+))', re.I)
 
 
 class _Flow:
@@ -39,6 +41,7 @@ class _Flow:
         self.client = client
         self.upstream = None
         self.closed = False
+        self.held = False
 
     def start(self):
         try:
@@ -68,6 +71,14 @@ class _Flow:
                 time.sleep(0.02)
             if self.closed or self.relay.mode != "pass":
                 break
+            if outbound and self.relay._should_hold(data):
+                # hold(): this request waits here, not forwarded, until
+                # drop_held() closes it (or close()).
+                self.held = True
+                while self.held and not self.closed:
+                    time.sleep(0.02)
+                if self.closed:
+                    break
             self.relay._observe(data, outbound)
             try:
                 dst.sendall(data)
@@ -102,6 +113,8 @@ class Relay:
         self.mode = "pass"
         self.requests = []          # [(method, path)] in the order sent
         self.redirects = []         # [status] of every 3xx seen
+        self.request_tokens = []    # [(path, token or None)] in order sent
+        self._hold = None           # compiled pattern for hold()
         self._flows = set()
         self._held = []             # sockets accepted while stalled
         self._lock = threading.Lock()
@@ -123,6 +136,34 @@ class Relay:
 
     def stall(self):
         self.mode = "stall"
+
+    def hold(self, path_pattern):
+        """Hold every request whose path matches ``path_pattern`` (a regex):
+        it is not forwarded until drop_held(). Everything else passes."""
+        self._hold = re.compile(path_pattern.encode()
+                                if isinstance(path_pattern, str)
+                                else path_pattern)
+
+    def held_count(self):
+        with self._lock:
+            return sum(1 for f in self._flows if f.held)
+
+    def drop_held(self):
+        """Close every held request's connection and stop holding. A dropped
+        request never reaches the server; the client sees the connection
+        die, which is what a network failure mid-request looks like."""
+        self._hold = None
+        with self._lock:
+            held = [f for f in self._flows if f.held]
+        for flow in held:
+            flow.close()
+
+    def _should_hold(self, data):
+        pattern = self._hold
+        if pattern is None:
+            return False
+        m = _REQUEST_LINE.search(data)
+        return bool(m and pattern.search(m.group(2)))
 
     def restore(self):
         """Back to ``pass``. Anything held or stalled is reset, not
@@ -198,6 +239,13 @@ class Relay:
                 for m in _REQUEST_LINE.finditer(data):
                     self.requests.append((m.group(1).decode(),
                                           m.group(2).decode("latin-1")))
+                    tail = data[m.start():m.start() + 4096]
+                    t = _TOKEN.search(tail)
+                    token = next((g for g in t.groups() if g), None) if t \
+                        else None
+                    self.request_tokens.append(
+                        (m.group(2).decode("latin-1"),
+                         token.decode("latin-1").strip() if token else None))
             else:
                 m = _STATUS_LINE.match(data)
                 if m:

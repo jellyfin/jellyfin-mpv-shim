@@ -1731,6 +1731,81 @@ def _http_error(status):
     return err
 
 
+class AnAbsentPersonsQueueUsesTheirOwnCredentialTest(
+        TheDownloadQueueResolvesByTheRowTest):
+    """D2, ruled 2026-09-26: a download queued by a profile that is not
+    active is fetched with THAT profile's saved credential -- a client built
+    from the credential alone, no websocket, no posted capabilities -- and
+    never with anyone else's. It used to wait until that profile signed in.
+
+    Subclasses the fixture above for its logins and rows; the cases above
+    run again under this name, which is cheap and keeps the two agreeing
+    about what "absent" means."""
+
+    def _with_builder(self, m, answer="built"):
+        calls = []
+        self.built = FakeClient()
+        self.built.stopped = 0
+        self.built.stop = lambda: setattr(self.built, "stopped",
+                                          self.built.stopped + 1)
+
+        def builder(server_id, user_id):
+            calls.append((server_id, user_id))
+            return (self.LAN, self.built) if answer == "built" else None
+
+        m.credential_client = builder
+        return calls
+
+    def test_the_absent_person_is_fetched_with_their_own_credential(self):
+        m = self._mgr(self.THEIRS)              # somebody else is signed in
+        calls = self._with_builder(m)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIs(self.built, m._client_for_row(row))
+        self.assertEqual([(self.SERVER, self.IZZIE)], calls,
+                         "a credential was asked for someone other than the "
+                         "person who queued the download")
+
+    def test_the_client_is_reused_and_released_with_the_queue(self):
+        m = self._mgr(self.THEIRS)
+        calls = self._with_builder(m)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        for _ in range(3):
+            self.assertIs(self.built, m._client_for_row(row))
+        self.assertEqual(1, len(calls), "rebuilt instead of reused")
+        m.db.update("film", status=STATUS_COMPLETE)
+        m._next_runnable()
+        self.assertEqual(1, self.built.stopped,
+                         "the credential client outlived its person's queue")
+
+    def test_with_no_saved_credential_it_still_waits(self):
+        m = self._mgr(self.THEIRS)
+        self._with_builder(m, answer=None)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIsNone(m._client_for_row(row))
+
+    def test_a_refused_credential_waits_until_the_person_signs_in(self):
+        m = self._mgr(self.THEIRS)
+        self._with_builder(m)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIs(self.built, m._client_for_row(row))
+
+        def refused(*a, **k):
+            raise _http_error(401)
+
+        m._stream = refused
+        m._download(m.db.get("film"))
+        self.assertEqual(STATUS_PENDING, m.db.get("film")["status"],
+                         "a refused saved login failed the download for good")
+        self.assertEqual(1, self.built.stopped)
+        self.assertIsNone(m._client_for_row(row),
+                          "a refused credential was tried again")
+        self.clients[self.WAN] = FakeClient()   # the person signs in
+        self.assertIs(self.clients[self.WAN], m._client_for_row(row))
+        self.clients.pop(self.WAN)              # and signs out again
+        self.assertIs(self.built, m._client_for_row(row),
+                      "signing in did not clear the refusal")
+
+
 class PermanentFailureTest(TmpTest):
     """A failure the code has judged permanent has to outlive the row.
 
