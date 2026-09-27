@@ -286,6 +286,29 @@ class MirrorsWhileOnlineTest(unittest.TestCase):
         v.set_played(False)
         self.assertFalse(self.db.userdata_of("ep1", NO_ACTOR).get("Played"))
 
+    def test_unwatching_a_watched_copy_online_reaches_the_copy(self):
+        """The player's Quit and Mark Unwatched is a deliberate mark, so it
+        is verbatim both ways (B6). The case above cannot see this: an
+        unwatch that writes nothing also leaves an unwatched row unwatched.
+        Three rounds, so a mark that latches either way shows."""
+        v = _video(online=True)
+        for _ in range(3):
+            v.set_played(True)
+            self.assertTrue(self.db.userdata_of("ep1", NO_ACTOR)["Played"])
+            v.set_played(False)
+            self.assertFalse(self.db.userdata_of("ep1", NO_ACTOR)["Played"],
+                             "the copy stayed watched after an unwatch")
+
+    def test_an_offline_unwatch_is_queued_as_deliberate(self):
+        v = _video(online=False)
+        v.set_played(False)
+        self.assertEqual(1, len(self.db.playstate))
+        _actor, item, values = self.db.playstate[-1]
+        self.assertEqual(("ep1", {"played": False, "deliberate": True}),
+                         (item, values),
+                         "an offline unwatch must be queued, and as a "
+                         "deliberate mark so replay can decide it (D1)")
+
 
 class PullFixture(unittest.TestCase):
     """The sweep's fixture: one account, two doors to its server, one more
