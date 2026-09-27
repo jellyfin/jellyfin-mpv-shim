@@ -262,6 +262,7 @@ PER_BACKEND = [
     "tests.e2e.test_reconnect_remote",
     "tests.e2e.test_downloads_store",
     "tests.e2e.test_app_lifecycle",
+    "tests.e2e.test_settings_live",
     "tests.e2e.test_browse_routes",
 ]
 
