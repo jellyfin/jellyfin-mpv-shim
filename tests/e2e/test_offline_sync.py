@@ -418,11 +418,12 @@ class OfflineStateSyncTest(unittest.TestCase):
 class PushedUserDataReachesTheCatalogTest(unittest.TestCase):
     """The message the redesign rests on, from a real server.
 
-    Everything here runs through the app's own `EventHandler` rather than
-    calling the manager directly, because the handler discarding the
-    payload is precisely the bug this replaced -- for a long time it took
-    `_arguments` and dropped it, and a five-minute sweep re-read the whole
-    catalog to learn what this message had already said.
+    Runs through the app's own `EventHandler` rather than calling the
+    manager directly, because the handler discarding the payload is
+    precisely the bug this replaced. The watcher is NOT a registered client,
+    so the actor comes from the payload's ServerId, never from the
+    registry's answer for the socket as in the app. That branch is asserted
+    at the real app: test_offline_ui.UnwatchOnlineReachesTheCopyTest.
     """
 
     @classmethod
@@ -697,8 +698,10 @@ class PushedUserDataReachesTheCatalogTest(unittest.TestCase):
 
 @_e2e.require_server
 class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
-    """Mark Watched / Mark Unwatched, through the real gateway, against the
-    real server, with a real catalog on disk.
+    """Mark Watched / Mark Unwatched, through the gateway's userdata mixin
+    (a bare one, with its deps mocked), against the real server, with a real
+    catalog on disk. Driven from the library at the real app, with the real
+    PlayerGateway and its rollback: test_offline_ui, scenario 7.
 
     The unit tests answer "does the shim write what it believes"; this one
     answers the two things they cannot, both of which are beliefs about

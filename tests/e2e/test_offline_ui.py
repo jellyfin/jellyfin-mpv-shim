@@ -167,6 +167,9 @@ class PlayOfflineTest(_OfflineCase):
         self.open_film()
         self.app.move_to("btn-play")
         self.app.key("ENTER")
+        self.assertTrue(_in_store(self.app, self.film,
+                                  self.app.playing_path()),
+                        "offline, mpv was not handed the downloaded file")
         # 12 seconds of film, played to its end by the app's own reporter.
         deadline = time.monotonic() + 90
         while time.monotonic() < deadline:
@@ -184,6 +187,86 @@ class PlayOfflineTest(_OfflineCase):
         self.assertTrue(queued, "nothing queued for the server")
         self.assertEqual({self.me[1]}, {p["user_id"] for p in queued},
                          "queued as someone else: %r" % queued)
+
+
+def _in_store(app, item_id, path):
+    """Whether mpv's `path` is this item's file in the download store."""
+    store = os.path.join(app.config_dir, "offline", "server", item_id)
+    try:
+        return os.path.commonpath([os.path.realpath(path),
+                                   os.path.realpath(store)]) \
+            == os.path.realpath(store)
+    except ValueError:          # a URL, or another drive
+        return False
+
+
+@_e2e.require_server
+class _LocalCopyCase(unittest.TestCase):
+    """Row 58, online: with a copy downloaded, pressing Play hands mpv the
+    FILE, not the stream -- and prefer_downloaded decides. Rebuilds
+    test_download_lifecycle.TheLocalCopyStandsInTest, which asserted the
+    type a factory returned when called by hand (the factory the app never
+    registered), with a Mock for a parent: it passed through every seam this
+    walks. Here: the shipped app, a real download, mpv's own `path`, and the
+    relay's request log as a second witness."""
+
+    CONF = {}
+
+    def setUp(self):
+        session = _e2e.Session()
+        films = [i for i in session.find_all(item_type="Movie")
+                 if i.get("Name") == FILM_NAME]
+        self.film = films[0]["Id"]
+        session.reset_played(self.film)
+        self.addCleanup(session.reset_played, self.film)
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend(), conf=dict(self.CONF))
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relay)
+        _flows.open_by_search(self.app, FILM_QUERY, self.film)
+        _flows.download_open_item(self.app, self.catalog, self.film)
+
+    def play(self):
+        self.app.move_to("btn-play")
+        self.app.key("ENTER")
+        return self.app.playing_path()
+
+    def streamed(self):
+        return [p for _m, p in list(self.relay.requests)
+                if self.film in p and ("/stream" in p.lower()
+                                       or "/Videos/" in p)]
+
+
+
+class TheLocalCopyStandsInTest(_LocalCopyCase):
+    def test_the_downloaded_copy_plays_instead_of_the_stream(self):
+        path = self.play()
+        self.assertTrue(_in_store(self.app, self.film, path),
+                        "online, mpv was handed %r, not the download" % path)
+        self.assertEqual([], self.streamed(),
+                         "the server was asked for the stream anyway")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class TurningThePreferenceOffStreamsTest(_LocalCopyCase):
+    """The other half: prefer_downloaded off streams, and keeps the copy."""
+
+    CONF = {"prefer_downloaded": False}
+
+    def test_it_streams_and_the_copy_stays(self):
+        path = self.play()
+        self.assertFalse(_in_store(self.app, self.film, path),
+                         "prefer_downloaded is off and the copy played")
+        self.assertTrue(path.startswith("http"), path)
+        self.assertEqual("complete",
+                         (self.catalog.download(self.film) or {})
+                         .get("status"), "the copy was dropped")
+        self.assertEqual(0, self.app.quit(timeout=30))
 
 
 @_e2e.require_server
@@ -336,6 +419,30 @@ class TwoProfilesOfflineTest(_TwoProfilesCase):
         self.assertFalse(case.watched_on_screen(self, f),
                          "the default profile shows Bob's tick")
 
+    def test_playing_offline_is_filed_under_whoever_played_it(self):
+        """Row 60: the PLAYER's offline writer, not the toggle's. Rebuilds
+        test_download_lifecycle.TwoAccountsDoNotLeakTest, which wrote the
+        rows under an actor it chose itself and read them back, so no
+        production writer ever decided whose viewing it was."""
+        case = _OfflineCase
+        case.open_film(self)
+        self.app.move_to("btn-play")
+        self.app.key("ENTER")
+        self.assertTrue(_in_store(self.app, self.film,
+                                  self.app.playing_path()))
+        deadline = time.monotonic() + 90      # 12 s of film, to its end
+        while time.monotonic() < deadline and not self._played(self.bob):
+            time.sleep(0.5)
+        self.assertEqual(1, self._played(self.bob),
+                         "Bob played it to the end and it is not his")
+        self.assertFalse(self._played(self.alice),
+                         "Bob's viewing landed on the other profile's person")
+        self.assertEqual([], [k for k in self.catalog.userdata(self.film)
+                              if "@none" in k], "filed under nobody")
+        self.assertEqual({self.bob[1]},
+                         {p["user_id"] for p in self.catalog.pending(self.film)},
+                         "queued for the server as someone else")
+
 
 @_e2e.require_server
 class ReconnectDeliversAsEachPersonTest(_TwoProfilesCase):
@@ -456,6 +563,26 @@ class UnwatchOnlineReachesTheCopyTest(unittest.TestCase):
         self.assertTrue(_e2e.wait_for(lambda: self._copy_played() == 0,
                                       timeout=15),
                         "the copy on disk still says watched (B3)")
+
+    def test_another_clients_watch_arrives_by_push(self):
+        """Row 62, A2:85: a watch made in another client reaches the copy
+        from the websocket push, at once -- advancing is what the push path
+        is for (F47 keeps retreats for the sweep). Through the app's own
+        socket, so the push is filed by the registry's answer for that
+        socket, the branch the old PushedUserDataReachesTheCatalogTest never
+        ran (it called the handler directly with an unregistered client)."""
+        _OfflineCase.toggle_watched(self)                 # start unwatched
+        self.assertTrue(_e2e.wait_for(lambda: self._copy_played() == 0,
+                                      timeout=15))
+        self.session._request("/UserPlayedItems/%s" % self.film, "POST")
+        self.assertTrue(_e2e.wait_for(lambda: self._copy_played() == 1,
+                                      timeout=20),
+                        "another client's watch did not reach the copy by "
+                        "push")
+        nobody = [k for k in self.catalog.userdata(self.film)
+                  if "@none" in k]
+        self.assertEqual([], nobody, "the push was filed under nobody")
+        self.assertEqual(0, self.app.quit(timeout=30))
 
     def test_another_clients_unwatch_arrives_with_the_sweep(self):
         """F47 (ratified): an unwatch made in ANOTHER client is not applied

@@ -253,6 +253,8 @@ PER_BACKEND = [
     # G5 over the download folder: a delete keeps the person's files, a move
     # carries them byte-identical, a kill mid-copy loses none.
     "tests.e2e.test_store_safety",
+    # Row 63: browsing and playing the downloads with the network cut.
+    "tests.e2e.test_offline_library",
 ]
 
 MODULES = CONTRACT + PER_BACKEND
