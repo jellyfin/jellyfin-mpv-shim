@@ -26,6 +26,7 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _accounts  # noqa: E402
 import _app  # noqa: E402
 import _e2e  # noqa: E402
 import _flows  # noqa: E402
@@ -330,6 +331,162 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
         self.assertEqual("complete", self.row(e3).get("status"),
                          "the reaper took the unwatched next episode")
         self.assertEqual(0, self.app.quit(timeout=40))
+
+
+@_e2e.require_server
+class TwinPlaylistsOnTwoServersTest(unittest.TestCase):
+    """9d9b071d, unit-only in the fix-coverage audit (gap 5). Jellyfin
+    derives a playlist's id from its name, so the same name on two servers
+    is the same id (measured 2026-09-27: 12.0 and 10.11 both answered
+    5269596e... for "jms-e2e-twin"). Each downloaded, then offline: two
+    playlists, each playing its own server's songs."""
+
+    NAME = "jms-e2e-twin"
+
+    def make_twin(self, session):
+        songs = []
+        for a in session.find_all(library="Music", item_type="MusicAlbum"):
+            got = session.find_all(item_type="Audio", parent_id=a["Id"])
+            if len(got) >= 2:
+                songs = [s["Id"] for s in got[:2]]
+                break
+        self.assertEqual(2, len(songs), "no album with two tracks at %s"
+                         % session.address)
+        made = session._request("/Playlists", method="POST", body={
+            "Name": self.NAME, "Ids": songs, "UserId": session.user_id,
+            "MediaType": "Audio"})["Id"]
+        self.addCleanup(session._request, "/Items/%s" % made, "DELETE")
+        return made, songs
+
+    def setUp(self):
+        other = os.environ.get("JMS_E2E_OTHER_SERVER",
+                               "http://127.0.0.1:8097")
+        try:
+            self.other = _e2e.Session(address=other)
+        except Exception as exc:
+            self.skipTest("no second server at %s (%s)" % (other, exc))
+        self.addCleanup(self.other.stop)
+        self.session = _e2e.Session()
+        # Before sign-in: Home's library row is read then (S2's note).
+        self.twin, self.songs_a = self.make_twin(self.session)
+        twin_b, self.songs_b = self.make_twin(self.other)
+        self.assertEqual(self.twin, twin_b, "the premise: the two servers "
+                         "no longer hand out the same id for one name")
+        self.assertFalse(set(self.songs_a) & set(self.songs_b))
+        self.relays = []
+        for address in (_e2e.SERVER, other):
+            host, _, port = address.split("//", 1)[1].partition(":")
+            relay = _relay.Relay((host, int(port or 80)))
+            self.addCleanup(relay.close)
+            self.relays.append(relay)
+        self.app = _app.App(backend=_backend())
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relays[0])
+
+    def download_from_home(self, session, songs):
+        """This server's Home -> its Playlists shelf -> the twin's tile ->
+        MENU -> Download, as AMusicPlaylistDownloadsAsOneTest does."""
+        views = session._request("/Users/%s/Views" % session.user_id)["Items"]
+        shelf = next(v["Id"] for v in views
+                     if v.get("CollectionType") == "playlists")
+        # The shelf can be past the row's right edge; RIGHT walks to it.
+        f = self.app.wait_for(lambda f: _app.shown(f, "row-libs"),
+                              timeout=30, what="this server's Home")
+        first = next(n["id"] for n in f["nodes"]
+                     if (n.get("id") or "").startswith("row-libs-"))
+        self.app.move_to(first)
+        self.app.move_to("row-libs-" + shelf, key="RIGHT")
+        tile = "grid-0-" + self.twin
+        self.app.press_until("ENTER", lambda f: _app.shown(f, tile),
+                             what="the Playlists shelf")
+        self.app.move_to(tile)
+        self.app.key("MENU")
+        AMusicPlaylistDownloadsAsOneTest.pick_from_menu(self, "Download")
+        self.app.wait_for(lambda f: _app.shown(f, "dl-ok"), timeout=15,
+                          what="the download dialog")
+        self.app.move_to("dl-ok")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(
+            lambda: all((self.catalog.download(s) or {}).get("status")
+                        == "complete" for s in songs), timeout=120),
+            "the twin's songs from %s did not all download"
+            % session.address)
+
+    def test_both_survive_and_each_plays_its_own(self):
+        self.download_from_home(self.session, self.songs_a)
+        _flows.open_settings_tab(self.app, "servers")
+        self.app.move_to("sv-add")
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "login-server"),
+                             what="the add-server form")
+        self.app.type_into("login-server", self.relays[1].address)
+        self.app.type_into("login-user", "qa-user")
+        self.app.type_into("login-pass", _accounts.password_for(
+            "qa-user", self.other.address), masked=True)
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="Home after adding the second server")
+        self.download_from_home(self.other, self.songs_b)
+        rows = self.catalog._query(
+            "SELECT server_id FROM playlists WHERE playlist_id = ?",
+            (self.twin,))
+        self.assertEqual(2, len({r["server_id"] for r in rows}),
+                         "one catalog row per server: %r" % rows)
+
+        self.assertEqual(0, self.app.quit(timeout=30))
+        for relay in self.relays:
+            relay.cut()
+            self.assertTrue(relay.probe_refused())
+        self.app = _app.App(backend=_backend(),
+                            config_dir=self.app.config_dir)
+        self.app.start(timeout=90)
+
+        def tiles(f):
+            return sorted({n["id"] for n in f.get("nodes", [])
+                           if (n.get("id") or "").startswith("grid-0-")
+                           and n["id"].endswith(self.twin)})
+        played, paths = set(), []
+        for i in range(2):
+            f = self.app.wait_for(
+                lambda f: _app.shown(f, "row-libs-offline:playlists"),
+                timeout=90, what="the offline Playlists library")
+            first = next(n["id"] for n in f["nodes"]
+                         if (n.get("id") or "").startswith("row-libs-"))
+            self.app.move_to(first)
+            self.app.move_to("row-libs-offline:playlists", key="RIGHT")
+            f = self.app.press_until("ENTER", lambda f: len(tiles(f)) >= 1,
+                                     what="the twins, offline")
+            time.sleep(1)                     # both, if both are coming
+            found = tiles(self.app.frame())
+            self.assertEqual(2, len(found),
+                             "offline, the twins are not two playlists: %r"
+                             % found)
+            self.app.move_to(found[i])
+            self.app.press_until("ENTER", lambda f: _app.shown(f, "pl-play"),
+                                 what="twin %d's page, offline" % i)
+            before = self.app.prop("path")
+            self.app.move_to("pl-play")
+            self.app.key("ENTER")
+            # The first twin's song is still playing: wait for mpv to be
+            # handed something else, or read the old path as the new one.
+            self.assertTrue(_e2e.wait_for(
+                lambda: (self.app.prop("path") or before) != before,
+                timeout=20), "twin %d never started (%r still playing)"
+                % (i, before))
+            path = self.app.prop("path")
+            played |= {s for s in self.songs_a + self.songs_b if s in path}
+            paths.append((found[i], path))
+            # Audio keeps the library up (the now-playing bar): Home by
+            # its button, and the next play replaces this one.
+            self.app.move_to("nav-home")
+            self.app.key("ENTER")
+        self.assertTrue(played & set(self.songs_a)
+                        and played & set(self.songs_b),
+                        "offline, both twins played one server's songs "
+                        "(%r; A %r, B %r)" % (paths, self.songs_a,
+                                              self.songs_b))
+        self.assertEqual(0, self.app.quit(timeout=30))
 
 
 class ATruncatedCatalogIsRestoredTest(_StoreCase):
