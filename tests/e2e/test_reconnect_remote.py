@@ -254,6 +254,79 @@ class TheWrongServerNeverSeesThePasswordTest(_SignedOutCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class TwoServersOneStalledTest(_RemoteCase):
+    """Row 57's other half, and row 49's "land on ITS home": a second
+    server added from Settings opens on its own Home; then the first one's
+    network hangs (a stall -- requests that never answer, worse than a
+    refusal) and the second stays responsive: every key moves focus inside
+    a second, and a library opens."""
+
+    CONF = {"health_check_interval": 10}
+
+    def search_round_trip(self, term, timeout=30):
+        """A fresh search: its results can only come from the server (an
+        open library is cached, stale-while-revalidate, and was measured
+        coming back with every server hung)."""
+        def results(f):
+            return {n["id"] for n in (f or {}).get("nodes", [])
+                    if (n.get("id") or "").startswith("search-Movies-")}
+        # The last search's results stay up until the new ones land, so
+        # "results on screen" is not an answer; a DIFFERENT set is.
+        before = results(self.app.frame())
+        self.app.clear_field("nav-search")
+        self.app.type_into("nav-search", term)
+        start = time.monotonic()
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: results(f) and results(f) != before,
+                          timeout=timeout, what="results for %r" % term)
+        return time.monotonic() - start
+
+    def test_the_healthy_server_stays_responsive(self):
+        other = os.environ.get("JMS_E2E_OTHER_SERVER",
+                               "http://127.0.0.1:8097")
+        if not _e2e_reachable(other):
+            self.skipTest("no second server at %s" % other)
+        host, _, port = other.split("//", 1)[1].partition(":")
+        second = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(second.close)
+        _flows.open_settings_tab(self.app, "servers")
+        self.app.move_to("sv-add")
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "login-server"),
+                             what="the add-server form")
+        self.app.type_into("login-server", second.address)
+        self.app.type_into("login-user", "qa-user")
+        self.app.type_into("login-pass", _accounts.password_for(
+            "qa-user", other), masked=True)
+        seen = len(second.requests)
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="Home after adding the second server")
+        # ITS home: the libraries were asked of the second server.
+        self.assertTrue(any("/views" in p.lower() or "/items" in p.lower()
+                            for _m, p in second.requests[seen:]),
+                        "Home was not loaded from the server just added")
+        self.relay.stall()
+        self.assertTrue(self.relay.probe_silent())
+        time.sleep(15)                          # health checks run into it
+        # Round trips through Python and the healthy server -- a key that
+        # only moves focus is the renderer's alone and proves nothing here.
+        worst = max(self.search_round_trip(term)
+                    for term in ("Eat", "Bananas", "Health"))
+        self.assertLess(worst, 5.0, "a search on the healthy server took "
+                                    "%.1f s while the other hung" % worst)
+        # Control: the same trip with the healthy server stalled too must
+        # NOT finish in time, or the timing above could not see a stall.
+        second.stall()
+        self.assertTrue(second.probe_silent())
+        with self.assertRaises(_app.AppError,
+                               msg="search answered with both servers "
+                                   "hung: the timing measures nothing"):
+            self.search_round_trip("Movie", timeout=5)
+        second.restore()
+        self.relay.restore()
+        self.assertEqual(0, self.app.quit(timeout=40))
+
+
 def _e2e_reachable(url):
     import urllib.request
     try:
