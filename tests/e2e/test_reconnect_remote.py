@@ -327,6 +327,75 @@ class TwoServersOneStalledTest(_RemoteCase):
         self.assertEqual(0, self.app.quit(timeout=40))
 
 
+class ASyncPlayGroupTest(_RemoteCase):
+    """Row 69 with the app as one member: the other is a scripted real
+    client (`_syncplay_live.LiveMember` -- a real websocket and session, a
+    fake player). The app joins from its own SyncPlay dialog; the group's
+    play, pause, unpause and seek reach it; its own pause reaches the
+    group; stopping HALTS rather than leaves (A2:209's decision, made here
+    by the real browser, not a hand-set flag); Leave leaves."""
+
+    def before_login(self):
+        from tests.e2e._syncplay_live import LiveGroup
+        self.group = LiveGroup.build(("bob", "qa-admin"), tag="s4")
+        self.addCleanup(self.group.close)
+        self.addCleanup(lambda: self.group["bob"].leave())
+        self.bob = self.group["bob"]
+
+    def seated(self):
+        return any("qa-user" in str(p)
+                   for p in self.group.participants(self.bob))
+
+    def dialog(self, button):
+        self.app.move_to("nav-syncplay")
+        self.app.press_until("ENTER", lambda f: _app.shown(f, button),
+                             what="%s in the SyncPlay dialog" % button)
+        self.app.move_to(button)
+        self.app.key("ENTER")
+
+    def test_the_app_is_a_member(self):
+        self.group.create("bob")
+        self.dialog("sp-join-0")
+        self.assertTrue(_e2e.wait_for(self.seated, timeout=20),
+                        "joining from the dialog did not seat the app")
+        film = self.movie(LONG_NAME)
+        self.fresh(film)
+        self.group.start([film], position_ticks=60 * TICKS, by="bob")
+        self.assertTrue(_e2e.wait_for(
+            lambda: self.playing(film) and (self.time_pos() or 0) > 55,
+            timeout=45), "the group's play never reached the app")
+        self.assertLess(abs(self.time_pos() - 60), 15)
+
+        self.bob.api.pause_sync_play()
+        self.assertTrue(_e2e.wait_for(lambda: self.app.prop("pause") is True,
+                                      timeout=15), "the group's pause")
+        self.bob.api.unpause_sync_play()
+        self.assertTrue(_e2e.wait_for(lambda: self.app.prop("pause") is False,
+                                      timeout=15), "the group's unpause")
+        self.bob.api.seek_sync_play(200 * TICKS)
+        self.assertTrue(_e2e.wait_for(
+            lambda: abs((self.time_pos() or 0) - 200) < 10, timeout=20),
+            "the group's seek (app at %r)" % self.time_pos())
+
+        self.app.key("SPACE")
+        self.assertTrue(_e2e.wait_for(lambda: self.bob.paused, timeout=15),
+                        "the app's own pause never reached the group")
+        self.app.key("SPACE")
+        self.assertTrue(_e2e.wait_for(lambda: not self.bob.paused,
+                                      timeout=15), "the app's unpause")
+
+        # Stop: a halt, not a leave.
+        from test_input_live import _InputCase
+        _InputCase.leave_by_hud_back(self)
+        time.sleep(5)
+        self.assertTrue(self.seated(), "stopping left the group")
+
+        self.dialog("sp-leave")
+        self.assertTrue(_e2e.wait_for(lambda: not self.seated(), timeout=20),
+                        "Leave did not leave")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
 def _e2e_reachable(url):
     import urllib.request
     try:
