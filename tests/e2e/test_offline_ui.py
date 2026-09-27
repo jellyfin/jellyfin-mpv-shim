@@ -1358,14 +1358,21 @@ class AStalledNetworkTest(unittest.TestCase):
         before = self._checks_started()
         self.relay.stall()
         self.assertTrue(self.relay.probe_silent(), "the stall is not in effect")
+        # A trip through Python, not a focus move: arrows are the renderer's
+        # alone, and "any newer frame" is satisfied by a caret blink. Opening
+        # Settings is a route push in the browser and needs no network.
         worst = 0.0
-        for key in ("RIGHT", "LEFT", "DOWN", "UP") * 3:
-            rev = self.app.frame().get("rev", 0)
+        for _ in range(3):
+            self.app.move_to("nav-settings")
             start = time.monotonic()
-            self.app.key(key)
-            self.app.after(rev, timeout=5)
+            self.app.key("ENTER")
+            self.app.wait_for(lambda f: _app.shown(f, "stab-general"),
+                              timeout=10, what="Settings to open")
             worst = max(worst, time.monotonic() - start)
-        self.assertLess(worst, 1.0, "a key took %.2fs to answer while the "
+            self.app.key("ESC")
+            self.app.wait_for(lambda f: not _app.shown(f, "stab-general"),
+                              timeout=10, what="Settings to close")
+        self.assertLess(worst, 1.0, "opening Settings took %.2fs while the "
                                     "network was stalled" % worst)
         # Quit while a health check is inside its network call: the log line
         # is written as the check starts, and its first request then waits
