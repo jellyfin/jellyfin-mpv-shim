@@ -135,7 +135,7 @@ class _Watch:
             pass
         if self.step:
             try:
-                with open("/dev/tty") as tty:
+                with open("/dev/tty", encoding="utf-8") as tty:
                     tty.readline()
             except OSError:
                 time.sleep(self.delay or 1.0)
