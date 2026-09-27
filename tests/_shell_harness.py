@@ -998,7 +998,11 @@ class FakeController:
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without
         # declaring each one.
-        if name.startswith(("_", "on_")) or name in ("play", "play_list"):
+        # playing_item_id is a question, not a transport call: absent, the
+        # browser trusts every playstate (MpvtkBrowser._still_playing). A
+        # test about stale playstates sets it.
+        if name.startswith(("_", "on_")) or name in ("play", "play_list",
+                                                     "playing_item_id"):
             raise AttributeError(name)
         calls = self.__dict__.setdefault("transport", [])
         # Keywords go in a parallel list: `transport` holds (name, args)

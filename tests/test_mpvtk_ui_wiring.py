@@ -38,6 +38,7 @@ import inspect
 import os
 import sys
 import threading
+import types
 import unittest
 
 sys.argv = [sys.argv[0]]      # importing player reaches args.get_args()
@@ -66,6 +67,13 @@ class FakePlayer:
     @staticmethod
     def get_mpv():
         return object()
+
+    #: What the player holds. The browser asks (playing_item_id) before it
+    #: acts on a playstate, and drops one for an item that is not here.
+    video = None
+
+    def get_video(self):
+        return self.video
 
     # enter_browse()/minimize() reach through PlayerGateway into these.
     # Recorded rather than no-op'd so the window handoff stays visible.
@@ -337,6 +345,7 @@ class TestTheCallbacksActuallyReachTheBrowser(WiringHarness):
 
     def test_playstate_reaches_the_now_playing_bar(self):
         browser = self._login()
+        self.player.video = types.SimpleNamespace(item_id="t1")
         self.player.on_playstate({"stopped": False, "is_audio": True,
                                   "id": "t1", "title": "Song",
                                   "position": 1, "duration": 10})

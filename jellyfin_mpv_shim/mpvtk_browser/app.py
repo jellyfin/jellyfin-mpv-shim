@@ -2692,6 +2692,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # "stopped" state does NOT clear the error screen — stop() is exactly
         # what a failed load does on its way out, and clearing here would
         # erase the error before its first frame.
+        if state and not state.get("stopped") and not self._still_playing(state):
+            return      # built before a stop that has already reported in
         if not (state or {}).get("stopped"):
             self.load.clear()
         self._sync_queue_highlight(state)
@@ -2761,6 +2763,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.hud.state = state   # feeds the playback HUD bar
             if self._browsing:
                 self._yield()         # video: yield the window + the OSC
+                if not self._still_playing(state):
+                    # The stop landed between the check above and the
+                    # yield, and its enter_browse ran first.
+                    self.hud.state = None
+                    self.enter_browse()
+                    return
             else:
                 self.invalidate()     # HUD/bar repaint (clock, pause icon)
             if not self._browsing and self.hud.available():
@@ -2776,6 +2784,25 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                     self.app.set_hud_skip(state.get("skip_label") or "")
                 except Exception:
                     log.debug("hud sync failed", exc_info=True)
+
+    def _still_playing(self, state):
+        """Whether the player still holds the item ``state`` describes.
+
+        Playstates arrive from several threads unordered: the 1 s ticker's
+        snapshot of a video could land after that video's stop had put the
+        library back, and yielding to it left the library blank after HUD
+        Back. The player clears the item before it reports a stop, so asking
+        before the yield and again after leaves the last word with the truth.
+        Not a lock across on_playstate: that deadlocks a playback start
+        (on_browse_leave -> enable_osc waits on the player's _lock).
+        """
+        ask = getattr(self.controller, "playing_item_id", None)
+        if ask is None:
+            return True     # nothing to ask (tests, embedders): trust it
+        try:
+            return ask() == state.get("id")
+        except Exception:
+            return True
 
     def _sync_queue_highlight(self, state):
         """Keep the queue view's "now playing" row on the right track.
