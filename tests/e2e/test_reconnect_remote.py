@@ -327,13 +327,10 @@ class TwoServersOneStalledTest(_RemoteCase):
         self.assertEqual(0, self.app.quit(timeout=40))
 
 
-class ASyncPlayGroupTest(_RemoteCase):
-    """Row 69 with the app as one member: the other is a scripted real
-    client (`_syncplay_live.LiveMember` -- a real websocket and session, a
-    fake player). The app joins from its own SyncPlay dialog; the group's
-    play, pause, unpause and seek reach it; its own pause reaches the
-    group; stopping HALTS rather than leaves (A2:209's decision, made here
-    by the real browser, not a hand-set flag); Leave leaves."""
+class _GroupCase(_RemoteCase):
+    """The app beside `bob`, a scripted real client
+    (`_syncplay_live.LiveMember` -- a real websocket and session, a fake
+    player)."""
 
     def before_login(self):
         from tests.e2e._syncplay_live import LiveGroup
@@ -352,6 +349,14 @@ class ASyncPlayGroupTest(_RemoteCase):
                              what="%s in the SyncPlay dialog" % button)
         self.app.move_to(button)
         self.app.key("ENTER")
+
+
+class ASyncPlayGroupTest(_GroupCase):
+    """Row 69 with the app as one member. The app joins from its own
+    SyncPlay dialog; the group's play, pause, unpause and seek reach it;
+    its own pause reaches the group; stopping HALTS rather than leaves
+    (A2:209's decision, made here by the real browser, not a hand-set
+    flag); Leave leaves."""
 
     def test_the_app_is_a_member(self):
         self.group.create("bob")
@@ -394,6 +399,94 @@ class ASyncPlayGroupTest(_RemoteCase):
         self.assertTrue(_e2e.wait_for(lambda: not self.seated(), timeout=20),
                         "Leave did not leave")
         self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class AGroupDropsADownloadThatNoLongerMatchesTest(_GroupCase):
+    """9cf78654, WEAK in the fix-coverage audit (gap 1): a film playing from
+    its downloaded copy, and the app joins a group mid-film from the HUD. A
+    group checks the copy's size against the server's, which ordinary
+    playback does not, so a copy that no longer matches is swapped for the
+    server's stream near the same position. "No longer matches" is staged
+    by editing the catalog row's size: the server's file being replaced
+    since the download is what that models."""
+
+    CONF = {"prefer_downloaded": True}
+
+    def menu(self):
+        return next((n for n in self.app.frame().get("nodes", [])
+                     if n.get("t") == "menu"), None)
+
+    def test_joining_swaps_the_copy_for_the_stream(self):
+        import sqlite3
+        film = self.movie(LONG_NAME)          # long enough to join mid-film
+        self.fresh(film)
+        catalog = _flows.Catalog(self.app.config_dir)
+        _flows.open_by_search(self.app, LONG_NAME, film)
+        _flows.download_open_item(self.app, catalog, film)
+        conn = sqlite3.connect(catalog.path, timeout=10)
+        try:
+            with conn:
+                conn.execute("UPDATE downloads SET size_bytes = size_bytes + 1"
+                             " WHERE item_id = ?", (film,))
+        finally:
+            conn.close()
+        store = os.path.join(self.app.config_dir, "offline")
+        path = self.play()
+        self.assertTrue(path.startswith(store),
+                        "the premise: the film did not play from its copy "
+                        "(%r)" % path)
+        self.assertTrue(_e2e.wait_for(lambda: (self.time_pos() or 0) > 5,
+                                      timeout=30))
+        self.group.create("bob")
+        items = self.open_hud_syncplay(lambda items: len(items) >= 3)
+        # Rows: None (Disabled), New Group, then the groups.
+        self.assertGreaterEqual(len(items), 3, "no group listed: %r" % items)
+        self.highlight(len(items) - 1)
+        at = self.time_pos() or 0
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(self.seated, timeout=20),
+                        "joining from the HUD did not seat the app")
+        self.assertTrue(_e2e.wait_for(
+            lambda: (self.app.prop("path") or "").startswith("http"),
+            timeout=30),
+            "the stale copy kept playing in a group (path %r)"
+            % self.app.prop("path"))
+        self.assertTrue(_e2e.wait_for(lambda: self.time_pos() is not None,
+                                      timeout=20))
+        self.assertLess(abs(self.time_pos() - at), 20,
+                        "the stream did not pick up near %.0f s (at %r)"
+                        % (at, self.time_pos()))
+        # Leave from the same menu: its first row, "None (Disabled)".
+        self.open_hud_syncplay(lambda items: bool(items))
+        self.highlight(0)
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(lambda: not self.seated(), timeout=20),
+                        "leaving from the HUD did not leave")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+    def open_hud_syncplay(self, ready):
+        """The HUD's SyncPlay menu, open, once its rows satisfy ``ready``:
+        it asks the server for the groups as it opens, so they arrive a
+        draw later. ENTER is what wakes the HUD for the keyboard (and it
+        toggles pause; see leave_by_hud_back)."""
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "hud-syncplay"),
+                             what="the HUD", retry_after=3)
+        self.app.move_to("hud-syncplay")
+        self.app.press_until("ENTER", lambda f: f.get("menu_open"),
+                             what="the HUD's SyncPlay menu")
+        _e2e.wait_for(lambda: ready((self.menu() or {}).get("items") or []),
+                      timeout=15)
+        return (self.menu() or {}).get("items") or []
+
+    def highlight(self, row):
+        """The menu's cursor starts on no row: the first DOWN lands on row
+        1, the first UP on row 0."""
+        if row == 0:
+            self.app.key("UP")
+        for _ in range(row):
+            self.app.key("DOWN")
+        self.app.wait_for(lambda f: f.get("nav_pidx") == row, timeout=5,
+                          what="row %d highlighted" % row)
 
 
 def _e2e_reachable(url):
