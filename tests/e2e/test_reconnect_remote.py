@@ -21,7 +21,11 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _accounts  # noqa: E402
+import _app  # noqa: E402
 import _e2e  # noqa: E402
+import _flows  # noqa: E402
+import _relay  # noqa: E402
 from test_playback_lifecycle import (  # noqa: E402
     LONG_NAME, SECOND_LONG_NAME, _PlaybackCase)
 
@@ -143,6 +147,120 @@ class RemoteControlComesBackTest(_RemoteCase):
             _e2e.wait_for(lambda: self.playing(film), timeout=15)
         self.assert_lands(film, 60, "after the outage")
         self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class _SignedOutCase(_RemoteCase):
+    """The server stops accepting the saved login (the admin removes the
+    app's device, which revokes its token) and the health check notices."""
+
+    CONF = {"health_check_interval": 10}
+
+    def credentials(self):
+        with open(os.path.join(self.app.config_dir, "users.json"),
+                  encoding="utf-8") as fh:
+            users = json.load(fh)
+        active = next(u for u in users["users"]
+                      if u["id"] == users["active"])
+        return active["credentials"]
+
+    def credential(self):
+        return self.credentials()[0]
+
+    def sign_out_from_the_server(self):
+        device = self.device_id()
+        admin = _e2e.Session(_accounts.ADMIN_ACCOUNT)
+        self.addCleanup(admin.stop)
+        admin._request("/Devices?id=%s" % device, "DELETE")
+        _flows.open_settings_tab(self.app, "servers")
+        self.app.wait_for(lambda f: _app.shown(f, "sv-reauth-0"), timeout=90,
+                          what="Sign In Again on the server's row")
+
+    def open_the_form(self):
+        self.app.move_to("sv-reauth-0")
+        f = self.app.press_until("ENTER",
+                                 lambda f: _app.shown(f, "login-pass"),
+                                 what="the Sign In Again form")
+        # What each box shows: the renderer's own text once a box has been
+        # touched, the scene's before that (it makes a field's state only
+        # when the field is edited).
+        typed = _app.fields(f)
+        return {i: typed.get(i, (_app.node(f, i) or {}).get("text"))
+                for i in ("login-server", "login-user", "login-pass")}
+
+
+class SignInAgainTest(_SignedOutCase):
+    """The re-authentication walk (Codex rev-3 #10: the inventory said it
+    had no UI; auth.py has one). The same server, the same identity -- so
+    its downloads and settings survive -- and a new token."""
+
+    def test_the_walk_keeps_the_server(self):
+        before = self.credential()
+        self.sign_out_from_the_server()
+        fields = self.open_the_form()
+        self.assertEqual(self.relay.address, fields.get("login-server"))
+        self.assertEqual("qa-user", fields.get("login-user"))
+        self.assertFalse(fields.get("login-pass"),
+                         "the form came back holding a password")
+        self.app.type_into("login-pass", _accounts.password_for(
+            "qa-user", _e2e.SERVER), masked=True)
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: not _app.shown(f, "login-pass")
+                          and _app.shown(f, "nav-settings"), timeout=60,
+                          what="the library after signing in again")
+        # The whole list: re-adding would keep the old entry at [0] and
+        # append a second under a fresh uuid (the orphaning this exists for).
+        after = self.credentials()
+        self.assertEqual([before["uuid"]], [c["uuid"] for c in after],
+                         "signing in again did not replace the server in "
+                         "place")
+        self.assertNotEqual(before["AccessToken"], after[0]["AccessToken"])
+        self.remote_play(self.movie(LONG_NAME), 30)
+        self.assert_lands(self.movie(LONG_NAME), 30, "after signing in again")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class TheWrongServerNeverSeesThePasswordTest(_SignedOutCase):
+    """Row 49 by request order (Codex rev-3 #10: a final error cannot say
+    WHEN the password went). Signing in again to a different server's
+    address is refused -- and that server's relay never saw a login."""
+
+    def test_refused_before_the_password(self):
+        other = os.environ.get("JMS_E2E_OTHER_SERVER",
+                               "http://127.0.0.1:8097")
+        host, _, port = other.split("//", 1)[1].partition(":")
+        if not _e2e.wait_for(lambda: _e2e_reachable(other), timeout=5):
+            self.skipTest("no second server at %s" % other)
+        wrong = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(wrong.close)
+        before = self.credential()
+        self.sign_out_from_the_server()
+        self.open_the_form()
+        self.app.clear_field("login-server")
+        self.app.type_into("login-server", wrong.address)
+        self.app.type_into("login-pass", _accounts.password_for(
+            "qa-user", _e2e.SERVER), masked=True)
+        self.app.key("ENTER")
+        # Refused: the form stays, saying so.
+        time.sleep(5)
+        self.assertTrue(_app.shown(self.app.frame(), "login-pass"),
+                        "a different server was accepted as this one")
+        sent = [path for _m, path in wrong.requests
+                if "authenticatebyname" in path.lower()]
+        self.assertEqual([], sent, "the password went to the wrong server")
+        self.assertTrue(wrong.requests,
+                        "the other server was never asked anything, so "
+                        "this proves nothing")
+        self.assertEqual(before["uuid"], self.credential()["uuid"])
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+def _e2e_reachable(url):
+    import urllib.request
+    try:
+        urllib.request.urlopen(url + "/System/Info/Public", timeout=3).read()
+        return True
+    except Exception:
+        return False
 
 
 if __name__ == "__main__":
