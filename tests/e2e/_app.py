@@ -321,6 +321,8 @@ class App:
             self.key(n)
 
     _KEY_NAMES = {" ": "SPACE", "#": "SHARP", "\n": "ENTER"}
+    #: Keys sent before waiting for them to land (see type_into).
+    TYPE_CHUNK = 4
 
     def point(self, x, y):
         """Move the pointer to (x, y). mpv drops a move to where it already
@@ -377,10 +379,26 @@ class App:
         once let a TAB overtake the last characters on the jsonipc backend
         (a server URL arrived two digits short). A field that never reaches
         the text raises, naming what it holds: a lost keystroke is a finding,
-        a late one is not."""
+        a late one is not.
+
+        Typed a few keys at a time, each chunk waited for. mpv DROPS
+        keypress commands past `input-key-fifo-size` (default 7) while its
+        core is busy, silently -- a whole string sent at once lost keys
+        mid-stream whenever a scene push landed during it. No person types
+        that fast; the harness must not either (register, 2026-09-27)."""
         self.move_to(field)
-        self.type(text)
-        want = "*" * len(text) if masked else text
+        before = fields(self.frame()).get(field) or ""
+        for end in range(self.TYPE_CHUNK, len(text) + self.TYPE_CHUNK,
+                         self.TYPE_CHUNK):
+            self.type(text[end - self.TYPE_CHUNK:end])
+            shown = before + text[:end]
+            want = "*" * len(shown) if masked else shown
+            try:
+                self.wait_for(lambda f: fields(f).get(field) == want,
+                              timeout=timeout, what="a typed chunk")
+            except AppError:
+                break                       # reported below, with the trace
+        want = "*" * len(before + text) if masked else before + text
         try:
             return self.wait_for(lambda f: fields(f).get(field) == want,
                                  timeout=timeout,
