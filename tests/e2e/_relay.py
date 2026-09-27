@@ -75,6 +75,8 @@ class _Flow:
                 time.sleep(0.02)
             if self.closed or self.relay.mode != "pass":
                 break
+            if outbound and self.relay._matches(self.relay._fail, data):
+                break                   # fail(): the connection dies unsent
             if outbound and self.relay._should_hold(data):
                 # hold(): this request waits here, not forwarded, until
                 # drop_held() closes it (or close()).
@@ -129,6 +131,7 @@ class Relay:
         #: Bytes per second, server -> app, or None: throttle().
         self.rate = None
         self._hold = None           # compiled pattern for hold()
+        self._fail = None           # compiled pattern for fail()
         self._flows = set()
         self._held = []             # sockets accepted while stalled
         self._lock = threading.Lock()
@@ -178,12 +181,24 @@ class Relay:
         for flow in held:
             flow.close()
 
-    def _should_hold(self, data):
-        pattern = self._hold
+    def fail(self, path_pattern):
+        """Every request whose path matches ``path_pattern`` (a regex) dies
+        unsent, its connection closed, until ``fail(None)``. Not hold() plus
+        drop_held() in a loop: that re-arms with a gap, and urllib3 retries
+        a dropped request at once -- through the gap."""
+        self._fail = None if path_pattern is None else re.compile(
+            path_pattern.encode() if isinstance(path_pattern, str)
+            else path_pattern)
+
+    @staticmethod
+    def _matches(pattern, data):
         if pattern is None:
             return False
         m = _REQUEST_LINE.search(data)
         return bool(m and pattern.search(m.group(2)))
+
+    def _should_hold(self, data):
+        return self._matches(self._hold, data)
 
     def restore(self):
         """Back to ``pass``. Anything held or stalled is reset, not

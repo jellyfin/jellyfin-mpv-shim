@@ -19,7 +19,6 @@ in the same test.)
 
 import os
 import sys
-import threading
 import time
 import unittest
 import urllib.request
@@ -829,18 +828,9 @@ class ASweepHoldsAQueuedUnwatchTest(_OfflineCase):
         # times -- a held delivery blocks the sweep for minutes. A delivery
         # that fails fast leaves the unwatch queued, and the same worker pass
         # goes on to the sweep: the window the hold protects.
-        pattern = r"PlayedItems/" + self.film
-        failing = threading.Event()
-        failing.set()
-
-        def fail_each_attempt():
-            while failing.is_set():
-                if self.relay.held_count():
-                    self.relay.drop_held()
-                    self.relay.hold(pattern)
-                time.sleep(0.1)
-        threading.Thread(target=fail_each_attempt, daemon=True).start()
-        self.addCleanup(failing.clear)
+        self.relay.fail(r"PlayedItems/" + self.film)   # armed before the
+        self.relay.drop_held()                          # retry can come
+        self.addCleanup(self.relay.fail, None)
 
         def swept():
             return any(m == "GET" and "ids=" in path.lower()
@@ -857,8 +847,7 @@ class ASweepHoldsAQueuedUnwatchTest(_OfflineCase):
                              "a sweep re-ticked the copy from the server's "
                              "older watch while the unwatch was still queued")
             time.sleep(0.5)
-        failing.clear()
-        self.relay.drop_held()
+        self.relay.fail(None)
         self.assertEqual(0, self.app.quit(timeout=40))
 
 

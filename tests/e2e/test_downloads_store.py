@@ -261,7 +261,10 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
     launch) are constants, not settings. A show put into Next Up downloads
     its next episodes by itself; one of them watched on the server is
     reaped (watched grace 0 h), the next is kept; and only auto-downloads
-    are ever reaped."""
+    are ever reaped. c0cfac0b: not while no sweep has landed this session,
+    even with the catalog already told (websocket) that it was watched --
+    after a relaunch every sweep fails, and the reap waits out the bounded
+    hold (REAP_SWEEP_HOLD) and then goes ahead without one."""
 
     SHOW = "The Standard Show"
     CONF = {"auto_download_enable": True, "auto_download_next_up": True,
@@ -299,6 +302,13 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
         self.launched = time.monotonic()
         self.app.start()
         _flows.login(self.app, self.relay)
+        self.addCleanup(self.relay.fail, None)
+
+    def fail_sweeps(self, on=True):
+        """Every catalog sweep (a batched GET by Ids) fails fast -- fast,
+        not held: the sweep and the reaper share one worker, and a hung
+        request would stall both."""
+        self.relay.fail(r"[?&][Ii]ds=" if on else None)
 
     def row(self, item_id):
         return self.catalog.download(item_id) or {}
@@ -319,12 +329,39 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
                         % [self.row(e).get("origin") for e in (e2, e3)])
         self.assertFalse(self.row(self.eps[0]),
                          "the watched episode before Next Up was fetched")
+        # The gate is per SESSION (manager._sweep_owed): this one has swept
+        # already. A relaunch with every sweep failing is a session where
+        # none has landed.
+        self.fail_sweeps()
+        self.app = _flows.relaunch(self.app)
+        self.launched = time.monotonic()
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="Home after the relaunch")
         self.session.api.item_played(e2, True)
-        # The hold runs from launch; then the next sweep and reap pass.
-        budget = max(0, 900 - (time.monotonic() - self.launched)) + 600
+        # The websocket tells the catalog at once, so the catalog is not
+        # what holds the reap back below: a sweep that has not landed is.
+        self.assertTrue(_e2e.wait_for(
+            lambda: any(r.get("played") for r in
+                        self.catalog.userdata(e2).values()), timeout=60),
+            "the premise: the catalog never learned E02 was watched")
+        # c0cfac0b: no reap while no sweep has LANDED this session, however
+        # watched the catalog says the row is -- and the hold is BOUNDED:
+        # REAP_SWEEP_HOLD (900 s) from the first pass that found a sweep
+        # owed, then the pass reaps anyway, so a server that takes the
+        # connection and never answers cannot switch retention off.
+        seen = len(self.relay.requests)
+        while time.monotonic() < self.launched + 840:
+            self.assertTrue(self.row(e2), "reaped before any sweep landed, "
+                            "%.0f s into the session"
+                            % (time.monotonic() - self.launched))
+            time.sleep(5)
         self.assertTrue(_e2e.wait_for(lambda: not self.row(e2),
-                                      timeout=budget),
-                        "the watched auto-download was never reaped")
+                                      timeout=300),
+                        "the bounded hold never let the reap go")
+        self.assertFalse([p for m, p in self.relay.requests[seen:]
+                          if "ids=" in p.lower()],
+                         "a sweep landed: the bound was not what reaped")
+        self.fail_sweeps(False)
         self.assertFalse(os.path.exists(os.path.join(
             self.app.config_dir, "offline", "server", e2)),
             "its files outlived its row")
