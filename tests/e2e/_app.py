@@ -403,7 +403,15 @@ class App:
                 raise
         self.lost_keys.append((key, what))
         self.key(key)
-        return self.wait_for(predicate, timeout=timeout, what=what)
+        try:
+            return self.wait_for(predicate, timeout=timeout, what=what)
+        except AppError as exc:
+            # Where each press went: nav and the page, frame by frame.
+            trail = [(h.get("rev"), h.get("nav"), h.get("top"))
+                     for h in self.history()[-60:]]
+            dedup = [t for i, t in enumerate(trail)
+                     if i == 0 or t[1:] != trail[i - 1][1:]]
+            raise AppError("%s\nframes (rev, nav, page): %r" % (exc, dedup))
 
     def move_to(self, target, key=None, limit=60):
         """Put keyboard focus (nav) on ``target``.

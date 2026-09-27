@@ -2164,7 +2164,19 @@ if os.getenv('JMS_TEST_OBSERVE') then
             occ[#occ + 1] = { x1 = o.x1, y1 = o.y1, x2 = o.x2, y2 = o.y2 }
         end
         local hist = state.obs_hist
-        hist[#hist + 1] = { rev = state.obs_rev, shown = shown }
+        -- nav and the page's first id, so a press that landed somewhere
+        -- unexpected can be traced frame by frame after the fact.
+        local top
+        for _, node in ipairs(state.nodes or {}) do
+            local id = node.id
+            if id and not id:match('^nav%-') and not id:match('^win%-')
+                    and not id:match('^banner%-') and not id:match('^r%.') then
+                top = id
+                break
+            end
+        end
+        hist[#hist + 1] = { rev = state.obs_rev, shown = shown,
+                            nav = state.nav, top = top }
         if #hist > 512 then table.remove(hist, 1) end
         pcall(mp.set_property_native, 'user-data/mpvtk/observe', {
             rev = state.obs_rev, w = state.w, h = state.h,
