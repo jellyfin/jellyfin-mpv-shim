@@ -255,6 +255,17 @@ PER_BACKEND = [
     "tests.e2e.test_store_safety",
     # Row 63: browsing and playing the downloads with the network cut.
     "tests.e2e.test_offline_library",
+    # Slice S2: the playback lifecycle at the keyboard of the real app.
+    "tests.e2e.test_playback_lifecycle",
+    "tests.e2e.test_input_live",
+    "tests.e2e.test_type_seams_live",
+    "tests.e2e.test_reconnect_remote",
+    "tests.e2e.test_downloads_store",
+    "tests.e2e.test_app_lifecycle",
+    "tests.e2e.test_settings_live",
+    "tests.e2e.test_window_live",
+    "tests.e2e.test_profiles_live",
+    "tests.e2e.test_browse_routes",
 ]
 
 MODULES = CONTRACT + PER_BACKEND
