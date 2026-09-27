@@ -502,7 +502,11 @@ class App:
             return None
 
     def playing_path(self, timeout=60):
-        """What mpv was handed to play: its `path`, once there is one."""
+        """What mpv was handed to play: its `path`, once there is one.
+
+        Returns at once if something is ALREADY playing -- audio keeps
+        playing across navigation -- so a second play in one test must wait
+        for the path to change instead (TwinPlaylistsOnTwoServersTest)."""
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             path = self.prop("path")
