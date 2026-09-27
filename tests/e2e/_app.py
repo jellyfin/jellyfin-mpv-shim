@@ -333,6 +333,15 @@ class App:
                               "<%d chars>" % len(got or ""),
                               text if not masked else "<%d chars>" % len(text)))
 
+    def clear_field(self, field, timeout=10):
+        """Empty text field ``field`` the way a person does: select all,
+        then backspace."""
+        self.move_to(field)
+        self.key("ctrl+a")
+        self.key("BS")
+        return self.wait_for(lambda f: not fields(f).get(field),
+                             timeout=timeout, what="%s to be empty" % field)
+
     def frame(self):
         """The renderer's last finished frame, or None before the first."""
         try:
