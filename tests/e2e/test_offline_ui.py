@@ -21,6 +21,7 @@ import os
 import sys
 import time
 import unittest
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _app  # noqa: E402
@@ -617,6 +618,55 @@ class AnInactiveProfilesDownloadTest(unittest.TestCase):
                 out[u.get("name")] = c.get("AccessToken")
         return out
 
+    def queue_then_leave_as_bob(self):
+        """The default profile queues the film; the app switches to Bob and
+        quits with the file request held, then comes back as Bob. Why the
+        quit: see the first test."""
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="the default profile's home")
+        _flows.open_by_search(self.app, FILM_QUERY, self.film)
+        self.relay.hold(self.DOWNLOAD)
+        self.app.move_to("act-download")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "dl-ok"), timeout=15,
+                          what="the download dialog")
+        self.app.move_to("dl-ok")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(lambda: self.relay.held_count() > 0,
+                                      timeout=60),
+                        "the file request never reached the relay")
+        _flows.switch_profile(self.app, "Bob")
+        self.app.quit(timeout=90)
+        self.relay.drop_held()
+
+    def relaunch(self):
+        self.app = _app.App(backend=_backend(),
+                            config_dir=self.app.config_dir)
+        self.app.start()
+        self.assertEqual("Bob", _flows.active_profile(self.app.config_dir))
+
+    def test_a_revoked_login_waits_and_says_so(self):
+        """6b's other half: the default profile's login is signed out on
+        the server (as signing out elsewhere does), so D2 is refused. The
+        download waits, and the Downloads screen says for whom (Izzie,
+        2026-09-26: "Might be worth making it say 'waiting...'")."""
+        self.queue_then_leave_as_bob()
+        token = self._tokens()["(default)"]
+        req = urllib.request.Request(
+            _e2e.SERVER + "/Sessions/Logout", method="POST", data=b"",
+            headers={"Authorization": 'MediaBrowser Token="%s"' % token})
+        urllib.request.urlopen(req, timeout=15).read()
+        self.relaunch()
+        _flows.open_settings_tab(self.app, "downloads")
+        want = "Waiting for (default) to sign in"
+        self.app.wait_for(
+            lambda f: any(want in (t or "") for t in _app.texts(f)),
+            timeout=90, what="the download to say whose sign-in it waits for")
+        self.assertNotEqual("complete",
+                            (self.catalog.download(self.film) or {})
+                            .get("status"))
+        self.assertEqual(0, self.app.quit(timeout=30))
+
     def test_it_is_finished_as_the_person_who_queued_it(self):
         self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
                           what="the default profile's home")
@@ -732,6 +782,11 @@ class TheOfflineEntryTest(_OfflineEntryCase):
         self.download_the_film()
         pid = self.app.proc.pid
         f = self.pick_offline()                                  # case 2
+        # Picked, so it is the server being browsed, not a fallback: no
+        # banner (Izzie, 2026-09-26).
+        self.assertFalse(_app.shown(f, "banner-retry")
+                         or _app.shown(f, "banner-servers"),
+                         "a chosen Offline shows the fallback banner")
         self.assertEqual("pass", self.relay.mode)
         self.assertEqual(pid, self.app.proc.pid, "the app restarted")
         entries = _flows.items(f, "nav-server")
@@ -768,13 +823,11 @@ class TheOfflineEntryTest(_OfflineEntryCase):
         self.assertTrue(_app.shown(f, DOWNLOADED_TILE % self.film))
         self.assertEqual(0, self.app.quit(timeout=30))
 
-    @unittest.expectedFailure
     def test_the_switcher_does_not_keep_showing_the_server_that_refused(self):
-        """mpvtk ends a drop-down's pending pick only when the app answers
-        with a value DIFFERENT from where the pick began; a refusal answers
-        with that same value, so the refused server stays shown while the
-        downloads are on screen. Needs a toolkit way to say "refused"
-        (register, "Scenario 11")."""
+        """A refusal answers with the value the pick began on, which mpvtk
+        took for a stale repaint, so the refused server stayed drawn as
+        chosen over the downloads. The app now answers through the
+        Dropdown's `ack` (mpvtk GUIDE section 2)."""
         self.download_the_film()
         f = self.pick_offline()
         self.relay.cut()
@@ -854,10 +907,12 @@ class ABounceDoesNotPullYouOutTest(_OfflineEntryCase):
 class AMidPageDropTest(_OfflineEntryCase):
     """D3 case 1: the server drops while you are on a page. Nothing switches
     by itself; the server's entry reads "needs reconnect"; the next fetch
-    shows its normal load error. A search is that fetch here -- a failed
-    HOME load drops to the downloads by design (app._offline_fallback),
-    which case 1 does not mention (register, "Scenario 11"). Carve-out:
-    health_check_interval seeded short, as in scenario 8."""
+    shows its load error AND the retry/offline banner (Izzie, 2026-09-26:
+    "Once the user tries to do something and the request fails hard it
+    should probably show the retry/offline banner"). A search is that fetch:
+    a failed Home drops to the downloads plus the offline banner instead,
+    also ruled. Carve-out: health_check_interval seeded short, as in
+    scenario 8."""
 
     CONF = {"health_check_interval": 10}
 
@@ -883,8 +938,12 @@ class AMidPageDropTest(_OfflineEntryCase):
         self.app.clear_field("nav-search")
         self.app.type_into("nav-search", "Only")
         self.app.key("ENTER")
-        self.app.wait_for(lambda f: _app.shown(f, "route-retry"),
-                          timeout=120, what="the search's load error")
+        f = self.app.wait_for(lambda f: _app.shown(f, "route-retry"),
+                              timeout=120, what="the search's load error")
+        self.assertTrue(_app.shown(f, "banner-unreachable-retry"),
+                        "a hard failure did not raise the retry banner")
+        self.assertTrue(_app.shown(f, "banner-unreachable-offline"),
+                        "the banner offers no way to the downloads")
         self.assertEqual(0, self.app.quit(timeout=30))
 
 

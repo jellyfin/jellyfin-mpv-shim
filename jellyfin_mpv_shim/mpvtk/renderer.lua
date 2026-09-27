@@ -3608,6 +3608,7 @@ local function on_mouse_down()
         if idx ~= nil and node then
             local d = dd_state(node)
             d.was = node.sel or 0      -- opens the gesture; see dd_state
+            d.ack = node.ack
             d.sel = idx
             send({ t = 'select', id = node.id, index = idx,
                    value = node.items[idx + 1] })
@@ -4632,6 +4633,7 @@ local function nav_activate()
         if node and idx ~= nil then
             local d = dd_state(node)
             d.was = node.sel or 0      -- opens the gesture; see dd_state
+            d.ack = node.ack
             d.sel = idx
             send({ t = 'select', id = node.id, index = idx,
                    value = node.items[idx + 1] })
@@ -5682,13 +5684,12 @@ local function reconcile()
                 -- something DIFFERENT from what it was showing when the
                 -- click happened -- whether that is agreement or a refusal
                 -- that lands on some third value, both are answers.
-                -- A refusal that KEEPS the original is not an answer here
-                -- either: the control stays on the refused choice (the
-                -- server switcher's failed reconnect, expectedFailure in
-                -- tests/e2e/test_offline_ui.py). Needs a way to say
-                -- "refused".
+                -- A refusal that KEEPS the original value looks exactly like
+                -- a stale repaint, so the app says it with `ack`, a value it
+                -- changes when it answers "no" (GUIDE section 2).
                 if d == nil or d.was == nil
-                        or (node.sel or 0) ~= d.was then
+                        or (node.sel or 0) ~= d.was
+                        or node.ack ~= d.ack then
                     state.dd[node.id] = nil
                 end
             end

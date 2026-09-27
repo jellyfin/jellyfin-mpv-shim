@@ -152,10 +152,27 @@ class ComingBackTest(_Case):
         b, ctl = self.browser()
         self.pick(b, "Offline")
         ctl.up = False
-        self.pick(b, "Home")
-        self.assertEqual(["srv1"], ctl.retried)
-        self.assertTrue(b.offline)
-        self.assertIs(self.offline, b.source)
+        for n in range(3):
+            before, _h = self.switcher(b)
+            self.pick(b, "Home")
+            self.assertEqual(["srv1"] * (n + 1), ctl.retried)
+            self.assertTrue(b.offline)
+            self.assertIs(self.offline, b.source)
+            # The switcher is told it was a "no" (mpvtk `ack`), or it goes on
+            # drawing the refused server as chosen over the downloads.
+            after, _h = self.switcher(b)
+            self.assertEqual(before["sel"], after["sel"])
+            self.assertNotEqual(before.get("ack"), after.get("ack"),
+                                "a refused pick was not answered as refused")
+
+    def test_offline_with_nothing_to_browse_is_answered_as_refused(self):
+        b, ctl = self.browser()
+        ctl.offline_source = lambda: None
+        before, _h = self.switcher(b)
+        self.pick(b, "Offline")
+        after, _h = self.switcher(b)
+        self.assertEqual(before["sel"], after["sel"])
+        self.assertNotEqual(before.get("ack"), after.get("ack"))
 
 
 class ABounceDoesNotUndoItTest(_Case):
@@ -189,6 +206,107 @@ class ABounceDoesNotUndoItTest(_Case):
             self._ui(b)._on_server_connected()
         self.assertFalse(b.offline)
         self.assertIs(live, b.source)
+
+
+class _Unreachable(FakeSource):
+    """A live source whose server stops answering: every fetch raises the
+    apiclient's own exception, which is what a real refused or timed-out
+    request raises. All of them, so no route can dodge it."""
+
+    def __init__(self, error=None):
+        super().__init__()
+        self.error = error
+
+    def __getattribute__(self, name):
+        attr = super().__getattribute__(name)
+        if (name.startswith(("get_", "search")) and callable(attr)
+                and super().__getattribute__("error") is not None):
+            def fail(*_a, **_k):
+                raise super(_Unreachable, self).__getattribute__("error")
+            return fail
+        return attr
+
+
+def _down():
+    from jellyfin_apiclient_python.exceptions import HTTPException
+    return HTTPException("ServerUnreachable", "refused")
+
+
+class TheBannersTest(_Case):
+    """Izzie, 2026-09-26: "a failed home should show downloads + a banner.
+    Selecting offline deliberately selects that as the current server and
+    the banner vanishes." And: "Once the user tries to do something and the
+    request fails hard it should probably show the retry/offline banner." """
+
+    @staticmethod
+    def banner_ids(b):
+        nodes, _h = build_scene(b, size=(1600, 900))
+        return {n.get("id") for n in nodes
+                if (n.get("id") or "").startswith("banner-")}
+
+    def test_a_chosen_offline_has_no_banner(self):
+        b, _ctl = self.browser()
+        self.pick(b, "Offline")
+        self.assertEqual(set(), self.banner_ids(b))
+
+    def test_an_offline_nobody_chose_keeps_its_banner(self):
+        b, _ctl = self.browser()
+        b.set_source(self.offline)
+        self.assertIn("banner-retry", self.banner_ids(b))
+
+    def search(self, b):
+        """Something the person asks for that needs the server. Not Home: a
+        failed Home drops to the downloads by design."""
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+
+    def test_a_server_that_stops_answering_says_so_until_it_answers(self):
+        b, _ctl = self.browser()
+        src = _Unreachable()
+        b.set_source(src, server_uuid="srv1")      # Home loads first
+        for _ in range(3):           # the banner must come and go each time
+            src.error = _down()
+            self.search(b)
+            self.assertIn("banner-unreachable-retry", self.banner_ids(b))
+            src.error = None
+            _nodes, handlers = build_scene(b, size=(1600, 900))
+            handlers["banner-unreachable-retry"]["click"]()
+            self.assertNotIn("banner-unreachable-retry", self.banner_ids(b))
+
+    def test_anything_that_loads_clears_it_not_only_retry(self):
+        b, _ctl = self.browser()
+        src = _Unreachable()
+        b.set_source(src, server_uuid="srv1")
+        for _ in range(3):
+            src.error = _down()
+            self.search(b)
+            self.assertIn("banner-unreachable-retry", self.banner_ids(b))
+            src.error = None
+            b.go_back()              # somewhere else, which now loads
+            b._retry_route(b.route)
+            self.assertNotIn("banner-unreachable-retry", self.banner_ids(b))
+
+    def test_it_offers_offline_only_with_something_downloaded(self):
+        for downloads in (True, False):
+            b, ctl = self.browser(downloads=downloads)
+            src = _Unreachable()
+            b.set_source(src, server_uuid="srv1")  # Home loads first
+            src.error = _down()
+            self.search(b)
+            got = self.banner_ids(b)
+            self.assertIn("banner-unreachable-retry", got)
+            self.assertEqual(downloads, "banner-unreachable-offline" in got)
+
+    def test_a_server_error_is_not_an_unreachable_server(self):
+        from jellyfin_apiclient_python.exceptions import HTTPException
+        b, _ctl = self.browser()
+        src = _Unreachable()
+        b.set_source(src, server_uuid="srv1")      # Home loads first
+        src.error = HTTPException(500, "boom")
+        self.search(b)
+        self.assertNotIn("banner-unreachable-retry", self.banner_ids(b))
+        self.assertIsNotNone(b.route.get("_error"),
+                             "the page's own error is still shown")
 
 
 class _Manager:

@@ -163,6 +163,8 @@ def _entry(row, qualified=False):
         "done": row.get("downloaded_bytes") or 0,
         "total": row.get("size_bytes") or 0,
         "watched": row_watched(row),
+        # D2: set only while nobody present can fetch it as its person.
+        "waiting_for": row.get("waiting_for"),
     }
 
 
@@ -185,6 +187,11 @@ def status_text(entry):
             return _("Downloading %d%%") % int(done * 100 / total)
         return _("Downloading")
     if status == STATUS_PENDING:
+        waiting = entry.get("waiting_for")
+        if waiting is not None:
+            # D2: queued by a profile whose saved login is refused or gone.
+            return (_("Waiting for %s to sign in…") % waiting if waiting
+                    else _("Waiting for its profile to sign in…"))
         return _("Queued")
     if status == STATUS_ERROR:
         return _("Failed")

@@ -33,6 +33,7 @@ class DownloadsMixin(GatewayCore):
         """The downloads manager's display tree. Reaching the sync db is this
         layer's job; the grouping is in ``downloads.group_downloads``."""
         from ..downloads import group_downloads
+        from ...sync.db import STATUS_PENDING
         from ...sync.manager import syncManager
         db = getattr(syncManager, "db", None)
         if db is None:
@@ -51,6 +52,10 @@ class DownloadsMixin(GatewayCore):
                       if data["played"]}
             for row in rows:
                 row["played"] = row["item_id"] in played
+                if row.get("status") == STATUS_PENDING:
+                    waiting = syncManager.waiting_for(row)
+                    if waiting is not None:
+                        row["waiting_for"] = waiting
         except Exception:
             log.error("mpvtk list_downloads failed", exc_info=True)
             return []

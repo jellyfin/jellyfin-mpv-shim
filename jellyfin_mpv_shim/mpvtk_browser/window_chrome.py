@@ -355,10 +355,9 @@ def chrome_bar(b, compact, probe=False, servers=None,
             "nav-server", labels,
             selected=cur, min_w=110, tip=_("Server"),
             # The scene's choice wins: the selection also moves without a pick
-            # (falling back to the downloads, a background reconnect). NOT
-            # enough for a refused pick, which answers with the value the
-            # gesture began on and so never ends it (GUIDE section 2).
-            force=True,
+            # (falling back to the downloads, a background reconnect), and a
+            # refused pick is answered through `ack` (GUIDE section 2).
+            force=True, ack=b._server_pick_ack,
             max_w=170 if compact else 300,
             # The open list is not the closed box. The box has a top bar to
             # share with Search and the nav buttons; the list has the whole
@@ -579,7 +578,19 @@ def banner(b):
                    tip=_("Do not mention this version again"),
                    on_click=b._ignore_update),
         ], pad=10, gap=10, align="center", h=48, bg=theme.ACCENT_SOFT)
-    if b._offline:
+    if b._unreachable and not b._offline:
+        row = [Text(_("The server isn't answering."), size="normal"),
+               Spacer(),
+               Button(_("Retry"), id="banner-unreachable-retry",
+                      on_click=b.retry_unreachable)]
+        if _has_downloads(b):
+            row.append(Button(_("Go Offline"), id="banner-unreachable-offline",
+                              on_click=b.go_offline))
+        return Row(row, pad=10, gap=10, align="center", h=48,
+                   bg=theme.mix(theme.WARN_AMBER, theme.WINDOW_BG, 0.72))
+    # Not when Offline was picked: then it is the server being browsed, and
+    # a banner calling it a fallback would be wrong (Izzie, 2026-09-26).
+    if b._offline and not b._offline_chosen:
         return Row([
             Text(_("Offline — showing what's available."), size="normal"),
             Spacer(),

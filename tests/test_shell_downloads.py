@@ -191,6 +191,12 @@ class TestDownloadsGrouping(unittest.TestCase):
         class FakeSync:
             db = FakeDB()
 
+            @staticmethod
+            def waiting_for(row):
+                """D2's "nobody present can fetch this as its person": whose
+                sign-in it waits for, or None. `_waiting` says so here."""
+                return row.get("_waiting")
+
         import jellyfin_mpv_shim.sync.manager as mgr
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
@@ -205,6 +211,27 @@ class TestDownloadsGrouping(unittest.TestCase):
         ])
         groups = ctl.list_downloads()
         self.assertEqual(groups[0]["size"], 1024 * 1024)
+
+    def test_a_row_waiting_for_a_sign_in_names_the_profile(self):
+        ctl = self._controller([
+            {"item_id": "m1", "name": "Mine", "status": "pending",
+             "requested_server_id": "s1", "requested_user_id": "u-bob",
+             "_waiting": "Bob", "downloaded_bytes": 0, "size_bytes": 1},
+            {"item_id": "m2", "name": "Theirs", "status": "pending",
+             "requested_server_id": "s1", "requested_user_id": "u-gone",
+             "_waiting": "", "downloaded_bytes": 0, "size_bytes": 1},
+            {"item_id": "m3", "name": "Just queued", "status": "pending",
+             "downloaded_bytes": 0, "size_bytes": 1},
+        ])
+        rows = {c["id"]: c for g in ctl.list_downloads()
+                for c in g["children"]}
+        self.assertEqual("Bob", rows["m1"].get("waiting_for"))
+        self.assertEqual("", rows["m2"].get("waiting_for"))
+        self.assertIsNone(rows["m3"].get("waiting_for"))
+        from jellyfin_mpv_shim.mpvtk_browser.downloads import status_text
+        self.assertEqual("Waiting for Bob to sign in…",
+                         status_text(rows["m1"]))
+        self.assertEqual("Queued", status_text(rows["m3"]))
 
     def test_falls_back_to_expected_size_before_download_starts(self):
         ctl = self._controller([
@@ -410,6 +437,12 @@ class TestOrphanedDownloadOwnership(unittest.TestCase):
 
         class FakeSync:
             db = FakeDB()
+
+            @staticmethod
+            def waiting_for(row):
+                """D2's "nobody present can fetch this as its person": whose
+                sign-in it waits for, or None. `_waiting` says so here."""
+                return row.get("_waiting")
 
         import jellyfin_mpv_shim.sync.manager as mgr
         real, mgr.syncManager = mgr.syncManager, FakeSync()

@@ -41,10 +41,10 @@ class _Client:
 
 
 PROFILES = [
-    {"id": "p-alice", "credentials": [
+    {"id": "p-alice", "name": "Alice", "credentials": [
         {"uuid": "login-a", "Id": "SRV", "UserId": "alice",
          "AccessToken": "tok-a", "address": "http://srv"}]},
-    {"id": "p-bob", "credentials": [
+    {"id": "p-bob", "name": "Bob", "credentials": [
         {"uuid": "login-b", "Id": "SRV", "UserId": "bob",
          "AccessToken": "tok-b", "address": "http://srv"},
         {"uuid": "login-c", "Id": "OTHER", "UserId": "alice",
@@ -69,6 +69,13 @@ class CredentialClientTest(unittest.TestCase):
             return c
 
         self.cm.client_factory = factory
+
+    def test_a_login_is_named_by_the_profile_that_holds_it(self):
+        """What the Downloads screen says a waiting download waits for."""
+        from jellyfin_mpv_shim.users import userManager
+        self.assertEqual("Alice", userManager.profile_name_for("SRV", "alice"))
+        self.assertEqual("Bob", userManager.profile_name_for("OTHER", "alice"))
+        self.assertIsNone(userManager.profile_name_for("SRV", "carol"))
 
     def test_an_inactive_profiles_credential_is_found_and_used(self):
         uuid, client = self.cm.credential_client("SRV", "alice")
