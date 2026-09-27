@@ -417,9 +417,8 @@ class App:
         """Put keyboard focus (nav) on ``target``.
 
         TAB first, then shift+TAB: a long page (Home, with its rows) can put
-        the top bar further away forwards than backwards. A key that changes
-        nothing draws no frame, so each press waits briefly for a newer one
-        and carries on without it. Raises when neither direction gets there
+        the top bar further away forwards than backwards. Each press waits
+        briefly for focus to move and carries on without it. Raises when neither direction gets there
         -- a target the keyboard cannot reach is a finding, and carrying on
         types into whatever has focus instead."""
         f = self.frame() or {}
@@ -427,10 +426,16 @@ class App:
             return f
         for k in ((key,) if key else ("TAB", "shift+TAB")):
             for _ in range(limit):
-                rev = (self.frame() or {}).get("rev", 0)
+                was = (self.frame() or {}).get("nav")
                 self.key(k)
+                # Wait for focus to MOVE, not for any newer frame: a focused
+                # textbox's caret blink draws frames of its own, and one
+                # drawn before the renderer handled this key read as "the
+                # key did nothing", so the next press overshot by one (a
+                # TAB meant for Settings landed on the first library).
                 try:
-                    f = self.after(rev, timeout=2)
+                    f = self.wait_for(lambda f: f.get("nav") != was,
+                                      timeout=2, what="focus to move")
                 except AppError:
                     if not self.alive():
                         raise
