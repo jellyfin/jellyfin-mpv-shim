@@ -257,6 +257,7 @@ PER_BACKEND = [
     "tests.e2e.test_offline_library",
     # Slice S2: the playback lifecycle at the keyboard of the real app.
     "tests.e2e.test_playback_lifecycle",
+    "tests.e2e.test_input_live",
 ]
 
 MODULES = CONTRACT + PER_BACKEND
