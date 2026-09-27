@@ -381,7 +381,7 @@ class ADamagedUsersFileIsRestoredTest(_StoreCase):
     def test_the_backup_brings_the_profiles_back(self):
         self.assertEqual(0, self.app.quit(timeout=30))
         path = os.path.join(self.app.config_dir, "users.json")
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             before = json.load(fh)
         ids = sorted(u["id"] for u in before["users"])
         self.assertTrue(os.path.exists(path + ".bak"),
@@ -393,7 +393,7 @@ class ADamagedUsersFileIsRestoredTest(_StoreCase):
         self.app.start()
         self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=90,
                           what="Home, signed in, after the damage")
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             after = json.load(fh)
         self.assertEqual(ids, sorted(u["id"] for u in after["users"]),
                          "the profiles came back as new ones")
