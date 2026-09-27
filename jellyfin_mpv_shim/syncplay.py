@@ -926,6 +926,12 @@ class SyncPlayManager:
             {"Id": x["ItemId"], "PlaylistItemId": x["PlaylistItemId"]}
             for x in data["Playlist"]
         ]
+        if not sp_items:
+            # The server does send these (PlayingItemIndex -1). web's
+            # startPlayback returns on isPlaylistEmpty() -- after following,
+            # above -- and leaves whatever is playing alone.
+            log.debug("Ignoring an empty %s queue update.", data.get("Reason"))
+            return
         if self.playerManager.get_video() is None:
             log.info("The queue update changed the video. (New)")
             offset = data.get("StartPositionTicks")

@@ -484,6 +484,46 @@ class TestHaltingIsNotLeaving(ProtocolCase):
         self.assertFalse(group.sessions["session-under-test"].ignore_wait,
                          "we are watching again and the group was not told")
 
+    def _empty(self):
+        """What the server sent a member in the real-app e2e
+        (test_reconnect_remote, 2026-09-27): a NewPlaylist with nothing in
+        it, which `_start_queue` and `replace_queue` both indexed into."""
+        return {"Playlist": [], "PlayingItemIndex": -1,
+                "StartPositionTicks": 0, "Reason": "NewPlaylist"}
+
+    def test_an_empty_playlist_starts_nothing_on_an_idle_member(self):
+        group, sp, api = self.group_and_client()
+        sp.playerManager.get_video = lambda: None
+        sp.upd_queue(self._empty())          # the real _start_queue raised
+        self.assertFalse(hasattr(sp.playerManager, "video"),
+                         "an empty playlist started playback")
+
+    def test_an_empty_playlist_leaves_a_playing_member_alone(self):
+        """web's startPlayback returns on isPlaylistEmpty(): nothing is
+        replaced, and nothing is stopped."""
+        group, sp, api = self.group_and_client()
+        replaced = []
+
+        class Playing(FakeQueue):
+            def replace_queue(self, sp_items, seq):
+                replaced.append((sp_items, seq))
+
+        video = FakeVideo()
+        video.parent = Playing()
+        sp.playerManager.get_video = lambda: video
+        sp.upd_queue(self._empty())
+        self.assertEqual(replaced, [], "the queue was replaced by nothing")
+        self.assertEqual(sp.playerManager.stopped, [])
+
+    def test_an_empty_playlist_still_pulls_a_halted_member_back_in(self):
+        """web follows the group first, then finds nothing to start."""
+        group, sp, api = self.group_and_client()
+        sp.halt_group_playback()
+        started = self._record_starts(sp)
+        sp.upd_queue(self._empty())
+        self.assertTrue(sp.is_enabled())
+        self.assertEqual(started, [])
+
     def test_resume_starts_where_the_group_is_now(self):
         group, sp, api = self.group_and_client(
             state=PAUSED, position_ticks=600 * 10_000_000)
