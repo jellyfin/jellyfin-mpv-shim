@@ -318,7 +318,9 @@ def main():
         # bandwidth. is_playing() is False when idle or paused-at-idle, which
         # is exactly when fetching ahead is free.
         get_clients=lambda: clientManager.clients,
-        is_busy=lambda: playerManager.is_playing())
+        is_busy=lambda: playerManager.is_playing(),
+        # D2: an absent profile's queued downloads, with its own credential.
+        credential_client=clientManager.credential_client)
     user_interface.start()
     single.on_activate = getattr(user_interface, "activate", lambda: None)
     user_interface.login_servers()

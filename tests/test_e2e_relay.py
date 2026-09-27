@@ -134,6 +134,27 @@ class RelayTest(unittest.TestCase):
             self.assertEqual(200, self._get(self._conn())[0])
         self.assertLessEqual(self.relay.open_flows(), 1)
 
+    def test_a_held_request_waits_and_a_dropped_one_never_arrives(self):
+        self.relay.hold(r"^/slow")
+        conn = self._conn(timeout=0.5)
+        with self.assertRaises(socket.timeout):
+            self._get(conn, "/slow")
+        self.assertEqual(1, self.relay.held_count())
+        # Everything else still passes while one request is held.
+        self.assertEqual(200, self._get(self._conn())[0])
+        self.relay.drop_held()
+        self.assertEqual(0, self.relay.held_count())
+        self.assertNotIn(("GET", "/slow"), self.relay.requests,
+                         "a held request was forwarded")
+
+    def test_the_token_each_request_carried_is_recorded(self):
+        conn = self._conn()
+        conn.request("GET", "/System/Info/Public", headers={
+            "Authorization": 'MediaBrowser Client="x", Token="tok-123"'})
+        conn.getresponse().read()
+        self.assertIn(("/System/Info/Public", "tok-123"),
+                      self.relay.request_tokens)
+
     def test_a_redirect_is_recorded(self):
         self.assertEqual(302, self._get(self._conn(), "/redirect")[0])
         self.assertEqual([302], self.relay.redirects)
