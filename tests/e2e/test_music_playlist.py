@@ -170,15 +170,6 @@ class MusicPlaylistShapeTest(_e2e.E2ETestCase):
             "a music playlist did not report MediaType Audio, so the launch "
             "rule has nothing to read and the type list was right after all")
 
-    def test_the_launch_rule_agrees_with_the_server(self):
-        from jellyfin_mpv_shim.utils import launches_as_audio
-
-        dto = self.session.api.get_item(self.music_id)
-        self.assertTrue(
-            launches_as_audio(dto),
-            "a real music playlist launches down the video branch, which "
-            "yields the window and lets the auto-hide blank the library")
-
     def test_a_video_playlist_is_not_audio(self):
         """The control, and the reason this is not "playlists are audio":
         one `Type`, both answers, and only `MediaType` separates them."""

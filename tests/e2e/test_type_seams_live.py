@@ -240,7 +240,16 @@ class OneSessionAcrossEveryTypeTest(_ChainCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
-class AMixedPlaylistTwiceRoundTest(_ChainCase):
+class _PlaylistCase(_ChainCase):
+    open_playlist = _pl.StepsAndMarksTest.open_playlist
+
+    def on(self, item_id):
+        self.assertTrue(_e2e.wait_for(
+            lambda: item_id in (self.p("path") or ""), timeout=30),
+            "never reached %s (path %r)" % (item_id, self.p("path")))
+
+
+class AMixedPlaylistTwiceRoundTest(_PlaylistCase):
     """Row 24: video, song, video, song, and round again. Each video owns
     the window and its HUD comes back on the pointer; each song leaves the
     library up with its bar (the playlist that blanked the library,
@@ -267,13 +276,6 @@ class AMixedPlaylistTwiceRoundTest(_ChainCase):
         self.playlist = made["Id"]
         self.addCleanup(self.session._request, "/Items/%s" % self.playlist,
                         "DELETE")
-
-    open_playlist = _pl.StepsAndMarksTest.open_playlist
-
-    def on(self, item_id):
-        self.assertTrue(_e2e.wait_for(
-            lambda: item_id in (self.p("path") or ""), timeout=30),
-            "never reached %s (path %r)" % (item_id, self.p("path")))
 
     def test_video_song_video_song_twice(self):
         self.open_playlist()
@@ -304,6 +306,42 @@ class AMixedPlaylistTwiceRoundTest(_ChainCase):
             self.assert_library("end of round %d" % round_)
             self.app.wait_for(lambda f: _app.shown(f, "pl-play"),
                               timeout=15, what="the playlist page again")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class AMusicPlaylistFromItsTileTest(_PlaylistCase):
+    """Row 24 / audit A2:67: a playlist of songs, launched from its tile,
+    launches as audio -- the library stays, with its bar. What decides it
+    in production is the playlist's FIRST entry (`launches_as_audio(item,
+    first=items[0])`), which the LYING unit-level test never passed."""
+
+    def before_login(self):
+        songs = []
+        for a in self.session.find_all(library="Music",
+                                       item_type="MusicAlbum"):
+            got = self.session.find_all(item_type="Audio", parent_id=a["Id"])
+            if len(got) >= 2:
+                songs = [s["Id"] for s in got[:2]]
+                break
+        self.assertEqual(2, len(songs), "no album with two tracks")
+        self.order = [(songs[0], "audio"), (songs[1], "audio")]
+        made = self.session._request("/Playlists", method="POST", body={
+            "Name": "jms-e2e-songs", "Ids": songs,
+            "UserId": self.session.user_id, "MediaType": "Audio"})
+        self.playlist = made["Id"]
+        self.addCleanup(self.session._request, "/Items/%s" % self.playlist,
+                        "DELETE")
+
+    def test_it_launches_as_music(self):
+        self.open_playlist()
+        self.app.move_to("pl-play")
+        self.app.key("ENTER")
+        self.on(self.order[0][0])
+        f = self.app.wait_for(lambda f: _app.shown(f, "np-stop"),
+                              timeout=15, what="the now-playing bar")
+        self.assertFalse(f.get("phud_mode"), "a song playlist yielded")
+        self.assertTrue(_app.shown(f, "nav-settings"))
+        self.assertEqual(BROWSE_BG, self.p("background-color"))
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
