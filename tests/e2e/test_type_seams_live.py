@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _app  # noqa: E402
 import _e2e  # noqa: E402
 import _flows  # noqa: E402
+import test_playback_lifecycle as _pl  # noqa: E402
 from test_playback_lifecycle import LONG_NAME, _PlaybackCase  # noqa: E402
 
 COMIC = "A Test Comic 001"
@@ -58,12 +59,16 @@ class _ChainCase(_PlaybackCase):
     def assert_library(self, hop):
         """Nothing playing, and the window is the library's: free aspect,
         no zoom, the UI's background."""
-        self.assertTrue(_e2e.wait_for(lambda: self.p("idle-active") is True,
-                                      timeout=15), "%s: still playing" % hop)
-        self.assertEqual(False, self.p("keepaspect"), hop)
-        self.assertEqual(0.0, self.p("video-zoom"), hop)
-        self.assertEqual(BROWSE_BG, self.p("background-color"), hop)
-        self.assertEqual(False, self.p("loop-file"), hop)
+        want = {"idle-active": True, "keepaspect": False, "video-zoom": 0.0,
+                "background-color": BROWSE_BG, "loop-file": False}
+
+        def now():
+            return {k: self.p(k) for k in want}
+        # Together and eventually: the stop, then the window's repaint, are
+        # separate steps, and reading one the instant the other lands is
+        # the test racing the app, not a finding.
+        _e2e.wait_for(lambda: now() == want, timeout=15)
+        self.assertEqual(want, now(), hop)
 
     def assert_not_stretched(self, hop):
         """The drawn picture has the video's shape. mpv's own geometry: the
@@ -224,6 +229,128 @@ class OneSessionAcrossEveryTypeTest(_ChainCase):
         self.app.wait_for(lambda f: _app.shown(f, "nav-settings"),
                           timeout=60, what="Home after the relaunch")
         self.chain()
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class AMixedPlaylistTwiceRoundTest(_ChainCase):
+    """Row 24: video, song, video, song, and round again. Each video owns
+    the window and its HUD comes back on the pointer; each song leaves the
+    library up with its bar (the playlist that blanked the library,
+    CL0907:20-22)."""
+
+    before_login_films = (LONG_NAME, _pl.SECOND_LONG_NAME)
+
+    def before_login(self):
+        films = [self.movie(n) for n in self.before_login_films]
+        songs = []
+        for a in self.session.find_all(library="Music",
+                                       item_type="MusicAlbum"):
+            got = self.session.find_all(item_type="Audio", parent_id=a["Id"])
+            if len(got) >= 2:
+                songs = [s["Id"] for s in got[:2]]
+                break
+        self.assertEqual(2, len(songs), "no album with two tracks")
+        self.fresh(*films)
+        self.order = [(films[0], "video"), (songs[0], "audio"),
+                      (films[1], "video"), (songs[1], "audio")]
+        made = self.session._request("/Playlists", method="POST", body={
+            "Name": "jms-e2e-mixed", "Ids": [i for i, _ in self.order],
+            "UserId": self.session.user_id})
+        self.playlist = made["Id"]
+        self.addCleanup(self.session._request, "/Items/%s" % self.playlist,
+                        "DELETE")
+
+    open_playlist = _pl.StepsAndMarksTest.open_playlist
+
+    def on(self, item_id):
+        self.assertTrue(_e2e.wait_for(
+            lambda: item_id in (self.p("path") or ""), timeout=30),
+            "never reached %s (path %r)" % (item_id, self.p("path")))
+
+    def test_video_song_video_song_twice(self):
+        self.open_playlist()
+        for round_ in (1, 2):
+            self.app.move_to("pl-play")
+            self.app.key("ENTER")
+            for n, (item_id, kind) in enumerate(self.order):
+                hop = "round %d, item %d (%s)" % (round_, n + 1, kind)
+                self.on(item_id)
+                if kind == "video":
+                    self.app.wait_for(lambda f: f.get("phud_mode"),
+                                      timeout=15, what="%s: HUD mode" % hop)
+                    self.app.summon_hud()
+                    self.app.key(">")
+                else:
+                    f = self.app.wait_for(
+                        lambda f: _app.shown(f, "np-next")
+                        and _app.shown(f, "nav-settings")
+                        and not f.get("phud_mode"),
+                        timeout=15, what="%s: the library + bar" % hop)
+                    self.assertEqual(BROWSE_BG, self.p("background-color"),
+                                     hop)
+                    # Next from the last entry does not end the queue, so
+                    # the round ends with Stop.
+                    last = n == len(self.order) - 1
+                    self.app.move_to("np-stop" if last else "np-next")
+                    self.app.key("ENTER")
+            self.assert_library("end of round %d" % round_)
+            self.app.wait_for(lambda f: _app.shown(f, "pl-play"),
+                              timeout=15, what="the playlist page again")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class AnAudiobookKeepsTheLibraryTest(_ChainCase):
+    """Row 21: launched by keys, an audiobook never takes the window (no
+    frame yields to video) and resumes where it stopped, a book's length
+    in (about 12 minutes; the server keeps an AudioBook's place in
+    minutes)."""
+
+    BOOK = "The Overnight Vigil"          # 24 minutes
+    AT = 720
+
+    def open_book(self):
+        _flows.open_by_search(self.app, self.BOOK, self.book,
+                              section="Audiobooks", landed="ab-play")
+
+    def test_launch_keeps_the_library_and_resume_lands_in_place(self):
+        self.book = self.named(self.BOOK, library="Books")
+        self.fresh(self.book)
+        self.open_book()
+        self.app.move_to("ab-play")
+        self.app.key("ENTER")
+        deadline = time.monotonic() + 8
+        while time.monotonic() < deadline:
+            f = self.app.frame()
+            self.assertFalse(f.get("phud_mode"), "an audiobook yielded")
+            self.assertTrue(_app.shown(f, "nav-settings"),
+                            "the library left during an audiobook launch")
+            time.sleep(0.1)
+        self.app.playing_path()
+        # Setup, not the claim: get to 12 minutes without 24 presses.
+        self.app.mpv.command("seek", str(self.AT), "absolute")
+        self.assertTrue(_e2e.wait_for(
+            lambda: (self.p("time-pos") or 0) >= self.AT - 2, timeout=15))
+        self.app.move_to("np-stop")
+        self.app.key("ENTER")
+        self.assert_library("after stopping the book")
+        held = _e2e.wait_for(lambda: (self.session.user_data(self.book) or {})
+                             .get("PlaybackPositionTicks"), timeout=20)
+        self.assertTrue(held, "no position kept for the book")
+        # With a position kept, the page offers Resume and Play becomes
+        # Restart (books.py) -- on a page loaded AFTER the stop: the one
+        # left open is not refreshed by playback (the pending USERDATA_KINDS
+        # decision, register 2026-09-27), so open it again.
+        self.open_book()
+        self.app.wait_for(lambda f: _app.shown(f, "ab-resume"), timeout=15,
+                          what="Resume on the book's page")
+        self.app.move_to("ab-resume")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(
+            lambda: (self.p("time-pos") or 0) > 5, timeout=30),
+            "the book did not play again")
+        self.assertLess(abs(self.p("time-pos") - self.AT), 75,
+                        "resumed at %.0f s, stopped at %d s"
+                        % (self.p("time-pos"), self.AT))
         self.assertEqual(0, self.app.quit(timeout=30))
 
 

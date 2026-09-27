@@ -330,6 +330,24 @@ class App:
         time.sleep(0.1)
         self.mpv.command("keyup", button)
 
+    def summon_hud(self, tries=3):
+        """Bring the playback HUD up with the pointer, the way a hand does:
+        a move, and another if nothing came. On jsonipc the FIRST move just
+        after a video starts is sometimes dropped (the register,
+        2026-09-27); a moving hand never notices, a single scripted move
+        does."""
+        f = self.frame() or {}
+        w, h = f.get("w", 1280), f.get("h", 720)
+        for n in range(tries):
+            self.point(w / 2 + 20 * n, h / 2)
+            try:
+                return self.wait_for(lambda f: f.get("phud_shown"),
+                                     timeout=2, what="the HUD")
+            except AppError:
+                if not self.alive():
+                    raise
+        raise AppError("the HUD never came up on %d pointer moves" % tries)
+
     def click(self, node_id, button="MBTN_LEFT", timeout=5):
         """Point at ``node_id``'s centre, wait until the renderer says the
         pointer is on it, then press: a click that proves where it went."""
