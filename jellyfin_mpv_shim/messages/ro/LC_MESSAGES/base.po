@@ -7,17 +7,17 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2024-09-16 00:41+0000\n"
-"Last-Translator: sand14 <sand.avrigeanu@yahoo.com>\n"
+"PO-Revision-Date: 2026-09-27 20:36+0000\n"
+"Last-Translator: Acrotos <alexandrufly@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/ro/>\n"
+"jellyfin-mpv-shim/ro/>\n"
 "Language: ro\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
 "20)) ? 1 : 2;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
@@ -42,12 +42,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
-msgstr "Se selectează melodiile..."
+msgstr "Selectia de piese..."
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "{0}: No Subtitles"
-msgstr "{0}: Fără subtitrări"
+msgstr "{0}: Fără Subtitrări"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
@@ -57,21 +57,21 @@ msgstr "{0}: Eșuat"
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "Configurează Subbed: {0} ok, {1} eșuat"
+msgstr "Setare Subtitrare: {0} in regula, {1} eșuat"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Configurează Dubbed: {0} ok, {1} doar audio, {2} eșuat"
+msgstr "Setare audio: {0} in regula, {1} doar audio, {2} eșuat"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "Manual: {0} ok, {1} fail"
-msgstr "Manual: {0} ok, {1} eșuat"
+msgstr "Manual: {0} in regula, {1} eșuat"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Setting Current..."
-msgstr "Setarea Actuală..."
+msgstr "Aplicare setare curenta..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid ""
@@ -152,11 +152,11 @@ msgstr "Credite sărite"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr "Credite sărite"
+msgstr "Generice Omise"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr "Căutați pentru a sări peste credite"
+msgstr "Deruleaza pentru a omite genericele."
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -217,11 +217,11 @@ msgstr "Sari peste introducere"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
-msgstr "Sari peste introducere"
+msgstr "Introducere omisa"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Intro"
-msgstr "Încearcă să sari peste introducere"
+msgstr "Derulare pentru a omite intro-ul"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -241,7 +241,7 @@ msgstr "Negru"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Cyan"
-msgstr "verde-albastrui"
+msgstr "Verde-Albastrui"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Blue"
