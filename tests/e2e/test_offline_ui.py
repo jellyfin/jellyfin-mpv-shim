@@ -672,5 +672,71 @@ class AnInactiveProfilesDownloadTest(unittest.TestCase):
         self.assertNotIn(tokens["Bob"], fetched,
                          "the default profile's file was fetched as Bob")
 
+
+@_e2e.require_server
+class AStalledNetworkTest(unittest.TestCase):
+    """Scenario 8. The network stops answering without closing anything (a
+    dropped Wi-Fi, a sleeping router): the app must keep answering keys, and
+    quitting must end cleanly -- inside the exit watchdog's 20 s, rc 0.
+
+    Carve-out: ``health_check_interval`` is seeded short so a health check
+    is in flight when the person quits, which the 300 s default makes a
+    five-minute wait. Found by measurement: a check parked in its /Sessions
+    retries (about 80 s under a stall) held the shutdown until the watchdog
+    killed it.
+
+    Not asserted yet: how soon the app SAYS it is offline. No budget has
+    been ruled (register, "Scenario 8 measured")."""
+
+    CHECK_EVERY = 15
+
+    def setUp(self):
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend(),
+                            conf={"health_check_interval": self.CHECK_EVERY})
+        self.addCleanup(lambda: self.app.close())
+        self.app.start()
+        _flows.login(self.app, self.relay)
+
+    def _checks_started(self):
+        try:
+            with open(self.app.log_path, encoding="utf-8",
+                      errors="replace") as fh:
+                return fh.read().count("Performing client health check")
+        except OSError:
+            return 0
+
+    def test_keys_answer_and_quit_is_clean_while_stalled(self):
+        before = self._checks_started()
+        self.relay.stall()
+        self.assertTrue(self.relay.probe_silent(), "the stall is not in effect")
+        worst = 0.0
+        for key in ("RIGHT", "LEFT", "DOWN", "UP") * 3:
+            rev = self.app.frame().get("rev", 0)
+            start = time.monotonic()
+            self.app.key(key)
+            self.app.after(rev, timeout=5)
+            worst = max(worst, time.monotonic() - start)
+        self.assertLess(worst, 1.0, "a key took %.2fs to answer while the "
+                                    "network was stalled" % worst)
+        # Quit while a health check is inside its network call: the log line
+        # is written as the check starts, and its first request then waits
+        # out a 10 s read timeout.
+        self.assertTrue(
+            _e2e.wait_for(lambda: self._checks_started() > before,
+                          timeout=self.CHECK_EVERY * 3),
+            "no health check started during the stall")
+        start = time.monotonic()
+        rc = self.app.quit(timeout=40)
+        took = time.monotonic() - start
+        self.assertEqual(0, rc, "quitting while stalled did not exit cleanly "
+                                "(%.1fs; the watchdog's forced exit is 1)"
+                                % took)
+        self.assertLess(took, 20.0)
+
+
 if __name__ == "__main__":
     unittest.main()
