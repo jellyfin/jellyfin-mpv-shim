@@ -87,9 +87,13 @@ class _OfflineCase(unittest.TestCase):
 
     def toggle_watched(self):
         self.app.move_to("act-watched")
-        rev = self.app.frame()["rev"]
+        was = self.watched_on_screen(self.app.frame())
         self.app.key("ENTER")
-        return self.app.after(rev)
+        # The toggle's own frame, not just a newer one (see App.move_to).
+        return self.app.wait_for(
+            lambda f: _app.node(f, "act-watched") and _app.node(f, "btn-play")
+            and self.watched_on_screen(f) != was,
+            timeout=10, what="the Watched toggle to flip")
 
     def repaint(self):
         """A frame drawn after something unrelated moved -- so a state the

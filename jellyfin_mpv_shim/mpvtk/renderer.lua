@@ -2190,7 +2190,7 @@ if os.getenv('JMS_TEST_OBSERVE') then
             -- An open dropdown's keyboard cursor, and each dropdown's
             -- selection (the cursor starts there when nothing moved it).
             nav_pidx = state.nav_pidx, dropdowns = state.dd,
-            clicks = state.obs_clicks,
+            clicks = state.obs_clicks, navs = state.obs_navs,
         })
         pcall(mp.set_property_native, 'user-data/mpvtk/observe_hist', hist)
     end
@@ -4298,6 +4298,15 @@ end
 
 local function nav_set(node)
     state.nav = node.id
+    if state.observe then
+        -- Test observer only: which code path moved focus where.
+        local c = state.obs_navs or {}
+        c[#c + 1] = { id = node.id, line = debug.getinfo(2, 'l').currentline,
+                      up = debug.getinfo(3, 'l') and debug.getinfo(3, 'l').currentline,
+                      rev = state.obs_rev }
+        if #c > 12 then table.remove(c, 1) end
+        state.obs_navs = c
+    end
     -- always-adjust sliders (the HUD seek bar) are live the moment
     -- focus lands: LEFT/RIGHT scrub, ENTER commits, no arming step
     state.nav_adjust = (node.t == 'slider' and node.aadj) or nil
