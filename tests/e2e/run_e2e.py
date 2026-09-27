@@ -250,6 +250,9 @@ PER_BACKEND = [
     # network cut by a relay. Asserts the offline-sync rulings on screen,
     # in the catalog and at the server.
     "tests.e2e.test_offline_ui",
+    # G5 over the download folder: a delete keeps the person's files, a move
+    # carries them byte-identical, a kill mid-copy loses none.
+    "tests.e2e.test_store_safety",
 ]
 
 MODULES = CONTRACT + PER_BACKEND
