@@ -2141,7 +2141,8 @@ if os.getenv('JMS_TEST_OBSERVE') then
         for _, node in ipairs(state.nodes or {}) do
             if node.id or node.text then
                 local ex, ey = eff(node)
-                local vis = visible(node)
+                -- A menu has a position and no size: present is visible.
+                local vis = (node.w == nil or node.h == nil) or visible(node)
                 if vis then shown = shown + 1 end
                 nodes[#nodes + 1] = {
                     id = node.id, t = node.t, text = node.text,
@@ -2723,7 +2724,12 @@ render = function()
     osd.z = state.osd_z
     osd:update()
     flush_overlays()
-    if state.observe then state.observe() end
+    if state.observe then
+        -- Test-only, and never allowed to cost the frame: an error here
+        -- once blanked every screen with a menu open, in every e2e run.
+        local ok, err = pcall(state.observe)
+        if not ok then mp.msg.error('test observer: ' .. tostring(err)) end
+    end
 end
 
 -- ------------------------------------------------------------ hit tests
