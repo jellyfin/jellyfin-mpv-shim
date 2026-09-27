@@ -230,7 +230,7 @@ class ANewProfileStartsWithAnEmptyLoginTest(unittest.TestCase):
         _flows.add_profile(self.app, "Bob")
         self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
                           what="the profile switcher")
-        _flows.switch_profile(self.app, 1)
+        _flows.switch_profile(self.app, "Bob")
         f = self.app.wait_for(lambda f: _app.shown(f, "login-connect"),
                               timeout=30, what="Bob's login screen")
         for field in ("login-server", "login-user", "login-pass"):
@@ -246,15 +246,9 @@ class ANewProfileStartsWithAnEmptyLoginTest(unittest.TestCase):
                          "else")
 
 
-@_e2e.require_server
-class TwoProfilesOfflineTest(unittest.TestCase):
-    """Scenario 4. Two profiles, two people, one downloaded film, offline.
-
-    Rulings (offline-sync.md section 1): watched state belongs to a person;
-    offline the actor is the ACTIVE profile's account on the row's server;
-    D3 case 6 (Izzie, 2026-09-26): the profile switcher shows offline and
-    switching changes whose ticks are shown. B2 (no switcher offline) and B4
-    (offline progress under @none) are what this reproduces."""
+class _TwoProfilesCase(unittest.TestCase):
+    """The default profile (Alice, qa-user) downloads the film; Bob is added
+    and signed in as qa-admin; the app relaunches offline with Bob active."""
 
     def setUp(self):
         self.session = _e2e.Session()
@@ -284,7 +278,7 @@ class TwoProfilesOfflineTest(unittest.TestCase):
         _flows.add_profile(self.app, "Bob")
         self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
                           what="the profile switcher")
-        _flows.switch_profile(self.app, 1)
+        _flows.switch_profile(self.app, "Bob")
         _flows.add_server_from_anywhere(self.app)
         _flows.login(self.app, self.relay, account="qa-admin")
         self.app = _flows.relaunch(self.app, self.relay, cut=True)
@@ -295,6 +289,27 @@ class TwoProfilesOfflineTest(unittest.TestCase):
     def _played(self, actor):
         row = self.catalog.userdata(self.film).get(actor)
         return row and row.get("played")
+
+    def _queued_for(self, actor):
+        return [p for p in self.catalog.pending(self.film)
+                if (p["server_id"], p["user_id"]) == actor]
+
+    def _switch_offline(self, name):
+        self.app.key("ESC")
+        self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
+                          what="the profile switcher")
+        _flows.switch_profile(self.app, name)
+
+
+@_e2e.require_server
+class TwoProfilesOfflineTest(_TwoProfilesCase):
+    """Scenario 4. Two profiles, two people, one downloaded film, offline.
+
+    Rulings (offline-sync.md section 1): watched state belongs to a person;
+    offline the actor is the ACTIVE profile's account on the row's server;
+    D3 case 6 (Izzie, 2026-09-26): the profile switcher shows offline and
+    switching changes whose ticks are shown. B2 (no switcher offline) and B4
+    (offline progress under @none) are what this reproduces."""
 
     def test_ticks_follow_the_profile_offline(self):
         case = _OfflineCase
@@ -312,13 +327,79 @@ class TwoProfilesOfflineTest(unittest.TestCase):
         self.app.key("ESC")
         self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
                           what="the profile switcher while offline (B2)")
-        _flows.switch_profile(self.app, 0)
+        _flows.switch_profile(self.app, "(default)")
         self.app.wait_for(
             lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
             timeout=30, what="the default profile's offline library")
         f = case.open_film(self)
         self.assertFalse(case.watched_on_screen(self, f),
                          "the default profile shows Bob's tick")
+
+
+@_e2e.require_server
+class ReconnectDeliversAsEachPersonTest(_TwoProfilesCase):
+    """Scenario 5. Reconnecting delivers the queue as the person who made
+    each entry -- and only the signed-in person's.
+
+    Ruling (offline-sync.md section 3, "Lazy, per connected account"): an
+    account that is not connected is not asked and not waited for; its
+    entries keep until it signs in. So after reconnecting as Alice, Bob's
+    queued mark must still be queued and qa-admin's server state unchanged
+    (a drain through Alice's login would be B4's shape: one person's
+    viewing filed as another's). Codex round 1, finding 8."""
+
+    def _server_played(self, session):
+        return bool((session.user_data(self.film) or {}).get("Played"))
+
+    def test_only_the_signed_in_person_is_delivered_until_the_other_signs_in(
+            self):
+        case = _OfflineCase
+        case.open_film(self)                 # Bob, offline
+        case.toggle_watched(self)
+        self.assertEqual(1, self._played(self.bob))
+        self._switch_offline("(default)")              # Alice, offline
+        self.app.wait_for(
+            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
+            timeout=30, what="Alice's offline library")
+        f = case.open_film(self)
+        reg = _flows.users(self.app.config_dir) or {}
+        active = [u.get("name") for u in reg.get("users", [])
+                  if u.get("id") == reg.get("active")]
+        self.assertFalse(case.watched_on_screen(self, f),
+                         "after switching to Alice the screen shows a tick "
+                         "(active profile on disk: %r)" % active)
+        after = case.toggle_watched(self)
+        self.assertTrue(case.watched_on_screen(self, case.repaint(self)),
+                        "Alice's toggle did not register on screen "
+                        "(active on disk: %r)" % active)
+        self.assertEqual(1, self._played(self.alice),
+                         "Alice's offline mark is not filed under Alice: "
+                         "userdata=%r pending=%r"
+                         % (self.catalog.userdata(self.film),
+                            self.catalog.pending(self.film)))
+
+        self.relay.restore()
+        self.app.key("ESC")
+        self.app.move_to("banner-retry")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(lambda: self._server_played(
+            self.session), timeout=120),
+            "Alice's queued mark never reached the server as qa-user")
+        self.assertTrue(_e2e.wait_for(
+            lambda: not self._queued_for(self.alice), timeout=30),
+            "Alice's entry stayed queued after delivery")
+        # Lazy per account: Bob is not signed in, so nothing speaks for him.
+        self.assertTrue(self._queued_for(self.bob),
+                        "Bob's entry was drained without Bob signed in")
+        self.assertFalse(self._server_played(self.admin),
+                         "Bob's mark reached qa-admin through Alice's login")
+
+        _flows.switch_profile(self.app, "Bob")   # online now
+        self.assertTrue(_e2e.wait_for(lambda: self._server_played(
+            self.admin), timeout=120),
+            "Bob's queued mark never reached the server once he signed in")
+        self.assertTrue(_e2e.wait_for(
+            lambda: not self._queued_for(self.bob), timeout=30))
 
 if __name__ == "__main__":
     unittest.main()
