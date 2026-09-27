@@ -140,6 +140,117 @@ class AKilledDownloadResumesTest(_DownloadCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+@_e2e.require_server
+class AMusicPlaylistDownloadsAsOneTest(unittest.TestCase):
+    """Row 67 (INV N15): a playlist of songs, downloaded from its tile's
+    menu with the MENU key -- the ten-foot way -- lands as one unit: its
+    songs complete, one playlist row in the catalog, and the Downloads
+    screen names the playlist once."""
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        self.songs = []
+        for a in self.session.find_all(library="Music",
+                                       item_type="MusicAlbum"):
+            got = self.session.find_all(item_type="Audio",
+                                        parent_id=a["Id"])
+            if len(got) >= 2:
+                self.songs = [s["Id"] for s in got[:2]]
+                break
+        self.assertEqual(2, len(self.songs), "no album with two tracks")
+        self.name = "jms-e2e-dl-songs"
+        # Before sign-in: Home's library row is read then (S2's note).
+        self.playlist = self.session._request("/Playlists", method="POST",
+                                              body={
+            "Name": self.name, "Ids": self.songs,
+            "UserId": self.session.user_id, "MediaType": "Audio"})["Id"]
+        self.addCleanup(self.session._request, "/Items/%s" % self.playlist,
+                        "DELETE")
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend())
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relay)
+
+    def pick_from_menu(self, label):
+        f = self.app.wait_for(lambda f: f.get("menu_open"), timeout=10,
+                              what="the tile's menu")
+        menu = next(n for n in f["nodes"] if n.get("t") == "menu")
+        index = menu["items"].index(label)
+        for _ in range(index):
+            self.app.key("DOWN")
+        self.app.key("ENTER")
+
+    def test_one_unit(self):
+        views = self.session._request("/Users/%s/Views"
+                                      % self.session.user_id)["Items"]
+        shelf = next(v["Id"] for v in views
+                     if v.get("CollectionType") == "playlists")
+        f = self.app.frame()
+        first = next(n["id"] for n in f["nodes"]
+                     if (n.get("id") or "").startswith("row-libs-"))
+        self.app.move_to(first)
+        self.app.move_to("row-libs-" + shelf, key="RIGHT")
+        tile = "grid-0-" + self.playlist
+        self.app.press_until("ENTER", lambda f: _app.shown(f, tile),
+                             what="the Playlists shelf")
+        self.app.move_to(tile)
+        self.app.key("MENU")
+        self.pick_from_menu("Download")
+        self.app.wait_for(lambda f: _app.shown(f, "dl-ok"), timeout=15,
+                          what="the download dialog")
+        self.app.move_to("dl-ok")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(
+            lambda: all((self.catalog.download(s) or {}).get("status")
+                        == "complete" for s in self.songs), timeout=120),
+            "the playlist's songs did not all download")
+        rows = self.catalog._query(
+            "SELECT playlist_id FROM playlists WHERE playlist_id = ?",
+            (self.playlist,))
+        self.assertEqual(1, len(rows), "one playlist, one row: %r" % rows)
+        _flows.open_settings_tab(self.app, "downloads")
+        f = self.app.wait_for(lambda f: any(self.name in t
+                                            for t in _app.texts(f)),
+                              timeout=15, what="the playlist on Downloads")
+        self.assertEqual(1, sum(1 for t in _app.texts(f) if self.name in t),
+                         "the playlist is listed more than once")
+
+        # And offline, it plays from the store.
+        self.app = _flows.relaunch(self.app, self.relay, cut=True)
+        f = self.app.wait_for(
+            lambda f: _app.shown(f, "row-libs-offline:playlists"), timeout=90,
+            what="an offline Playlists library")
+        first = next(n["id"] for n in f["nodes"]
+                     if (n.get("id") or "").startswith("row-libs-"))
+        self.app.move_to(first)
+        self.app.move_to("row-libs-offline:playlists", key="RIGHT")
+        # Offline, a tile's id is a pseudo-id ending in the playlist's.
+        def offline_tile(f):
+            return next((n["id"] for n in f.get("nodes", [])
+                         if (n.get("id") or "").startswith("grid-0-offline:")
+                         and n["id"].endswith(self.playlist)), None)
+        f = self.app.press_until("ENTER", offline_tile,
+                                 what="the playlist, offline")
+        tile = offline_tile(f)
+        self.app.move_to(tile)
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "pl-play"),
+                             what="the playlist's page, offline")
+        self.app.move_to("pl-play")
+        self.app.key("ENTER")
+        path = self.app.playing_path()
+        store = os.path.join(self.app.config_dir, "offline", "server")
+        self.assertTrue(path.startswith(store) and any(s in path
+                                                       for s in self.songs),
+                        "offline, the playlist did not play a downloaded "
+                        "song (%r)" % path)
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
 class ATruncatedCatalogIsRestoredTest(_StoreCase):
     """Row 66 (INV N6): catalog.db cut to nothing between launches. The
     .bak comes back, and the download is still a download."""
