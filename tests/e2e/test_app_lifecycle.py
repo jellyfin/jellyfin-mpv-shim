@@ -199,5 +199,43 @@ class AUserInputConfTest(_LifecycleCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class AnotherLanguageTest(_LifecycleCase):
+    """Izzie's gap from the v3.0.0 hand pass: language selection was never
+    tested. Chosen in Settings by keys, it asks for a restart (on purpose:
+    22 strings are translated at import, so a live switch would leave the
+    UI half in the old language), is saved, and after the relaunch the UI
+    is in that language. Needs compiled catalogs (gen_pkg.sh --skip-build)."""
+
+    LANGUAGE = "Deutsch"
+    HOME_LABEL = "Startseite"          # "Home" in de/base.po
+
+    def test_it_asks_for_a_restart_and_comes_back_in_that_language(self):
+        import json
+        mo = os.path.join(os.path.dirname(_app.RUN_PY), "jellyfin_mpv_shim",
+                          "messages", "de", "LC_MESSAGES", "base.mo")
+        if not os.path.exists(mo):
+            self.fail("no compiled catalogs: run ./gen_pkg.sh --skip-build")
+        _flows.open_settings_tab(self.app, "general")
+        f = self.app.wait_for(lambda f: _flows.items(f, "set-lang"),
+                              timeout=15, what="the Language drop-down")
+        entries = _flows.items(f, "set-lang")
+        index = next((i for i, e in enumerate(entries)
+                      if self.LANGUAGE in e), None)
+        self.assertIsNotNone(index, "no %s in %r" % (self.LANGUAGE,
+                                                     entries[:8]))
+        _flows.pick(self.app, "set-lang", index)
+        self.app.wait_for(lambda f: _app.shown(f, "banner-restart"),
+                          timeout=15, what="the restart banner")
+        with open(os.path.join(self.app.config_dir, "conf.json"),
+                  encoding="utf-8") as fh:
+            self.assertEqual("de", json.load(fh).get("lang"))
+        self.app = _flows.relaunch(self.app)
+        f = self.app.wait_for(lambda f: _app.shown(f, "row-libs"),
+                              timeout=60, what="Home after the relaunch")
+        self.assertIn(self.HOME_LABEL, _app.texts(f),
+                      "the relaunched UI is not in %s" % self.LANGUAGE)
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
 if __name__ == "__main__":
     unittest.main()
