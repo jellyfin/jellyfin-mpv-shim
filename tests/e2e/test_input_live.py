@@ -170,9 +170,7 @@ class TheHudComesAndGoesTest(_InputCase):
     open_playlist = _pl.StepsAndMarksTest.open_playlist
 
     def summon(self):
-        self.app.point(*_centre(self.app.frame()))
-        return self.app.wait_for(lambda f: f.get("phud_shown"), timeout=5,
-                                 what="the HUD on a pointer move")
+        return self.app.summon_hud()
 
     def test_it_comes_and_goes_and_follows_an_advance(self):
         self.open_playlist()
@@ -277,7 +275,7 @@ class ARemappedWakeKeyTest(_InputCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
-class _OscStyleCase(_InputCase):
+class _OscStyleMixin:
     """Row 39: under `osc_style` mpv the pointer brings up mpv's own bar and
     no HUD; under none, nothing at all. Measured on mpv's own window
     screenshot (OSD included) of a paused frame, before and after a move."""
@@ -297,8 +295,6 @@ class _OscStyleCase(_InputCase):
         return ImageChops.difference(ia.crop(box), ib.crop(box)).getbbox()
 
     def test_the_pointer_brings_up_the_right_controls(self):
-        if self.STYLE is None:
-            self.skipTest("the base; its subclasses name a style")
         self.open_film()
         self.play()
         self.playing_for()
@@ -324,12 +320,12 @@ class _OscStyleCase(_InputCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
-class TheMpvOscStyleTest(_OscStyleCase):
+class TheMpvOscStyleTest(_OscStyleMixin, _InputCase):
     STYLE = "mpv"
     CONF = {"osc_style": "mpv"}
 
 
-class NoPlayerControlsTest(_OscStyleCase):
+class NoPlayerControlsTest(_OscStyleMixin, _InputCase):
     STYLE = "none"
     CONF = {"osc_style": "none"}
 
