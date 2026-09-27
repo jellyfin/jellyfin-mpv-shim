@@ -139,6 +139,10 @@ class App:
                 conf = json.load(fh)
         # Logs are how a failure is read afterwards; not a behaviour.
         conf["write_logs"] = True
+        # Closing quits. The default minimizes to the tray where there is
+        # one (the Windows VM has one), and quit() closes the window; the
+        # tray path is its own scenario, not every test's way out.
+        conf.setdefault("close_to_tray", False)
         if self.backend == "jsonipc":
             conf["mpv_ext"] = True
             conf["mpv_ext_ipc"] = self._ipc_name
@@ -229,10 +233,16 @@ class App:
     def quit(self, timeout=30):
         """Close the window the way a person does, and require a clean exit.
 
+        CLOSE_WIN, which is what the window manager's close button sends and
+        what the app binds (player._on_close_win). NOT mpv's `quit` command:
+        that bypasses the app's close handling entirely, and a scenario that
+        quit that way once raced the timeline into the crash-recovery path
+        and left the app running windowless -- a state no person can reach.
+
         Raises if the app is still running after ``timeout``: a hang on the
         way out is a bug, and killing it first would hide that."""
         try:
-            self.mpv.command("quit")
+            self.mpv.command("keypress", "CLOSE_WIN")
         except Exception:
             pass
         self._detach()
@@ -332,6 +342,25 @@ class App:
                            % (field, got if not masked else
                               "<%d chars>" % len(got or ""),
                               text if not masked else "<%d chars>" % len(text)))
+
+    def prop(self, name):
+        """An mpv property of the app's own player, over its IPC. None when
+        mpv does not have it (yet): reading one is observation, not a step."""
+        try:
+            return self.mpv.command("get_property", name)
+        except Exception:
+            return None
+
+    def playing_path(self, timeout=60):
+        """What mpv was handed to play: its `path`, once there is one."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            path = self.prop("path")
+            if path:
+                return path
+            time.sleep(0.2)
+        raise AppError("mpv was never given anything to play in %ss"
+                       % timeout)
 
     def clear_field(self, field, timeout=10):
         """Empty text field ``field`` the way a person does: select all,

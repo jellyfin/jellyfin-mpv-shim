@@ -218,9 +218,11 @@ class OfflineEndToEndTest(unittest.TestCase):
         self.assertTrue(self.browser.on_back(), "BACK was not consumed")
         self.assertEqual(self.browser.route["kind"], "home")
 
-    def test_playing_a_downloaded_file_writes_progress_to_the_catalog(self):
-        """The whole offline promise: play a local file with no server, and
-        the position survives in the catalog."""
+    def test_a_stored_position_reads_back_through_the_library_view(self):
+        """The read half of the offline promise: a position in the catalog
+        is what the library view offers to resume from. Nothing is played
+        here; that playing writes it is asserted at the real app
+        (tests/e2e/test_offline_ui.py, AKillMidEpisodeKeepsTheResumeTest)."""
         db = self._reopen_catalog()
         # Only the local write. The replay queue is what the server has not
         # been told; what the library view reads back is the catalog's own
