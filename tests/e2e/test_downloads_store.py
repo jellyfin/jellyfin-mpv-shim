@@ -9,13 +9,15 @@ a sweep, a delete, a move and a kill mid-copy; this is the rest:
   finish by RESUMING (a Range request from where the .part file ends), not
   by starting again;
 - row 66: a catalog.db truncated between launches is restored from its
-  .bak, and the downloads are still there;
+  .bak, and the downloads are still there -- and so is a damaged
+  users.json (c0474bb5);
 - row 65 / F42: after a move, the Download Folder field shows the path the
   store is actually in, across leaving Settings and a relaunch; a blank
   field moves it back to the default.
 """
 
 import glob
+import json
 import os
 import shutil
 import sys
@@ -285,6 +287,45 @@ class ATruncatedCatalogIsRestoredTest(_StoreCase):
                          "the download is gone after the catalog was lost")
         _flows.open_by_search(self.app, FILM_QUERY, self.film)
         # A downloaded item offers Remove Download (act-undownload).
+        self.app.wait_for(lambda f: _app.shown(f, "act-undownload"),
+                          timeout=15, what="the film shown as downloaded")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class ADamagedUsersFileIsRestoredTest(_StoreCase):
+    """c0474bb5, unit-only until now (fix-coverage audit gap 4): users.json
+    cut to garbage between launches. Its .bak comes back -- the same
+    profiles, by id -- the app signs in without asking, and the download is
+    still one. Mutation-checked: with the backup ignored, the app starts
+    fresh at the sign-in form."""
+
+    def test_the_backup_brings_the_profiles_back(self):
+        self.assertEqual(0, self.app.quit(timeout=30))
+        path = os.path.join(self.app.config_dir, "users.json")
+        with open(path) as fh:
+            before = json.load(fh)
+        ids = sorted(u["id"] for u in before["users"])
+        self.assertTrue(os.path.exists(path + ".bak"),
+                        "no users.json backup was kept to restore from")
+        with open(path, "wb") as fh:
+            fh.write(b"{not json")
+        self.app = _app.App(backend=_backend(),
+                            config_dir=self.app.config_dir)
+        self.app.start()
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=90,
+                          what="Home, signed in, after the damage")
+        with open(path) as fh:
+            after = json.load(fh)
+        self.assertEqual(ids, sorted(u["id"] for u in after["users"]),
+                         "the profiles came back as new ones")
+        self.assertEqual(before.get("active"), after.get("active"))
+        self.assertTrue(glob.glob(path + ".unreadable-*"),
+                        "the damaged bytes were not kept aside")
+        self.assertEqual("complete",
+                         (self.catalog.download(self.film) or {})
+                         .get("status"),
+                         "the download is gone after users.json was lost")
+        _flows.open_by_search(self.app, FILM_QUERY, self.film)
         self.app.wait_for(lambda f: _app.shown(f, "act-undownload"),
                           timeout=15, what="the film shown as downloaded")
         self.assertEqual(0, self.app.quit(timeout=30))
