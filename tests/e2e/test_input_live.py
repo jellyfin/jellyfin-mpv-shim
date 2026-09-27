@@ -43,10 +43,10 @@ class _InputCase(_PlaybackCase):
                 "%s did not toggle %s (still %r)" % (key, prop, was))
 
     def leave_by_hud_back(self):
-        """ENTER wakes the HUD (and toggles pause), TAB to Back, ENTER."""
-        self.app.key("ENTER")
-        self.app.wait_for(lambda f: _app.shown(f, "hud-back"), timeout=15,
-                          what="the HUD")
+        """ENTER wakes the HUD (and toggles pause), TAB to Back, ENTER.
+        Pressed again if nothing came: see type_seams_live's copy."""
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "hud-back"),
+                             what="the HUD", retry_after=3)
         self.app.move_to("hud-back")
         self.app.key("ENTER")
         try:
