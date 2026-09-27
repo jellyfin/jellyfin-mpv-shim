@@ -87,6 +87,27 @@ class UserInterface:
         except Exception:
             log.debug("could not raise the player window", exc_info=True)
 
+    def on_second_launch(self):
+        """The app was launched again (SingleInstance). Over a playing
+        video that means "show me the app", and the video IS the app then:
+        raise the window and leave the film alone [iw, 2026-09-27] --
+        entering browse brought the library up for a moment and the film's
+        next playstate took the window straight back. Otherwise, activate.
+        """
+        from ..player import playerManager
+
+        try:
+            watching = (playerManager.get_video() is not None
+                        and not playerManager._library_showing())
+        except Exception:
+            watching = False
+        if not watching:
+            return self.activate()
+        try:
+            playerManager.raise_window()
+        except Exception:
+            log.debug("could not raise the player window", exc_info=True)
+
     def _open_settings(self, tab):
         if self._browser is None:
             return

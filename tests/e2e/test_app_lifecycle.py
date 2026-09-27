@@ -92,8 +92,8 @@ class FirstRunAndRelaunchTest(_LifecycleCase):
 
 
 class ASecondLaunchSurfacesTheFirstTest(_LifecycleCase):
-    """Row 51: a second launch on the same config exits by itself and
-    brings the first one's library up -- here, over a film."""
+    """Row 51: a second launch on the same config exits by itself; over a
+    film, the first only raises its window and the film keeps it."""
 
     def test_the_second_launch_hands_over(self):
         self.open_film()
@@ -111,25 +111,22 @@ class ASecondLaunchSurfacesTheFirstTest(_LifecycleCase):
             self.fail("the second launch did not exit")
         out = second.stdout.read().decode("utf-8", "replace")
         self.assertEqual(0, rc, out[-800:])
-        # The handover, read where it is settled: the first instance's log
-        # (the two share it) shows the ask, then the first entering browse.
-        # Not a frame: over a playing film the library is up for a moment
-        # only, and on jsonipc that moment can fall between observer reads.
-        def handed_over():
-            with open(self.app.log_path, encoding="utf-8",
-                      errors="replace") as fh:
-                lines = fh.read().splitlines()
-            asked = [i for i, l in enumerate(lines)
-                     if "asked it to show its window" in l]
-            return asked and any("on_browse_enter" in l
-                                 for l in lines[asked[-1]:])
-        self.assertTrue(_e2e.wait_for(handed_over, timeout=15),
-                        "the first instance never entered browse after the "
-                        "second launch (it said: %s)"
-                        % out.strip().splitlines()[-2:])
-        # Whether it then STAYS up over the still-playing film is open: the
-        # film's next playstate takes the window back on both backends
-        # (register, 2026-09-27, for Izzie). Not asserted either way.
+        # Over a film, a second launch only raises the window: the film
+        # keeps it, and the library never comes up (Izzie, 2026-09-27).
+        deadline = time.monotonic() + 6
+        while time.monotonic() < deadline:
+            f = self.app.frame()
+            self.assertTrue(f.get("phud_mode") and not _app.shown(
+                f, "nav-settings"), "the second launch took the window "
+                                    "from the film (rev %s)" % f.get("rev"))
+            time.sleep(0.1)
+        with open(self.app.log_path, encoding="utf-8",
+                  errors="replace") as fh:
+            lines = fh.read().splitlines()
+        asked = max(i for i, l in enumerate(lines)
+                    if "asked it to show its window" in l)
+        self.assertFalse(any("on_browse_enter" in l for l in lines[asked:]),
+                         "the first instance entered browse over the film")
         self.quit_cleanly("after a second launch")
 
 
