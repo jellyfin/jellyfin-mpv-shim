@@ -264,6 +264,7 @@ PER_BACKEND = [
     "tests.e2e.test_app_lifecycle",
     "tests.e2e.test_settings_live",
     "tests.e2e.test_window_live",
+    "tests.e2e.test_profiles_live",
     "tests.e2e.test_browse_routes",
 ]
 
