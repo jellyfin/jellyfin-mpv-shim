@@ -71,12 +71,41 @@ def download_open_item(app, catalog, item_id, timeout=120):
                          % (item_id, catalog.download(item_id)))
 
 
+def remove_download_open_item(app, catalog, item_id, timeout=60):
+    """Remove Download on the open detail page, confirmed, and wait for the
+    catalog to drop the row."""
+    app.move_to("act-undownload")
+    app.key("ENTER")
+    app.wait_for(lambda f: _app.shown(f, "dlg-ok"), timeout=15,
+                 what="the Delete Download confirmation")
+    app.move_to("dlg-ok")
+    app.key("ENTER")
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if catalog.download(item_id) is None:
+            return
+        time.sleep(0.25)
+    raise AssertionError("%s is still in the catalog after Remove Download: "
+                         "%r" % (item_id, catalog.download(item_id)))
+
+
+def open_settings_tab(app, tab):
+    """Settings, then the tab called ``tab`` (its id is stab-<tab>)."""
+    app.move_to("nav-settings")
+    app.press_until("ENTER", lambda f: _app.shown(f, "stab-" + tab),
+                    what="the settings tabs")
+    app.move_to("stab-" + tab)
+    app.key("ENTER")
+
+
 class Catalog:
     """The app's sync catalog, read the way a test may: read-only, and never
-    by copying the file (a copy drops the WAL the app is still writing)."""
+    by copying the file (a copy drops the WAL the app is still writing).
+    ``root`` is the download folder, when it is not the default."""
 
-    def __init__(self, config_dir):
-        self.path = os.path.join(config_dir, "offline", "catalog.db")
+    def __init__(self, config_dir, root=None):
+        self.path = os.path.join(root or os.path.join(config_dir, "offline"),
+                                 "catalog.db")
 
     def _query(self, sql, args=()):
         if not os.path.exists(self.path):
@@ -116,11 +145,7 @@ class Catalog:
 
 def add_profile(app, name):
     """Settings > Servers & Users > Add User. Leaves Settings open."""
-    app.move_to("nav-settings")
-    app.press_until("ENTER", lambda f: _app.shown(f, "stab-servers"),
-                    what="the settings tabs")
-    app.move_to("stab-servers")
-    app.key("ENTER")
+    open_settings_tab(app, "servers")
     app.wait_for(lambda f: _app.shown(f, "su-newuser"), timeout=15,
                  what="the users list")
     app.type_into("su-newuser", name)
