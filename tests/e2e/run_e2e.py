@@ -361,6 +361,14 @@ def main():
                         help="run only this module (repeatable)")
     parser.add_argument("--no-xvfb", action="store_true",
                         help="show the real mpv windows")
+    parser.add_argument("--watch", nargs="?", const=1.0, type=float,
+                        metavar="SECONDS",
+                        help="watch mode: the real window (no Xvfb), every "
+                             "input action narrated and paced by SECONDS "
+                             "(default 1); narration also in "
+                             "$TMPDIR/e2e-watch.txt for `tail -f`")
+    parser.add_argument("--step", action="store_true",
+                        help="watch mode, advancing one action per Enter")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("-v", "--verbose", action="count", default=1)
     parser.add_argument("--manifest", action="store_true",
@@ -408,6 +416,11 @@ def main():
         print("audio:  no null sink available; mpv's own null device",
               file=sys.stderr)
 
+    if args.watch or args.step:
+        args.no_xvfb = True
+        os.environ["JMS_E2E_WATCH"] = str(args.watch or 1.0)
+        if args.step:
+            os.environ["JMS_E2E_STEP"] = "1"
     use_xvfb = not args.no_xvfb and shutil.which("xvfb-run") is not None
     backends = [args.backend] if args.backend else list(BACKENDS)
     modules = args.module or MODULES

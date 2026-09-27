@@ -93,6 +93,59 @@ def _windows_job():
     return k32, job
 
 
+class _Watch:
+    """Watch mode, for a person looking at the real window: every input
+    action is narrated and paced. JMS_E2E_WATCH=<seconds> pauses that long
+    before each action; JMS_E2E_STEP=1 waits for Enter instead. Narration
+    goes to stderr and to JMS_E2E_NARRATE (default: e2e-watch.txt in the
+    temp dir), for a second terminal to `tail -f`."""
+
+    def __init__(self):
+        self.delay = float(os.environ.get("JMS_E2E_WATCH") or 0)
+        self.step = bool(os.environ.get("JMS_E2E_STEP"))
+        self.on = self.delay > 0 or self.step
+        self.n = 0
+        self.depth = 0
+        self.path = os.environ.get("JMS_E2E_NARRATE") or os.path.join(
+            tempfile.gettempdir(), "e2e-watch.txt")
+
+    @staticmethod
+    def _test():
+        """The test method running this, found on the stack: narration
+        without touching a single test."""
+        import inspect
+        for fr in inspect.stack():
+            if fr.function.startswith(("test_", "setUp")):
+                owner = fr.frame.f_locals.get("self")
+                cls = type(owner).__name__ if owner is not None else "?"
+                return "%s.%s" % (cls, fr.function)
+        return "?"
+
+    def __call__(self, what):
+        if not self.on or self.depth:
+            return
+        self.n += 1
+        line = "%s  step %d  [%s]  %s" % (time.strftime("%H:%M:%S"), self.n,
+                                          self._test(), what)
+        sys.stderr.write(line + "\n")
+        try:
+            with open(self.path, "a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+        except OSError:
+            pass
+        if self.step:
+            try:
+                with open("/dev/tty") as tty:
+                    tty.readline()
+            except OSError:
+                time.sleep(self.delay or 1.0)
+        else:
+            time.sleep(self.delay)
+
+
+WATCH = _Watch()
+
+
 class App:
     """One launch of the app against one config directory.
 
@@ -314,6 +367,7 @@ class App:
     # -- input -----------------------------------------------------------
 
     def key(self, name):
+        WATCH("key %s" % name)
         self.mpv.command("keypress", name)
 
     def keys(self, *names):
@@ -327,12 +381,14 @@ class App:
     def point(self, x, y):
         """Move the pointer to (x, y). mpv drops a move to where it already
         is, so nudge first: the move is then always an event."""
+        WATCH("pointer to (%d, %d)" % (x, y))
         self.mpv.command("mouse", int(x) + 8, int(y) + 8)
         time.sleep(0.15)
         self.mpv.command("mouse", int(x), int(y))
 
     def press(self, button):
         """A button down and up where the pointer is, with no move."""
+        WATCH("press %s" % button)
         self.mpv.command("keydown", button)
         time.sleep(0.1)
         self.mpv.command("keyup", button)
@@ -355,7 +411,17 @@ class App:
                     raise
         raise AppError("the HUD never came up on %d pointer moves" % tries)
 
-    def click(self, node_id, button="MBTN_LEFT", timeout=5):
+    def click(self, target, *a, **kw):
+        """Narrated once in watch mode, however many keys or moves it
+        takes (see _click)."""
+        WATCH("click %s" % target)
+        WATCH.depth += 1
+        try:
+            return self._click(target, *a, **kw)
+        finally:
+            WATCH.depth -= 1
+
+    def _click(self, node_id, button="MBTN_LEFT", timeout=5):
         """Point at ``node_id``'s centre, wait until the renderer says the
         pointer is on it, then press: a click that proves where it went."""
         n = node(self.frame(), node_id)
@@ -366,8 +432,17 @@ class App:
                       what="the pointer to rest on %s" % node_id)
         self.press(button)
 
-    def type(self, text):
-        """Type ``text`` key by key through mpv's input layer."""
+    def type(self, text, masked=False):
+        """Type ``text`` key by key through mpv's input layer. ``masked``
+        keeps it out of the watch-mode narration (a password)."""
+        WATCH("type %s" % ("*" * len(text) if masked else repr(text)))
+        WATCH.depth += 1
+        try:
+            self._type_keys(text)
+        finally:
+            WATCH.depth -= 1
+
+    def _type_keys(self, text):
         for ch in text:
             self.key(self._KEY_NAMES.get(ch, ch))
 
@@ -390,7 +465,7 @@ class App:
         before = fields(self.frame()).get(field) or ""
         for end in range(self.TYPE_CHUNK, len(text) + self.TYPE_CHUNK,
                          self.TYPE_CHUNK):
-            self.type(text[end - self.TYPE_CHUNK:end])
+            self.type(text[end - self.TYPE_CHUNK:end], masked=masked)
             shown = before + text[:end]
             want = "*" * len(shown) if masked else shown
             try:
@@ -488,7 +563,17 @@ class App:
                      if i == 0 or t[1:] != trail[i - 1][1:]]
             raise AppError("%s\nframes (rev, nav, page): %r" % (exc, dedup))
 
-    def move_to(self, target, key=None, limit=60):
+    def move_to(self, target, *a, **kw):
+        """Narrated once in watch mode, however many keys or moves it
+        takes (see _move_to)."""
+        WATCH("move focus to %s" % target)
+        WATCH.depth += 1
+        try:
+            return self._move_to(target, *a, **kw)
+        finally:
+            WATCH.depth -= 1
+
+    def _move_to(self, target, key=None, limit=60):
         """Put keyboard focus (nav) on ``target``.
 
         TAB first, then shift+TAB: a long page (Home, with its rows) can put
