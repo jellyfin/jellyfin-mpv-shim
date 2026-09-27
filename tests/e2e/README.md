@@ -20,6 +20,18 @@ JMS_E2E_SERVER=... python3 tests/e2e/run_e2e.py --backend libmpv
 JMS_E2E_SERVER=... python3 -m unittest tests.e2e.test_playback_advance -v
 ```
 
+**Watching a test.** `--watch [SECONDS]` runs on the real display (no Xvfb),
+narrates every input action and pauses SECONDS (default 1) before each;
+`--step` waits for Enter instead. Narration goes to stderr and to
+`$TMPDIR/e2e-watch.txt` -- `tail -f` it in a second terminal beside the
+window. For judging rendering by eye; the real-app modules
+(`test_type_seams_live`, `test_input_live`) are the ones worth watching.
+
+```sh
+JMS_E2E_SERVER=... python3 tests/e2e/run_e2e.py --watch 1.5 --backend libmpv \
+    --module tests.e2e.test_type_seams_live.OneSessionAcrossEveryTypeTest
+```
+
 `tests/e2e/` has **no `__init__.py`**, so `python3 -m unittest discover tests`
 never recurses into it and the fast suite still needs no server and no mpv.
 
