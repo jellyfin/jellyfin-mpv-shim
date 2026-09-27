@@ -35,6 +35,17 @@ FILM_QUERY = "Only Film"
 DOWNLOADED_TILE = "row-downloaded-movies#0-%s"
 
 
+def _watched_fill(frame):
+    """Whether the Watched toggle wears the accent fill -- the same fill as
+    Play (controls.action_btn: ``on`` shares ``primary``'s fill) -- or None
+    when either is not on screen."""
+    toggle = _app.node(frame, "act-watched")
+    play = _app.node(frame, "btn-play")
+    if toggle is None or play is None:
+        return None
+    return toggle.get("fill") == play.get("fill")
+
+
 def _backend():
     return os.environ.get("JMS_TEST_BACKEND") or "libmpv"
 
@@ -77,22 +88,18 @@ class _OfflineCase(unittest.TestCase):
                                  timeout=30, what="the offline detail page")
 
     def watched_on_screen(self, frame):
-        """The Watched toggle wears the accent fill when on -- the same fill
-        as Play (controls.action_btn: ``on`` shares ``primary``'s fill)."""
-        toggle = _app.node(frame, "act-watched")
-        play = _app.node(frame, "btn-play")
-        self.assertIsNotNone(toggle, "no Watched button on screen")
-        self.assertIsNotNone(play, "no Play button on screen")
-        return toggle.get("fill") == play.get("fill")
+        on = _watched_fill(frame)
+        self.assertIsNotNone(on, "no Watched or Play button on screen")
+        return on
 
     def toggle_watched(self):
         self.app.move_to("act-watched")
-        was = self.watched_on_screen(self.app.frame())
+        was = _watched_fill(self.app.frame())
         self.app.key("ENTER")
         # The toggle's own frame, not just a newer one (see App.move_to).
+        # Module-level: other classes borrow this method unbound.
         return self.app.wait_for(
-            lambda f: _app.node(f, "act-watched") and _app.node(f, "btn-play")
-            and self.watched_on_screen(f) != was,
+            lambda f: _watched_fill(f) not in (None, was),
             timeout=10, what="the Watched toggle to flip")
 
     def repaint(self):
