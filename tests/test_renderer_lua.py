@@ -108,6 +108,18 @@ class TestRendererLua(unittest.TestCase):
                       env=self._session_env(DISPLAY=":0",
                                             JMS_TEST_NO_CLIP_UPDATE="1")))
 
+    def test_the_renderer_suite_passes_with_the_test_observer_on(self):
+        """The e2e harness runs every app with JMS_TEST_OBSERVE, which
+        publishes each frame from inside render(). Its visibility check
+        assumed every node has a size; a menu has none, so it raised on
+        every frame with a menu open -- and in the real app that blanked the
+        whole screen, in every e2e run, for as long as the menu was up.
+        This suite opens menus, so it is the observer's test as well."""
+        self._assert_suite_passed(
+            self._run("test_renderer.lua",
+                      env=self._session_env(DISPLAY=":0",
+                                            JMS_TEST_OBSERVE="1")))
+
     def test_the_thumbfast_suite_passes(self):
         """`thumbfast.lua` is the other consumer of the trickplay frame
         file — the compatibility layer every thumbfast-style lua OSC talks
