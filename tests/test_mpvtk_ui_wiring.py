@@ -102,6 +102,7 @@ class FakeClients:
 
     def __init__(self):
         self.on_server_connected = None
+        self.on_servers_changed = None
         self.loaded = 0
 
     def load_credentials(self):
@@ -302,6 +303,22 @@ class TestEveryCallbackIsWired(WiringHarness):
         self._login()
         self.assertIsNotNone(self.clients.on_server_connected,
                              "a server that comes up late stays invisible")
+
+    def test_a_server_dropping_is_subscribed(self):
+        """Nothing subscribed, so a health check dropping a server never
+        redrew the browser: the switcher kept offering it as connected until
+        something else happened to repaint (scenario 11)."""
+        browser = self._login()
+        self.assertIsNotNone(self.clients.on_servers_changed)
+        calls = []
+
+        class _App:
+            def invalidate(self):
+                calls.append(1)
+
+        browser.app = _App()
+        self.clients.on_servers_changed()
+        self.assertEqual([1], calls, "a dropped server asks for no redraw")
 
     def test_download_changes_are_subscribed(self):
         self._login()

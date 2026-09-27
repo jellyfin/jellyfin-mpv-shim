@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-26 13:46-0400\n"
+"POT-Creation-Date: 2026-09-26 21:59-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -851,6 +851,12 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
+msgstr ""
+
+#. Status line after picking Offline in the top bar's server picker when
+#. there are no downloads to browse.
+#: jellyfin_mpv_shim/mpvtk_browser/app.py
+msgid "Nothing is downloaded to browse offline."
 msgstr ""
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
@@ -6727,7 +6733,7 @@ msgstr ""
 #. not connected. %s is the server's name; picking it tries to reconnect.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
-msgid "%s (offline)"
+msgid "%s (needs reconnect)"
 msgstr ""
 
 #. Tooltip of the window button that hides the window to the taskbar.
@@ -6756,6 +6762,14 @@ msgstr ""
 #. window title when nothing else names the page.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Home"
+msgstr ""
+
+#. The last entry in the server picker in the top bar: browse only what is
+#. downloaded to this computer, without a server. A place to go, not the
+#. state of a server (compare the Settings status word "Offline").
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgctxt "server switcher entry"
+msgid "Offline"
 msgstr ""
 
 #. Tooltip of the navigation bar's dropdown that switches between Jellyfin

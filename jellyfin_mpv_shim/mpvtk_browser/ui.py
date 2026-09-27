@@ -332,6 +332,10 @@ class UserInterface:
         # A server that was down at startup must appear once it answers,
         # rather than staying invisible until a manual retry or restart.
         clientManager.on_server_connected = self._on_server_connected
+        # And one that drops: the switcher reads connection state as it
+        # draws, so a redraw is all it takes. Unsubscribed, the entry kept
+        # reading as connected until something else repainted.
+        clientManager.on_servers_changed = browser.invalidate
         # Refresh download badges the moment the catalog changes, rather
         # than only when Settings -> Downloads is opened. The push hook has
         # always existed; the browser just never subscribed.
@@ -592,6 +596,11 @@ class UserInterface:
         arbitrary moments mid-session. Resetting to Home threw the user out
         of whatever they were reading every time a flaky server bounced."""
         if self._browser is None:
+            return
+        if getattr(self._browser, "offline_chosen", False):
+            # The person dropped to offline; a server bouncing back is not
+            # them asking to leave it. Picking the server is.
+            self._browser.invalidate()
             return
         try:
             source = PlayerGateway().rebuild_source()

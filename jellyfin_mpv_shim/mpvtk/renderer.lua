@@ -2147,6 +2147,7 @@ if os.getenv('JMS_TEST_OBSERVE') then
                     id = node.id, t = node.t, text = node.text,
                     x = ex, y = ey, w = node.w, h = node.h, vis = vis,
                     mod = node.mod, fill = node.fill,
+                    items = node.items, icons = node.icons,
                 }
             end
         end
@@ -5681,9 +5682,11 @@ local function reconcile()
                 -- something DIFFERENT from what it was showing when the
                 -- click happened -- whether that is agreement or a refusal
                 -- that lands on some third value, both are answers.
-                -- Comparing against the value the user picked instead would
-                -- strand the control on their choice forever if the app
-                -- ever answered by keeping the original.
+                -- A refusal that KEEPS the original is not an answer here
+                -- either: the control stays on the refused choice (the
+                -- server switcher's failed reconnect, expectedFailure in
+                -- tests/e2e/test_offline_ui.py). Needs a way to say
+                -- "refused".
                 if d == nil or d.was == nil
                         or (node.sel or 0) ~= d.was then
                     state.dd[node.id] = nil

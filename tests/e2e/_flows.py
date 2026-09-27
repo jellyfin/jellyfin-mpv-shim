@@ -40,6 +40,8 @@ def login(app, relay, account="qa-user"):
 def open_by_search(app, query, item_id, section="Movies"):
     """Search from the top bar and open the result: ends on its detail page
     with Play focused."""
+    # The box keeps the last query, so a second search would append to it.
+    app.clear_field("nav-search")
     app.type_into("nav-search", query)
     app.key("ENTER")
     tile = "search-%s-%s" % (section, item_id)
@@ -173,6 +175,37 @@ def add_server_from_anywhere(app):
                  what="the add-server form from Configure Servers")
 
 
+def items(frame, dd_id):
+    """A drop-down's entries as drawn, or [] when it is not on screen."""
+    node = _app.node(frame, dd_id) or {}
+    return list(node.get("items") or [])
+
+
+def pick(app, dd_id, index):
+    """Open drop-down ``dd_id`` by keyboard and choose entry ``index``.
+
+    Moves by the observed cursor, which starts on the CURRENT entry, not the
+    first: ENTER with no arrows re-selects what is already chosen."""
+    app.move_to(dd_id)
+    app.key("ENTER")
+    f = app.wait_for(lambda f: f.get("dd_open") == dd_id, timeout=10,
+                     what="%s open" % dd_id)
+    dd = f.get("dropdowns") or {}
+    cur = f.get("nav_pidx")
+    if cur is None:
+        cur = ((dd.get(dd_id) if isinstance(dd, dict) else None)
+               or {}).get("sel", 0)
+    for _ in range(abs(index - cur)):
+        app.key("DOWN" if index > cur else "UP")
+    app.key("ENTER")
+
+
+def selected(frame, dd_id):
+    dd = frame.get("dropdowns") or {}
+    return ((dd.get(dd_id) if isinstance(dd, dict) else None)
+            or {}).get("sel")
+
+
 def switch_profile(app, name, timeout=60):
     """Switch to the profile called ``name`` through the top bar's profile
     drop-down, by keyboard, and wait until the app says it is active.
@@ -187,19 +220,7 @@ def switch_profile(app, name, timeout=60):
              (users(app.config_dir) or {}).get("users", [])]
     if name not in names:
         raise AssertionError("no profile %r (have %r)" % (name, names))
-    want = names.index(name)
-    app.move_to("nav-user")
-    app.key("ENTER")
-    f = app.wait_for(lambda f: f.get("dd_open") == "nav-user", timeout=10,
-                     what="the profile list open")
-    dd = f.get("dropdowns") or {}
-    cur = f.get("nav_pidx")
-    if cur is None:
-        cur = ((dd.get("nav-user") if isinstance(dd, dict) else None)
-               or {}).get("sel", 0)
-    for _ in range(abs(want - cur)):
-        app.key("DOWN" if want > cur else "UP")
-    app.key("ENTER")
+    pick(app, "nav-user", names.index(name))
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if active_profile(app.config_dir) == name:

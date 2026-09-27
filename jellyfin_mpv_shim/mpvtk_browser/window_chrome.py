@@ -116,23 +116,38 @@ def chrome_lists(b):
     get the other one back. Listing it greyed, with the reconnect behind
     selecting it, is what makes that recoverable without going to Settings.
 
-    Not while offline. There the source *is* the answer to every server being
-    away -- the connecting screen and the offline banner own the retry -- and
-    an entry that cannot be browsed is worse than none.
+    Offline too (D3 case 3, ruled 2026-09-26): picking a server there is how
+    you come back, and it reconnects or says why. The offline source's own
+    list is not a fallback then -- the Offline entry stands for it.
     """
     servers = None
-    if not b._offline and b.controller is not None:
+    if b.controller is not None:
         try:
             servers = b.controller.switcher_servers()
         except Exception:
             log.debug("switcher_servers failed", exc_info=True)
             servers = None
-    if not servers:
+    if not servers and b._offline:
+        servers = []
+    elif not servers:
         try:
             servers = b.source.servers()
         except Exception:
             servers = []
     return servers, b._users()
+
+
+def _has_downloads(b):
+    """Whether the Offline entry is offered. Asked of the gateway, which
+    keeps it cheap enough for every frame (a catalog count)."""
+    ask = getattr(b.controller, "has_downloads", None)
+    if ask is None:
+        return False
+    try:
+        return bool(ask())
+    except Exception:
+        log.debug("has_downloads failed", exc_info=True)
+        return False
 
 
 def _server_label(sv):
@@ -144,7 +159,7 @@ def _server_label(sv):
     name = sv.get("name") or "?"
     if sv.get("connected", True):
         return name
-    return _("%s (offline)") % name
+    return _("%s (needs reconnect)") % name
 
 
 #: The three buttons a title bar has, in the order every desktop puts them.
@@ -312,14 +327,38 @@ def chrome_bar(b, compact, probe=False, servers=None,
     right = []
     if servers is None:
         servers = chrome_lists(b)[0]
-    if len(servers) > 1:
-        cur = next((i for i, s in enumerate(servers)
-                    if s["uuid"] == b.server), 0)
+    labels = [_server_label(s) for s in servers]
+    icons = [server_icon(s) for s in servers]
+    # The Offline entry (D3 cases 2 and 4): the downloads as one more place
+    # to browse, offered only when there is something downloaded.
+    offline_at = None
+    if b._offline or _has_downloads(b):
+        offline_at = len(labels)
+        labels.append(_p("server switcher entry", "Offline"))
+        icons.append("folder")
+    if len(labels) > 1:
+        if b._offline and offline_at is not None:
+            cur = offline_at
+        else:
+            cur = next((i for i, s in enumerate(servers)
+                        if s["uuid"] == b.server), 0)
+
+        def chosen(i, _v):
+            if i == offline_at:
+                b.go_offline()
+            else:
+                b._switch_server(servers[i]["uuid"])
+
         # sized to its content within bounds (so long names count in
         # the fit probe); overlong labels ellipsize renderer-side
         right.append(Dropdown(
-            "nav-server", [_server_label(s) for s in servers],
+            "nav-server", labels,
             selected=cur, min_w=110, tip=_("Server"),
+            # The scene's choice wins: the selection also moves without a pick
+            # (falling back to the downloads, a background reconnect). NOT
+            # enough for a refused pick, which answers with the value the
+            # gesture began on and so never ends it (GUIDE section 2).
+            force=True,
             max_w=170 if compact else 300,
             # The open list is not the closed box. The box has a top bar to
             # share with Search and the nav buttons; the list has the whole
@@ -334,8 +373,8 @@ def chrome_bar(b, compact, probe=False, servers=None,
             # by the glyph, because the list is where the choice is made and
             # a row that looks available and then refuses is worse than one
             # that says so first.
-            icons=[server_icon(s) for s in servers],
-            on_select=lambda i, v: b._switch_server(servers[i]["uuid"])))
+            icons=icons,
+            on_select=chosen))
     if users is None:
         users = b._users()
     # Offline too (D3 case 6, ruled 2026-09-26). Offline, whose watched
