@@ -312,6 +312,27 @@ class App:
 
     # -- observation -----------------------------------------------------
 
+    def type_into(self, field, text, masked=False, timeout=10):
+        """Focus text field ``field``, type ``text``, and wait until the field
+        holds it -- before anything else is pressed. Typing then moving on at
+        once let a TAB overtake the last characters on the jsonipc backend
+        (a server URL arrived two digits short). A field that never reaches
+        the text raises, naming what it holds: a lost keystroke is a finding,
+        a late one is not."""
+        self.move_to(field)
+        self.type(text)
+        want = "*" * len(text) if masked else text
+        try:
+            return self.wait_for(lambda f: fields(f).get(field) == want,
+                                 timeout=timeout,
+                                 what="%s to hold what was typed" % field)
+        except AppError:
+            got = fields(self.frame()).get(field)
+            raise AppError("%s holds %r after typing %r: keystrokes lost"
+                           % (field, got if not masked else
+                              "<%d chars>" % len(got or ""),
+                              text if not masked else "<%d chars>" % len(text)))
+
     def frame(self):
         """The renderer's last finished frame, or None before the first."""
         try:

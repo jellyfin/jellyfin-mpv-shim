@@ -2172,6 +2172,9 @@ if os.getenv('JMS_TEST_OBSERVE') then
             modal_open = modal_active(), active = state.active,
             phud_mode = state.phud.mode, phud_shown = state.phud.shown,
             occluders = occ, nodes = nodes, fields = fields,
+            -- An open dropdown's keyboard cursor, and each dropdown's
+            -- selection (the cursor starts there when nothing moved it).
+            nav_pidx = state.nav_pidx, dropdowns = state.dd,
         })
         pcall(mp.set_property_native, 'user-data/mpvtk/observe_hist', hist)
     end

@@ -24,25 +24,14 @@ def login(app, relay, account="qa-user"):
     """Sign in through the login form, against the relay's address."""
     app.wait_for(lambda f: _app.shown(f, "login-server"), timeout=60,
                  what="the login screen")
-    app.move_to("login-server")
-    app.type(relay.address)
-    app.move_to("login-user")
-    app.type(account)
-    app.move_to("login-pass")
+    # Each field is checked to hold what was typed before the next is
+    # touched (App.type_into) -- the password as its length only, which is
+    # all the observer ever publishes of a masked field.
+    app.type_into("login-server", relay.address)
+    app.type_into("login-user", account)
     # Keyed by the upstream server: the published password is per server.
-    password = _accounts.password_for(account, _e2e.SERVER)
-    app.type(password)
-    # What was typed is what the fields hold -- the password as its length
-    # only, which is all the observer ever publishes of a masked field.
-    f = app.wait_for(
-        lambda f: _app.fields(f).get("login-pass") == "*" * len(password),
-        timeout=10, what="the password field filled")
-    got = _app.fields(f)
-    if (got.get("login-server"), got.get("login-user")) != (relay.address,
-                                                           account):
-        raise AssertionError("the login fields hold %r, not what was typed"
-                             % ({k: got.get(k) for k in
-                                 ("login-server", "login-user")},))
+    app.type_into("login-pass", _accounts.password_for(account, _e2e.SERVER),
+                  masked=True)
     app.key("ENTER")
     app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
                  what="the home screen after signing in as %s" % account)
@@ -51,8 +40,7 @@ def login(app, relay, account="qa-user"):
 def open_by_search(app, query, item_id, section="Movies"):
     """Search from the top bar and open the result: ends on its detail page
     with Play focused."""
-    app.move_to("nav-search")
-    app.type(query)
+    app.type_into("nav-search", query)
     app.key("ENTER")
     tile = "search-%s-%s" % (section, item_id)
     app.wait_for(lambda f: _app.shown(f, tile), timeout=30,
@@ -136,8 +124,7 @@ def add_profile(app, name):
     app.key("ENTER")
     app.wait_for(lambda f: _app.shown(f, "su-newuser"), timeout=15,
                  what="the users list")
-    app.move_to("su-newuser")
-    app.type(name)
+    app.type_into("su-newuser", name)
     app.move_to("su-adduser")
     app.key("ENTER")
 
@@ -162,16 +149,48 @@ def add_server_from_anywhere(app):
                  what="the add-server form from Configure Servers")
 
 
-def switch_profile(app, index):
-    """The top bar's profile drop-down, by keyboard: the entry at
-    ``index`` (0 = first). Settings' own user rows take no focus."""
+def switch_profile(app, name, timeout=60):
+    """Switch to the profile called ``name`` through the top bar's profile
+    drop-down, by keyboard, and wait until the app says it is active.
+
+    The drop-down's cursor starts on the CURRENT profile, not the first
+    entry, so ENTER with no arrows re-selects who is already active -- an
+    earlier version of this step did exactly that and scenario 4 went green
+    without ever switching. Hence moving by the observed cursor, and the
+    check at the end against users.json, which is what the app persists
+    when a switch really happens."""
+    names = [u.get("name") for u in
+             (users(app.config_dir) or {}).get("users", [])]
+    if name not in names:
+        raise AssertionError("no profile %r (have %r)" % (name, names))
+    want = names.index(name)
     app.move_to("nav-user")
     app.key("ENTER")
-    app.wait_for(lambda f: f.get("dd_open") == "nav-user", timeout=10,
-                 what="the profile list open")
-    for _ in range(index):
-        app.key("DOWN")
+    f = app.wait_for(lambda f: f.get("dd_open") == "nav-user", timeout=10,
+                     what="the profile list open")
+    dd = f.get("dropdowns") or {}
+    cur = f.get("nav_pidx")
+    if cur is None:
+        cur = ((dd.get("nav-user") if isinstance(dd, dict) else None)
+               or {}).get("sel", 0)
+    for _ in range(abs(want - cur)):
+        app.key("DOWN" if want > cur else "UP")
     app.key("ENTER")
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if active_profile(app.config_dir) == name:
+            return
+        time.sleep(0.25)
+    raise AssertionError("switching to %r did not happen (active: %r)"
+                         % (name, active_profile(app.config_dir)))
+
+
+def active_profile(config_dir):
+    reg = users(config_dir) or {}
+    for u in reg.get("users", []):
+        if u.get("id") == reg.get("active"):
+            return u.get("name")
+    return None
 
 
 def credentials(config_dir):
