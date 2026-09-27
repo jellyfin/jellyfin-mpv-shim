@@ -488,5 +488,88 @@ class UnwatchOnlineReachesTheCopyTest(unittest.TestCase):
                         "the copy on disk still says watched (B6): %r"
                         % self.catalog.userdata(self.film))
 
+
+@_e2e.require_server
+class ConflictsAtReconnectTest(_OfflineCase):
+    """Scenario 6. What the offline session sends when the server has moved
+    on meanwhile (G2; D1 ruled 2026-09-26).
+
+    Each case sets the server state it needs through the API -- another
+    client's doing -- then reconnects with the relay restored and Retry,
+    and reads the server as the only judge."""
+
+    TICKS = 10_000_000
+
+    def _server(self):
+        return self.session.user_data(self.film) or {}
+
+    def _mark_on_server(self, played):
+        self.session._request("/UserPlayedItems/%s" % self.film,
+                              "POST" if played else "DELETE")
+
+    def _reconnect(self):
+        self.relay.restore()
+        self.app.key("ESC")
+        self.app.move_to("banner-retry")
+        self.app.key("ENTER")
+        # Delivered when the queue has drained for this person.
+        self.assertTrue(_e2e.wait_for(
+            lambda: not [p for p in self.catalog.pending(self.film)
+                         if p["user_id"] == self.me[1]], timeout=120),
+            "the queue never drained after reconnecting: %r"
+            % self.catalog.pending(self.film))
+
+    def test_an_offline_unwatch_beats_an_older_server_watch(self):
+        self._mark_on_server(True)            # before the unwatch
+        time.sleep(1.2)
+        self.open_film()
+        self.toggle_watched()                 # watched (locally)
+        self.toggle_watched()                 # deliberately unwatched
+        self.assertEqual(0, self.played_here())
+        self._reconnect()
+        self.assertFalse(self._server().get("Played"),
+                         "the older server watch survived a later unwatch")
+
+    def test_a_newer_server_watch_beats_an_offline_unwatch(self):
+        self.open_film()
+        self.toggle_watched()
+        self.toggle_watched()                 # deliberately unwatched
+        time.sleep(1.2)
+        self._mark_on_server(True)            # another device, afterwards
+        self._reconnect()
+        self.assertTrue(self._server().get("Played"),
+                        "an older offline unwatch undid a newer watch")
+
+    def test_ordinary_offline_progress_does_not_clear_a_server_watch(self):
+        self._mark_on_server(True)
+        self.open_film()
+        self.app.move_to("btn-play")
+        self.app.key("ENTER")
+        time.sleep(4)
+        self.app.key("q")                      # stop partway (kb_stop)
+        self.app.wait_for(lambda f: _app.shown(f, "btn-play"), timeout=30,
+                          what="the detail page after stopping")
+        self._reconnect()
+        self.assertTrue(self._server().get("Played"),
+                        "offline progress (no deliberate mark) cleared a "
+                        "watched mark on the server")
+
+    def test_a_stale_offline_position_does_not_rewind_the_server(self):
+        far = 9 * self.TICKS
+        self.session._request(
+            "/UserItems/%s/UserData" % self.film, "POST",
+            {"PlaybackPositionTicks": far})
+        self.open_film()
+        self.app.move_to("btn-play")
+        self.app.key("ENTER")
+        time.sleep(3)
+        self.app.key("q")
+        self.app.wait_for(lambda f: _app.shown(f, "btn-play"), timeout=30,
+                          what="the detail page after stopping")
+        self._reconnect()
+        self.assertGreaterEqual(
+            self._server().get("PlaybackPositionTicks") or 0, far,
+            "the offline position rewound the server's newer progress")
+
 if __name__ == "__main__":
     unittest.main()
