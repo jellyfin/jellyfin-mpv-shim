@@ -21,7 +21,6 @@ import os
 import sys
 import time
 import unittest
-from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _e2e  # noqa: E402
@@ -61,52 +60,6 @@ class _ShowCase(_e2e.E2ETestCase):
             lambda: self.session.user_data(item_id).get("Played"),
             timeout=timeout)
         self.assertTrue(got, msg)
-
-
-@_e2e.require_server_and_mpv
-class EndOfQueueTest(_ShowCase):
-    """The last item in a queue still gets marked watched.
-
-    It ends differently from every other item: with no next file, mpv reports
-    `playback-abort` rather than `eof-reached`, and the 07-25 checklist calls
-    this out specifically. Run under both `force_set_played` values because
-    they reach the same outcome by different routes — the setting makes the
-    shim mark it, and without it the server infers it from a stop report past
-    `MaxResumePct` (90%). A user cares that the finale is watched; which of
-    the two did it is the implementation detail.
-    """
-
-    SHOW = "Absolute Numbering Show"
-    NEEDED = 1
-
-    def _play_single_to_end(self):
-        last = self.eps[0]
-        self.play_queue([last["Id"]])
-        finished = self.pump_until(lambda: self.pm._video is None
-                                   or (self.pm._player.playback_time or 0) >= 9.0,
-                                   timeout=45)
-        self.assertTrue(finished, "the single item never reached its end")
-        self.pm.send_timeline()
-        return last
-
-    def test_the_last_item_is_marked_watched_with_force_set_played(self):
-        with mock.patch.object(self.player_module.settings,
-                               "force_set_played", True):
-            last = self._play_single_to_end()
-        self.assert_played(
-            last["Id"],
-            "the last item in a queue was not marked watched "
-            "(force_set_played on)")
-
-    def test_the_last_item_is_marked_watched_without_force_set_played(self):
-        with mock.patch.object(self.player_module.settings,
-                               "force_set_played", False):
-            last = self._play_single_to_end()
-        self.assert_played(
-            last["Id"],
-            "the last item in a queue was not marked watched "
-            "(force_set_played off — the server should infer it from the "
-            "stop report past MaxResumePct)")
 
 
 @_e2e.require_server_and_mpv

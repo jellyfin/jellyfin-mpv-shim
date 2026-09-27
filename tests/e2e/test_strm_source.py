@@ -486,17 +486,14 @@ class NoRuntimeResumeTest(_e2e.E2ETestCase):
 @_strm.require_origin(_strm.LOCAL_MOVIE)
 @_e2e.require_server
 class PlaybackInfoPrecedesReportingTest(_e2e.E2ETestCase):
-    """The shim's side of the rule above: **ask before you report.**
+    """Resolving a `.strm`'s URL teaches the server its runtime.
 
     `PlaybackInfo` is what makes the server probe the origin, and the probe is
     what gives the item a runtime — measured against 12.0: an item whose
     `RunTimeTicks` was null carries the probed runtime immediately afterwards.
-    So as long as the shim resolves its URL before it opens a session, a
-    `.strm` whose origin *is* reachable can hold a resume position like
-    anything else.
-
-    This is an ordering test, not a value test, which is why it does not care
-    what the runtime turns out to be.
+    That is why the shim must ask before it reports; the ORDER itself is
+    observed at the real app, at the relay (test_playback_lifecycle,
+    StopAndResumeTest). This one checks only that the ask teaches it.
     """
 
     def test_resolving_the_url_teaches_the_server_the_runtime(self):

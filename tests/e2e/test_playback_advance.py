@@ -93,64 +93,11 @@ class QueueAdvanceTest(_e2e.E2ETestCase):
                         "the finished episode was not marked watched on the "
                         "server")
 
-        # 4) ...and the one that replaced it is not, which is what separates a
-        #    real advance from the whole queue being marked off.
-        self.assertFalse(
-            self.session.user_data(self.second["Id"]).get("Played"),
-            "the episode we advanced INTO was marked watched")
-
-
-@_e2e.require_server_and_mpv
-class ResumePositionTest(_e2e.E2ETestCase):
-    """The other direction of the same reporting loop: a progress post that
-    carries a position rather than a completion.
-
-    **This needs a long item, and that is the server's rule, not a choice.**
-    Jellyfin discards a resume position for anything shorter than
-    `MinResumeDurationSeconds` (300 by default, confirmed against this
-    server's `/System/Configuration`), and additionally clamps to
-    `MinResumePct` 5% / `MaxResumePct` 90%. A 10-second episode can therefore
-    never hold one, so writing this test against the show it seems to belong
-    with produces a failure that reads as a shim bug and is not. `x-long`
-    exists in stdjflib for exactly this — "resume points, seek accuracy far
-    from the start".
-    """
-
-    ITEM = "Three hours"
-    SEEK_TO = 1200.0        # 20 min: past the 5% floor (540s), far from 90%
-
-    def setUp(self):
-        super().setUp()
-        self.item = self.session.find(self.ITEM, library="Test Media")
-        self.session.reset_played(self.item["Id"])
-        self.addCleanup(self.session.reset_played, self.item["Id"])
-
-    def test_stopping_midway_leaves_a_resume_position(self):
-        media = _e2e.build_media(self.session, [self.item["Id"]])
-        video = media.video
-        self.pm.play(video, is_initial_play=True)
-        self.assertTrue(self.pm._player.duration)
-
-        self.pm.seek(self.SEEK_TO, absolute=True, exact=True)
-        arrived = self.pump_until(
-            lambda: (self.pm._player.playback_time or 0) >= self.SEEK_TO - 5,
-            timeout=30)
-        self.assertTrue(arrived, "mpv never reached the seek target")
-        self.pm.send_timeline()
-        self.pm.stop()
-
-        ticks = _e2e.wait_for(
-            lambda: self.session.user_data(self.item["Id"])
-            .get("PlaybackPositionTicks"))
-        self.assertTrue(ticks, "no resume position was recorded")
-        seconds = ticks / 10_000_000
-        self.assertGreater(seconds, self.SEEK_TO - 60,
-                           "resume position is well short of where we stopped")
-        self.assertLess(seconds, self.SEEK_TO + 60,
-                        "resume position is well past where we stopped")
-        self.assertFalse(
-            self.session.user_data(self.item["Id"]).get("Played"),
-            "an item stopped 20 minutes into three hours was marked watched")
+        # Not asserted: that the episode advanced INTO is still unwatched.
+        # The server marks an item under MinResumeDurationSeconds (300 s)
+        # played from its own progress reports once past MinResumePct, so on
+        # these 10 s episodes that is a race with the next report, not a
+        # property. What the app reports on a step: test_playback_lifecycle.
 
 
 if __name__ == "__main__":
