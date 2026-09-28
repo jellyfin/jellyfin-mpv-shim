@@ -1556,6 +1556,13 @@ class TheDownloadQueueResolvesByTheRowTest(unittest.TestCase):
             ]}])
         self.addCleanup(patch.stop)
         patch.start()
+        # No profile is active: the people above are absent, which is D2's
+        # premise (an account the ACTIVE profile holds never uses a saved
+        # login). Left unset, whatever an earlier test in the module made
+        # active decided it.
+        active = mock.patch.object(userManager, "active_id", None)
+        self.addCleanup(active.stop)
+        active.start()
 
     def _mgr(self, *connected):
         """A manager with exactly these logins live.
@@ -1830,6 +1837,136 @@ class AnAbsentPersonsQueueUsesTheirOwnCredentialTest(
         self.clients.pop(self.WAN)              # and signs out again
         self.assertIs(self.built, m._client_for_row(row),
                       "signing in did not clear the refusal")
+
+    def _absent_queue(self, m, *people):
+        """Rows for absent people on SERVER, each through its own saved
+        login, then one row that can always run: an orphan fetched by the
+        row's own live login (ELSE, which no profile holds)."""
+        self.built = {}
+        calls = []
+
+        def builder(server_id, user_id):
+            calls.append((server_id, user_id))
+            client = FakeClient()
+            client.stop = lambda: None
+            self.built[(server_id, user_id)] = client
+            return "saved-" + user_id, client
+
+        m.credential_client = builder
+        for n, person in enumerate(people):
+            self._row(m, item_id="film%d" % n, login=self.LAN,
+                      asked_by=(self.SERVER, person))
+        self._row(m, item_id="good", login=self.ELSE)
+        return calls
+
+    ELSE = "login-else"
+
+    def _unreachable(self, m):
+        def unreachable(*a, **k):
+            raise manager_module.requests.ConnectionError("no route to host")
+
+        m._stream = unreachable
+
+    def test_an_unreachable_server_does_not_hold_the_queue(self):
+        """Item 10 (Izzie, 2026-09-28, "Blocks the release"): a saved login
+        is built with no network check, so a row for a server that cannot
+        be reached -- a second server only on the home LAN -- went back to
+        the head of the queue every pass and every download behind it
+        waited. One failed fetch marks that server unreachable for a while
+        and the queue skips it, like any other unreachable server."""
+        from jellyfin_mpv_shim.users import userManager
+        with mock.patch.object(userManager, "active_id", None):
+            m = self._mgr(self.ELSE)
+            self._absent_queue(m, self.IZZIE)
+            self.assertEqual("film0", m._next_runnable()["item_id"],
+                             "the premise: the absent row is tried first")
+            self._unreachable(m)
+            try:
+                m._download(m.db.get("film0"))
+            except manager_module.requests.RequestException:
+                pass
+            self.assertEqual(STATUS_PENDING, m.db.get("film0")["status"])
+            for n in range(3):
+                self.assertEqual("good", m._next_runnable()["item_id"],
+                                 "pass %d: the unreachable server went back "
+                                 "to the head of the queue" % n)
+
+    def test_every_absent_account_on_that_server_waits_with_it(self):
+        """Per server, as ruled -- not per account, which would let each
+        absent account on a dead server block the queue once more."""
+        from jellyfin_mpv_shim.users import userManager
+        with mock.patch.object(userManager, "active_id", None):
+            m = self._mgr(self.ELSE)
+            calls = self._absent_queue(m, self.IZZIE, self.SAM)
+            m._next_runnable()
+            self._unreachable(m)
+            try:
+                m._download(m.db.get("film0"))
+            except manager_module.requests.RequestException:
+                pass
+            del calls[:]
+            for n in range(3):
+                self.assertEqual("good", m._next_runnable()["item_id"],
+                                 "pass %d" % n)
+            self.assertEqual([], calls,
+                             "a saved login was built for a server already "
+                             "known to be unreachable")
+
+    def test_the_mark_passes_and_a_live_client_clears_it(self):
+        from jellyfin_mpv_shim.users import userManager
+        with mock.patch.object(userManager, "active_id", None):
+            m = self._mgr(self.ELSE)
+            self._absent_queue(m, self.IZZIE)
+            m._next_runnable()
+            self._unreachable(m)
+            try:
+                m._download(m.db.get("film0"))
+            except manager_module.requests.RequestException:
+                pass
+            self.assertEqual("good", m._next_runnable()["item_id"])
+            later = time.monotonic() + manager_module.UNREACHABLE_SECS + 1
+            with mock.patch.object(manager_module.time, "monotonic",
+                                   return_value=later):
+                self.assertEqual("film0", m._next_runnable()["item_id"],
+                                 "the mark never expired")
+            m2 = self._mgr(self.ELSE)
+            self._absent_queue(m2, self.IZZIE)
+            m2._next_runnable()
+            self._unreachable(m2)
+            try:
+                m2._download(m2.db.get("film0"))
+            except manager_module.requests.RequestException:
+                pass
+            self.clients[self.WAN] = FakeClient()   # the person signs in
+            self.assertIs(self.clients[self.WAN],
+                          m2._client_for_row(m2.db.get("film0")))
+            self.clients.pop(self.WAN)              # and signs out again
+            self.assertIsNotNone(m2._client_for_row(m2.db.get("film0")),
+                                 "a live client did not clear the mark")
+
+    def test_the_active_profiles_own_account_never_uses_a_saved_login(self):
+        """Item 10, "Absent profiles only" (Izzie, 2026-09-28): D2 is for a
+        profile that is not active. The active profile's own download waits
+        for its normal connection, as before 3.1.0 -- even when another
+        profile also holds a login for that same account."""
+        from jellyfin_mpv_shim.users import userManager
+        users = [
+            {"id": "local", "credentials": [
+                {"uuid": self.LAN, "Id": self.SERVER, "UserId": self.IZZIE}]},
+            {"id": "away", "credentials": [
+                {"uuid": "away-lan", "Id": self.SERVER,
+                 "UserId": self.IZZIE}]},
+        ]
+        with mock.patch.object(userManager, "users", users), \
+                mock.patch.object(userManager, "active_id", "local"):
+            m = self._mgr(self.ELSE)
+            calls = self._absent_queue(m, self.IZZIE)
+            for n in range(3):
+                self.assertIsNone(m._client_for_row(m.db.get("film0")),
+                                  "pass %d: the active profile's own row "
+                                  "went through a saved login" % n)
+            self.assertEqual([], calls)
+            self.assertEqual("good", m._next_runnable()["item_id"])
 
 
 class PermanentFailureTest(TmpTest):
