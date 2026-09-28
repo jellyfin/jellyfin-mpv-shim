@@ -1578,7 +1578,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         h = size[1]
         if route.get("kind") not in CHROME_FREE:
             h -= self.CHROME_H
-            if self._update or self._offline:
+            # Asked of banner() itself: mirroring its conditions here is
+            # how this drifted when the unreachable and chosen-offline
+            # states arrived.
+            if window_chrome.banner(self) is not None:
                 h -= self.BANNER_H
             if self._dl_status and self._dl_status.get("pending"):
                 h -= self.DLBAR_H
