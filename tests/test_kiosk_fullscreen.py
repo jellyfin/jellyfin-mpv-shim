@@ -210,5 +210,43 @@ class LiveApplyBrowserFullscreenTest(unittest.TestCase):
         self.assertFalse(pm._player.fs)
 
 
+class TheLibrarysFullscreenKeyIsNotTheVideosTest(unittest.TestCase):
+    """Item 17 (Izzie, 2026-09-28: "if it disables standalone player
+    fullscreen it is a bug"). F in the library saved `browser_fullscreen`
+    AND wrote `fullscreen_disable`, the video's auto-fullscreen intent, which
+    lasts the session: leave fullscreen in the library once and every film
+    after opened windowed, with the video Fullscreen setting on."""
+
+    _pm = KioskFullscreenTest._pm
+    _settings = KioskFullscreenTest._settings
+    _live = LiveApplyBrowserFullscreenTest._live
+
+    def _toggle_off(self, **live):
+        from unittest import mock
+        pm = self._live(fullscreen=True, browser_fullscreen=True,
+                        headless=False, **live)
+        pm._player.fs = True
+        with mock.patch.object(player_module.settings, "save"):
+            pm.set_fullscreen(False, persist=True)
+        return pm
+
+    def test_leaving_fullscreen_in_the_library_leaves_films_alone(self):
+        pm = self._toggle_off()
+        self.assertFalse(player_module.settings.browser_fullscreen,
+                         "the premise: the library's own setting was saved")
+        self.assertFalse(pm.fullscreen_disable,
+                         "the library's F turned off video auto-fullscreen")
+        pm.browse_yield()               # the next film takes the window
+        self.assertTrue(pm._player.fs, "the next film opened windowed")
+
+    def test_the_same_with_music_playing_under_the_library(self):
+        pm = self._toggle_off(video=object(), audio=True)
+        self.assertFalse(pm.fullscreen_disable)
+
+    def test_during_a_film_it_is_the_films_choice_as_before(self):
+        pm = self._toggle_off(video=object(), audio=False)
+        self.assertTrue(pm.fullscreen_disable)
+
+
 if __name__ == "__main__":
     unittest.main()

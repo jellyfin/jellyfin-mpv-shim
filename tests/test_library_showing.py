@@ -204,7 +204,12 @@ class NavBackKeyTest(unittest.TestCase):
 
         self.assertIn(("set", "fullscreen", "no"), pm._player.commands,
                       "ESC stopped leaving fullscreen at the library root")
-        self.assertTrue(pm.fullscreen_disable)
+        # ...and records nothing about films: `fullscreen_disable` is the
+        # video's auto-fullscreen intent (item 17, Izzie 2026-09-28: ESC in
+        # the library "saves nothing").
+        self.assertFalse(pm.fullscreen_disable,
+                         "ESC in the library turned off video "
+                         "auto-fullscreen for the rest of the session")
 
     def test_the_new_key_still_goes_back_where_there_is_somewhere_to_go(self):
         """A key that never leaves fullscreen and also never navigates is not

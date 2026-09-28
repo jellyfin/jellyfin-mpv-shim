@@ -414,15 +414,19 @@ class WindowMixin:
         self._player.fs = enabled
         if not persist:
             return
-        # Below the gate: this is the user's intent, read at the next start
-        # (`_play_media`). The update notice leaving fullscreen is not it.
-        self.fullscreen_disable = not enabled
         # `_library_showing()`, not `_video is not None`: music keeps
         # `_video` set and keeps the library up, so a toggle made while a
         # track played was persisted as the VIDEO preference -- which also
         # arms auto-fullscreen for the next film, or turns it off, without
         # the user touching a video setting.
-        key = "browser_fullscreen" if self._library_showing() else "fullscreen"
+        library = self._library_showing()
+        if not library:
+            # Below the gate: the user's intent for films, read at the next
+            # start (`_play_media`). Only a film's toggle is it: written from
+            # the library it turned auto-fullscreen off for every film after
+            # (item 17). The update notice leaving fullscreen is not it.
+            self.fullscreen_disable = not enabled
+        key = "browser_fullscreen" if library else "fullscreen"
         if getattr(settings, key) == enabled:
             return
         setattr(settings, key, enabled)

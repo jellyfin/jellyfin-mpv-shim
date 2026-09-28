@@ -1626,7 +1626,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             pass    # the in-window UI consumed it (dialog / go back)
         else:
             self._player.command("set", "fullscreen", "no")
-            self.fullscreen_disable = True
+            # A film's choice only (item 17): in the library ESC leaves
+            # fullscreen and records nothing (Izzie, 2026-09-28).
+            if not self._library_showing():
+                self.fullscreen_disable = True
 
     def _on_nav_back_key(self):
         """"Back", and *only* back -- no fullscreen fallback.
