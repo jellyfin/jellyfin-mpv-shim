@@ -1542,7 +1542,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # arrive tens of seconds after the user has moved on, and yanking
             # them out of Settings mid-edit is worse than the error they
             # never saw.
-            if route is self.route:
+            #
+            # And only for a load the person asked for, from a server that
+            # did not answer (Izzie, 2026-09-28): a background refresh of
+            # Home that blipped, or a live server's HTTP error, threw a
+            # working Home screen onto the offline library.
+            if (route is self.route and not background
+                    and _is_unreachable(exc)):
                 self._offline_fallback(route)
 
         def settled():
