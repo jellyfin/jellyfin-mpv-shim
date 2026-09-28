@@ -1722,6 +1722,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # Seeking started - store current position
             self.playback_time_before_seek = self._player.playback_time
         else:
+            # Where a seek landed, now rather than at the next 5 s tick: a
+            # seek into the last seconds that ends before a tick otherwise
+            # leaves the pre-seek position as "the last known one", and
+            # the end reads as a stream that died far from it (#783).
+            landed = self._player.playback_time
+            if landed is not None:
+                self._last_playback_position = landed
             # Seeking ended - check if we should skip intro. Seeks made
             # from the jellyfin OSC's own controls are exempt (it has an
             # explicit skip button; scrubbing must not warp to the end
@@ -4059,6 +4066,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # session whose reports were held), not "stopped at the start": a
         # genuine finish must not be read as a failure for want of a tick.
         position = self._last_playback_position or 0
+        try:
+            # mpv still holds the file at EOF in a queue (keep_open), and
+            # then its own clock is the freshest reading there is.
+            live = self._player.playback_time
+        except Exception:
+            live = None
+        if live is not None:
+            position = max(position, live)
         if not position:
             return None
         if position >= duration * 0.95 or duration - position <= 10:

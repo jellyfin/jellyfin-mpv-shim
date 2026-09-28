@@ -210,6 +210,35 @@ class FinishedCallbackTest(unittest.TestCase):
         self.assertEqual(video.played, [], "a failed stream marked watched")
         self.assertEqual(calls["play"], [], "a failed stream advanced")
 
+    def test_a_seek_into_the_last_seconds_is_still_a_finish(self):
+        """The #783 check must not misread a skip to the credits: a seek into
+        the last seconds that reaches EOF before the next 5 s progress tick
+        left the last known position at its pre-seek value -- no advance,
+        no watched mark. mpv's own clock (it keeps the file open at EOF in a
+        queue) is the fresher reading."""
+        nxt = FakeVideo(item_id="next")
+        pm = self._player(has_next=True, next_video=nxt, duration=100)
+        pm._reached_eof = True
+        pm._last_playback_position = 12      # the last tick, before the seek
+        pm._player.playback_time = 99        # where mpv actually is
+        pm._video.client = object()
+        calls = _stub_advance(pm)
+        video = pm._video
+        with mock.patch.object(player_module.settings, "force_set_played", True), \
+                mock.patch.object(player_module.settings, "auto_play", True):
+            pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(video.played, [True], "a finish read as a failure")
+        self.assertEqual(calls["play"], [nxt], "the queue did not advance")
+
+    def test_a_finished_seek_records_where_it_landed(self):
+        """So the check above has something fresher than the last tick when
+        the file is not held open (the last item of a queue)."""
+        pm = self._player(duration=100)
+        pm._last_playback_position = 12
+        pm._player.playback_time = 97
+        pm._on_seeking("seeking", False)
+        self.assertEqual(pm._last_playback_position, 97)
+
     def test_eof_at_end_is_marked_watched(self):
         # Positive control for the above: a genuine EOF is recorded watched.
         pm = self._player(has_next=False, duration=100)
