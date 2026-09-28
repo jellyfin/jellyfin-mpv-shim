@@ -743,6 +743,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # every playback state change, for the browser's music bar. Kept as a
         # plain attribute so the player has no hard dependency on the GUI.
         self.on_playstate = None
+        # Also set by the UI: told the position a stop reported, so a page
+        # showing that item can say Resume from there before the server's
+        # UserDataChanged (and the re-read after it) arrives.
+        self.on_stopped_at = None
         # Set True while the in-window mpvtk browser owns the window (browse
         # mode, and the cast screen). Guards idle_quit so an on-screen UI
         # never has the window torn out from under it.
@@ -3310,7 +3314,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if local_video.client is None and hasattr(local_video,
                                                   "record_offline_progress"):
             local_video.record_offline_progress(options.get("PositionTicks"))
-        self.send_timeline_stopped(options=options, client=local_video.client)
+        self.send_timeline_stopped(options=options, client=local_video.client,
+                                   stopped=local_video)
         self.exec_stop_cmd()
 
         if self.trickplay:

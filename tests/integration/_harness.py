@@ -1342,6 +1342,7 @@ def build_player(player_module, video=None, test=None):
     pm.on_nav_command = None
     pm.on_hud_menu = None
     pm.on_playstate = None
+    pm.on_stopped_at = None
     pm.on_syncplay_change = None
     pm.notify_update = None
     pm.notify_syncplay = None
