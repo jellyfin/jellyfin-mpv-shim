@@ -80,7 +80,7 @@ E1 and E2 exist so far:
 | `test_track_selection` | E2 | Jellyfin's stream index vs mpv's track id, in both numbering schemes, and reported back |
 | `test_chapters` | E2 | chapter navigation over a real chaptered container: the #614 dead zone before every boundary, the back-direction grace, and mpv's chapter list against the server's |
 | `test_photos` | E2 | one still is held, an album is a slideshow, and neither inherits the browser's endless display duration |
-| `test_window_resize` | E2 | the window changes size under the UI, down to a size nobody could use |
+| `test_window_live` | E2 | the shipped app's window changes size (reflow, focus kept, too small to use) and keeps two fullscreen preferences |
 | `test_comic_reader` | E2 | the one browser screen the walk cannot open: a comic page is *played*, so the page reaching mpv, `keepaspect`, and `_video` staying None all need a real player |
 
 **E1 runs once, without a display**, because nothing in it imports
