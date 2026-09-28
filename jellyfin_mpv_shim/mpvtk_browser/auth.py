@@ -61,7 +61,13 @@ class AuthMixin:
             return []
 
     def _switch_user(self, user):
-        if user.get("active"):
+        # Re-read by id: every caller hands in a dict from the scene it was
+        # drawn in, and a switch changes `active` before that scene is
+        # redrawn. Picking the previous profile again in that gap read it as
+        # still active and did nothing (e2e test_profiles_live).
+        user = next((u for u in self._users()
+                     if u.get("id") == user.get("id")), None)
+        if user is None or user.get("active"):
             return
         if user.get("locked"):
             self._ask_pin(user)
@@ -96,11 +102,20 @@ class AuthMixin:
 
     def _do_switch_user(self, user, pin, on_bad_pin=None):
         ep = self._epoch
+        # The last switch asked for owns the screen. A superseded one that
+        # finishes late -- a slow server's -- would otherwise draw its own
+        # outcome (a sign-in form, say), and that navigation moves the
+        # epoch, so the newer switch's result is then dropped as stale:
+        # signed in as one profile, showing another's form.
+        self._switch_gen += 1
+        gen = self._switch_gen
 
         def work():
             return self.controller.switch_user(user.get("id"), pin)
 
         def done(source):
+            if gen != self._switch_gen:
+                return
             if source is False:
                 if on_bad_pin is not None:
                     on_bad_pin()

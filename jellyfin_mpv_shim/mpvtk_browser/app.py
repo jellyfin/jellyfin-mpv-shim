@@ -363,6 +363,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._pin = {"pin": ""}
         self._pin_error = None
         self._locked = False
+        self._switch_gen = 0         # see AuthMixin._do_switch_user
         # The four tile shapes, from the theme and the Cover Size setting.
         # A fixed ``geom`` (the integration harness passes one) pins the
         # poster shape and opts out of later re-derivation.
