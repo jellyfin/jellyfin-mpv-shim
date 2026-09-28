@@ -943,6 +943,84 @@ class TheReportingPathsActuallyCallItTest(unittest.TestCase):
         pm.send_timeline_stopped(finished=False, client=None)
 
 
+class AStopIsDeliveredOnlyOnceTheServerHasItTest(unittest.TestCase):
+    """Item 15 (Izzie, 2026-09-28: "Probably deserves a quick fix"). The
+    stop report is queued, and "delivered" used to be queued behind it
+    unconditionally -- so a stop the server never received (a timeout; the
+    reporter swallows it) was announced as delivered, and the page then
+    believed a re-read that still held the older position, replacing the
+    Resume point the shim knew. After a failure the page keeps it."""
+
+    _reporter = TheReportingPathsActuallyCallItTest._reporter
+    TICKS = 244 * 10**7
+
+    def _stop(self, fails):
+        pm, video = self._reporter(online=True)
+        video.item_id = "sh1"
+        journal = []
+
+        class Worker:
+            """The reporter's FIFO, run in place: it swallows a failed
+            job and carries on, like SessionReporter._run."""
+
+            def submit(self, fn, label="report"):
+                try:
+                    fn()
+                except Exception:
+                    journal.append(("failed", label))
+
+        def session_stop(options):
+            journal.append(("session_stop",))
+            if fails:
+                raise OSError("timed out")
+
+        pm._reporter = Worker()
+        video.client.jellyfin.session_stop = session_stop
+        announced = []
+        pm.on_stopped_at = lambda info: (
+            announced.append(dict(info)),
+            journal.append(("announce", info["delivered"])))
+        pm.get_timeline_options = mock.Mock(
+            return_value={"PositionTicks": self.TICKS})
+        from jellyfin_mpv_shim.clients import clientManager
+        with mock.patch.object(clientManager, "uuid_for_client",
+                               return_value="srv1"):
+            pm.send_timeline_stopped(finished=False)
+        return journal, announced
+
+    def test_a_failed_stop_is_never_announced_as_delivered(self):
+        journal, _announced = self._stop(fails=True)
+        self.assertIn(("session_stop",), journal, "the premise: it was sent")
+        self.assertNotIn(("announce", True), journal,
+                         "a stop the server never received was announced "
+                         "as delivered")
+
+    def test_a_delivered_stop_is_announced_after_it_reached_the_server(self):
+        journal, _announced = self._stop(fails=False)
+        sent = journal.index(("session_stop",))
+        self.assertIn(("announce", True), journal[sent + 1:],
+                      "delivery was not announced after the stop landed")
+
+    def test_after_a_failure_the_page_keeps_the_resume_point(self):
+        """What the announcement is for: the page re-reads the item, the
+        server still says the older position, and the patch holds."""
+        from tests.test_userdata_refresh import _browser
+        _journal, announced = self._stop(fails=True)
+        b, _loads = _browser("detail")
+        b.route["_data"] = {"item": {"Id": "sh1", "UserData": {
+            "PlaybackPositionTicks": 0}}}
+        for info in announced:
+            b.on_stopped_at(info)
+        route = b.route
+        b._route_async(route, lambda: {"item": {"Id": "sh1", "UserData": {
+            "PlaybackPositionTicks": 61 * 10**7}}},
+            lambda d: route.__setitem__("_data", d), b._epoch)
+        self.assertEqual(
+            self.TICKS,
+            b.route["_data"]["item"]["UserData"]["PlaybackPositionTicks"],
+            "the server's older position replaced the Resume point")
+
+
 class StreamingSomethingYouAlsoHoldTest(unittest.TestCase):
     """The gate after the gate.
 
