@@ -347,6 +347,16 @@ server for a row that names no account, then the row's own login for an orphan t
 nothing else (F48 in `docs/do-not-fix.md`). None of the three means the row stays pending
 and the queue moves past it — [iw]: *"let the download fall back to a queue."*
 
+**D2: a download queued by a profile that is not active is fetched with that profile's own
+saved login** (`_credential_route`, ruled 2026-09-26) — an HTTP-only client, never anyone
+else's. Two limits, both [iw] 2026-09-28:
+- **Absent profiles only.** An account the active profile holds waits for its normal
+  connection, as before D2, even when another profile also has a login for it.
+- **A server it could not reach is skipped for `UNREACHABLE_SECS`**, and so is every absent
+  account on that server. The route is built with no network check, so without this the
+  row was runnable again every pass and held the head of the queue — the exact case
+  `_next_runnable` exists to prevent. A live client for that server clears the mark.
+
 **The sweep is grouped by content server, not by the login on the row.** One box
 reached through two addresses is two logins and one server, and two people on one box
 are two logins and one server. Grouped by login, half a catalog silently stopped being

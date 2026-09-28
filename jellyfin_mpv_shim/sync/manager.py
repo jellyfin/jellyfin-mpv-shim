@@ -112,6 +112,10 @@ CATALOG_ABSENT = "absent"     # nothing to reconcile against; touch no files
 CHUNK = 1 << 20            # 1 MiB
 PROGRESS_STEP = 4 << 20    # push progress every ~4 MiB
 PLAYSTATE_INTERVAL = 30    # replay offline playstate at least this often (s)
+#: How long a server a saved-login download could not reach is skipped: the
+#: cap of `_run`'s own error backoff, so it is retried no sooner than the
+#: worker would have retried it anyway.
+UNREACHABLE_SECS = 60
 
 #: Minimum gap between two catalog sweeps, whatever asked for them.
 #:
@@ -453,6 +457,9 @@ class SyncManager:
         # ...and the people with no saved credential to fetch as. Not a
         # block like a refusal: asked again each pass, it only says "waiting".
         self._credential_missing = set()
+        # ...and the servers a saved-login fetch could not reach, each until
+        # a monotonic deadline (UNREACHABLE_SECS).
+        self._credential_unreachable = {}
         self.on_change = lambda: None
         self.on_progress = lambda item_id, name, downloaded, total: None
         # Built in start(); None until then so the worker loop (which tests
@@ -2966,6 +2973,8 @@ class SyncManager:
                 actor)
             self.__dict__.setdefault("_credential_missing", set()).discard(
                 actor)
+            self.__dict__.setdefault("_credential_unreachable", {}).pop(
+                actor[0], None)
             return client
         try:
             live = bool(self.get_clients())
@@ -3031,6 +3040,22 @@ class SyncManager:
         if builder is None:
             return None
         routes = self.__dict__.setdefault("_credential_routes", {})
+        # **Absent profiles only** (Izzie, 2026-09-28): the active profile's
+        # own account waits for its normal connection, whichever profile's
+        # saved login could serve it.
+        if self._active_holds(actor):
+            self._drop_credential_route(actor)
+            return None
+        # A server a saved-login fetch could not reach is skipped until its
+        # deadline, like any other unreachable server (_next_runnable). The
+        # route is built with no network check, so without this its row was
+        # runnable again every pass and held the head of the queue.
+        unreachable = self.__dict__.setdefault("_credential_unreachable", {})
+        until = unreachable.get(actor[0])
+        if until is not None:
+            if time.monotonic() < until:
+                return None
+            unreachable.pop(actor[0], None)
         if actor in routes:
             return routes[actor]
         if actor in self.__dict__.setdefault("_credential_refused", set()):
@@ -3052,6 +3077,26 @@ class SyncManager:
         log.info("Fetching a queued download with the saved login of a "
                  "profile that is not signed in (its own credential only).")
         return client
+
+    @staticmethod
+    def _active_holds(actor):
+        """Whether the active profile has a login for this account."""
+        try:
+            from ..users import userManager
+            return (actor[1] is not None
+                    and userManager.actor_on(actor[0]) == actor[1])
+        except Exception:
+            log.debug("could not read the active profile", exc_info=True)
+            return False
+
+    def _drop_credential_route(self, actor):
+        client = self.__dict__.setdefault("_credential_routes", {}).pop(
+            actor, None)
+        if client is not None:
+            try:
+                client.stop()
+            except Exception:
+                log.debug("could not stop a credential client", exc_info=True)
 
     def _release_credential_routes(self, keep=()):
         """Stop every credential client whose person has nothing left
@@ -3923,6 +3968,16 @@ class SyncManager:
                         row.get("name") or item_id, exc)
             self.db.update(item_id, status=STATUS_PENDING)
             self._notify_change()
+            routes = self.__dict__.get("_credential_routes") or {}
+            owner = next((a for a, c in routes.items() if c is client), None)
+            if owner is not None:
+                # Through a saved login: that server is skipped for a while
+                # instead (_credential_route), so the rest of the queue runs
+                # now rather than behind a worker-wide backoff.
+                self.__dict__.setdefault("_credential_unreachable", {})[
+                    owner[0]] = time.monotonic() + UNREACHABLE_SECS
+                self._drop_credential_route(owner)
+                return
             raise
         except Exception:
             log.error("Download failed for %s", item_id, exc_info=True)
