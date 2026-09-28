@@ -225,6 +225,13 @@ class GeneralTabMixin:
         val = values.get(key)
         label = cfg.label_for(key)
         if kind == "bool":
+            if key == "fullscreen" and values.get("browser_fullscreen"):
+                # A film started from a fullscreen library stays fullscreen
+                # whatever this says (playback only ever turns it ON), so it
+                # is drawn as what happens. Display only: the stored value is
+                # the user's, and returns when Browser Fullscreen goes off.
+                # Izzie, 2026-09-28.
+                return Checkbox(label, True, id="set-" + key, disabled=True)
             return Checkbox(label, bool(val), id="set-" + key,
                             on_toggle=lambda k=key, v=val: self._set_setting(
                                 k, not bool(v)))
