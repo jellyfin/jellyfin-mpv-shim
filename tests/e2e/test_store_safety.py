@@ -57,6 +57,19 @@ def hashes(root):
     return out
 
 
+def other_volume(root):
+    """A directory on another filesystem than ``root`` -- where a move is a
+    copy, not a rename -- or None.
+
+    JMS_E2E_OTHER_VOLUME names it (the Windows VM: its virtiofs share X:);
+    /dev/shm otherwise. Not a ``subst`` drive letter: Windows renames across
+    one on the same volume (measured 2026-09-27), so it is a rename."""
+    other = os.environ.get("JMS_E2E_OTHER_VOLUME") or "/dev/shm"
+    if os.path.isdir(other) and os.stat(other).st_dev != os.stat(root).st_dev:
+        return other
+    return None
+
+
 def plant(root, rel, size):
     """A person's own file, dropped into the download folder."""
     path = os.path.join(root, rel)
@@ -146,14 +159,26 @@ class ADeleteKeepsWhatIsNotOursTest(_StoreCase):
 
 
 class AMoveCarriesEverythingTest(_StoreCase):
+    """On one volume a move is a rename; ACROSS is the copy path, the one
+    that went wrong for Windows users in v3.0.0 -- both, when there is a
+    second volume (other_volume)."""
 
     def test_every_file_arrives_byte_identical(self):
+        self.carry(None)
+
+    def test_across_volumes(self):
+        other = other_volume(self.root)
+        if other is None:
+            self.skipTest("no second volume to move across")
+        self.carry(other)
+
+    def carry(self, where):
         plant(self.root, "My Notes.txt", 4096)
         plant(self.root, os.path.join("Photos", "beach.jpg"), 65536)
         before = hashes(self.root)
         self.assertTrue(any(rel.startswith("server" + os.sep + self.film)
                             for rel in before), "no film file to carry")
-        parent = tempfile.mkdtemp(prefix="jms-e2e-move-")
+        parent = tempfile.mkdtemp(prefix="jms-e2e-move-", dir=where)
         self.addCleanup(shutil.rmtree, parent, True)
         dest = os.path.join(parent, "Downloads")
 
@@ -188,9 +213,8 @@ class AnInterruptedMoveLosesNothingTest(_StoreCase):
     BIG = 1 << 30      # the copy window: a person's large file, moved too
 
     def test_a_kill_mid_copy_leaves_every_file_somewhere_whole(self):
-        other = os.environ.get("JMS_E2E_OTHER_VOLUME") or "/dev/shm"
-        if (not os.path.isdir(other)
-                or os.stat(other).st_dev == os.stat(self.root).st_dev):
+        other = other_volume(self.root)
+        if other is None:
             self.skipTest("no second filesystem to move across")
         plant(self.root, "My Notes.txt", 4096)
         plant(self.root, "big.bin", self.BIG)
