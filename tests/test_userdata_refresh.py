@@ -329,6 +329,54 @@ class NothingIsLostTest(unittest.TestCase):
                              "dropped instead of queued behind the load")
 
 
+class ABackgroundRefreshRaisesNoBannerTest(unittest.TestCase):
+    """Item 18 (Izzie, 2026-09-28: "Background never raises"). The "server
+    isn't answering" banner rose on ONE failed background refresh -- a
+    watched-state event's re-read, or the Live TV poll -- over a page that
+    was showing fine, and stayed until some later load landed. Only a load
+    the person asked for raises it; any load that lands still clears it."""
+
+    def _detail(self, answers):
+        """A detail page whose loads answer from ``answers`` in turn: an
+        exception is raised, anything else is the data."""
+        b, _loads = _browser("detail")
+        b.route["_data"] = {"item": {"Id": "sh1"}}
+        route = b.route
+
+        def load(route, epoch=None):
+            def work():
+                answer = answers.pop(0)
+                if isinstance(answer, Exception):
+                    raise answer
+                return answer
+            b._route_async(route, work,
+                           lambda d: route.__setitem__("_data", d), b._epoch)
+
+        b._load_route = load
+        return b, route
+
+    def test_a_failed_background_refresh_raises_nothing(self):
+        import requests
+        blip = requests.exceptions.ConnectionError("refused")
+        b, _route = self._detail([blip, blip, blip])
+        for n in range(3):
+            self.assertTrue(b._refresh_current(USERDATA_KINDS),
+                            "the premise: pass %d dispatched a refresh" % n)
+            self.assertFalse(b._unreachable,
+                             "pass %d: a background refresh raised the "
+                             "banner over a page that was fine" % n)
+
+    def test_a_load_the_person_asked_for_still_raises_it(self):
+        import requests
+        blip = requests.exceptions.ConnectionError("refused")
+        b, route = self._detail([blip, {"item": {"Id": "sh1"}}])
+        b._load_route(route)                # Retry, a navigation: asked for
+        self.assertTrue(b._unreachable)
+        self.assertTrue(b._refresh_current(USERDATA_KINDS))
+        self.assertFalse(b._unreachable,
+                         "a load that landed did not clear the banner")
+
+
 class PatchedOnStopTest(unittest.TestCase):
 
     def _detail(self, ticks=0):
