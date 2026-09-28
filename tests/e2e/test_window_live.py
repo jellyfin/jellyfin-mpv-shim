@@ -56,7 +56,19 @@ class _WindowCase(_BrowseCase):
 
         def on_a_tile(f):
             return any(n["id"] == f.get("nav") for n in grid_tiles(f))
-        return self.app.press_until("DOWN", on_a_tile, what="focus on a tile")
+        # Step, waiting for focus to move each time: what lies between the
+        # toolbar and the first tile varies -- sorted by name the library
+        # has a letter bar there -- and press_until presses again only when
+        # a press did nothing, so it stopped on the first stop in between.
+        f = self.app.frame()
+        for _ in range(8):
+            if on_a_tile(f):
+                return f
+            was = f.get("nav")
+            self.app.key("DOWN")
+            f = self.app.wait_for(lambda f: f.get("nav") != was, timeout=5,
+                                  what="focus to move down from %s" % was)
+        self.fail("DOWN never reached a tile (focus on %r)" % f.get("nav"))
 
 
 class TheGridReflowsTest(_WindowCase):
