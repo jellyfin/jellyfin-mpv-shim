@@ -20,6 +20,19 @@ JMS_E2E_SERVER=... python3 tests/e2e/run_e2e.py --backend libmpv
 JMS_E2E_SERVER=... python3 -m unittest tests.e2e.test_playback_advance -v
 ```
 
+**Before a run, clear playlist litter.** Jellyfin sometimes leaves a
+deleted playlist's folder on disk and the next library scan brings it back,
+so `jms-e2e-*` playlists pile up, push a test's new playlist off the first
+screen of the shelf, and fail every test that opens one. On the server's
+machine, with no run in progress (it signs in as qa-admin):
+
+```sh
+JMS_E2E_SERVER=http://127.0.0.1:8096 python3 tools/e2e_preclean.py \
+    --state <the server's state directory> [-n]
+```
+
+It exits 1 if anything is left.
+
 **Watching a test.** `--watch [SECONDS]` runs on the real display (no Xvfb),
 narrates every input action and pauses SECONDS (default 1) before each;
 `--step` waits for Enter instead. Narration goes to stderr and to
