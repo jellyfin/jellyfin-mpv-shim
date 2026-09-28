@@ -159,6 +159,42 @@ class SwitchSpamOnASlowServerTest(_ProfilesCase):
         self.assertEqual(0, self.app.quit(timeout=40))
 
 
+class ASwitchToAnUnreachableServerTest(_ProfilesCase):
+    """Row 50's failed switch (Izzie, 2026-09-28): switching to a signed-in
+    profile whose server cannot be reached shows Retry / Sign In -- the
+    startup screen -- not a sign-in form implying the login is gone; and
+    Retry, once the network is back, lands on that profile's Home."""
+
+    def test_it_offers_retry_and_retry_works(self):
+        me = _flows.active_profile(self.app.config_dir)
+        _flows.add_profile(self.app, "Bob")
+        self.assertTrue(_e2e.wait_for(
+            lambda: any(u.get("name") == "Bob" for u in
+                        (_flows.users(self.app.config_dir) or {})
+                        .get("users", [])), timeout=15), "Bob was not added")
+        _flows.switch_profile(self.app, "Bob")
+        _flows.login(self.app, self.relay, account="qa-nopassword")
+        _flows.switch_profile(self.app, me)
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="%s's Home" % me)
+        self.relay.cut()
+        self.assertTrue(self.relay.probe_refused())
+        _flows.switch_profile(self.app, "Bob")
+        f = self.app.wait_for(
+            lambda f: _app.shown(f, "conn-retry")
+            or _app.shown(f, "login-server"), timeout=60,
+            what="where a switch to an unreachable server lands")
+        self.assertFalse(_app.shown(f, "login-server"),
+                         "an unreachable server's profile was asked to "
+                         "sign in again")
+        self.relay.restore()
+        self.app.move_to("conn-retry")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="Bob's Home after Retry")
+        self.assertEqual(0, self.app.quit(timeout=40))
+
+
 @_e2e.require_server
 class QuickConnectTwiceTest(unittest.TestCase):
     """Row 50's "Quick Connect twice": started, cancelled, started again.
