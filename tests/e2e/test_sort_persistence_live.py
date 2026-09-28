@@ -43,7 +43,13 @@ if REPO_ROOT not in sys.path:
 
 #: Deliberately not the default. A sort equal to the screen's own default
 #: would be indistinguishable from nothing having been stored.
-SORT_BY, SORT_ORDER = "DateCreated", "Descending"
+#:
+#: And one the fixture actually varies in -- the grid's "Release Date".
+#: Not "Date Added": stdjflib pins every item's `dateadded` to 2020-01-01 so
+#: builds are reproducible, the server then breaks the 40-way tie by name,
+#: and DateCreated order IS name order on any freshly built server (measured
+#: on a --fresh 12.0 server, 2026-09-28).
+SORT_BY, SORT_ORDER = "PremiereDate", "Descending"
 
 
 @_e2e.require_server
