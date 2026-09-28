@@ -671,6 +671,20 @@ class PickingAnOfflineServerTriesToGetItBackTest(unittest.TestCase):
         self.assertEqual(b.status, "Already reconnecting.")
         self.assertEqual(b.server, "srv1")
 
+    def test_a_pick_refused_behind_another_long_job_is_ended(self):
+        """The fourth refusal: another reconnect or a folder move holds the
+        long-job slot. The other three called `on_refused`; this one did
+        not, so the force=True switcher's pending pick never ended and it
+        showed a server the library was not on."""
+        ctl = RecoveryController(retry_succeeds=True)
+        b = _browser(ctl)
+        refused = []
+        b._long_thread = threading.current_thread()   # the slot is held
+        b.reconnect_server("srv2", on_refused=lambda: refused.append(1))
+        self.assertEqual(b.status, "Already reconnecting.")
+        self.assertEqual(refused, [1], "the refused pick was never ended")
+        self.assertEqual(ctl.retried, [])
+
     def test_a_reconnect_whose_switch_fails_is_not_a_switch(self):
         """CR2. `on_success` is the *switch's* handover -- leave the SyncPlay
         group on the server being left, remember the new one -- and it fired

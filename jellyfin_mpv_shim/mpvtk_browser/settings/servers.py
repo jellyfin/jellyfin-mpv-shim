@@ -305,6 +305,8 @@ class ServersTabMixin:
             # A second press while one is in flight: say so rather than
             # look like a dead button.
             self.set_status(_("Already reconnecting."))
+            if on_refused is not None:
+                on_refused()
         self.invalidate()
 
     def _servers_snapshot(self):
