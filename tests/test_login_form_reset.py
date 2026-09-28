@@ -99,5 +99,39 @@ class AnAddDuringASwitchTest(unittest.TestCase):
         self.assertEqual([None], b.controller.add_owners)
 
 
+class NothingToRetryTest(unittest.TestCase):
+    """Izzie, 2026-09-28: Retry on a profile with no saved login only ever
+    says it still cannot reach one. So a correct PIN (or a switch) that
+    finds nothing to browse signs in when the ACTIVE profile has no login
+    -- even though another profile has one -- and offers Retry when it
+    does."""
+
+    def _unlock(self, own_servers):
+        class _Nothing(FakeController):
+            def connect_and_rebuild(self):
+                return None                 # nothing answered
+
+            def known_servers(self):        # another profile's address
+                return [{"address": "http://other", "name": "Other"}]
+
+            def list_servers(self):         # this profile's own logins
+                return own_servers
+
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=_Nothing())
+        b._pool = _SyncPool()
+        b.show_locked()
+        b._pin["pin"] = "1234"
+        b._do_unlock()
+        return b.route.get("kind")
+
+    def test_no_login_of_its_own_signs_in(self):
+        self.assertEqual("login", self._unlock([]))
+
+    def test_its_own_unreachable_login_offers_retry(self):
+        self.assertEqual("connecting", self._unlock(
+            [{"uuid": "s1", "name": "Home", "connected": False}]))
+
+
 if __name__ == "__main__":
     unittest.main()

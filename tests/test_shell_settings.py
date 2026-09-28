@@ -799,6 +799,7 @@ class TestLocked(unittest.TestCase):
         With no saved server that is the login form."""
         self.ctl.connect_and_rebuild = lambda: None
         self.ctl.known_servers = lambda: []
+        self.ctl.list_servers = lambda: []
         self.b.show_locked()
         _n, handlers = build_scene(self.b)
         handlers["lock-pin"]["change"]("1234")
@@ -812,8 +813,10 @@ class TestLocked(unittest.TestCase):
         the login form told them to sign in again and lost the offline
         library — the same case the connecting screen was built for."""
         self.ctl.connect_and_rebuild = lambda: None
-        self.ctl.known_servers = lambda: [{"address": "http://srv",
-                                           "name": "Home"}]
+        # THIS profile's saved login (list_servers), not an address any
+        # profile has used (known_servers) -- Izzie, 2026-09-28.
+        self.ctl.list_servers = lambda: [{"uuid": "s1", "name": "Home",
+                                          "connected": False}]
         self.b.show_locked()
         _n, handlers = build_scene(self.b)
         handlers["lock-pin"]["change"]("1234")

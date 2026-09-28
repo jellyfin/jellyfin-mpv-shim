@@ -900,7 +900,10 @@ class AuthMixin:
                 # happened) told a user with a temporarily-down server to
                 # sign in again, and lost the offline library.
                 self._locked = False
-                if self._saved_servers():
+                # This profile's own logins, not every profile's: Retry on a
+                # profile with none only ever says it still cannot reach one
+                # (Izzie, 2026-09-28).
+                if self._profile_has_servers():
                     self.show_connecting()
                     self.connect_failed()
                 else:
