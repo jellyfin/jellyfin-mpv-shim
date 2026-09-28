@@ -555,14 +555,20 @@ class ReportingMixin:
             # round trip used to sit between the last sample of one track and
             # the first of the next. Ordering against the following
             # session_playing is what the shared worker guarantees.
-            self._reporter.submit(
-                lambda: client.jellyfin.session_stop(options), "session_stop")
-            if announced is not None:
-                ticks = options.get("PositionTicks")
-                self._reporter.submit(
-                    lambda: self._announce_stop(announced, ticks, finished,
-                                                delivered=True),
-                    "stop delivered")
+            ticks = options.get("PositionTicks")
+
+            def stop_then_announce():
+                # One job: "delivered" only once the server returned. The
+                # worker swallows a failed report, so a separate job queued
+                # behind it announced a stop the server never received, and
+                # the page then believed a re-read holding the older
+                # position. Undelivered, the page keeps its own.
+                client.jellyfin.session_stop(options)
+                if announced is not None:
+                    self._announce_stop(announced, ticks, finished,
+                                        delivered=True)
+
+            self._reporter.submit(stop_then_announce, "session_stop")
 
         if _discord_on():
             try:
