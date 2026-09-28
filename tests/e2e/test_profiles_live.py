@@ -195,6 +195,61 @@ class ASwitchToAnUnreachableServerTest(_ProfilesCase):
         self.assertEqual(0, self.app.quit(timeout=40))
 
 
+class NoAddServerDuringASwitchTest(_ProfilesCase):
+    """Row 50's "Add Server during a switch" (Izzie, 2026-09-28: it
+    should not be allowed). With a switch held in flight by a hanging
+    server, Settings' Add Server does not open the form; once the switch
+    lands it does."""
+
+    def test_refused_while_switching(self):
+        me = _flows.active_profile(self.app.config_dir)
+        _flows.add_profile(self.app, "Bob")
+        self.assertTrue(_e2e.wait_for(
+            lambda: any(u.get("name") == "Bob" for u in
+                        (_flows.users(self.app.config_dir) or {})
+                        .get("users", [])), timeout=15), "Bob was not added")
+        _flows.switch_profile(self.app, "Bob")
+        _flows.login(self.app, self.relay, account="qa-nopassword")
+        _flows.switch_profile(self.app, me)
+        _flows.open_settings_tab(self.app, "servers")
+        self.app.wait_for(lambda f: _app.shown(f, "sv-add"), timeout=30,
+                          what="Add Server")
+        names = [u.get("name") for u in
+                 _flows.users(self.app.config_dir)["users"]]
+        self.relay.stall()
+        self.assertTrue(self.relay.probe_silent())
+        _flows.pick(self.app, "nav-user", names.index("Bob"))
+        self.assertTrue(_e2e.wait_for(
+            lambda: _flows.active_profile(self.app.config_dir) == "Bob",
+            timeout=30), "the premise: the switch never started")
+        time.sleep(1)                      # the page redraws with it
+        try:
+            self.app.move_to("sv-add")
+            self.app.key("ENTER")
+        except _app.AppError:
+            pass                           # not even focusable: refused
+        time.sleep(3)
+        self.assertFalse(_app.shown(self.app.frame(), "login-server"),
+                         "Add Server opened while a switch was in flight")
+        self.relay.restore()
+        f = self.app.wait_for(lambda f: _app.shown(f, "row-libs")
+                              or _app.shown(f, "sv-add")
+                              or _app.shown(f, "conn-retry"), timeout=90,
+                              what="the switch landing")
+        if _app.shown(f, "conn-retry"):
+            # The restore reset the hung connect, so the switch failed and
+            # offers Retry (ASwitchToAnUnreachableServerTest).
+            self.app.move_to("conn-retry")
+            self.app.key("ENTER")
+            self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                              what="Bob's Home after Retry")
+        _flows.open_settings_tab(self.app, "servers")
+        self.app.move_to("sv-add")
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "login-server"),
+                             what="Add Server once the switch landed")
+        self.assertEqual(0, self.app.quit(timeout=40))
+
+
 @_e2e.require_server
 class QuickConnectTwiceTest(unittest.TestCase):
     """Row 50's "Quick Connect twice": started, cancelled, started again.

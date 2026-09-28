@@ -290,21 +290,23 @@ class ServersMixin(GatewayCore):
             log.debug("server discovery failed", exc_info=True)
             return []
 
-    def quick_connect(self, server, code_callback, should_cancel):
+    def quick_connect(self, server, code_callback, should_cancel,
+                      owner_id=None):
         """Blocking Quick Connect login. ``code_callback(code)`` gets the
         user-facing code as soon as the server issues it; ``should_cancel()``
         is polled so the UI can abandon the wait."""
         try:
             return bool(deps.clientManager.login_with_quick_connect(
                 server, code_callback=code_callback,
-                should_cancel=should_cancel))
+                should_cancel=should_cancel, owner_id=owner_id))
         except Exception as e:
             log.error("mpvtk quick connect failed: %s", e)
             return False
 
-    def add_server(self, server, username, password):
+    def add_server(self, server, username, password, owner_id=None):
         try:
-            return bool(deps.clientManager.login(server, username, password))
+            return bool(deps.clientManager.login(server, username, password,
+                                                 owner_id=owner_id))
         except Exception:
             log.error("mpvtk add_server failed", exc_info=True)
             return False

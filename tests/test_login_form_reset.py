@@ -72,5 +72,32 @@ class LoginFormResetTest(unittest.TestCase):
                          b._login)
 
 
+class AnAddDuringASwitchTest(unittest.TestCase):
+    """Izzie, 2026-09-28: an Add Server that lands while a profile switch is
+    in flight belongs to the profile that was on screen when it began --
+    not the one being switched to, which is already `active`."""
+
+    def _browser(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        return b
+
+    def test_the_password_add_is_filed_under_the_profile_on_screen(self):
+        b = self._browser()
+        b._switch_from = "alice"
+        b.show_login()
+        b._login.update(TYPED)
+        b._do_login()
+        self.assertEqual(["alice"], b.controller.add_owners)
+
+    def test_with_no_switch_it_is_the_active_profile_as_before(self):
+        b = self._browser()
+        b.show_login()
+        b._login.update(TYPED)
+        b._do_login()
+        self.assertEqual([None], b.controller.add_owners)
+
+
 if __name__ == "__main__":
     unittest.main()

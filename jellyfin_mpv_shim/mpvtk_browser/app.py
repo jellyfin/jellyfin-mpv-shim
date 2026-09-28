@@ -372,6 +372,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._pin_error = None
         self._locked = False
         self._switch_gen = 0         # see AuthMixin._do_switch_user
+        #: The profile on screen when the switch in flight began, or None
+        #: when none is: Add Server is refused meanwhile, and an add that
+        #: lands anyway is filed under it (Izzie, 2026-09-28).
+        self._switch_from = None
         # The four tile shapes, from the theme and the Cover Size setting.
         # A fixed ``geom`` (the integration harness passes one) pins the
         # poster shape and opts out of later re-derivation.

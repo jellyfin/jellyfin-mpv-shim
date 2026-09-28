@@ -109,6 +109,10 @@ class AuthMixin:
         # signed in as one profile, showing another's form.
         self._switch_gen += 1
         gen = self._switch_gen
+        if self._switch_from is None:       # the first of a burst: on screen
+            self._switch_from = next((u.get("id") for u in self._users()
+                                      if u.get("active")), None)
+            self.invalidate()                # Add Server is drawn from it
 
         def work():
             return self.controller.switch_user(user.get("id"), pin)
@@ -116,6 +120,7 @@ class AuthMixin:
         def done(source):
             if gen != self._switch_gen:
                 return
+            self._switch_from = None
             if source is False:
                 if on_bad_pin is not None:
                     on_bad_pin()
@@ -533,6 +538,7 @@ class AuthMixin:
         self.invalidate()
         ep = self._epoch
         before = self._known_server_uuids()
+        owner = self._switch_from
 
         def on_code(code):
             if not qc["cancelled"]:
@@ -549,6 +555,9 @@ class AuthMixin:
             if reauth:
                 return self.controller.reauthenticate_quick_connect(
                     reauth["uuid"], on_code, cancelled, address=server)
+            if owner is not None:
+                return (self.controller.quick_connect(
+                    server, on_code, cancelled, owner_id=owner), None)
             return (self.controller.quick_connect(server, on_code, cancelled),
                     None)
 
@@ -597,6 +606,7 @@ class AuthMixin:
         self.invalidate()
         ep = self._epoch
         before = self._known_server_uuids()
+        owner = self._switch_from
 
         def work():
             if reauth:
@@ -605,6 +615,10 @@ class AuthMixin:
                     address=info["server"])
             # Normalised to the re-auth shape here rather than at `done`,
             # so the unpacking below has one case instead of two.
+            if owner is not None:
+                return self.controller.add_server(
+                    info["server"], info["user"], info["pass"],
+                    owner_id=owner), None
             return self.controller.add_server(
                 info["server"], info["user"], info["pass"]), None
 
