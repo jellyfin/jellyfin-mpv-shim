@@ -713,6 +713,15 @@ class SyncPlayManager:
         elif command_cmd == "Seek":
             self.schedule_seek(when, position)
         elif command_cmd == "Stop":
+            # A Stop emitted before the play queue now playing is about the
+            # content that queue replaced. Measured on the Windows VM: a
+            # group Stop arrived (parked until time sync was ready) after the
+            # new playlist had started, and stopped it. A Stop the server
+            # sends after the new queue is still newer, and still applies.
+            if self.last_playqueue and not self._command_is_newer(
+                    command, self.last_playqueue):
+                log.info("Ignoring a Stop older than the play queue.")
+                return
             self.schedule_stop()
         else:
             log.error("Command {0} is unknown.".format(command_cmd))
