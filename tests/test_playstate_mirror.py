@@ -1926,6 +1926,74 @@ class DeliberateUnwatchReplayTest(unittest.TestCase):
         self.assertEqual([], [s for s in sent if s[0] == "played"])
 
 
+class AnOnlineMarkRetiresTheQueuedOneTest(unittest.TestCase):
+    """Item 13 (Izzie, 2026-09-28: "Older offline watch should probably be
+    a no-op in that case"). A mark made offline is queued; if the person then
+    marks the same item online -- after reconnecting, before the replay ran
+    -- the online mark is the newer one, and replaying the queued mark
+    undid it: a watch queued offline re-marked an item just unwatched.
+
+    The whole entry goes, position included: after an online unwatch the
+    queued position would put the item back in Continue Watching. Both
+    online paths: `mirror_watched` (the browser's Mark played, and a
+    streamed item's player marks) and `OfflineVideo.set_played`.
+    """
+
+    SERVER = ReplayAcknowledgesOnlyWhatItSentTest.SERVER
+    SERVER_ID = ReplayAcknowledgesOnlyWhatItSentTest.SERVER_ID
+    USER_ID = ReplayAcknowledgesOnlyWhatItSentTest.USER_ID
+    setUp = ReplayAcknowledgesOnlyWhatItSentTest.setUp
+    _manager = ReplayAcknowledgesOnlyWhatItSentTest._manager
+    _db = ReplayAcknowledgesOnlyWhatItSentTest._db
+    _replay = DeliberateUnwatchReplayTest._replay
+
+    def _queue_offline_watch(self, db):
+        self.assertTrue(db.upsert_playstate(
+            "ep1", actor=(self.SERVER_ID, self.USER_ID),
+            position_ticks=50 * 10**7, played=True, deliberate=True))
+
+    def _assert_nothing_replayed(self, db):
+        sent = self._replay(db, {"Played": False,
+                                 "PlaybackPositionTicks": 0})
+        self.assertEqual([], [s for s in sent if s[0] == "update"],
+                         "the queued offline mark was replayed over the "
+                         "newer online one")
+        self.assertEqual([], db.list_playstate())
+
+    def test_the_browsers_mark_retires_it(self):
+        db = self._db()
+        self._queue_offline_watch(db)
+        mgr = self._manager(db, mock.Mock())
+        mgr.on_change = lambda: None
+        mgr.mirror_watched("ep1", False, server_uuid=self.SERVER)
+        self._assert_nothing_replayed(db)
+
+    def test_a_downloaded_copys_mark_retires_it(self):
+        from jellyfin_mpv_shim.sync import offline_media
+        db = self._db()
+        self._queue_offline_watch(db)
+        mgr = self._manager(db, mock.Mock())
+        with mock.patch.object(offline_media, "syncManager", mgr):
+            v = _video(online=True)
+            v._content_server_id = self.SERVER_ID
+            v.set_played(False)
+        v.client.jellyfin.item_played.assert_called_once_with("ep1", False)
+        self._assert_nothing_replayed(db)
+
+    def test_an_online_mark_that_failed_stays_queued(self):
+        """The failed online mark is queued instead, and that entry is the
+        one thing that must survive."""
+        from jellyfin_mpv_shim.sync import offline_media
+        db = self._db()
+        mgr = self._manager(db, mock.Mock())
+        with mock.patch.object(offline_media, "syncManager", mgr):
+            v = _video(online=True)
+            v._content_server_id = self.SERVER_ID
+            v.client.jellyfin.item_played.side_effect = OSError("down")
+            v.set_played(False)
+        self.assertEqual(1, len(db.list_playstate()))
+
+
 class ExplicitMarksLandAfterTheStopReportTest(unittest.TestCase):
     """"Quit and Mark Unwatched" must not be undone by the stop it follows.
 

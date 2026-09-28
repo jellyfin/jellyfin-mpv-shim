@@ -2666,6 +2666,26 @@ class SyncDB:
                 self._conn.rollback()
                 raise
 
+    def drop_playstate(self, item_id, actor):
+        """Discard what one person had queued for one item, unsent.
+
+        For a deliberate mark made online: it is newer than everything the
+        entry holds, position included, so replaying the entry could only
+        undo it (item 13, docs/offline-sync.md section 3a)."""
+        server_id, user_id = actor
+        with self._lock:
+            if self._conn is None:
+                return
+            try:
+                self._conn.execute(
+                    "DELETE FROM pending_playstate "
+                    "WHERE item_id=? AND server_id=? AND user_id=?",
+                    (item_id, server_id or "", user_id or ""))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
     def clear_playstate(self, entries):
         """Retire replayed rows -- but only those still holding the values
         that were actually sent.
