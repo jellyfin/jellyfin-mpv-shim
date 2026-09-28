@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-27 10:37+0000\n"
+"PO-Revision-Date: 2026-09-28 15:45+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -2812,42 +2812,42 @@ msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
+"“Auto” formt die Kacheln aus dem Artwork selbst, welches normalerweise als "
+"Poster heraus kommt. Wähle “Poster” um auf sie zu bestehen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "Untertitelgröße: {0}"
+msgstr "Kacheln anzeigen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Show years"
-msgstr "Serien"
+msgstr "Jahre anzeigen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
-msgstr ""
+msgstr "Liste anstelle eines Rasters"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "These are stored on your server and shared with Jellyfin Web."
 msgstr ""
+"Diese werden auf deinem Server gespeichert und mit Jellyfin Web geteilt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr ""
+msgstr "Seitenweise"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
 msgstr ""
+"Jeweils eine Kachelseite anzeigen, anstatt zu scrollen. Wird auf jede "
+"Bibliothek auf diesem Gerät angewendet."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "View settings"
-msgstr "SVP-Einstellungen"
+msgstr "Einstellungen anzeigen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
