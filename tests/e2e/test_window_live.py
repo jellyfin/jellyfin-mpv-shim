@@ -25,6 +25,7 @@ import _e2e  # noqa: E402
 import _flows  # noqa: E402
 from test_browse_routes import _BrowseCase  # noqa: E402
 from test_input_live import _InputCase  # noqa: E402
+from test_settings_live import ticked  # noqa: E402
 
 
 def grid_tiles(frame):
@@ -148,7 +149,14 @@ class FullscreenIsTwoPreferencesTest(_WindowCase):
             self.app.key("ENTER")
             self.fs(want, "Browser Fullscreen ticked %s" % want)
             self.assertIs(want, self.conf().get("browser_fullscreen"))
-        self.assertFalse(self.conf().get("fullscreen"))
+            # Playback's box is DRAWN as what happens (ticked) while the
+            # library's is on, and keeps its own stored value (Izzie,
+            # 2026-09-28).
+            self.app.wait_for(
+                lambda f: ticked(f, "set-fullscreen") is want, timeout=10,
+                what="Playback Fullscreen drawn %s" % want)
+            self.assertFalse(self.conf().get("fullscreen"),
+                             "drawing it ticked wrote the preference")
 
         _InputCase.open_film(self)
         self.play()
