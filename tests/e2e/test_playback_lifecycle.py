@@ -133,9 +133,13 @@ class TheLastItemIsMarkedWatchedTest(_PlaybackCase):
         self.fresh(film)
         _flows.open_by_search(self.app, LONG_NAME, film)
         self.play()
-        self.seek_to(580)
+        # Checked under 90 %: the server marks a long item played from any
+        # progress report past it (measured on 12.0), so a check at 580 s
+        # raced the next 5 s tick.
+        self.seek_to(540)
         self.assertFalse(self.server(film).get("Played"),
                          "watched before it ended")
+        self.seek_to(580)
         self.assertTrue(
             _e2e.wait_for(lambda: self.server(film).get("Played"),
                           timeout=120),
