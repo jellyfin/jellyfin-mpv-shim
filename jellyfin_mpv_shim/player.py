@@ -1726,7 +1726,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # seek into the last seconds that ends before a tick otherwise
             # leaves the pre-seek position as "the last known one", and
             # the end reads as a stream that died far from it (#783).
-            landed = self._player.playback_time
+            # `_mpv_alive` first: mpv reports seeking off as it shuts down,
+            # and on libmpv a read of a terminated handle is a SIGSEGV.
+            landed = (self._player.playback_time
+                      if getattr(self, "_mpv_alive", False) else None)
             if landed is not None:
                 self._last_playback_position = landed
             # Seeking ended - check if we should skip intro. Seeks made
@@ -4066,12 +4069,19 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # session whose reports were held), not "stopped at the start": a
         # genuine finish must not be read as a failure for want of a tick.
         position = self._last_playback_position or 0
-        try:
-            # mpv still holds the file at EOF in a queue (keep_open), and
-            # then its own clock is the freshest reading there is.
-            live = self._player.playback_time
-        except Exception:
-            live = None
+        live = None
+        # `_mpv_alive` first, not only the try: this also runs when the
+        # window closes or an idle quit ends the file, and on in-process
+        # libmpv a read of a terminated handle is a use-after-free -- a
+        # SIGSEGV no except sees (see _unload_ended; test_realmpv_smoke's
+        # idle-quit test crashed on exactly this).
+        if self._mpv_alive:
+            try:
+                # mpv still holds the file at EOF in a queue (keep_open),
+                # and then its own clock is the freshest reading there is.
+                live = self._player.playback_time
+            except Exception:
+                live = None
         if live is not None:
             position = max(position, live)
         if not position:
