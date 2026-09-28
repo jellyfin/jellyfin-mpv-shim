@@ -3398,6 +3398,10 @@ class SyncManager:
         ``db.watched_targets`` answers with nothing for an item we hold no copy
         of, which is what keeps the check from being forgotten again.
 
+        **Called only once the server has accepted the mark**, so it also
+        retires what that person had queued offline for the item: the mark
+        is newer, and replaying the entry could only undo it (item 13).
+
         Fans out over a series or season id. Never raises; returns how many
         rows moved. See docs/offline-sync.md section 1.
         """
@@ -3425,6 +3429,11 @@ class SyncManager:
                     moved += 1
             except Exception:
                 log.debug("Could not mirror the watched mark for %s",
+                          target_id, exc_info=True)
+            try:
+                db.drop_playstate(target_id, actor)
+            except Exception:
+                log.debug("Could not retire the queued mark for %s",
                           target_id, exc_info=True)
         if moved:
             log.debug("Mirrored a watched mark onto %d downloaded item(s).",

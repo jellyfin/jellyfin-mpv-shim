@@ -196,6 +196,14 @@ that announced it. Ratified rather than left open: a sweep runs at launch, and a
 un-watch made on *this* client goes through `record_watched`, which writes both ways
 at once. `docs/do-not-fix.md` F47.
 
+**A deliberate mark made online retires that person's queued offline entry for the
+item** — its watched mark and its position both (`db.drop_playstate`, from
+`mirror_watched` and `OfflineVideo.set_played`, only once the server accepted the
+mark). It is newer than anything queued, and replaying the entry could only undo it:
+a watch queued offline re-marked an item just unwatched online ([iw] 2026-09-28).
+A mark made in *another* client cannot be dated against the queue and can still be
+overridden by a queued watch; accepted as the edge of what matters.
+
 `record_watched` is called **unconditionally** at its call sites, with no check of
 whether the item is downloaded, because `db.watched_targets` answers with nothing for
 an item we hold no copy of. That is what keeps the check from being forgotten at a

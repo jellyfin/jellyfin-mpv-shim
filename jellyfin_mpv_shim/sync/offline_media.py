@@ -434,10 +434,18 @@ class OfflineVideo(Video):
         if self.client is not None:
             try:
                 self.client.jellyfin.item_played(self.item_id, watched)
-                return
             except Exception:
                 log.warning("Failed to report watched online; queueing.",
                             exc_info=True)
+            else:
+                # Newer than anything queued offline for it (item 13).
+                if actor is not None:
+                    try:
+                        syncManager.db.drop_playstate(self.item_id, actor)
+                    except Exception:
+                        log.debug("Failed to retire the queued mark",
+                                  exc_info=True)
+                return
         if actor is None:
             return
         try:
