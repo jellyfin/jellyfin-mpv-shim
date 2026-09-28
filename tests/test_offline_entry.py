@@ -297,6 +297,35 @@ class TheBannersTest(_Case):
             self.assertIn("banner-unreachable-retry", got)
             self.assertEqual(downloads, "banner-unreachable-offline" in got)
 
+    def test_a_page_sizes_itself_for_exactly_the_banner_drawn(self):
+        """`_content_h` is what a paginated page fits its rows into. It
+        counted a banner on `_update or _offline`, which these two banners
+        moved away from: 48 px of rows hidden behind the pagination bar
+        under the unreachable banner, and 48 px of blank space reserved for
+        a chosen Offline that draws none."""
+        route, size = {"kind": "grid"}, (1600, 900)
+
+        def unreachable(b):
+            b._unreachable = True
+
+        def chosen(b):
+            self.pick(b, "Offline")
+
+        def fallback(b):
+            b.set_source(self.offline)
+
+        for name, state, drawn in (("none", lambda b: None, False),
+                                   ("unreachable", unreachable, True),
+                                   ("chosen offline", chosen, False),
+                                   ("fallback offline", fallback, True)):
+            with self.subTest(state=name):
+                b, _ctl = self.browser()
+                full = b._content_h(route, size)
+                state(b)
+                self.assertEqual(drawn, bool(self.banner_ids(b)))
+                self.assertEqual(full - (b.BANNER_H if drawn else 0),
+                                 b._content_h(route, size))
+
     def test_a_server_error_is_not_an_unreachable_server(self):
         from jellyfin_apiclient_python.exceptions import HTTPException
         b, _ctl = self.browser()
