@@ -99,6 +99,41 @@ class AnAddDuringASwitchTest(unittest.TestCase):
         self.assertEqual([None], b.controller.add_owners)
 
 
+class AnInterruptedSwitchLetsGoTest(unittest.TestCase):
+    """Item 5 (Izzie, 2026-09-28, "Yes, tonight"): a switch to a profile
+    whose server is slow waits seconds, and a click in that time moves the
+    epoch -- so `done`, which was the only place `_switch_from` was
+    cleared, is dropped. The marker then stayed set: Add Server disabled
+    until another switch, and a later sign-in filed under the profile that
+    was on screen before the switch."""
+
+    def test_a_click_during_a_slow_switch_does_not_strand_the_marker(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.controller.list_users = lambda: [
+            {"id": "u1", "name": "Izzie", "active": True},
+            {"id": "u2", "name": "Guest", "active": False}]
+        marked = []
+
+        def slow_switch(user_id, pin):
+            marked.append(b._switch_from)   # the premise: it was marked
+            b._bump_epoch()                 # the user clicks something
+            return FakeSource()
+
+        b.controller.switch_user = slow_switch
+        b._do_switch_user({"id": "u2"}, None)
+        self.assertEqual(["u1"], marked)
+        self.assertIsNone(b._switch_from,
+                          "the marker outlived the switch: Add Server stays "
+                          "disabled")
+        b.show_login()
+        b._login.update(TYPED)
+        b._do_login()
+        self.assertEqual([None], b.controller.add_owners,
+                         "a later sign-in was filed under the old profile")
+
+
 class NothingToRetryTest(unittest.TestCase):
     """Izzie, 2026-09-28: Retry on a profile with no saved login only ever
     says it still cannot reach one. So a correct PIN (or a switch) that

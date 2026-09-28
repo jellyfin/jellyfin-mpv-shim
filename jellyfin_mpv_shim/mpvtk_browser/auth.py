@@ -117,10 +117,17 @@ class AuthMixin:
         def work():
             return self.controller.switch_user(user.get("id"), pin)
 
+        def let_go():
+            # `always`, not `done`: a click during a slow switch moves the
+            # epoch and drops `done`, and the marker then disabled Add
+            # Server and filed later sign-ins under the old profile. Only
+            # the newest switch of a burst clears it.
+            if gen == self._switch_gen:
+                self._switch_from = None
+
         def done(source):
             if gen != self._switch_gen:
                 return
-            self._switch_from = None
             if source is False:
                 if on_bad_pin is not None:
                     on_bad_pin()
@@ -150,7 +157,7 @@ class AuthMixin:
             # again for the life of the process.
             self._locked = False
             self.set_source(source)
-        self.run_async(work, done, ep)
+        self.run_async(work, done, ep, always=let_go)
 
     def _open_pin_setup(self, u):
         # Seeded, not defaulted off: saving a changed PIN used to clear
