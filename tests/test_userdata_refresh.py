@@ -295,6 +295,31 @@ class NothingIsLostTest(unittest.TestCase):
         self.assertEqual(len(calls), 2,
                          "the event that arrived mid-refresh was lost")
 
+    def test_a_refresh_that_raises_does_not_end_refreshing(self):
+        """The tick's slot is released on one path only, so a raise out of
+        the re-read used to leave it held: every later event returned at
+        the `is not None` check and the page never refreshed again."""
+        b, loads = _browser("detail")
+        b.USERDATA_DEBOUNCE = 0.01
+        real = b._refresh_current
+        calls = []
+
+        def refresh(kinds, server=None):
+            calls.append(server)
+            b.route.pop("_refreshing", None)
+            if len(calls) == 1:
+                raise RuntimeError("a route lookup blew up")
+            return real(kinds, server)
+        b._refresh_current = refresh
+        for round_no in range(1, 4):
+            with self.subTest(round=round_no):
+                b.refresh_userdata("srv1")
+                thread = b._userdata_thread
+                if thread is not None:
+                    thread.join(timeout=2)
+                self.assertEqual(len(calls), round_no,
+                                 "round %d was never re-read" % round_no)
+
     def test_a_refresh_asked_for_mid_load_is_kept_for_after_it(self):
         b, loads = _browser("detail")
         b.route["_loading"] = True
