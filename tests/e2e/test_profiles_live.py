@@ -11,6 +11,7 @@ Settings > Servers & Users by keys, and the gates are the app's own.
 
 import os
 import sys
+import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -156,6 +157,67 @@ class SwitchSpamOnASlowServerTest(_ProfilesCase):
         self.assertFalse(_app.shown(f, "login-server"),
                          "a sign-in form arrived over %s's Home" % me)
         self.assertEqual(0, self.app.quit(timeout=40))
+
+
+@_e2e.require_server
+class QuickConnectTwiceTest(unittest.TestCase):
+    """Row 50's "Quick Connect twice": started, cancelled, started again.
+    Approving the FIRST code must not sign in -- it was cancelled -- and
+    the second code stays on screen; approving the second signs in."""
+
+    def setUp(self):
+        import re
+        import _relay
+        self.re = re
+        self.session = _e2e.Session()
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        import test_playback_lifecycle as _pl
+        self.app = _app.App(backend=_pl._backend())
+        self.addCleanup(lambda: self.app.close())
+        self.app.start()
+        self.app.wait_for(lambda f: _app.shown(f, "login-server"),
+                          timeout=60, what="the login screen")
+        self.app.type_into("login-server", self.relay.address)
+
+    def code(self, frame):
+        return next((s for s in _app.texts(frame)
+                     if self.re.fullmatch(r"\d{6}", s.strip())), None)
+
+    def start(self, other_than=None):
+        self.app.move_to("login-qc")
+        self.app.key("ENTER")
+        f = self.app.wait_for(
+            lambda f: self.code(f) and self.code(f) != other_than,
+            timeout=30, what="a Quick Connect code")
+        return self.code(f)
+
+    def approve(self, code):
+        self.session._request("/QuickConnect/Authorize?code=%s" % code,
+                              "POST")
+
+    def test_the_cancelled_code_does_not_sign_in(self):
+        first = self.start()
+        self.app.move_to("login-qc-cancel")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: not self.code(f), timeout=10,
+                          what="the first code gone after Cancel")
+        second = self.start(other_than=first)
+        self.approve(first)
+        deadline = time.monotonic() + 12        # the poll runs every few s
+        while time.monotonic() < deadline:
+            f = self.app.frame()
+            self.assertFalse(_app.shown(f, "row-libs"),
+                             "the CANCELLED Quick Connect code signed in")
+            self.assertEqual(second, self.code(f),
+                             "the second code left the screen")
+            time.sleep(0.5)
+        self.approve(second)
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="Home after approving the second code")
+        self.assertEqual(0, self.app.quit(timeout=30))
 
 
 if __name__ == "__main__":
