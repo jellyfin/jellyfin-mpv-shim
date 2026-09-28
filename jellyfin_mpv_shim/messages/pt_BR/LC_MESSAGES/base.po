@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-28 19:33+0000\n"
+"PO-Revision-Date: 2026-09-28 20:21+0000\n"
 "Last-Translator: Addison <addison.send@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/pt_BR/>\n"
@@ -1709,25 +1709,23 @@ msgstr "Itens de «Próximos» a Considerar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Próximos Episódios para Baixar Adiantado (0 = desativado)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Limite de Armazenamento para Downloads Automáticos (GB)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Remover servidor"
+msgstr "Excluir Downloads Automáticos Após Assistir"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Excluir Não Assistidos Após (dias, 0 = nunca)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Verificar a cada (minutos)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
@@ -1739,19 +1737,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Máximo de Downloads por Verificação"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "Minimizar para a Bandeja (continuar em execução)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
-msgstr ""
+msgstr "Continuar em Execução em Segundo Plano"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
-msgstr ""
+msgstr "Lembrar o Tamanho da Janela"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
