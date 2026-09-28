@@ -357,10 +357,44 @@ mpv_log_levels = {
 # matters because mpv's event thread writes this while a pool worker reads it.
 _recent_mpv_errors = deque(maxlen=8)
 
+# Whether mpv reported the current file's stream failing partway -- the only
+# evidence that tells a stream the server stopped sending (#783) from a file
+# that is genuinely shorter than its metadata says: both end with reason
+# "eof", eof-reached, and mpv's own duration as wrong as the server's.
+_stream_failed = threading.Event()
+
+# Lines logged when a transfer breaks mid-body or an HLS segment fails,
+# measured on mpv master (curl) and 0.40 (ffmpeg's http). NOT a failure to
+# *open*: an external subtitle that fails to load logs "HTTP error N" and
+# "stream: Failed to open ..." exactly as a dead stream's open would, and it
+# must not turn the item's clean end into an interruption.
+# tests/test_playback_failure.py:StreamFailureLineTest holds the lines.
+_STREAM_FAILURE_LINES = (
+    ("curl", re.compile(r"Transferred a partial file|^transfer failed|"
+                        r"retrying \(#\d+\) from")),
+    ("ffmpeg", re.compile(r"^https?: (Stream ends prematurely|"
+                          r"Will reconnect)")),
+    ("ffmpeg/demuxer", re.compile(r"^hls: Failed to open segment")),
+)
+
+
+def is_stream_failure(prefix: str, text: str) -> bool:
+    """Whether one mpv log line says the playing stream failed partway."""
+    for want, pattern in _STREAM_FAILURE_LINES:
+        if prefix == want and pattern.search(text.strip()):
+            return True
+    return False
+
+
+def stream_failed() -> bool:
+    """Whether the current file's stream failed partway (see above)."""
+    return _stream_failed.is_set()
+
 
 def clear_mpv_errors():
     """Drop stale errors so a failed load can't report the previous file's."""
     _recent_mpv_errors.clear()
+    _stream_failed.clear()
 
 
 def last_mpv_error():
@@ -411,6 +445,8 @@ def mpv_log_handler(level: str, prefix: str, text: str):
     message = "{0}: {1}".format(prefix, text)
     if level in ("fatal", "error"):
         _recent_mpv_errors.append(message.strip())
+    if level in ("fatal", "error", "warn") and is_stream_failure(prefix, text):
+        _stream_failed.set()
     if level in mpv_log_levels:
         mpv_log_levels[level](message)
     else:
@@ -1726,6 +1762,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # Seeking started - store current position
             self.playback_time_before_seek = self._player.playback_time
         else:
+            # Where a seek landed, now rather than at the next 5 s tick: a
+            # seek into the last seconds that ends before a tick otherwise
+            # leaves the pre-seek position as "the last known one", and
+            # the end reads as a stream that died far from it (#783).
+            # `_mpv_alive` first: mpv reports seeking off as it shuts down,
+            # and on libmpv a read of a terminated handle is a SIGSEGV.
+            landed = (self._player.playback_time
+                      if getattr(self, "_mpv_alive", False) else None)
+            if landed is not None:
+                self._last_playback_position = landed
             # Seeking ended - check if we should skip intro. Seeks made
             # from the jellyfin OSC's own controls are exempt (it has an
             # explicit skip button; scrubbing must not warp to the end
@@ -3956,6 +4002,39 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.pause_ignore = False
             return
 
+        # A network stream mpv saw fail, that ended far from its end, did
+        # not finish: the server stopped answering mid-item and mpv ran out
+        # of stream --
+        # HLS skips every failed segment to the end of the playlist in a
+        # fraction of a second (#783). Checked before the watched mark and
+        # the advance: in a queue `eof-reached` fires for this too, and
+        # _finished_at_eof takes that alone as a finish. No reload of our
+        # own (Izzie, 2026-09-28: retries mess with the hot path).
+        position = self._stream_interrupted_at(video)
+        if position is not None:
+            log.warning("PlayerManager::finished_callback stream ended at "
+                        "%.0fs, far from the end: interrupted, not finished",
+                        position)
+            if self.syncplay.is_enabled():
+                self._release_syncplay()
+            # Back to the page it was played from, which says Resume at
+            # this position (the stop report patches it), with the reason
+            # as its status.
+            self._notify_load_error(
+                video, _("The server stopped sending it partway through."),
+                timed_out=False, owns_window=False)
+            # The position measured above, not get_timeline_options' own:
+            # mpv has no playback_time once the stream is gone, and the
+            # not-finished branch there reads that as 0 -- wiping the resume
+            # point this exists to keep.
+            options = self.get_timeline_options(video=video)
+            if options is not None:
+                options["PositionTicks"] = int(position * 10000000)
+            self.send_timeline_stopped(False, options=options)
+            self._unload_ended(video)
+            self.pause_ignore = False
+            return
+
         # Only mark played on a genuine end-of-file. An errored/aborted stream
         # (playback-abort far from the end) must not be recorded as watched.
         if settings.force_set_played and self._finished_at_eof(video):
@@ -4005,39 +4084,95 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
             log.info("PlayerManager::finished_callback reached end")
             self.send_timeline_stopped(True)
-            # The queue is done — drop the finished video and unload it.
-            # Leaving _video set kept the app looking "active", so once the
-            # browser re-loaded its background image (which clears
-            # playback-abort) the next timeline tick reported the *finished*
-            # item as playing again and the UI bounced back to the player,
-            # showing the ended video paused.
-            self.should_send_timeline = False
-            self._video = None
-            # _mpv_alive first, and not merely the try/except. Closing the
-            # window makes mpv end the file AND shut down, so this callback
-            # (queued by end-file) runs on the action thread while
-            # _on_shutdown_event's terminate thread is inside
-            # player.terminate(). On the external backend the command is a
-            # socket write and the race surfaces as BrokenPipeError, which
-            # _mpv_errors catches; on in-process libmpv the handle has been
-            # freed underneath us and the command is a use-after-free, which
-            # is a SIGSEGV no except clause can see. _terminate_mpv clears
-            # this flag before it calls terminate(), so checking it is what
-            # closes the window. Found by tests/e2e/test_mpv_reopen.
-            if self._mpv_alive:
-                try:
-                    self._player.command("stop")
-                except _mpv_errors:
-                    self._handle_mpv_disconnect()
-                # The queue ended on its own, so nothing else will put the
-                # title back. After the stop: see clear_media_title.
-                self.clear_media_title()
-            # Before releasing the stream, not after: this is the browser's
-            # cue to come back, and the release is a blocking round trip that
-            # the library screen has no reason to wait behind.
-            self.push_playstate(stopped=True)
-            self.release_stream(video)
+            self._unload_ended(video)
         self.pause_ignore = False
+
+    def _stream_interrupted_at(self, video):
+        """Where a network stream stopped, if mpv saw it fail and it ended
+        far from its end; None for a finish, a local file, or a length or
+        position we cannot name.
+
+        **Only a stream mpv saw fail** (`stream_failed`, Izzie 2026-09-28):
+        a file whose runtime metadata overstates its length -- a VBR MP3
+        with no length header, a recording cut short -- ends cleanly far
+        from the server's end, and is a finish. A failure line in a wording
+        we do not recognise also reads as a finish, the pre-#783 behaviour.
+
+        The same margin as `_finished_at_eof` (95%, or within 10 s), read
+        from the position alone -- not `_reached_eof`, which a stream that
+        failed its way to the end sets too."""
+        if getattr(video, "client", None) is None:
+            return None                    # offline: nothing to lose
+        try:
+            from .sync.offline_media import OfflineVideo
+            if isinstance(video, OfflineVideo):
+                return None                # a downloaded file, not a stream
+        except Exception:
+            pass
+        if not stream_failed():
+            return None
+        duration = video.get_duration()
+        if not duration:
+            return None
+        # 0 is "never measured" (a clip shorter than a progress tick, or a
+        # session whose reports were held), not "stopped at the start": a
+        # genuine finish must not be read as a failure for want of a tick.
+        position = self._last_playback_position or 0
+        live = None
+        # `_mpv_alive` first, not only the try: this also runs when the
+        # window closes or an idle quit ends the file, and on in-process
+        # libmpv a read of a terminated handle is a use-after-free -- a
+        # SIGSEGV no except sees (see _unload_ended; test_realmpv_smoke's
+        # idle-quit test crashed on exactly this).
+        if self._mpv_alive:
+            try:
+                # mpv still holds the file at EOF in a queue (keep_open),
+                # and then its own clock is the freshest reading there is.
+                live = self._player.playback_time
+            except Exception:
+                live = None
+        if live is not None:
+            position = max(position, live)
+        if not position:
+            return None
+        if position >= duration * 0.95 or duration - position <= 10:
+            return None
+        return position
+
+    def _unload_ended(self, video):
+        """Drop a video whose playback is over and hand the window back."""
+        # The queue is done — drop the finished video and unload it.
+        # Leaving _video set kept the app looking "active", so once the
+        # browser re-loaded its background image (which clears
+        # playback-abort) the next timeline tick reported the *finished*
+        # item as playing again and the UI bounced back to the player,
+        # showing the ended video paused.
+        self.should_send_timeline = False
+        self._video = None
+        # _mpv_alive first, and not merely the try/except. Closing the
+        # window makes mpv end the file AND shut down, so this callback
+        # (queued by end-file) runs on the action thread while
+        # _on_shutdown_event's terminate thread is inside
+        # player.terminate(). On the external backend the command is a
+        # socket write and the race surfaces as BrokenPipeError, which
+        # _mpv_errors catches; on in-process libmpv the handle has been
+        # freed underneath us and the command is a use-after-free, which
+        # is a SIGSEGV no except clause can see. _terminate_mpv clears
+        # this flag before it calls terminate(), so checking it is what
+        # closes the window. Found by tests/e2e/test_mpv_reopen.
+        if self._mpv_alive:
+            try:
+                self._player.command("stop")
+            except _mpv_errors:
+                self._handle_mpv_disconnect()
+            # The queue ended on its own, so nothing else will put the
+            # title back. After the stop: see clear_media_title.
+            self.clear_media_title()
+        # Before releasing the stream, not after: this is the browser's
+        # cue to come back, and the release is a blocking round trip that
+        # the library screen has no reason to wait behind.
+        self.push_playstate(stopped=True)
+        self.release_stream(video)
 
     @synchronous("_lock")
     def watched_skip(self):
@@ -4322,7 +4457,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except Exception:
             log.error("on_load_start handler failed.", exc_info=True)
 
-    def _notify_load_error(self, video, detail, timed_out: bool):
+    def _notify_load_error(self, video, detail, timed_out: bool,
+                           owns_window=None):
         """Report a failed start to the UI, with what a retry could change.
 
         ``can_transcode`` gates the "retry with transcode" option: it's only
@@ -4339,6 +4475,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 "detail": detail,
                 "timed_out": timed_out,
                 "can_transcode": not already_transcoding,
+                **({} if owns_window is None
+                   else {"owns_window": owns_window}),
             })
         except Exception:
             log.error("on_load_error handler failed.", exc_info=True)
