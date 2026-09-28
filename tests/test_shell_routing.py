@@ -635,14 +635,56 @@ class TestRouteErrors(unittest.TestCase):
         class OfflineSrc(FakeSource):
             pass
 
+        import requests
+        b, offline = self._home(
+            requests.exceptions.ConnectionError("refused"))
+        b._load_route(b.route)
+        self.assertIs(b.source, offline, "did not fall back to downloads")
+
+    def _home(self, exc):
+        class OfflineSrc(FakeSource):
+            pass
+
         ctl = FakeController()
         offline = OfflineSrc()
         ctl.offline_source = lambda: offline
-        b = MpvtkBrowser(app=None, source=_FailingSource(), controller=ctl)
+        b = MpvtkBrowser(app=None, source=_FailingSource(exc=exc),
+                         controller=ctl)
         b._pool = _SyncPool()
         b.server = "srv1"
+        return b, offline
+
+    def test_a_server_that_answered_with_an_error_does_not_drop_to_offline(self):
+        """Izzie, 2026-09-28: only a load the person asked for, and only
+        when the server did not answer. A live server answering 500 is an
+        error with a Retry, not a reason to leave it."""
+        from jellyfin_apiclient_python.exceptions import HTTPException
+        b, offline = self._home(HTTPException("InternalServerError", "500"))
+        online = b.source
         b._load_route(b.route)
-        self.assertIs(b.source, offline, "did not fall back to downloads")
+        self.assertIs(b.source, online, "an HTTP error dropped to offline")
+        nodes, _h = build_scene(b)
+        self.assertIn("route-retry", ids(nodes))
+
+    def test_a_background_refresh_of_home_never_drops_to_offline(self):
+        """UserDataChanged re-reads Home in the background; one blip there
+        threw a working Home screen onto the offline library. Three passes,
+        so a latch shows."""
+        import requests
+        from jellyfin_mpv_shim.mpvtk_browser.app import USERDATA_KINDS
+        b, offline = self._home(
+            requests.exceptions.ConnectionError("refused"))
+        online = b.source
+        b.source.fail = False
+        b._load_route(b.route)                  # Home shows fine
+        b._browsing = True
+        b.source.fail = True
+        for n in range(3):
+            self.assertTrue(b._refresh_current(USERDATA_KINDS),
+                            "the premise: pass %d refreshed" % n)
+            self.assertIs(b.source, online,
+                          "pass %d: a background refresh dropped to "
+                          "offline" % n)
 
     def test_no_fallback_when_nothing_is_downloaded(self):
         ctl = FakeController()

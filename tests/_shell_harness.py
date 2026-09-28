@@ -1480,17 +1480,24 @@ def _sub_item(default_sid=None, default_aid=None, subs=(3, 4), audios=(1,)):
             "MediaSources": [src]}
 
 class _FailingSource(FakeSource):
-    """A source whose browse calls raise, like an unreachable server."""
+    """A source whose browse calls raise.
 
-    def __init__(self, fail=True):
+    By default with an error the app does NOT read as an unreachable server
+    (`app._is_unreachable`): a failed load, full stop. Pass ``exc`` for the
+    kinds that are -- the shell treats the two differently (the banner, the
+    offline fallback), so a test about either has to say which it means.
+    """
+
+    def __init__(self, fail=True, exc=None):
         super().__init__()
         self.fail = fail
         self.calls = 0
+        self.exc = exc
 
     def _boom(self, *a, **k):
         self.calls += 1
         if self.fail:
-            raise OSError("server unreachable")
+            raise self.exc or OSError("the load failed")
         return []
 
     get_libraries = _boom

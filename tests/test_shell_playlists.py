@@ -1125,9 +1125,15 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
                              "the error was not recorded on the home route")
 
     def test_the_fallback_still_fires_while_home_is_on_screen(self):
-        """The guard must not defeat the feature it guards."""
+        """The guard must not defeat the feature it guards. An unreachable
+        server, because only that falls back (Izzie, 2026-09-28)."""
+        import requests
+
+        def unreachable(*a, **k):
+            raise requests.exceptions.ConnectionError("refused")
+
         b = self._browser()
-        b.source.get_libraries = self._boom
+        b.source.get_libraries = unreachable
         offline = FakeSource()
         b.controller.offline_source = lambda: offline
         home = {"kind": "home", "server": "srv1"}
