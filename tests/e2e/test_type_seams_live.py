@@ -312,8 +312,13 @@ class AMixedPlaylistTwiceRoundTest(_PlaylistCase):
                         and _app.shown(f, "nav-settings")
                         and not f.get("phud_mode"),
                         timeout=15, what="%s: the library + bar" % hop)
-                    self.assertEqual(self.browse_bg, self.p("background-color"),
-                                     hop)
+                    # A wait, not one read: the library frame can draw a beat
+                    # before set_browse_window lands (run_action defers), and
+                    # a background that never came would still fail here.
+                    self.assertTrue(_e2e.wait_for(
+                        lambda: self.p("background-color") == self.browse_bg,
+                        timeout=5), "%s: background %r, not the library's"
+                        % (hop, self.p("background-color")))
                     if round_ == 1:
                         self.hold_the_library(hop)
                     # Next from the last entry does not end the queue, so
