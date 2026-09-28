@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-28 18:57+0000\n"
+"PO-Revision-Date: 2026-09-28 19:09+0000\n"
 "Last-Translator: Addison <addison.send@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/pt_BR/>\n"
@@ -1660,25 +1660,24 @@ msgstr "Clique Esquerdo Pausa a Reprodução"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Mostrar Pôsteres nas Páginas de Detalhes"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Mostrar Miniaturas dos Episódios nas Páginas de Detalhes"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Hardware Decoding"
-msgstr "Cancelar Gravação"
+msgstr "Decodificação por Hardware"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Desentrelaçar Automaticamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Interpolação de Movimento"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
