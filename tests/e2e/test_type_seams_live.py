@@ -296,8 +296,16 @@ class AMixedPlaylistTwiceRoundTest(_PlaylistCase):
                 if kind == "video":
                     self.app.wait_for(lambda f: f.get("phud_mode"),
                                       timeout=15, what="%s: HUD mode" % hop)
-                    self.app.summon_hud()
-                    self.app.key(">")
+                    if round_ == 1 and n == 0:
+                        # The film ENDS into the song, pointer still: the
+                        # advance the library-blanking report was made
+                        # on (CL0907:20-22), not a key. Seeking is setup.
+                        end = self.p("duration")
+                        self.app.mpv.command("seek", str(end - 3),
+                                             "absolute")
+                    else:
+                        self.app.summon_hud()
+                        self.app.key(">")
                 else:
                     f = self.app.wait_for(
                         lambda f: _app.shown(f, "np-next")
@@ -306,6 +314,8 @@ class AMixedPlaylistTwiceRoundTest(_PlaylistCase):
                         timeout=15, what="%s: the library + bar" % hop)
                     self.assertEqual(self.browse_bg, self.p("background-color"),
                                      hop)
+                    if round_ == 1:
+                        self.hold_the_library(hop)
                     # Next from the last entry does not end the queue, so
                     # the round ends with Stop.
                     last = n == len(self.order) - 1
@@ -315,6 +325,25 @@ class AMixedPlaylistTwiceRoundTest(_PlaylistCase):
             self.app.wait_for(lambda f: _app.shown(f, "pl-play"),
                               timeout=15, what="the playlist page again")
         self.assertEqual(0, self.app.quit(timeout=30))
+
+
+    #: conf.Settings.hud_hide_secs: the HUD's auto-hide is what once
+    #: yielded the library under a song (CL0907:20-22), so a check has to
+    #: outlast it rather than look once.
+    HUD_HIDE_SECS = 4.0
+
+    def hold_the_library(self, hop):
+        """The song's library, every frame, past the HUD's auto-hide, with
+        the pointer still."""
+        deadline = time.monotonic() + self.HUD_HIDE_SECS + 1.5
+        while time.monotonic() < deadline:
+            f = self.app.frame()
+            self.assertFalse(f.get("phud_mode"),
+                             "%s: the song yielded to the HUD" % hop)
+            self.assertTrue(_app.shown(f, "nav-settings")
+                            and _app.shown(f, "np-next"),
+                            "%s: the library left during the song" % hop)
+            time.sleep(0.1)
 
 
 class AMusicPlaylistFromItsTileTest(_PlaylistCase):
