@@ -328,6 +328,7 @@ class UserInterface:
         self._browser = browser
         playerManager.mpvtk_active = True
         playerManager.on_playstate = browser.on_playstate
+        playerManager.on_stopped_at = browser.on_stopped_at
         # Loading screen + failure/retry UI. Without these a failed start was
         # a blank window for the whole playback_timeout and then nothing.
         playerManager.on_load_start = browser.load.on_load_start

@@ -220,6 +220,7 @@ class WiringHarness(unittest.TestCase):
 # `browser` means "calling it must be observable on the browser object".
 PLAYER_CALLBACKS = [
     "on_playstate",
+    "on_stopped_at",
     "notify_update",
     "on_window_closed",
     "on_mpv_gone",

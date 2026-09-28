@@ -76,6 +76,10 @@ def _discord_on():
 class ReportingMixin:
     """Session reporting and now-playing publication for ``PlayerManager``."""
 
+    #: Set by the UI (see PlayerManager.__init__); a class default so the
+    #: mixin reports a stop without one.
+    on_stopped_at = None
+
     if TYPE_CHECKING:
         # Owned by PlayerManager, not by this mixin. Listed so the coupling
         # has a length: four pieces of state written, nine read, two methods
@@ -509,10 +513,14 @@ class ReportingMixin:
             "session_playing")
 
     @synchronous("_tl_lock")
-    def send_timeline_stopped(self, finished=False, options=None, client=None):
+    def send_timeline_stopped(self, finished=False, options=None, client=None,
+                              stopped=None):
+        """``stopped`` is the video an explicit stop has already cleared from
+        `_video`: only the UI announcement uses it (`_announce_stop`)."""
         self.should_send_timeline = False
 
         video = self._video
+        announced = video if stopped is None else stopped
         if options is None:
             options = self.get_timeline_options(finished, video=video)
 
@@ -535,6 +543,13 @@ class ReportingMixin:
         # thread), the stop report has been or will be sent by whoever tore it
         # down; a client of None means offline playback (no server session).
         # Either way, still run the local cleanup below.
+        if announced is not None and options is not None:
+            # Now (the page can say Resume at once), and again once the
+            # report has reached the server -- behind it on the same FIFO --
+            # because a re-read before that reads the pre-stop position.
+            # Offline there is no server to wait for.
+            self._announce_stop(announced, options.get("PositionTicks"),
+                                finished, delivered=client is None)
         if options is not None and client is not None:
             # Queued, not called here: this runs on the advance path, and the
             # round trip used to sit between the last sample of one track and
@@ -542,6 +557,12 @@ class ReportingMixin:
             # session_playing is what the shared worker guarantees.
             self._reporter.submit(
                 lambda: client.jellyfin.session_stop(options), "session_stop")
+            if announced is not None:
+                ticks = options.get("PositionTicks")
+                self._reporter.submit(
+                    lambda: self._announce_stop(announced, ticks, finished,
+                                                delivered=True),
+                    "stop delivered")
 
         if _discord_on():
             try:
@@ -549,6 +570,21 @@ class ReportingMixin:
                 clear_presence()
             except Exception:
                 log.error("Could not clear Discord Rich Presence.", exc_info=True)
+
+    def _announce_stop(self, video, ticks, finished, delivered):
+        """Tell the UI where this stop left the item. Never raises, and the
+        callback must not block or call back in: this can run under the
+        player's lock (docs/browser-shell.md on the thread contract)."""
+        cb = self.on_stopped_at
+        if cb is None:
+            return
+        try:
+            from .clients import clientManager
+            cb({"id": video.item_id, "ticks": ticks, "finished": finished,
+                "delivered": delivered,
+                "server": clientManager.uuid_for_client(video.client)})
+        except Exception:
+            log.debug("could not announce a stop to the UI", exc_info=True)
 
     def queue_played_mark(self, video, watched: bool = True):
         """Send an explicit watched/unwatched mark, BEHIND whatever is queued.

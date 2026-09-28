@@ -134,10 +134,15 @@ LIVE_KINDS = {"livetv", "channel", "program"}
 #: server-computed `UnplayedItemCount` on the PARENT and so cannot be
 #: patched from here (#722).
 #:
-#: `grid`, `favorites` and `detail` are candidates and are deliberately not
-#: in yet: each needs its refresh-versus-page-in interleaving checked first,
-#: which is what `_refresh_current`'s `_refreshing` marker is for.
-USERDATA_KINDS = {"home", "series", "season"}
+#: A film's, an audiobook's and a book's own page for Play vs Resume: a stop
+#: announces UserDataChanged, and without this the page you land back on
+#: said Play until reopened. Their loads are one-shot (no paging), so the
+#: refresh cannot race a page-in (Izzie, 2026-09-28).
+#:
+#: `grid` and `favorites` are candidates and are deliberately not in yet:
+#: each pages, so its refresh-versus-page-in interleaving needs checking
+#: first, which is what `_refresh_current`'s `_refreshing` marker is for.
+USERDATA_KINDS = {"home", "series", "season", "detail", "audiobook", "book"}
 
 #: How often a Live TV route re-reads itself. jellyfin-web's own staleness
 #: guard is five minutes, but it re-renders on every tab change and this
@@ -277,6 +282,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._log_thread = None
         # Debounce slot for UserDataChanged — see refresh_userdata.
         self._userdata_thread = None
+        # Guards _userdata_servers and the decision to start or end the tick
+        # together; see refresh_userdata for the event it used to lose.
+        self._userdata_lock = threading.Lock()
         # Long job (currently only the download-folder move) — see _run_long.
         self._long_thread = None
         # Global download progress for the status bar, and its poller.
@@ -639,6 +647,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if self._menu is not None or self._dialog is not None:
             return False
         if route.get("_loading") or route.get("_refreshing"):
+            # Not dropped: the load in flight may have read the server before
+            # whatever asked for this, so it runs once that load settles.
+            # One, however many ask meanwhile; and unfiltered if they asked
+            # for different servers.
+            again = route.get("_refresh_again")
+            if again is not None and again[1] != server:
+                server = None
+            route["_refresh_again"] = (kinds, server)
             return False
         route["_refreshing"] = True
         self._load_route(route)
@@ -690,13 +706,24 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             return
 
         def tick():
-            # _start_daemon keeps one thread per slot, so a burst of events
-            # schedules exactly one re-read: the first arrival starts the
-            # wait and the rest land while the slot is taken.
-            self._shutdown_evt.wait(self.USERDATA_DEBOUNCE)
-            pending, self._userdata_servers = self._userdata_servers, set()
-            self._refresh_current(USERDATA_KINDS,
-                                  self._userdata_target(pending))
+            # One thread per burst: the first arrival starts the wait and the
+            # rest land in `_userdata_servers` meanwhile. It loops until a
+            # wait ends with nothing pending, and that emptiness is decided
+            # under the same lock an arrival takes -- `_start_daemon`'s slot
+            # was released only AFTER the body returned, so an event landing
+            # between the take and the release joined a burst already read
+            # and was never run: the stop's own event, measured, leaving a
+            # detail page on the pre-stop position.
+            while True:
+                self._shutdown_evt.wait(self.USERDATA_DEBOUNCE)
+                with self._userdata_lock:
+                    pending, self._userdata_servers = \
+                        self._userdata_servers, set()
+                    if not pending or self._shutdown_evt.is_set():
+                        self._userdata_thread = None
+                        return
+                self._refresh_current(USERDATA_KINDS,
+                                      self._userdata_target(pending))
 
         # Cheap pre-check so a burst that cannot apply does not take the
         # slot for three seconds; `tick` asks again for real, because the
@@ -707,8 +734,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # the slot. The refresh is server-FILTERED since #722, so a captured
         # first arrival could coalesce away the event for the page actually
         # on screen and then filter itself out -- leaving it stale.
-        self._userdata_servers.add(server)
-        self._start_daemon("_userdata_thread", "mpvtk-userdata", tick)
+        with self._userdata_lock:
+            self._userdata_servers.add(server)
+            if self._userdata_thread is not None:
+                return
+            self._userdata_thread = threading.Thread(
+                target=tick, name="mpvtk-userdata", daemon=True)
+            self._userdata_thread.start()
 
     def _userdata_target(self, pending):
         """Which server to hand `_refresh_current` for a coalesced burst.
@@ -1430,6 +1462,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # be holding the route that is the screen again.
         load_id = self._next_load_id()
         route[self.LOAD_ID_KEY] = load_id
+        # A load is believed over a stop patch only if it started after the
+        # server had the stop report (see on_stopped_at).
+        patch = route.get("_stop_patch")
+        believed = patch if patch is not None and patch["delivered"] else None
 
         def landed(data):
             # The success half of the same guard. `run_async` gates on_done by
@@ -1445,6 +1481,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 self._unreachable = False
                 self.invalidate()
             on_done(data)
+            if route.get("_stop_patch") is not None \
+                    and route.get("_stop_patch") is not believed:
+                self._apply_stop_patch(route)
 
         def failed(exc):
             # Paging guards must not survive the failure or the view stops
@@ -1486,6 +1525,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # which runs neither callback. A marker left set would stop the
             # screen refreshing for the rest of its life.
             route.pop("_refreshing", None)
+            again = route.pop("_refresh_again", None)
+            if again is not None and route is self.route:
+                self._refresh_current(*again)
         self.run_async(work, landed, ep, on_error=failed, always=settled)
 
     # Paging moved to pagination.Paginator (step 6c prep 3). These stay as
@@ -2557,6 +2599,56 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     @property
     def minimized(self):
         return self._minimized
+
+    def on_stopped_at(self, stop):
+        """The position a stop reported, for the page showing that item.
+
+        A detail or audiobook page left open says Resume from its own copy
+        of the item. Re-reading it is not enough on its own: coming back to
+        the library re-reads at once, BEFORE the stop report has reached the
+        server (it is queued), and that read said the pre-stop position --
+        measured, Resume at 61 s for a stop at 244 s. So the page is patched
+        from what the app reported, and the patch is re-applied to any load
+        that started before the server had the report (`_route_async`). The
+        player calls this twice: at the stop, and with ``delivered`` once the
+        report is through, which is when a re-read can be believed.
+
+        Called by the player, possibly under its lock: patch and repaint,
+        nothing that blocks or calls back into it.
+        """
+        route = self.route
+        if (not stop or stop.get("ticks") is None
+                or route.get("kind") not in ("detail", "audiobook")
+                or route.get("item_id") != stop.get("id")
+                or (stop.get("server") is not None
+                    and (route.get("server") or self.server)
+                    != stop.get("server"))):
+            return
+        patch = route.get("_stop_patch")
+        if stop.get("delivered") and patch is not None \
+                and not patch["delivered"]:
+            patch["delivered"] = True
+            self.refresh_userdata(now=True)
+            return
+        route["_stop_patch"] = {"ticks": stop["ticks"],
+                                "finished": bool(stop.get("finished")),
+                                "delivered": bool(stop.get("delivered"))}
+        self._apply_stop_patch(route)
+
+    def _apply_stop_patch(self, route):
+        patch = route.get("_stop_patch")
+        data = route.get("_data")
+        item = ((data or {}).get("item") if route.get("kind") == "detail"
+                else data)
+        if patch is None or not isinstance(item, dict):
+            return
+        ud = dict(item.get("UserData") or {})
+        if patch["finished"]:
+            ud["Played"], ud["PlaybackPositionTicks"] = True, 0
+        else:
+            ud["PlaybackPositionTicks"] = int(patch["ticks"])
+        item["UserData"] = ud
+        self.invalidate()
 
     def on_playstate(self, state):
         """Registered as playerManager.on_playstate. Drives browse/playback
