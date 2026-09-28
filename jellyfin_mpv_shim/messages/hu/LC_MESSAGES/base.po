@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-14 11:39+0000\n"
-"Last-Translator: KecskeTech <teonyitas@gmail.com>\n"
+"PO-Revision-Date: 2026-09-28 07:59+0000\n"
+"Last-Translator: Szilki077 <szilkimappa@gmail.com>\n"
 "Language-Team: Hungarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hu/>\n"
 "Language: hu\n"
@@ -104,8 +104,6 @@ msgid "Successfully updated server credentials."
 msgstr "A kiszolgáló hitelesítő adatainak frissítése sikeres."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
 msgstr "A kiszolgáló hozzáadása sikertelen."
 
@@ -126,14 +124,8 @@ msgid "Add another server?"
 msgstr "További kiszolgáló hozzáadása?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Nem sikerült a kiszolgáló hozzáadása.\n"
-"Ellenőrizze a kapcsolódási információkat."
+msgstr "Nem sikerült a kiszolgáló hozzáadása."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
@@ -144,10 +136,8 @@ msgid "Could not start Quick Connect."
 msgstr "A Gyors Csatlakozás indítása sikertelen."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Kihagyott stáblista"
+msgstr "Stáblista kihagyása"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -158,61 +148,44 @@ msgid "Seek to Skip Credits"
 msgstr "Tekerés a stáblista átugrásához"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Különkiadások"
+msgstr "Reklám átugrása"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Kihagyott stáblista"
+msgstr "Kihagyott reklám"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Tekerés a stáblista átugrásához"
+msgstr "Tekerés a reklám átugrásához"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Kihagyott stáblista"
+msgstr "Előnézet kihagyása"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Kihagyott stáblista"
+msgstr "Előnézet kihagyva"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Tekerés a stáblista átugrásához"
+msgstr "Ugrás az előnézet kihagyásával"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
 msgstr "Visszatekintés átugrása"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Kihagyott stáblista"
+msgstr "Átugrott összefoglaló"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Tekerés a stáblista átugrásához"
+msgstr "Ugrás az összefoglalóra"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Kihagyott bevezető"
+msgstr "Bevezető átugrása"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -318,10 +291,8 @@ msgstr "Videólejátszási profil megváltoztatása"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "Kilépés és nem nézettnek jelölés"
+msgstr "Kilépés és megjelölés lejátszatlanként"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -508,34 +479,25 @@ msgid "Discord Rich Presence"
 msgstr "Discord gazdag jelenlét"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Kihagyott bevezető"
+msgstr "Bevezető átugrása"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Kihagyott stáblista"
+msgstr "Stáblista kihagyása"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "Különkiadások"
+msgstr "Reklámok átugrása"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Kihagyott stáblista"
+msgstr "Előnézetek kihagyása"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Kihagyott stáblista"
+msgstr "Összefoglalók kihagyása"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -574,10 +536,8 @@ msgstr "Első oldal"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "A kiszolgáló sikeresen hozzáadva."
+msgstr "Előző oldal"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -639,16 +599,12 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Nem sikerült az automatikus újraindítás – a módosítások érvényesítéséhez "
+"lépjen ki az alkalmazásból, majd indítsa el újra."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Nem sikerült a kiszolgáló hozzáadása.\n"
-"Ellenőrizze a kapcsolódási információkat."
+msgstr "Még mindig nem sikerül elérni a szervert."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -678,10 +634,9 @@ msgid "Incorrect PIN."
 msgstr "Helytelen PIN kód."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Kiszolgáló:"
+msgstr "PIN-kód beállítása a következőhöz: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
@@ -701,10 +656,8 @@ msgid "Require this PIN at startup"
 msgstr "PIN kód kérése indításkor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Kiszolgáló eltávolítása"
+msgstr "PIN-kód eltávolítása"
 
 # seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -742,10 +695,8 @@ msgid "Connect to Jellyfin"
 msgstr "Csatlakozás a Jellyfinhez"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "A kiszolgáló sikeresen hozzáadva."
+msgstr "Korábban hozzáadott kiszolgálók"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
@@ -761,28 +712,20 @@ msgid "Enter this code in the Jellyfin app or web client:"
 msgstr "Írd be ezt a kódot a Jellyfin appba vagy web kliensbe:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "SVP beállítások"
+msgstr "Kérelem folyamatban…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "Kiszolgáló webcíme: "
+msgstr "Kiszolgáló URL-je"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Felhasználónév:"
+msgstr "Felhasználónév"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Jelszó:"
+msgstr "Jelszó"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -799,14 +742,8 @@ msgid "Enter the server URL first."
 msgstr "Írd be a szerver címét (URL) először."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Nem sikerült a kiszolgáló hozzáadása.\n"
-"Ellenőrizze a kapcsolódási információkat."
+msgstr "Kapcsolatfelvétel a szerverrel…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -821,14 +758,8 @@ msgid "Connecting…"
 msgstr "Csatlakozás…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Nem sikerült a kiszolgáló hozzáadása.\n"
-"Ellenőrizze a kapcsolódási információkat."
+msgstr "Nem sikerült csatlakozni. Kérjük, ellenőrizze az adatait."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -874,10 +805,8 @@ msgid "Ready to cast"
 msgstr "Közvetítésre készen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Válassza ki a médiát a Jellyfinben, és játssza le itt"
+msgstr "Válaszd ki a médiatartalmat a Jellyfinben, és játszd le itt."
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -894,16 +823,12 @@ msgstr "Letöltés"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "Kiszolgáló eltávolítása"
+msgstr "Letöltés eltávolítása"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Kilépés és nem nézettnek jelölés"
+msgstr "Megnézve"
 
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -914,13 +839,12 @@ msgstr "Kedvenc"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "Web"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Video"
-msgstr "Videók"
+msgstr "Videó"
 
 # seeded from jellyfin-web: Audio
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -931,10 +855,8 @@ msgstr "Hang"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Felirat mérete: {0}"
+msgstr "Felirat"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -952,10 +874,8 @@ msgid "Container"
 msgstr "Tároló"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "Normális"
+msgstr "Formátum"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -974,10 +894,8 @@ msgstr "Igen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "Nincs"
+msgstr "Nem"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1003,10 +921,8 @@ msgid "Codec tag"
 msgstr "Kódek címke"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "Új csoport"
+msgstr "Profil"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1020,7 +936,6 @@ msgstr "Felbontás"
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Aspect ratio"
 msgstr "Képarány"
 
@@ -1086,16 +1001,12 @@ msgid "%d bit"
 msgstr "%d bit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "Videóbeállítások"
+msgstr "Videóválaszték"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "Videóprofil altípusa"
+msgstr "Videótartomány típusa"
 
 # seeded from jellyfin-web: ColorSpace
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1132,10 +1043,8 @@ msgid "Default"
 msgstr "Alapértelmezett"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " Kényszerített"
+msgstr "Kényszerített"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1145,27 +1054,22 @@ msgstr "Külső"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Timestamp"
-msgstr "Idő"
+msgstr "Időbélyeg"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "DV title"
-msgstr "Felirat mérete: {0}"
+msgstr "DV-cím"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version major"
-msgstr "Verzió"
+msgstr "DV főverzió"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version minor"
-msgstr "Verzió"
+msgstr "DV-verzió (kisebb)"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1204,10 +1108,8 @@ msgid "%.1f Mbps"
 msgstr "%.1f Mbps"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "Közvetlen útvonalak"
+msgstr "Közvetlen lejátszás"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1221,10 +1123,8 @@ msgstr "Remuxolás"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Átkódolás)"
+msgstr "Átkódolás"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1357,7 +1257,7 @@ msgstr "Ez az eszköz"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Bemenet"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
@@ -1373,10 +1273,8 @@ msgid "Library Browser"
 msgstr "Könytár böngésző"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Reading"
-msgstr " (Átkódolás)"
+msgstr "Olvasás"
 
 # seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1386,16 +1284,13 @@ msgid "Downloads"
 msgstr "Letöltések"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Download Tuning"
-msgstr "Kiszolgáló eltávolítása"
+msgstr "Hangolás letöltése"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Player Controls"
-msgstr "Lejátszások száma"
+msgstr "Lejátszóvezérlők"
 
 # seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1413,10 +1308,8 @@ msgid "Video Enhancement"
 msgstr "Videójavító funkciók"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Tekerés a stáblista átugrásához"
+msgstr "Bevezető / stáblista átugrása"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1437,9 +1330,8 @@ msgstr "Be"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Copy (advanced)"
-msgstr "Speciális"
+msgstr "Másolás (speciális)"
 
 # seeded from jellyfin-web: Off
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1448,85 +1340,76 @@ msgstr "Ki"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Egyenletes mozgás"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Blend Frames"
-msgstr "Ref frame"
+msgstr "Képkockák összefésülése"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Sima (kiváló minőségű)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Light (élőszereplős)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Normál (animáció)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Erős"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Automatic (recommended)"
 msgid "Automatic (MPV decides)"
-msgstr "Automatikus (ajánlott)"
+msgstr "Automatikus (az MPV dönt)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 (referencia)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "BT.2446a"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "Szplin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Disable"
 msgid "Hable"
-msgstr "Letiltás"
+msgstr "Hable"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "Reinhard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Levágás (tónusleképezés nélkül)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "MPV built-in default"
 msgid "MPV default"
-msgstr "Beépített alapértelmezett MPV"
+msgstr "MPV alapértelmezés"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "High quality"
-msgstr "Videóminőség választása"
+msgstr "Kiváló minőség"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default (1 second)"
-msgstr ""
+msgstr "MPV alapértelmezett (1 másodperc)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Large (20 seconds)"
-msgstr ""
+msgstr "Nagy (20 másodperc)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Very large (60 seconds)"
-msgstr ""
+msgstr "Nagyon nagy (60 másodperc)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1534,11 +1417,11 @@ msgstr "Jellyfin felület"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "MPV UI"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "Egyedi OSC"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
@@ -1646,20 +1529,16 @@ msgid "Panel behind the controls"
 msgstr "Panel a vezérlők mögött"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "Nincs (letiltva)"
+msgstr "Nincs (árnyékolt szöveg)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
 msgstr "Elrejtés, ha nincs az egér ráhúzva"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "Stáblista átugrása"
+msgstr "Mindig rejtse el"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
@@ -1667,15 +1546,15 @@ msgstr "Soha ne rejtse el ha meg van állítva"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Növeld a hézagokat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Helyezze középre a lapokat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Hagyd a jobb oldalon"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -1694,10 +1573,8 @@ msgid "Medium"
 msgstr "Közepes"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Nagy"
+msgstr "Extra nagy"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
@@ -1757,13 +1634,12 @@ msgstr "Egyéni (config-ban beállítva)"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Game Controller"
-msgstr "Lejátszások száma"
+msgstr "Játékvezérlő"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Megerősítés és Vissza gombok felcserélése"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
@@ -1787,37 +1663,32 @@ msgstr "Epizód-bélyegképek megjelenítése a részletező oldalakon"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Hardware Decoding"
-msgstr "Rögzítés megszakítása"
+msgstr "Hardveres dekódolás"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Automatikus váltottsor-mentesítés"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Mozgásinterpoláció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (Átkódolás)"
+msgstr "Debanding"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "HDR-tónusleképezés"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Rendering Quality"
-msgstr "Videóminőség választása"
+msgstr "Renderelési minőség"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Hálózati puffer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
@@ -1840,10 +1711,8 @@ msgid "Storage Limit for Automatic Downloads (GB)"
 msgstr "Automatikus letöltések tárhelykorlátja (GB)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Kiszolgáló eltávolítása"
+msgstr "Automatikus letöltések törlése megtekintés után"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
@@ -1859,31 +1728,31 @@ msgstr "Feltöltés, ha kevesebb mint (epizód)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "Kiegészítés eddig (epizódok)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Ellenőrzésenkénti maximális letöltések száma"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "Bezárás a tálcára (futtatás a háttérben)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
-msgstr ""
+msgstr "Futtatás a háttérben"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
-msgstr ""
+msgstr "Ablakméret megjegyzése"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "Ablakgombok a felső sávban"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Window Buttons in Full Screen"
-msgstr ""
+msgstr "Ablakgombok megtartása teljes képernyőn"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
