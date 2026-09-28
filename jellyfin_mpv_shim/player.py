@@ -357,10 +357,44 @@ mpv_log_levels = {
 # matters because mpv's event thread writes this while a pool worker reads it.
 _recent_mpv_errors = deque(maxlen=8)
 
+# Whether mpv reported the current file's stream failing partway -- the only
+# evidence that tells a stream the server stopped sending (#783) from a file
+# that is genuinely shorter than its metadata says: both end with reason
+# "eof", eof-reached, and mpv's own duration as wrong as the server's.
+_stream_failed = threading.Event()
+
+# Lines logged when a transfer breaks mid-body or an HLS segment fails,
+# measured on mpv master (curl) and 0.40 (ffmpeg's http). NOT a failure to
+# *open*: an external subtitle that fails to load logs "HTTP error N" and
+# "stream: Failed to open ..." exactly as a dead stream's open would, and it
+# must not turn the item's clean end into an interruption.
+# tests/test_playback_failure.py:StreamFailureLineTest holds the lines.
+_STREAM_FAILURE_LINES = (
+    ("curl", re.compile(r"Transferred a partial file|^transfer failed|"
+                        r"retrying \(#\d+\) from")),
+    ("ffmpeg", re.compile(r"^https?: (Stream ends prematurely|"
+                          r"Will reconnect)")),
+    ("ffmpeg/demuxer", re.compile(r"^hls: Failed to open segment")),
+)
+
+
+def is_stream_failure(prefix: str, text: str) -> bool:
+    """Whether one mpv log line says the playing stream failed partway."""
+    for want, pattern in _STREAM_FAILURE_LINES:
+        if prefix == want and pattern.search(text.strip()):
+            return True
+    return False
+
+
+def stream_failed() -> bool:
+    """Whether the current file's stream failed partway (see above)."""
+    return _stream_failed.is_set()
+
 
 def clear_mpv_errors():
     """Drop stale errors so a failed load can't report the previous file's."""
     _recent_mpv_errors.clear()
+    _stream_failed.clear()
 
 
 def last_mpv_error():
@@ -411,6 +445,8 @@ def mpv_log_handler(level: str, prefix: str, text: str):
     message = "{0}: {1}".format(prefix, text)
     if level in ("fatal", "error"):
         _recent_mpv_errors.append(message.strip())
+    if level in ("fatal", "error", "warn") and is_stream_failure(prefix, text):
+        _stream_failed.set()
     if level in mpv_log_levels:
         mpv_log_levels[level](message)
     else:
@@ -3962,8 +3998,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.pause_ignore = False
             return
 
-        # A network stream that ended far from its end did not finish: the
-        # server stopped answering mid-item and mpv ran out of stream --
+        # A network stream mpv saw fail, that ended far from its end, did
+        # not finish: the server stopped answering mid-item and mpv ran out
+        # of stream --
         # HLS skips every failed segment to the end of the playlist in a
         # fraction of a second (#783). Checked before the watched mark and
         # the advance: in a queue `eof-reached` fires for this too, and
@@ -4047,9 +4084,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.pause_ignore = False
 
     def _stream_interrupted_at(self, video):
-        """Where a network stream stopped, if it ended far from its end;
-        None for a finish, a local file, or a length or position we cannot
-        name.
+        """Where a network stream stopped, if mpv saw it fail and it ended
+        far from its end; None for a finish, a local file, or a length or
+        position we cannot name.
+
+        **Only a stream mpv saw fail** (`stream_failed`, Izzie 2026-09-28):
+        a file whose runtime metadata overstates its length -- a VBR MP3
+        with no length header, a recording cut short -- ends cleanly far
+        from the server's end, and is a finish. A failure line in a wording
+        we do not recognise also reads as a finish, the pre-#783 behaviour.
 
         The same margin as `_finished_at_eof` (95%, or within 10 s), read
         from the position alone -- not `_reached_eof`, which a stream that
@@ -4062,6 +4105,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 return None                # a downloaded file, not a stream
         except Exception:
             pass
+        if not stream_failed():
+            return None
         duration = video.get_duration()
         if not duration:
             return None

@@ -202,6 +202,11 @@ class FinishedCallbackTest(unittest.TestCase):
         pm._reached_eof = True
         pm._last_playback_position = 12
         pm._video.client = object()         # streamed, not a local file
+        player_module.clear_mpv_errors()
+        # What mpv 0.40 logs when every remaining HLS segment fails.
+        player_module.mpv_log_handler(
+            "warn", "ffmpeg/demuxer", "hls: Failed to open segment 2 of "
+            "playlist 0\n")
         calls = _stub_advance(pm)
         video = pm._video
         with mock.patch.object(player_module.settings, "force_set_played", True), \
@@ -209,6 +214,54 @@ class FinishedCallbackTest(unittest.TestCase):
             pm.finished_callback(True, pm._play_epoch)
         self.assertEqual(video.played, [], "a failed stream marked watched")
         self.assertEqual(calls["play"], [], "a failed stream advanced")
+
+    def test_a_short_end_with_no_stream_failure_is_a_finish(self):
+        """Item 9 (Izzie, 2026-09-28): the #783 check stops only a stream
+        mpv saw fail. A file genuinely shorter than the server's runtime --
+        a VBR MP3 with no length header, a recording cut short -- ends
+        cleanly at its real end, far from the metadata's, with no network
+        failure logged: that is a finish, marked watched, and the queue
+        advances. What those files do log must not count either."""
+        nxt = FakeVideo(item_id="next")
+        pm = self._player(has_next=True, next_video=nxt, duration=512)
+        pm._reached_eof = True
+        pm._last_playback_position = 120
+        pm._video.client = object()
+        player_module.clear_mpv_errors()
+        for level, prefix, text in (
+                ("warn", "ffmpeg/demuxer",
+                 "mp3: Estimating duration from bitrate, this may be "
+                 "inaccurate"),
+                ("warn", "mkv", "mkv metadata beyond end of file - "
+                 "incomplete file?"),
+                ("error", "ffmpeg/video",
+                 "h264: corrupted macroblock 15 9 (total_coeff=-1)")):
+            player_module.mpv_log_handler(level, prefix, text)
+        calls = _stub_advance(pm)
+        video = pm._video
+        with mock.patch.object(player_module.settings, "force_set_played", True), \
+                mock.patch.object(player_module.settings, "auto_play", True):
+            pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(video.played, [True], "a genuine end read as a failure")
+        self.assertEqual(calls["play"], [nxt], "the queue did not advance")
+
+    def test_a_previous_files_stream_failure_does_not_carry_over(self):
+        """The record belongs to one file: clear_mpv_errors at load start
+        (`_play_media`) drops it, so the next item's clean short end is a
+        finish."""
+        pm = self._player(has_next=False, duration=512)
+        pm._reached_eof = True
+        pm._last_playback_position = 120
+        pm._video.client = object()
+        player_module.mpv_log_handler(
+            "error", "curl", "transfer failed: Server returned nothing "
+            "(no headers, no data)")
+        player_module.clear_mpv_errors()
+        _stub_advance(pm)
+        video = pm._video
+        with mock.patch.object(player_module.settings, "force_set_played", True):
+            pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(video.played, [True])
 
     def test_a_seek_into_the_last_seconds_is_still_a_finish(self):
         """The #783 check must not misread a skip to the credits: a seek into
