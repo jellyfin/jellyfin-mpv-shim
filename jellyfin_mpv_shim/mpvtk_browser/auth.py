@@ -762,23 +762,11 @@ class AuthMixin:
         return Box([Spacer(), Row([Spacer(), card, Spacer()]), Spacer()],
                    flex=1, direction="column", align="stretch")
 
-    def _saved_servers(self):
-        """Has this user already added a server? Distinguishes "your server
-        is down" (offer Retry) from "you have not signed in yet" (offer the
-        login form)."""
-        if self.controller is None:
-            return False
-        try:
-            return bool(self.controller.known_servers())
-        except Exception:
-            log.debug("known_servers failed", exc_info=True)
-            return False
-
     def _profile_has_servers(self):
-        """Has the ACTIVE profile a saved login? Not `_saved_servers`, which
+        """Has the ACTIVE profile a saved login? Not `known_servers`, which
         answers for every local profile (it is there so a new one need not
-        retype an address): a new profile switched to would be offered Retry
-        on servers it never signed in to."""
+        retype an address): a profile would be offered Retry on servers it
+        never signed in to."""
         if self.controller is None:
             return False
         try:
