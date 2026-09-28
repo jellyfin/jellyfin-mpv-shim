@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-28 19:11+0000\n"
+"PO-Revision-Date: 2026-09-28 19:26+0000\n"
 "Last-Translator: Addison <addison.send@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/pt_BR/>\n"
@@ -1693,15 +1693,15 @@ msgstr "Qualidade de Renderização"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Buffer de Rede"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Baixar Automaticamente os Próximos Episódios"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Incluir «Próximo»"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
