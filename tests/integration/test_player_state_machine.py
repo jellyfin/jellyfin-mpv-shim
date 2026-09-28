@@ -192,6 +192,24 @@ class FinishedCallbackTest(unittest.TestCase):
         self.assertEqual(video.played, [])
         self.assertEqual(calls["play"], [])
 
+    def test_a_stream_that_failed_to_its_end_in_a_queue_is_not_a_finish(self):
+        """#783: an HLS stream whose segments all fail runs to the end of its
+        playlist, and with a next item queued mpv fires eof-reached -- which
+        _finished_at_eof takes alone as a finish. Far from the end on a
+        streaming client it is an interruption: no watched mark, no advance
+        (Izzie, 2026-09-28)."""
+        pm = self._player(has_next=True, duration=100)
+        pm._reached_eof = True
+        pm._last_playback_position = 12
+        pm._video.client = object()         # streamed, not a local file
+        calls = _stub_advance(pm)
+        video = pm._video
+        with mock.patch.object(player_module.settings, "force_set_played", True), \
+                mock.patch.object(player_module.settings, "auto_play", True):
+            pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(video.played, [], "a failed stream marked watched")
+        self.assertEqual(calls["play"], [], "a failed stream advanced")
+
     def test_eof_at_end_is_marked_watched(self):
         # Positive control for the above: a genuine EOF is recorded watched.
         pm = self._player(has_next=False, duration=100)

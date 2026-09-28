@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-26 23:36-0400\n"
+"POT-Creation-Date: 2026-09-28 00:14-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6952,6 +6952,13 @@ msgstr ""
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
+msgstr ""
+
+#. Why a film or episode stopped partway: the server stopped answering
+#. while it was streaming. Shown in the library's status line after
+#. "Could not play this item: <title> — "; "it" is that item.
+#: jellyfin_mpv_shim/player.py
+msgid "The server stopped sending it partway through."
 msgstr ""
 
 #. Shown over the video when playback reaches the end of a downloaded

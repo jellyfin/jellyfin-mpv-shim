@@ -235,6 +235,77 @@ class StopAndResumeTest(_PlaybackCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class AStreamThatDiesMidwayTest(_PlaybackCase):
+    """#783 (Izzie, 2026-09-28, option b): the server stops answering while
+    a film streams. Not finished: back on its page saying why, the position
+    it stopped at reported rather than the end, not marked played -- and
+    Resume, with the network back, starts there. The relay throttles first so mpv is
+    still reading when the stream fails (a 44 MB film is otherwise cached
+    whole within seconds from a local server)."""
+
+    NAME = LONG_NAME
+    #: Where the stream is cut, and the read rate that keeps mpv fetching
+    #: past it. At 150 kB/s a 10-minute 44 MB film is about 60 s ahead.
+    CUT_AT = 20
+    RATE = 150_000
+    #: The request paths that carry the media -- a direct stream or HLS.
+    MEDIA = r"/(Videos|videos)/[0-9a-fA-F-]+/(stream|hls1|main|master)"
+    KIND = r"/[Vv]ideos/[0-9a-fA-F-]+/stream"
+
+    def test_it_stops_where_it_broke_and_resumes_there(self):
+        film = self.movie(self.NAME)
+        self.fresh(film)
+        _flows.open_by_search(self.app, self.NAME, film)
+        self.relay.throttle(self.RATE)
+        self.play()
+        self.assertTrue(_e2e.wait_for(
+            lambda: (self.time_pos() or 0) > self.CUT_AT, timeout=90),
+            "the film never got going")
+        # The premise: this variant is the kind of stream it is named for.
+        import re
+        self.assertTrue(any(re.search(self.KIND, path)
+                            for _m, path in list(self.relay.requests)),
+                        "the premise: no %s request was made" % self.KIND)
+        self.relay.fail(self.MEDIA)
+        self.addCleanup(self.relay.fail, None)
+        # fail() refuses NEW requests; mpv's stream is one open connection.
+        # Drop every open flow: the rest reconnects, the media cannot.
+        self.relay.cut()
+        self.relay.restore()
+        # Back on the film's page, saying why, with Resume where it broke.
+        reason = "The server stopped sending it partway through."
+        f = self.app.wait_for(
+            lambda f: any(reason in s for s in _app.texts(f)), timeout=240,
+            what="the reason it stopped")
+        self.app.wait_for(lambda f: _app.shown(f, "btn-resume"), timeout=30,
+                          what="Resume on the film's page")
+        # What the stop said: where it broke, not the end.
+        stop = _e2e.wait_for(lambda: self.stop_report(film), timeout=30)
+        self.assertTrue(stop, "no stop report")
+        at = stop["PositionTicks"] / 1e7
+        self.assertLess(at, 300, "reported as finished (%.0f s)" % at)
+        self.assertFalse(self.server(film).get("Played"),
+                         "a failed stream marked the film played")
+        self.relay.fail(None)
+        self.relay.throttle(None)
+        self.app.move_to("btn-resume")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(lambda: (self.time_pos() or 0) > 1,
+                                      timeout=60), "Resume played nothing")
+        self.assertLess(abs(self.time_pos() - at), 30,
+                        "Resume started at %.0f s, it broke at %.0f s"
+                        % (self.time_pos(), at))
+        self.assertEqual(0, self.app.quit(timeout=40))
+
+
+class ATranscodeThatDiesMidwayTest(AStreamThatDiesMidwayTest):
+    """The same over HLS -- #783's case: every failed segment is skipped
+    to the end of the playlist within a second."""
+
+    CONF = {"always_transcode": True}
+    KIND = r"master\.m3u8|/hls1/"
+
+
 @_strm.require_origin(_strm.LONG_MOVIE)
 class StrmStopAndResumeTest(StopAndResumeTest):
     """The same through a `.strm` (StrmResumeTest's claim): the media source
