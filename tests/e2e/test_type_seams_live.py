@@ -391,12 +391,10 @@ class AnAudiobookKeepsTheLibraryTest(_ChainCase):
                              .get("PlaybackPositionTicks"), timeout=20)
         self.assertTrue(held, "no position kept for the book")
         # With a position kept, the page offers Resume and Play becomes
-        # Restart (books.py) -- on a page loaded AFTER the stop: the one
-        # left open is not refreshed by playback (the pending USERDATA_KINDS
-        # decision, register 2026-09-27), so open it again.
-        self.open_book()
-        self.app.wait_for(lambda f: _app.shown(f, "ab-resume"), timeout=15,
-                          what="Resume on the book's page")
+        # Restart (books.py) -- on the page left open, not reopened: the
+        # stop's UserDataChanged re-reads it (USERDATA_KINDS, 2026-09-28).
+        self.app.wait_for(lambda f: _app.shown(f, "ab-resume"), timeout=30,
+                          what="Resume on the book's page left open")
         self.app.move_to("ab-resume")
         self.app.key("ENTER")
         self.assertTrue(_e2e.wait_for(
@@ -405,6 +403,35 @@ class AnAudiobookKeepsTheLibraryTest(_ChainCase):
         self.assertLess(abs(self.p("time-pos") - self.AT), 75,
                         "resumed at %.0f s, stopped at %d s"
                         % (self.p("time-pos"), self.AT))
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class ABookPageFollowsTheServerTest(_ChainCase):
+    """A book's page left open is re-read when its user data changes
+    (USERDATA_KINDS, Izzie 2026-09-28): marked finished from elsewhere --
+    here the API, as another client would -- its Finished toggle turns on
+    without the page being opened again."""
+
+    @staticmethod
+    def finished(frame):
+        """Finished wears the accent fill Read does when on
+        (controls.action_btn), or None when either is off screen."""
+        toggle = _app.node(frame, "bk-watched")
+        read = _app.node(frame, "bk-read")
+        if toggle is None or read is None:
+            return None
+        return toggle.get("fill") == read.get("fill")
+
+    def test_marked_elsewhere_shows_here(self):
+        comic = self.named(COMIC, library="Books")
+        self.fresh(comic)
+        _flows.open_by_search(self.app, COMIC, comic, section="Books",
+                              landed="bk-read")
+        self.assertIs(False, self.finished(self.app.frame()),
+                      "the premise: the comic starts unfinished")
+        self.session._request("/UserPlayedItems/%s" % comic, "POST")
+        self.app.wait_for(lambda f: self.finished(f) is True, timeout=30,
+                          what="Finished on the page left open")
         self.assertEqual(0, self.app.quit(timeout=30))
 
 

@@ -219,14 +219,10 @@ class StopAndResumeTest(_PlaybackCase):
                         "stopped at %.0f s, the server holds %.0f s"
                         % (stopped_at, held))
         self.assertFalse(self.server(self.item).get("Played"))
-        # Reopened: the page you land on after stopping is not re-read (a
-        # detail route is not in USERDATA_KINDS yet -- app.py says why).
-        self.app.move_to("nav-home")
-        self.app.press_until("ENTER", lambda f: _app.shown(f, "row-libs"),
-                             what="Home")
-        _flows.open_by_search(self.app, self.NAME, self.item)
+        # On the page the stop lands back on, NOT reopened: the stop's
+        # UserDataChanged re-reads it (USERDATA_KINDS, Izzie 2026-09-28).
         self.app.wait_for(lambda f: _app.shown(f, "btn-resume"), timeout=30,
-                          what="Resume on the reopened detail page")
+                          what="Resume on the detail page left open")
         self.app.move_to("btn-resume")
         self.app.key("ENTER")
         self.app.playing_path()
