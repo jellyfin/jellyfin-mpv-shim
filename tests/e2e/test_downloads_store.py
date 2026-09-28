@@ -31,7 +31,8 @@ import _app  # noqa: E402
 import _e2e  # noqa: E402
 import _flows  # noqa: E402
 import _relay  # noqa: E402
-from test_store_safety import FILM_NAME, FILM_QUERY, _StoreCase  # noqa: E402
+from test_store_safety import (  # noqa: E402
+    FILM_NAME, FILM_QUERY, _StoreCase, other_volume)
 
 #: Ten minutes in 44 MB: at THROTTLE a download is still running ~20 s in.
 LONG_NAME = "Eat for Health"
@@ -624,12 +625,12 @@ class TheMoveUsesThePathOnScreenTest(_StoreCase):
                           timeout=120, what="the move to finish")
 
     def test_the_shown_path_is_the_one_moved_to(self):
-        parent = tempfile.mkdtemp(prefix="jms-e2e-f42-", dir="/dev/shm"
-                                  if os.path.isdir("/dev/shm") else None)
+        parent = tempfile.mkdtemp(prefix="jms-e2e-f42-",
+                                  dir=other_volume(self.root))
         self.addCleanup(shutil.rmtree, parent, True)
         here = os.path.join(parent, "Here")
         typed_only = os.path.join(parent, "TypedAndAbandoned")
-        self.move_to_folder(here)                # cross-volume, onto tmpfs
+        self.move_to_folder(here)                # across volumes, when there is one
         self.moved()
         self.app.key("ESC")
         shown = self.field()
