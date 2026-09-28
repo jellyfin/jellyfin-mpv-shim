@@ -437,7 +437,14 @@ class AGroupDropsADownloadThatNoLongerMatchesTest(_GroupCase):
                         "(%r)" % path)
         self.assertTrue(_e2e.wait_for(lambda: (self.time_pos() or 0) > 5,
                                       timeout=30))
+        # A group already PLAYING this film, near where the copy is. Not an
+        # idle one: the server stops a session that joins an idle group
+        # (IdleGroupState), which is not the case the swap is for -- the
+        # first version of this test joined an idle group and passed on
+        # Linux only because that Stop happened to land before the swap.
         self.group.create("bob")
+        self.group.start([film], position_ticks=int(
+            (self.time_pos() or 0) * TICKS), by="bob")
         items = self.open_hud_syncplay(lambda items: len(items) >= 3)
         # Rows: None (Disabled), New Group, then the groups.
         self.assertGreaterEqual(len(items), 3, "no group listed: %r" % items)
