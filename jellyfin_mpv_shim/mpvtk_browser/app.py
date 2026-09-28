@@ -726,8 +726,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                     if not pending or self._shutdown_evt.is_set():
                         self._userdata_thread = None
                         return
-                self._refresh_current(USERDATA_KINDS,
-                                      self._userdata_target(pending))
+                # Caught and looped, not try/finally: releasing the slot
+                # outside the lock is the lost-event race above.
+                try:
+                    self._refresh_current(USERDATA_KINDS,
+                                          self._userdata_target(pending))
+                except Exception:
+                    log.error("userdata refresh failed", exc_info=True)
 
         # Cheap pre-check so a burst that cannot apply does not take the
         # slot for three seconds; `tick` asks again for real, because the
