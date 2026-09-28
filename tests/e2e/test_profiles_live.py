@@ -113,5 +113,50 @@ class SwitchingToALockedProfileTest(_ProfilesCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class SwitchSpamOnASlowServerTest(_ProfilesCase):
+    """Row 50's first race: two profiles, each signed in, and a switch made
+    while the server hangs (the relay stalled) -- then straight back. The
+    last choice wins once the server answers: Alice active, her Home drawn,
+    not a spinner and not Bob's screen arriving late."""
+
+    def test_the_last_switch_wins(self):
+        me = _flows.active_profile(self.app.config_dir)
+        _flows.add_profile(self.app, "Bob")
+        self.assertTrue(_e2e.wait_for(
+            lambda: any(u.get("name") == "Bob" for u in
+                        (_flows.users(self.app.config_dir) or {})
+                        .get("users", [])), timeout=15), "Bob was not added")
+        _flows.switch_profile(self.app, "Bob")
+        _flows.login(self.app, self.relay, account="qa-nopassword")
+        _flows.switch_profile(self.app, me)
+        self.app.wait_for(lambda f: _app.shown(f, "row-libs"), timeout=60,
+                          what="%s's Home" % me)
+
+        names = [u.get("name") for u in
+                 _flows.users(self.app.config_dir)["users"]]
+        self.relay.stall()
+        self.assertTrue(self.relay.probe_silent())
+        _flows.pick(self.app, "nav-user", names.index("Bob"))
+        self.assertTrue(_e2e.wait_for(
+            lambda: _flows.active_profile(self.app.config_dir) == "Bob",
+            timeout=30), "the premise: the switch to Bob never happened")
+        # users.json moves first; the switcher is drawn a moment later, and
+        # a pick made before that lands in a scene being replaced.
+        self.app.wait_for(
+            lambda f: _flows.selected(f, "nav-user") == names.index("Bob"),
+            timeout=30, what="the switcher showing Bob while his server hangs")
+        _flows.pick(self.app, "nav-user", names.index(me))
+        self.relay.restore()
+        self.assertTrue(_e2e.wait_for(
+            lambda: _flows.active_profile(self.app.config_dir) == me,
+            timeout=60), "the last switch did not win (active: %r)"
+            % _flows.active_profile(self.app.config_dir))
+        f = self.app.wait_for(lambda f: _app.shown(f, "row-libs"),
+                              timeout=90, what="%s's Home" % me)
+        self.assertFalse(_app.shown(f, "login-server"),
+                         "a sign-in form arrived over %s's Home" % me)
+        self.assertEqual(0, self.app.quit(timeout=40))
+
+
 if __name__ == "__main__":
     unittest.main()

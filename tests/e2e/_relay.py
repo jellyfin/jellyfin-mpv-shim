@@ -173,6 +173,17 @@ class Relay:
         if self.mode == "stall":
             self._close_all()
         self.mode = "pass"
+        # A retry that connected between that close and the mode change was
+        # parked as stalled, and nothing services a parked socket in pass: it
+        # hung to the client's read timeout. urllib3 retries a reset at once,
+        # so the gap is not hypothetical.
+        with self._lock:
+            held, self._held = self._held, []
+        for s in held:
+            try:
+                s.close()
+            except OSError:
+                pass
 
     # -- confirming a fault is really in effect ------------------------
 
