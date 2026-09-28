@@ -231,6 +231,35 @@ class TestTheStopCommand(ProtocolCase):
         self.assertNotIn("Leave", api.kinds())
 
 
+class TestAStopOlderThanTheQueue(ProtocolCase):
+    """Measured on the Windows VM (2026-09-28): a group Stop, parked until
+    time sync was ready, was applied after the group's NEW playlist had
+    started, and stopped it. A Stop emitted before the play queue now
+    playing is about the content that queue replaced; one emitted after it
+    is still a Stop."""
+
+    def _stop_against_a_queue(self, queue_offset_s):
+        from datetime import timedelta
+        from jellyfin_mpv_shim.syncplay import _parse_precise_time
+        group, sp, api = self.group_and_client()
+        stops = [dict(payload) for kind, targets, payload
+                 in group.request("Stop", "other-session")
+                 if kind == "command" and "session-under-test" in targets]
+        self.assertTrue(stops, "the premise: the group sent no Stop")
+        emitted = _parse_precise_time(stops[0]["EmittedAt"])
+        update = emitted + timedelta(seconds=queue_offset_s)
+        sp.last_playqueue = {
+            "LastUpdate": update.strftime("%Y-%m-%dT%H:%M:%S.%f") + "0Z"}
+        sp.process_command(stops[0])
+        return sp.playerManager.stopped
+
+    def test_a_stop_from_before_the_new_queue_leaves_it_playing(self):
+        self.assertEqual([], self._stop_against_a_queue(+2))
+
+    def test_a_stop_after_the_queue_still_stops(self):
+        self.assertTrue(self._stop_against_a_queue(-2))
+
+
 class TestBufferingIsReported(unittest.TestCase):
     """The server has a Buffer request so the group pauses for a stalled
     member. The client only ever calls it from mpv's ``seeking`` property --
