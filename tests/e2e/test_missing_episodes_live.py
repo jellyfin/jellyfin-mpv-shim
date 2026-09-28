@@ -22,10 +22,17 @@ them can be asked of a dict this repo wrote:
 Then the three sites of the rule, on the real DTOs rather than on ours: the
 tile chip, the tile menu, and the detail page's buttons.
 
-The fixture is four virtual episodes injected straight into `BaseItems`;
-nothing else can create one, because the only code path that sets
+The fixture is stdjflib's `serve --missing-episodes`: two virtual episodes,
+one Missing and one Unaired, injected straight into `BaseItems` in one
+season. Nothing else can create one, because the only code path that sets
 `IsVirtualItem` is the TMDb provider and stdjflib disables every internet
 provider. This skips, saying so, where they are absent.
+
+Asked as **qa-showmissing**, stdjflib's one account with the per-user
+`DisplayMissingEpisodes` on. It is off by default, and with it off the
+server leaves both out of the season listing while `IsMissing=true` still
+finds them -- which reads here as "no gap in this season" (measured on a
+fresh 12.0 server, 2026-09-28).
 """
 
 import os
@@ -89,7 +96,7 @@ class _GapFixture:
 
     @classmethod
     def setUpClass(cls):
-        cls.session = _e2e.Session()
+        cls.session = _e2e.Session("qa-showmissing")
         cls.source = cls.session.library_source()
         gaps = cls._virtual_episodes(cls.session)
         if not gaps:
