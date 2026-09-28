@@ -87,8 +87,11 @@ class ServersTabMixin:
                 gap=12, row_gap=4, row_pad=8,
             ))
         server_rows.append(Row([
+            # Refused while a profile switch is in flight: which profile it
+            # would land under is exactly what is changing.
             Button(_("Add Server"), id="sv-add", icon="add",
-                   on_click=self.show_login),
+                   on_click=self.show_login,
+                   disabled=self._switch_from is not None),
             Spacer(),
         ], gap=8, align="center"))
 

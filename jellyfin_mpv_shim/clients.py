@@ -817,11 +817,16 @@ class ClientManager(object):
                     self._disconnect_client(server=server)
         return True
 
-    def login(self, server: str, username: str, password: str):
+    def login(self, server: str, username: str, password: str,
+              owner_id=None):
         """Add a server under a **new** identity. `reauthenticate` is the one
-        that signs back in to a server already saved, keeping its uuid."""
+        that signs back in to a server already saved, keeping its uuid.
+
+        ``owner_id``: the profile it is for, when that is not the active one
+        -- an add made while a profile switch is in flight belongs to the
+        profile that was on screen (Izzie, 2026-09-28)."""
         server = self._normalize_server(server)
-        owner_id = userManager.active_id
+        owner_id = owner_id or userManager.active_id
 
         client = self.client_factory()
         try:
@@ -870,7 +875,7 @@ class ClientManager(object):
         return client, data["Secret"], data["Code"]
 
     def quick_connect_wait(self, client, secret: str, should_cancel=None,
-                           replacing_uuid=None):
+                           replacing_uuid=None, owner_id=None):
         """Poll until the Quick Connect request is authorized, then log in.
 
         Returns True on success, False on timeout/cancellation/failure.
@@ -885,17 +890,17 @@ class ClientManager(object):
         """
         try:
             return self._quick_connect_wait(client, secret, should_cancel,
-                                            replacing_uuid)
+                                            replacing_uuid, owner_id)
         finally:
             self._abandon(client)
 
     def _quick_connect_wait(self, client, secret, should_cancel,
-                            replacing_uuid):
+                            replacing_uuid, owner_id=None):
         address = client.auth.credentials.get_credentials()["Servers"][0]["address"]
         session = client.auth.session
         # The poll below can run for minutes; remember who started it so the
         # credential lands under them even if the active user changes meanwhile.
-        owner_id = userManager.active_id
+        owner_id = owner_id or userManager.active_id
 
         deadline = time.time() + QUICK_CONNECT_TIMEOUT_SECS
         authorized = False
@@ -921,7 +926,8 @@ class ClientManager(object):
                                     owner_id=owner_id,
                                     replacing_uuid=replacing_uuid)
 
-    def login_with_quick_connect(self, server: str, code_callback=None, should_cancel=None):
+    def login_with_quick_connect(self, server: str, code_callback=None,
+                                 should_cancel=None, owner_id=None):
         """High-level Quick Connect login.
 
         Initiates the request, hands the user-facing code to ``code_callback``,
@@ -937,7 +943,8 @@ class ClientManager(object):
             # reach it. CR11.
             self._abandon(client)
             raise
-        return self.quick_connect_wait(client, secret, should_cancel=should_cancel)
+        return self.quick_connect_wait(client, secret, should_cancel=should_cancel,
+                                       owner_id=owner_id)
 
     def validate_client(self, client: "JellyfinClient", dry_run=False, server=None):
         # Retries and timeout are bounded for this specific call: the default

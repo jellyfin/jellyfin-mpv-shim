@@ -872,9 +872,10 @@ class FakeController:
         return {"count": 3, "total_bytes": 5 * 1024 * 1024,
                 "audio_only": False}
 
-    def add_server(self, server, username, password):
+    def add_server(self, server, username, password, owner_id=None):
         self.__dict__.setdefault("transport", []).append(
             ("add_server", (server, username, password)))
+        self.__dict__.setdefault("add_owners", []).append(owner_id)
         return server == "good"
 
     def rebuild_source(self):
@@ -1383,8 +1384,10 @@ class LoginController(FakeController):
 
     approved = False
 
-    def quick_connect(self, server, code_callback, should_cancel):
+    def quick_connect(self, server, code_callback, should_cancel,
+                      owner_id=None):
         self.qc_calls.append(server)
+        self.__dict__.setdefault("qc_owners", []).append(owner_id)
         self.codes_shown = []
         code_callback("ABC123")
         # Capture what the screen looked like while the code was live — the
