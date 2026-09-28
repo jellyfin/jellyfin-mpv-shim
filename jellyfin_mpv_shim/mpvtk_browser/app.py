@@ -311,6 +311,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # answer (not because it answered with an error). Raises the retry /
         # offline banner; the next load that lands clears it.
         self._unreachable = False
+        # Set, on the dispatching thread only, while `_refresh_current`
+        # dispatches: what tells `_route_async` a load nobody asked for.
+        self._refresh_dispatch = threading.local()
         # Bumped when a pick in the server switcher is refused: the mpvtk
         # Dropdown `ack`, without which the refused entry stays drawn as
         # chosen (a refusal keeps the value the pick began on).
@@ -664,7 +667,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             route["_refresh_again"] = (kinds, server)
             return False
         route["_refreshing"] = True
-        self._load_route(route)
+        self._refresh_dispatch.active = True
+        try:
+            self._load_route(route)
+        finally:
+            self._refresh_dispatch.active = False
         return True
 
     def refresh_live_tv(self, _client=None):
@@ -1474,6 +1481,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # be holding the route that is the screen again.
         load_id = self._next_load_id()
         route[self.LOAD_ID_KEY] = load_id
+        # Read at dispatch, not in `failed`: `_refreshing` is on the route
+        # dict, so a Retry made while a refresh is in flight would read as
+        # background too.
+        background = getattr(getattr(self, "_refresh_dispatch", None),
+                             "active", False)
         # A load is believed over a stop patch only if it started after the
         # server had the stop report (see on_stopped_at).
         patch = route.get("_stop_patch")
@@ -1517,8 +1529,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # come back, and it must be holding the error and a Retry rather
             # than spinning.
             route["_error"] = _("Failed to load. Check the connection.")
+            # Never for a background refresh (Izzie, 2026-09-28, item 18):
+            # one blip raised it over a page that was showing fine.
             if (route is self.route and not self._offline
-                    and _is_unreachable(exc)):
+                    and not background and _is_unreachable(exc)):
                 self._unreachable = True
                 self.invalidate()
             # The fallback is not a rollback: set_source throws the nav stack
