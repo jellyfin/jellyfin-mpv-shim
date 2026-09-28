@@ -423,8 +423,10 @@ def main():
         failed += is_failed
         hollow += is_hollow
         print("  %-52s %s" % (label, status))
-    print("=" * 72)
     legs = {label: records for label, _rc, _c, records in results}
+    for line in _manifest.skip_lines(legs):
+        print(line)
+    print("=" * 72)
     path = _manifest.manifest_path("integration")
     if args.update_manifest:
         if failed:

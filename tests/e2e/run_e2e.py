@@ -449,10 +449,12 @@ def main():
     if unload_sink:
         unload_sink()
     failed = [r for r in results if not r[2]]
-    print("=" * 60)
-    print("%d/%d legs passed" % (len(results) - len(failed), len(results)))
     legs = {"%s [%s]" % (module, backend): records
             for module, backend, _ok, records in results}
+    for line in _manifest.skip_lines(legs):
+        print(line)
+    print("=" * 60)
+    print("%d/%d legs passed" % (len(results) - len(failed), len(results)))
     path = _manifest.manifest_path("e2e")
     if args.update_manifest:
         if failed:

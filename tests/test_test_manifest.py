@@ -76,6 +76,20 @@ class CheckTest(unittest.TestCase):
         self.assertEqual([], m.check(manifest, {LEG: [rec("a.T.t1")]}))
 
 
+class SkipLinesTest(unittest.TestCase):
+    def test_every_skip_is_listed_with_its_reason(self):
+        legs = {LEG: [rec("a.T.t1"),
+                      rec("a.T.t2", "skip", "no second server at\n  :8097")],
+                "other [jsonipc]": [rec("b.T.t3", "skip", "")]}
+        self.assertEqual(
+            ["  SKIPPED other [jsonipc]: b.T.t3 -- (no reason)",
+             "  SKIPPED %s: a.T.t2 -- no second server at :8097" % LEG],
+            m.skip_lines(legs))
+
+    def test_nothing_skipped_prints_nothing(self):
+        self.assertEqual([], m.skip_lines({LEG: [rec("a.T.t1")]}))
+
+
 class UpdateTest(unittest.TestCase):
     def test_a_new_skip_arrives_unapproved(self):
         new = m.update({}, {LEG: [rec("a.T.t1", "skip", "no  uosc\nhere")]})

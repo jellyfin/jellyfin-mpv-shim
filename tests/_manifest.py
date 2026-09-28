@@ -64,6 +64,20 @@ def read_outcomes(path):
     return out
 
 
+def skip_lines(legs):
+    """One line per skipped test, with the reason it gave: a conditional
+    test that skips (no second server, no second volume, no CJK face) says
+    why in the summary rather than only adding to a count."""
+    lines = []
+    for leg, records in sorted(legs.items()):
+        for rec in records:
+            if rec.get("outcome") == "skip":
+                reason = " ".join(str(rec.get("reason", "")).split())
+                lines.append("  SKIPPED %s: %s -- %s"
+                             % (leg, rec.get("id", "?"), reason or "(no reason)"))
+    return lines
+
+
 def check(manifest, legs):
     """Problems, as a list of strings; empty means the run matches.
 
