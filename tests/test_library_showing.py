@@ -323,6 +323,9 @@ def _window_pm(video):
     pm._lock = threading.RLock()
     pm._player = _FakeWindow()
     pm._mpv_alive = True
+    # The in-window library is up: what "browse" means in these states.
+    # `__init__` always sets it, and set_fullscreen reads it (item 17).
+    pm.mpvtk_active = True
     pm._loading = False
     pm._geometry_armed = "1280x720"
     pm._showing_browse_bg = True

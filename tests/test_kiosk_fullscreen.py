@@ -221,10 +221,11 @@ class TheLibrarysFullscreenKeyIsNotTheVideosTest(unittest.TestCase):
     _settings = KioskFullscreenTest._settings
     _live = LiveApplyBrowserFullscreenTest._live
 
-    def _toggle_off(self, **live):
+    def _toggle_off(self, ui=True, **live):
         from unittest import mock
         pm = self._live(fullscreen=True, browser_fullscreen=True,
                         headless=False, **live)
+        pm.mpvtk_active = ui
         pm._player.fs = True
         with mock.patch.object(player_module.settings, "save"):
             pm.set_fullscreen(False, persist=True)
@@ -245,6 +246,13 @@ class TheLibrarysFullscreenKeyIsNotTheVideosTest(unittest.TestCase):
 
     def test_during_a_film_it_is_the_films_choice_as_before(self):
         pm = self._toggle_off(video=object(), audio=False)
+        self.assertTrue(pm.fullscreen_disable)
+
+    def test_with_no_library_ui_the_idle_window_is_the_players(self):
+        """CLI mode (Izzie, 2026-09-28: "Yes, film's choice there"): with
+        no library UI, mpv's idle window between plays is the player, so
+        leaving fullscreen there keeps the next film windowed."""
+        pm = self._toggle_off(ui=False)
         self.assertTrue(pm.fullscreen_disable)
 
 
