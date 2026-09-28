@@ -144,6 +144,9 @@ LIVE_KINDS = {"livetv", "channel", "program"}
 #: first, which is what `_refresh_current`'s `_refreshing` marker is for.
 USERDATA_KINDS = {"home", "series", "season", "detail", "audiobook", "book"}
 
+#: `_held_item`'s "could not ask", distinct from None ("holds nothing").
+_UNKNOWN = object()
+
 #: How often a Live TV route re-reads itself. jellyfin-web's own staleness
 #: guard is five minutes, but it re-renders on every tab change and this
 #: screen is often left sitting on the Guide — a two-minute floor keeps "on
@@ -2739,9 +2742,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.hud.state = state   # feeds the playback HUD bar
             if self._browsing:
                 self._yield()         # video: yield the window + the OSC
-                if not self._still_playing(state):
+                if self._held_item() is None:
                     # The stop landed between the check above and the
-                    # yield, and its enter_browse ran first.
+                    # yield, and its enter_browse ran first. Not "a
+                    # different item": an advance mid-yield is still
+                    # playback.
                     self.hud.state = None
                     self.enter_browse()
                     return
@@ -2772,13 +2777,19 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         Not a lock across on_playstate: that deadlocks a playback start
         (on_browse_leave -> enable_osc waits on the player's _lock).
         """
+        held = self._held_item()
+        return held is _UNKNOWN or held == state.get("id")
+
+    def _held_item(self):
+        """The player's item id, None when it holds nothing, or `_UNKNOWN`
+        when there is nothing to ask (tests, embedders) or asking failed."""
         ask = getattr(self.controller, "playing_item_id", None)
         if ask is None:
-            return True     # nothing to ask (tests, embedders): trust it
+            return _UNKNOWN
         try:
-            return ask() == state.get("id")
+            return ask()
         except Exception:
-            return True
+            return _UNKNOWN
 
     def _sync_queue_highlight(self, state):
         """Keep the queue view's "now playing" row on the right track.

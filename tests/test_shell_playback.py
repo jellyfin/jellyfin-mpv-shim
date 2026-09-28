@@ -2173,6 +2173,15 @@ class AStaleVideoPlaystateTest(unittest.TestCase):
         self.assertTrue(b._browsing, "the stop overtook the yield")
         self.assertIsNone(b.hud.state)
 
+    def test_an_advance_during_the_yield_is_not_a_stop(self):
+        """The player moved on to the next item while the window was being
+        handed over. That is still playback: re-entering browse put the
+        library (and keepaspect off) over the new item until its own
+        playstate yielded again."""
+        b = self._browser(["v1", "v2"])
+        b.on_playstate(dict(self.VIDEO))
+        self.assertFalse(b._browsing, "re-entered browse over the next item")
+
     def test_a_live_video_still_takes_the_window(self):
         b = self._browser(["v1"])
         b.on_playstate(dict(self.VIDEO))
