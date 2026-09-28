@@ -1,8 +1,9 @@
 """Slice S6, row 30: the library window changes size under the real app.
 
-test_window_resize.py asks the same questions of a separately spawned mpv
-and browser (one of the harness substitutions the e2e audit named, and its
-focus case skips when it cannot focus anything). Here: the shipped app,
+This replaces test_window_resize.py (a separately spawned mpv and browser,
+one of the harness substitutions the e2e audit named; retired 2026-09-28,
+Izzie). Its strip-count "the library did not blank" check has no
+counterpart here. Here: the shipped app,
 focus put by keys, the size changed with mpv's `geometry` (xvfb has no
 window manager to ask).
 

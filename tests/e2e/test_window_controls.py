@@ -39,7 +39,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _e2e  # noqa: E402
 
 import _harness as h  # noqa: E402,F401
-from test_window_resize import _spawn_handle  # noqa: E402
+from test_mpvtk_browser import _spawn_handle  # noqa: E402
 
 CONTROLS = ("win-min", "win-max", "win-close")
 #: A node that is on the top bar in every state, so "the hover did not move"

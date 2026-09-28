@@ -221,7 +221,6 @@ PER_BACKEND = [
     # registry test can see it and so `--shots` has somewhere to live.
     "tests.e2e.test_composite_shots",
     "tests.e2e.test_scroll_recovery",
-    "tests.e2e.test_window_resize",
     # Client-side decorations: the controls have to reach the real
     # composited scene when MPV says the window has no title bar. Per
     # backend because the property read and the repaint that follows
