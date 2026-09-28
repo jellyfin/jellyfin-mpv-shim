@@ -514,15 +514,20 @@ class AuthMixin:
         if self.controller is None:
             return
         self._login_error = None
-        route["_qc"] = {"code": None, "status": _("Contacting the server…"),
-                        "cancelled": False}
+        # THIS attempt's state. Every closure below reads it, never
+        # route["_qc"]: a Quick Connect cancelled and started again puts a
+        # new dict there, and the first attempt's poller read the second's
+        # "not cancelled" and kept going -- approving the cancelled code
+        # signed in, and its outcome cleared the code on screen.
+        qc = route["_qc"] = {"code": None,
+                             "status": _("Contacting the server…"),
+                             "cancelled": False}
         self.invalidate()
         ep = self._epoch
         before = self._known_server_uuids()
 
         def on_code(code):
-            qc = route.get("_qc")
-            if qc is not None:
+            if not qc["cancelled"]:
                 qc["code"] = code
                 qc["status"] = _("Waiting for approval…")
                 self.invalidate()
@@ -530,7 +535,7 @@ class AuthMixin:
         reauth = route.get("_reauth")
 
         def cancelled():
-            return (route.get("_qc") or {}).get("cancelled", True)
+            return qc["cancelled"]
 
         def work():
             if reauth:
@@ -541,9 +546,10 @@ class AuthMixin:
 
         def done(result):
             ok, reason = result
-            if (route.get("_qc") or {}).get("cancelled"):
+            if qc["cancelled"]:
                 return
-            route.pop("_qc", None)
+            if route.get("_qc") is qc:
+                route.pop("_qc", None)
             if ok:
                 self._login_error = None
                 self._after_login(before,
