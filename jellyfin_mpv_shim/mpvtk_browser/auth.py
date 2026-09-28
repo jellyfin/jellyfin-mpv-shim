@@ -122,10 +122,18 @@ class AuthMixin:
                 return
             self._close_dialog()
             if source is None:
-                # switched fine, but that user has no reachable server and
-                # nothing downloaded — the login screen, not a stuck dialog.
+                # Switched fine, but nothing to browse: no reachable server
+                # and nothing downloaded. A profile whose saved server is
+                # merely unreachable gets the startup screen's Retry / Sign
+                # In rather than a sign-in form that implies its login is
+                # gone (Izzie, 2026-09-28); one with no server at all has
+                # nothing to retry, so it signs in.
                 self._locked = False
-                self.show_login()
+                if self._profile_has_servers():
+                    self.show_connecting()
+                    self.connect_failed()
+                else:
+                    self.show_login()
                 return
             # Also here, not only on the branch above: switching user is the
             # OTHER way off the lock screen, and `_render_locked` offers it
@@ -750,6 +758,19 @@ class AuthMixin:
             return bool(self.controller.known_servers())
         except Exception:
             log.debug("known_servers failed", exc_info=True)
+            return False
+
+    def _profile_has_servers(self):
+        """Has the ACTIVE profile a saved login? Not `_saved_servers`, which
+        answers for every local profile (it is there so a new one need not
+        retype an address): a new profile switched to would be offered Retry
+        on servers it never signed in to."""
+        if self.controller is None:
+            return False
+        try:
+            return bool(self.controller.list_servers())
+        except Exception:
+            log.debug("list_servers failed", exc_info=True)
             return False
 
     def _have_downloads(self):
