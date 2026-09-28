@@ -1656,7 +1656,7 @@ msgstr "Preferir Cópia Baixada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Clique Esquerdo Pausa a Reprodução"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
