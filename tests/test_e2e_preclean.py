@@ -41,7 +41,9 @@ class LitterFoldersTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.state, ignore_errors=True)
 
     def playlist(self, relative, name, xml=True):
-        path = os.path.join(self.state, relative, name)
+        # Joined per component: a literal "data/data/playlists" kept its
+        # slashes on Windows while os.walk answers in backslashes.
+        path = os.path.join(self.state, *relative.split("/"), name)
         os.makedirs(path)
         if xml:
             with open(os.path.join(path, "playlist.xml"), "w",
