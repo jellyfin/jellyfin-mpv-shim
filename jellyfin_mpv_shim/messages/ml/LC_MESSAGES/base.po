@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-08-14 22:50+0000\n"
-"Last-Translator: XtronXI Debloated <x2thehacker@outlook.com>\n"
+"PO-Revision-Date: 2026-09-29 18:15+0000\n"
+"Last-Translator: Gokul G Krishna <gokulgk55@proton.me>\n"
 "Language-Team: Malayalam <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ml/>\n"
 "Language: ml\n"
@@ -66,7 +66,7 @@ msgstr "ഡബ്ബ് ചെയ്തിട്ടുള്ളവ: {0} ഓക�
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "Manual: {0} ok, {1} fail"
-msgstr ""
+msgstr "മാനുവൽ: {0} വിജയിച്ചു, {1} പരാജയപ്പെട്ടു"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Setting Current..."
@@ -76,14 +76,16 @@ msgstr "നിലവിൽ വരുത്തുന്നു..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"ജെല്ലിഫിൻ തുറന്ന്, നിങ്ങളുടെ യൂസർ മെനുവിലേക്ക് പോയി -> വേഗത്തിൽ ബന്ധിപ്പിക്കുക തിരഞ്ഞെടുക്കുക, "
+"എന്നിട്ട് ഈ കോഡ് നൽകുക:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "അനുമതിക്കായി കാത്തിരിക്കുന്നു..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "എല്ലാ നിലവിലുള്ള അക്കൗണ്ടുകളും നീക്കം ചെയ്യുന്നു."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -95,7 +97,7 @@ msgstr "സെർവർ ചേർക്കുന്നത് പരാജയപ�
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "അക്കൗണ്ട് ഇതിനകം നിലവിലുണ്ട്. ക്രെഡെൻഷ്യലുകൾ അപ്ഡേറ്റ് ചെയ്യുന്നു."
 
 #: jellyfin_mpv_shim/clients.py
 #, fuzzy
@@ -153,16 +155,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr ""
+msgstr "ക്രെഡിറ്റുകൾ സ്കിപ്പ് ചെയ്യാൻ സീക് ചെയ്യുക"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "പ്രത്യേകതകൾ"
+msgstr "കമ്മർഷ്യൽ സ്കിപ്പ് ചെയ്യുക"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Commercial"
-msgstr ""
+msgstr "കമ്മർഷ്യൽ സ്കിപ്പ് ചെയ്തു"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Commercial"
