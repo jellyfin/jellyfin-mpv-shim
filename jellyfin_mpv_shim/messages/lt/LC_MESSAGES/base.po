@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-15 20:10+0000\n"
+"PO-Revision-Date: 2026-09-29 10:05+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -3768,7 +3768,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Instant mix"
-msgstr "Maišyti"
+msgstr "Greitas miksas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #, python-format
