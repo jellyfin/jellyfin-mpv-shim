@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-29 10:04+0000\n"
+"PO-Revision-Date: 2026-09-29 18:15+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -85,7 +85,7 @@ msgstr "承認を待機中..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "既存のすべてのアカウントを初期化しています。"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -97,7 +97,7 @@ msgstr "サーバーの追加が失敗しました。"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "アカウントはすでに登録されています。認証情報を更新します。"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully updated server credentials."
@@ -133,13 +133,11 @@ msgstr "このサーバーではクイックコネクトが有効になってい
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "クイックコネクトを開始できません。"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "アウトロをスキップしました"
+msgstr "クレジットをスキップ"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -150,61 +148,44 @@ msgid "Seek to Skip Credits"
 msgstr "クレジットをスキップする"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "スペシャル"
+msgstr "CM をスキップ"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "アウトロをスキップしました"
+msgstr "CM をスキップしました"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "クレジットをスキップする"
+msgstr "CM をスキップするためにシーク"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "アウトロをスキップしました"
+msgstr "次回予告をスキップ"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "アウトロをスキップしました"
+msgstr "次回予告をスキップしました"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "クレジットをスキップする"
+msgstr "次回予告をスキップするためにシーク"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "これまでのあらすじをスキップ"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "アウトロをスキップしました"
+msgstr "これまでのあらすじをスキップしました"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "クレジットをスキップする"
+msgstr "これまでのあらすじをスキップするためにシーク"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "イントロをスキップしました"
+msgstr "イントロをスキップ"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -310,10 +291,8 @@ msgstr "動画再生プロファイルの変更"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "未視聴に設定して中止"
+msgstr "未視聴に設定して終了"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -460,7 +439,7 @@ msgstr "直パス"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Disable Direct Play"
-msgstr "ダイレクト再生の無効化"
+msgstr "ダイレクト再生を無効に"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
@@ -518,10 +497,8 @@ msgid "Skip Commercials"
 msgstr "スペシャル"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "アウトロをスキップしました"
+msgstr "次回予告をスキップしました"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1180,7 +1157,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Direct playing"
-msgstr "ダイレクト再生"
+msgstr "ダイレクト再生中"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1190,7 +1167,7 @@ msgstr "ダイレクトストリーミング"
 # seeded from jellyfin-web: Remuxing
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Remuxing"
-msgstr "リミキシング"
+msgstr "再多重化"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1867,7 +1844,7 @@ msgstr "トリックプレー サムネールを有効に"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "すべてのシークプレビューを一度に読み込む"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
