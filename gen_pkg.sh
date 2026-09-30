@@ -205,7 +205,7 @@ report_po_compiler
 while read -r file
 do
     compile_po "$file" "${file%.*}.mo" || exit 1
-done < <(find -iname '*.po')
+done < <(find . -iname '*.po')
 
 # The language picker's list, from the same .po files that were just
 # compiled. Regenerated here so a release always carries current

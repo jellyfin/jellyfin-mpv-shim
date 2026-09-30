@@ -375,3 +375,43 @@ jobs:
       with:
         name: flatpak-${{ matrix.arch }}
         path: ${{ github.workspace }}/publish/Flatpak/*.flatpak
+  build-macos-arm64:
+    runs-on: macos-14
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v7
+    - name: Setup Python 3.14
+      uses: actions/setup-python@v7
+      with:
+        python-version: 3.14
+    - name: Download mpv
+      # Pinned stolendata standalone macOS ARM64 mpv build with all dylibs
+      # and Lua support bundled.
+      run: |
+        mkdir -p mpv-bundle
+        curl -sL https://laboratory.stolendata.net/~djinn/mpv_osx/mpv-arm64-0.40.0.tar.gz -o mpv-arm64.tar.gz
+        echo "3170fb709defebaba33e9755297d70dc3562220541de54fc3d494a8309ef1260  mpv-arm64.tar.gz" | shasum -a 256 -c -
+        tar -xzf mpv-arm64.tar.gz -C mpv-bundle
+    - name: Install dependencies
+      run: |
+        pip install wheel pyinstaller
+        pip install '.[all]'
+        ./gen_pkg.sh --skip-build
+    - name: Verify the inputs are ARM64
+      run: |
+        python tools/check_mac_arch.py mpv-bundle/mpv-arm64-0.40.0/mpv.app/Contents/MacOS/mpv
+    - name: Main Build
+      run: |
+        ./build-mac-arm64.sh
+    - name: Verify the output is ARM64
+      run: |
+        python tools/check_mac_arch.py --skip-interpreter "dist/Jellyfin MPV Shim.app/Contents/MacOS/Jellyfin MPV Shim" "dist/Jellyfin MPV Shim.app/Contents/MacOS/mpv"
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh macos-arm64
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: macos-arm64
+        path: ${{ github.workspace }}/publish/macOS/*
+

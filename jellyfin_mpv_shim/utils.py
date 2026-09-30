@@ -453,11 +453,23 @@ def get_resource(*path):
     else:
         application_path = os.path.dirname(os.path.abspath(__file__))
 
-    # ! Test code for Mac
-    if getattr(sys, "frozen", False) and platform.system() == "Darwin":
-        application_path = os.path.join(os.path.dirname(sys.executable), "../Resources")
+    target = os.path.join(application_path, *path)
+    if os.path.exists(target):
+        return target
 
-    return os.path.join(application_path, *path)
+    # Bundled via py2app or external resources in macOS app bundle
+    if getattr(sys, "frozen", False) and platform.system() == "Darwin":
+        res_dir = os.path.join(os.path.dirname(sys.executable), "../Resources")
+        for candidate in (
+            os.path.join(res_dir, "jellyfin_mpv_shim", *path),
+            os.path.join(res_dir, *path),
+            os.path.join(os.path.dirname(sys.executable), *path),
+        ):
+            if os.path.exists(candidate):
+                return candidate
+        return os.path.join(res_dir, *path)
+
+    return target
 
 
 def get_text(*path):
