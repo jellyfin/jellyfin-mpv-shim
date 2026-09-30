@@ -3119,10 +3119,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 # plays from file-loaded, and everything after the wait --
                 # external subtitle fetches, the resume seek -- used to run
                 # under the loading screen with the film already going (#785).
-                try:
-                    self._player.pause = True
-                except _mpv_errors:
-                    log.debug("could not hold the load paused", exc_info=True)
+                #
+                # Video only (Izzie): audio has no loading screen to hide, and
+                # a held track is a delay people listening hear. `video`, not
+                # self._video, for the reason the loop-file write above gives.
+                if not _item_is_audio(video):
+                    try:
+                        self._player.pause = True
+                    except _mpv_errors:
+                        log.debug("could not hold the load paused",
+                                  exc_info=True)
                 self._player.play(self.url)
                 loaded = wait_property(
                     self._player,

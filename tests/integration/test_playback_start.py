@@ -314,6 +314,16 @@ class StartOrderTest(unittest.TestCase):
                          "the hold was released before the file loaded")
         self.assertFalse(pm._player.pause, "the start ended still paused")
 
+    def test_a_song_is_not_held(self):
+        """Video only: audio has no loading screen to hide, and holding a
+        track is a delay a listener hears. It still ends unpaused."""
+        song = make_video(item_id="song")
+        song.item = {"MediaType": "Audio", "Type": "Audio"}
+        pm = self._start(song)
+        pm.journal.since("mpv.prop:duration")      # the start did load
+        pm.journal.never("mpv.set:pause=True")
+        self.assertFalse(pm._player.pause)
+
     def test_no_playstate_is_reported_until_the_start_has_finished(self):
         """#785's hold made a mid-start snapshot say "paused": the
         now-playing bar appeared on it, and a SPACE pressed then was deferred
