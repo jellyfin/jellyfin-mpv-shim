@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-25 00:52+0000\n"
+"PO-Revision-Date: 2026-09-30 22:36+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -4785,6 +4785,8 @@ msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
+"كل مستخدم لديه الخوادم الخاصة به تغريف الجهاز; الحساب المقفل يحتاج رمزا "
+"للتحويل."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -5013,7 +5015,7 @@ msgstr "إعدادات الخوادم"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr "تحميل %(name)ات — %(n)d باقي"
+msgstr "تحميل %(name)ات — %(n)d باق"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
