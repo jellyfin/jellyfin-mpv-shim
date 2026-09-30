@@ -299,6 +299,21 @@ class StartOrderTest(unittest.TestCase):
         self._start().journal.order("mpv.play", "mpv.observe:duration",
                                     "mpv.prop:duration", "mpv.unobserve:duration")
 
+    def test_the_file_is_held_paused_until_the_start_is_finished(self):
+        """#785: mpv plays from file-loaded, so a start that did not hold it
+        paused ran the film under the loading screen for as long as the rest
+        of the start took -- subtitle fetches, the resume seek."""
+        pm = self._start()
+        pm.journal.order("mpv.set:pause=True", "mpv.play",
+                         "mpv.prop:duration", "mpv.set:force_media_title",
+                         "mpv.set:pause=False")
+        loaded = len(pm.journal.since("mpv.prop:duration").entries())
+        after_play = pm.journal.since("mpv.play").entries()
+        during = after_play[:len(after_play) - loaded]
+        self.assertNotIn("mpv.set:pause=False", during,
+                         "the hold was released before the file loaded")
+        self.assertFalse(pm._player.pause, "the start ended still paused")
+
     def test_the_title_is_set_only_once_the_file_has_loaded(self):
         """`force_media_title` is written after the duration arrives. Set it
         before and a load that times out leaves the failed item's name on a

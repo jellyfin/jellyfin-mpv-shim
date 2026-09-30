@@ -3114,6 +3114,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 # hand mpv a file only to stop it a moment later.
                 loaded = False
             else:
+                # Held paused until the start is finished; the unconditional
+                # set_paused() at the end of this method releases it. mpv
+                # plays from file-loaded, and everything after the wait --
+                # external subtitle fetches, the resume seek -- used to run
+                # under the loading screen with the film already going (#785).
+                try:
+                    self._player.pause = True
+                except _mpv_errors:
+                    log.debug("could not hold the load paused", exc_info=True)
                 self._player.play(self.url)
                 loaded = wait_property(
                     self._player,
