@@ -3247,6 +3247,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         else:
             self.send_timeline()
 
+        # Loading ends here, and push_playstate stops holding back: the
+        # set_paused below (SyncPlay's play_done pauses through the same call)
+        # is the first playstate this start reports. play()'s finally
+        # clears it again for every other way out.
+        self._start_in_progress = False
         if self.syncplay.is_enabled():
             self.set_speed(1)
             self.syncplay.play_done()

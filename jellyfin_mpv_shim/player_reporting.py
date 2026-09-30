@@ -119,21 +119,24 @@ class ReportingMixin:
                 aborted = self._player.playback_abort
             except _mpv_errors:
                 aborted = True
-            if not stopped and video is None and self._start_in_progress:
-                # **A start in flight is not a stop.** `_video` is assigned
-                # only once the open succeeds and `playback_abort` stays true
-                # until it does, so for the whole of a load every incidental
-                # push here reported "stopped" -- and the browser reads that
-                # as "playback ended", drops its loading screen and returns to
-                # the library, over the start the user is waiting for.
+            if not stopped and self._start_in_progress:
+                # **Nothing is reported until the start has finished.** Two
+                # ways a mid-start snapshot lies, both shipped:
                 #
-                # There is always at least one: `_play_media` writes the
-                # persisted per-type volume before mpv is handed the file, and
-                # the volume observer pushes. A skippable-segment transition
-                # and the now-playing ticker do it too.
+                # - Before `_video` is assigned the player looks stopped, and
+                #   the browser read that as "playback ended" and dropped its
+                #   loading screen over the start. The volume write before the
+                #   file is handed over always pushes; so do the ticker and
+                #   skippable-segment transitions.
+                # - After it, the file is held paused until `_play_media`
+                #   releases it (#785), so a snapshot says "paused". The
+                #   now-playing bar appeared on it, and a SPACE pressed then
+                #   was deferred behind the start's lock and toggled the
+                #   released file back to paused.
                 #
-                # An explicit stopped=True still reports: that is the stop
-                # path, which is exactly how a cancelled or failed start ends.
+                # `_play_media` clears the flag just before the release, whose
+                # set_paused is the first push. An explicit stopped=True still
+                # reports: that is how a cancelled or failed start ends.
                 return
             if stopped or video is None or aborted:
                 cb({"stopped": True})

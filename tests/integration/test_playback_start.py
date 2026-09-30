@@ -314,6 +314,43 @@ class StartOrderTest(unittest.TestCase):
                          "the hold was released before the file loaded")
         self.assertFalse(pm._player.pause, "the start ended still paused")
 
+    def test_no_playstate_is_reported_until_the_start_has_finished(self):
+        """#785's hold made a mid-start snapshot say "paused": the
+        now-playing bar appeared on it, and a SPACE pressed then was deferred
+        behind the start's lock and toggled the released file back to paused
+        (test_input_live's SpaceAndMuteAfterMusicTest, jsonipc). Three starts
+        on one player, because a flag a start leaves set is the next start's
+        bug."""
+        pm = build(test=self)
+        states = []
+        pm.on_playstate = states.append
+        # The timeline wake after update_subtitle_visuals is the real
+        # mid-start push; stood in for here, where no timeline thread runs.
+        real = pm.update_subtitle_visuals
+        pm.update_subtitle_visuals = lambda: (real(), pm.push_playstate())
+        for n in range(3):
+            del states[:]
+            pm._start_in_progress = True          # what play() sets
+            # A new file's own duration: the fake keeps the last one, and
+            # firing an unchanged value is not the change the load waits on.
+            timer = threading.Timer(
+                0.05, lambda d=100.0 + n: pm._player.fire_property(
+                    "duration", d))
+            timer.daemon = True
+            timer.start()
+            self.addCleanup(timer.cancel)
+            with mock.patch.object(player_module.settings,
+                                   "playback_timeout", 2):
+                pm._play_media(make_video(item_id="v%d" % n),
+                               "http://example.invalid/%d.mkv" % n,
+                               is_initial_play=True)
+            playing = [s for s in states if not s.get("stopped")]
+            self.assertTrue(playing, "start %d reported nothing" % n)
+            self.assertEqual([s["paused"] for s in playing],
+                             [False] * len(playing),
+                             "start %d reported itself paused: %r"
+                             % (n, playing))
+
     def test_the_title_is_set_only_once_the_file_has_loaded(self):
         """`force_media_title` is written after the duration arrives. Set it
         before and a load that times out leaves the failed item's name on a
