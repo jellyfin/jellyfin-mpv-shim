@@ -1088,6 +1088,16 @@ candidate as much as a bare one. It is `_resolutions`' second yield, so the walk
 is only reached once a name has failed at every size — 2656 files in 3 ms, once
 per process, and never on a host that has no such directory.
 
+**NixOS is the same problem without a sandbox (#786).** Its fonts live in
+`/nix/store` and only fontconfig's configuration lists them, so every
+candidate failed and the titles fell to Pillow's default face, at 10px unless
+it is given a size. `_resolutions` therefore has a third yield: the same
+basename in fontconfig's own file list. After every script's candidates come
+fontconfig's *matches* (`sans-serif:lang=ja` and so on), appended rather than
+preferred, since fontconfig finds files well and chooses them badly (its
+Japanese pick on Debian is a Chinese face). The query runs in a child process
+so that no libfontconfig can crash the app: `mpvtk/fontconfig.py`.
+
 Two things worth knowing before touching it:
 
 - **The index being built is not the same as a directory being walked.** On
