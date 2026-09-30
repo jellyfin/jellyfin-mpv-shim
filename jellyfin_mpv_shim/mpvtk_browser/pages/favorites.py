@@ -72,7 +72,9 @@ class FavoritesPage(Page):
                 row["title"], row["items"], "fav-" + row["key"],
                 geom=getattr(art, attr), image_type=image_type,
                 inherit=inherit,
-                see_all=self._see_all(row)))
+                see_all=self._see_all(row), lazy=True))
+        built = art.tiles.window_rows(built, "favorites", size, GRID_GAP,
+                                      pad=chrome.CONTENT_PAD)
         return VScroll(Column(built, pad=(0, chrome.CONTENT_PAD),
                               gap=GRID_GAP, align="stretch"),
                        id="favorites", flex=1,
