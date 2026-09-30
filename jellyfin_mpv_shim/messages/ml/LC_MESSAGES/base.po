@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-29 18:15+0000\n"
+"PO-Revision-Date: 2026-09-30 19:05+0000\n"
 "Last-Translator: Gokul G Krishna <gokulgk55@proton.me>\n"
 "Language-Team: Malayalam <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ml/>\n"
@@ -128,14 +128,8 @@ msgid "Add another server?"
 msgstr "മറ്റൊരു സെർവർ ചേർക്കണോ?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"സെർവർ ചേർക്കാൻ സാധിച്ചില്ല.\n"
-"ദയവായി നിങ്ങളുടെ ഇന്റർനെറ്റുമായി ബന്ധപ്പെട്ട വിവരങ്ങൾ പരിശോധിക്കുക."
+msgstr "സെർവറുമായി ബന്ധപ്പെടാൻ കഴിഞ്ഞില്ല."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
