@@ -301,12 +301,14 @@ class Settings(SettingsBase):
     # RAM for DECODED artwork, which is the expensive form: a 4K backdrop is
     # 33 MB decoded against ~400 KB on the wire.
     #
-    # Deliberately modest, because this cache sits behind another one. What
-    # decoded images are *for* is compositing tile strips, and the strips are
-    # themselves cached -- so a decoded poster is only wanted while a row is
-    # being built, and scrolling back over a row that is still cached never
-    # asks for one. That makes this a working set, not a library: a screenful
-    # of posters is ~7 MB, and the big single items are backdrops.
+    # Deliberately modest: decoded images exist to composite tile strips, so
+    # this is a working set, not a library -- a screenful of posters is ~7 MB
+    # at 1x and four times that at 2x, and the big single items are
+    # backdrops. It is NOT skipped for a row whose strip is cached: a strip
+    # is keyed on which of its posters are decoded, so a row redraws from the
+    # images every build. What the screen is using is never evicted, and
+    # only rows near the viewport are built (TileRenderer.window_rows), so
+    # a page larger than this does not thrash it.
     #
     # It is not a stand-in for the artwork cache on disk either. That one
     # holds the server's compressed bytes and the OS page-caches them for

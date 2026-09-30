@@ -1432,6 +1432,12 @@ class FakeThumbs:
     def is_gone(self, key):
         return key in self.gone
 
+    def on_scene_pushed(self):
+        """Counted only: `cached` is a dict, not the LRU whose eviction
+        this protects against. tests/test_home_window.py drives the real
+        MemoryCache for that."""
+        self.pushes = getattr(self, "pushes", 0) + 1
+
     def request(self, key, url, box, callback, cover=False):
         self.requests.append((key, url))
         self.boxes[key] = tuple(box)

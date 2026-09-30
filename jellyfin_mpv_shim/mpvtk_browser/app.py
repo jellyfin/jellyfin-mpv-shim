@@ -1191,6 +1191,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         """
         if self.strips is not None:
             self.strips.on_scene_pushed()
+        if self.thumbs is not None:
+            self.thumbs.on_scene_pushed()
 
     def _bump_epoch(self):
         """Invalidate every in-flight async result. Returns the new epoch."""

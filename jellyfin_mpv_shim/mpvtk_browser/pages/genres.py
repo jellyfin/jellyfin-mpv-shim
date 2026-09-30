@@ -55,7 +55,9 @@ class GenresPage(Page):
             built.append(art.tiles.tile_row(
                 row["title"], row["items"], "genre-" + str(row["key"]),
                 geom=geom, image_type=image_type,
-                see_all=self._see_all(row)))
+                see_all=self._see_all(row), lazy=True))
+        built = art.tiles.window_rows(built, "genres", size, GRID_GAP,
+                                      pad=chrome.CONTENT_PAD)
         return VScroll(Column(built, pad=(0, chrome.CONTENT_PAD),
                               gap=GRID_GAP, align="stretch"),
                        id="genres", flex=1,
