@@ -702,10 +702,65 @@ def _resolutions(name):
     bare ones -- ``/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc``
     does not exist inside the sandbox, and the file it names does.
     """
+    if name.startswith(_FC_PREFIX):
+        found = _fontconfig()["match"].get(name[len(_FC_PREFIX):])
+        if found:
+            yield found
+        return
     yield name
-    alt = _host_fonts().get(os.path.basename(name).lower())
+    base = os.path.basename(name).lower()
+    alt = _host_fonts().get(base)
     if alt and alt != name:
         yield alt
+    # Third, and only reached when both of the above failed: a NixOS store
+    # path, or anywhere else fontconfig was told about and Pillow was not.
+    alt2 = _fontconfig()["files"].get(base)
+    if alt2 and alt2 not in (name, alt):
+        yield alt2
+
+
+#: What to ask fontconfig for, per script, once every curated candidate has
+#: failed. Its answer is appended rather than preferred -- see
+#: mpvtk/fontconfig.py for why it finds files well and chooses them badly --
+#: and a match that cannot draw the run is refused by `_covers` like any
+#: other candidate.
+_FC_LANGS = {
+    "latin": ("",),
+    "cjk": ("ja", "zh-cn", "zh-tw", "ko"),
+    "arabic": ("ar",), "hebrew": ("he",), "devanagari": ("hi",),
+    "thai": ("th",),
+    "indic": ("bn", "pa", "gu", "or", "ta", "te", "kn", "ml", "si"),
+    "lao": ("lo",), "tibetan": ("bo",), "myanmar": ("my",),
+    "georgian": ("ka",), "ethiopic": ("am",), "cherokee": ("chr",),
+    "khmer": ("km",), "mongolian": ("mn-mn",),
+}
+_FC_PREFIX = "fontconfig:"
+
+
+def _fc_query(script, bold, lang):
+    if script == "emoji":
+        return "emoji"
+    return "sans-serif" + (":lang=" + lang if lang else "") + (
+        ":weight=bold" if bold else "")
+
+
+def _fc_names(script, bold):
+    """Sentinel candidates `_resolutions` answers from fontconfig."""
+    langs = ("",) if script == "emoji" else _FC_LANGS.get(script, ())
+    names = [_FC_PREFIX + _fc_query(script, b, lang)
+             for b in ((True, False) if bold else (False,))
+             for lang in langs]
+    return list(dict.fromkeys(names))
+
+
+def _fontconfig():
+    from . import fontconfig
+
+    return fontconfig.lookup(
+        [_fc_query(s, b, lang)
+         for s in list(_FC_LANGS) + ["emoji"]
+         for b in (False, True)
+         for lang in (("",) if s == "emoji" else _FC_LANGS[s])])
 
 
 def _load(names, size, strikes=False):
@@ -838,6 +893,7 @@ def _opened(script, size, bold, index):
         if bold:
             names += _BOLD.get(script, [])
         names += _CANDIDATES.get(script, [])
+        names += _fc_names(script, bold)
         for other in _FALLBACK_SCRIPTS.get(script, ()):
             names += _CANDIDATES.get(other, [])
         if script != "latin":
@@ -847,6 +903,7 @@ def _opened(script, size, bold, index):
             if bold:
                 names += _BOLD["latin"]
             names += _CANDIDATES["latin"]
+            names += _fc_names("latin", bold)
         state = {"names": names, "next": 0, "faces": []}
         _chains[key] = state
     while len(state["faces"]) <= index and state["next"] < len(state["names"]):
@@ -875,6 +932,17 @@ def _stamp(fnt, script, size, bold, native):
         fnt._jms_native = native
     except AttributeError:         # a face that will not be annotated
         pass
+
+
+def default_face(size):
+    """Pillow's own face, at ``size``. Without the size it is 10px whatever
+    was asked for, which is what made #786's titles tiny."""
+    from PIL import ImageFont
+
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:           # Pillow < 10.1: the bitmap face, no size
+        return ImageFont.load_default()
 
 
 def font_for(text, size, bold=False):
@@ -925,9 +993,7 @@ def font(script, size, bold=False, text=None, whole=False):
     if primary is None:
         entry = _opened(script, size, bold, 0)
         if entry is None:
-            from PIL import ImageFont
-
-            fnt = ImageFont.load_default()
+            fnt = default_face(size)
             _stamp(fnt, script, size, bold, size)
             entry = (None, fnt)
         name, primary = entry
