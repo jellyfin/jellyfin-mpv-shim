@@ -93,6 +93,7 @@ def snapshot(item):
     pm._player = _Player()
     pm._hud_skip = None
     pm.repeat_mode = "none"
+    pm._start_in_progress = False       # __init__ sets it; a start holds it
     PlayerManager.push_playstate(pm)
     assert got, "push_playstate produced nothing"
     return got[0]
@@ -154,6 +155,7 @@ class TestAFailedResumeStillReportsItsPosition(unittest.TestCase):
 
     def _apply(self, player):
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm.last_seek = None
         pm._last_ui_seek_time = 0.0
         pm._player = player
@@ -220,12 +222,15 @@ class TestAStartInFlightIsNotAStop(unittest.TestCase):
         """No start in flight and no video: playback genuinely ended."""
         self.assertEqual(self._push(), [{"stopped": True}])
 
-    def test_once_the_video_lands_the_snapshot_is_real(self):
-        """The flag outlives the assignment by a few lines; a push in that
-        window must describe what is playing, not suppress itself."""
-        got = self._push(video=_Video(MOVIE), starting=True)
+    def test_nothing_is_reported_until_the_start_has_finished(self):
+        """Once the video lands the file is still held paused (#785), so a
+        snapshot then says "paused" about a film about to play."""
+        self.assertEqual(self._push(video=_Video(MOVIE), starting=True), [])
+
+    def test_once_the_start_has_finished_the_snapshot_is_real(self):
+        got = self._push(video=_Video(MOVIE), starting=False)
         self.assertTrue(got and got[0].get("stopped") is False,
-                        "the snapshot went missing once the video landed: %r"
+                        "the snapshot went missing once the start ended: %r"
                         % (got,))
 
 
@@ -340,6 +345,7 @@ class TestChaptersRideTheSnapshot(unittest.TestCase):
     def _snapshot(self, player):
         got = []
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm.on_playstate = got.append
         pm._video = _Video(AUDIOBOOK)
         pm._player = player
@@ -407,6 +413,7 @@ class TestTheServerTheItemCameFrom(unittest.TestCase):
 
         got = []
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm.on_playstate = got.append
         video = _Video(MOVIE)
         video.client = client
@@ -467,6 +474,7 @@ class TestSkipButtonIsIndependentOfSeekToSkip(unittest.TestCase):
     def _label(self, seg_type):
         got = []
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm.on_playstate = got.append
         pm._video = _Video(EPISODE)
         pm._player = _Player()
@@ -507,6 +515,7 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
 
     def _pm(self, in_group=False, ready=False):
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm.evt_queue = _EmptyQueue()
         pm._pump_trickplay = lambda: None
         pm.push_playstate = lambda: None
@@ -745,6 +754,7 @@ class TestVolumeAndMuteReachTheUI(unittest.TestCase):
     def test_the_handler_pushes_a_snapshot(self):
         got = []
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm.on_playstate = got.append
         pm._video = _Video({"Name": "x"})
         pm._player = _Player()
@@ -864,6 +874,7 @@ class TestNegativeAbsoluteSeekIsClamped(unittest.TestCase):
             def command(self, *a): self.cmds.append(a)
 
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm._lock = threading.RLock()
         pm._player = FakePlayer()
         pm.syncplay = type("S", (), {"is_enabled": lambda self: False})()
@@ -914,6 +925,7 @@ class TestNoPlayerControls(unittest.TestCase):
 
     def _pm(self, style):
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm._osc_style_resolved = style
         return pm
 
@@ -958,6 +970,7 @@ class ResumingIntoAnIntroDoesNotSkipItTest(unittest.TestCase):
 
     def _pm(self):
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm._player = _Player()
         pm.do_not_handle_pause = False
         pm.is_in_intro = True
@@ -1083,6 +1096,7 @@ class AResumeThatCannotSeekLeavesNoShadowTest(unittest.TestCase):
 
     def _pm(self, loaded):
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm._player = _ShadowingPlayer()
         object.__setattr__(pm._player, "loaded", loaded)
         pm.last_seek = None
@@ -1305,6 +1319,7 @@ class LoopFileNeverOutlivesAudioTest(unittest.TestCase):
         from jellyfin_mpv_shim.player import PlayerManager
 
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm._video = type("V", (), {"item": {"Type": "Episode",
                                             "MediaType": "Video"}})()
         self.assertFalse(pm._current_is_audio())
@@ -1325,6 +1340,7 @@ class LoopFileNeverOutlivesAudioTest(unittest.TestCase):
         from jellyfin_mpv_shim.player import PlayerManager, _item_is_audio
 
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         audio = type("V", (), {"item": {"Type": "Audio",
                                         "MediaType": "Audio"}})()
         film = type("V", (), {"item": {"Type": "Movie",
@@ -1372,6 +1388,7 @@ class AScriptMessageNeverWaitsOnThePlayerLockTest(unittest.TestCase):
         import threading
 
         pm = PlayerManager.__new__(PlayerManager)
+        pm._start_in_progress = False
         pm._lock = threading.RLock()
         pm._mpv_alive = True
         sent = []

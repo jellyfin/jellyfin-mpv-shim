@@ -3114,6 +3114,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 # hand mpv a file only to stop it a moment later.
                 loaded = False
             else:
+                # Held paused until the start is finished; the unconditional
+                # set_paused() at the end of this method releases it. mpv
+                # plays from file-loaded, and everything after the wait --
+                # external subtitle fetches, the resume seek -- used to run
+                # under the loading screen with the film already going (#785).
+                #
+                # Video only (Izzie): audio has no loading screen to hide, and
+                # a held track is a delay people listening hear. `video`, not
+                # self._video, for the reason the loop-file write above gives.
+                if not _item_is_audio(video):
+                    try:
+                        self._player.pause = True
+                    except _mpv_errors:
+                        log.debug("could not hold the load paused",
+                                  exc_info=True)
                 self._player.play(self.url)
                 loaded = wait_property(
                     self._player,
@@ -3238,6 +3253,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         else:
             self.send_timeline()
 
+        # Loading ends here, and push_playstate stops holding back: the
+        # set_paused below (SyncPlay's play_done pauses through the same call)
+        # is the first playstate this start reports. play()'s finally
+        # clears it again for every other way out.
+        self._start_in_progress = False
         if self.syncplay.is_enabled():
             self.set_speed(1)
             self.syncplay.play_done()
