@@ -376,7 +376,7 @@ jobs:
         name: flatpak-${{ matrix.arch }}
         path: ${{ github.workspace }}/publish/Flatpak/*.flatpak
   build-macos-arm64:
-    runs-on: macos-14
+    runs-on: macos-26
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v7
