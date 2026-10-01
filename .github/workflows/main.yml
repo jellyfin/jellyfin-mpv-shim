@@ -6,7 +6,6 @@ on:
       - master
       - main
       - working
-      - macos-build
 jobs:
   build-win64:
     runs-on: windows-latest
