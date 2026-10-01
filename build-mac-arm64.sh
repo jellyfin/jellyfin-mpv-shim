@@ -30,8 +30,8 @@ if [ -n "$MPV_APP" ] && [ -d "$MPV_APP" ]; then
     cp "${MPV_APP}/Contents/MacOS/mpv" "${APP_PATH}/Contents/MacOS/mpv"
     cp -R "${MPV_APP}/Contents/MacOS/lib" "${APP_PATH}/Contents/MacOS/"
     mkdir -p "${APP_PATH}/Contents/Resources"
-    cp "${MPV_APP}/Contents/MacOS/mpv" "${APP_PATH}/Contents/Resources/mpv"
-    chmod +x "${APP_PATH}/Contents/MacOS/mpv" "${APP_PATH}/Contents/Resources/mpv"
+    ln -sf ../MacOS/mpv "${APP_PATH}/Contents/Resources/mpv"
+    chmod +x "${APP_PATH}/Contents/MacOS/mpv"
 fi
 
 codesign --force --deep --sign - "${APP_PATH}"

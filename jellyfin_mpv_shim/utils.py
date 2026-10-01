@@ -459,15 +459,16 @@ def get_resource(*path):
 
     # Bundled via py2app or external resources in macOS app bundle
     if getattr(sys, "frozen", False) and platform.system() == "Darwin":
-        res_dir = os.path.join(os.path.dirname(sys.executable), "../Resources")
+        macos_dir = os.path.dirname(sys.executable)
+        res_dir = os.path.join(macos_dir, "../Resources")
         for candidate in (
+            os.path.join(macos_dir, *path),
             os.path.join(res_dir, "jellyfin_mpv_shim", *path),
             os.path.join(res_dir, *path),
-            os.path.join(os.path.dirname(sys.executable), *path),
         ):
             if os.path.exists(candidate):
                 return candidate
-        return os.path.join(res_dir, *path)
+        return os.path.join(macos_dir, *path)
 
     return target
 
