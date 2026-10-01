@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-05 13:42+0000\n"
-"Last-Translator: AlphaBeta <mangahadplae@gmail.com>\n"
+"PO-Revision-Date: 2026-10-01 12:58+0000\n"
+"Last-Translator: zero0200 <brom2547@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
 "Language: th\n"
@@ -21,18 +21,18 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "รูปแบบที่ไม่รู้จัก"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "หน้าที่ %(page)d จาก %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "หน้า %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
@@ -83,7 +83,7 @@ msgstr "กำล้งรอการอนุญาต"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "กำลังลบข้อมูลบัญชีทั้งหมดที่มี"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -95,17 +95,15 @@ msgstr "การเพิ่มเซิร์ฟเวอร์ล้มเห
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "บัญชีนี้มีอยู่แล้ว กำลังอัพเดทข้อมูลล็อกอิน"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully updated server credentials."
 msgstr "แก้ไขข้อมูลเซิร์ฟเวอร์เรียบร้อยแล้ว"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "การเพิ่มเซิร์ฟเวอร์ล้มเหลว"
+msgstr "การอัพเดทข้อมูลล็อกอินเซิร์ฟเวอร์ล้มเหลว"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -136,10 +134,8 @@ msgid "Could not start Quick Connect."
 msgstr "ไม่สามารถเริ่มการเชื่อมต่อด่วนได้"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "ข้ามเครดิตแล้ว"
+msgstr "ข้ามเครดิต"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -151,59 +147,43 @@ msgstr "เลื่อนเพื่อข้ามเครดิต"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
-msgstr ""
+msgstr "ข้ามโฆษณา"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "ข้ามเครดิตแล้ว"
+msgstr "ข้ามโฆษณาแล้ว"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "เลื่อนเพื่อข้ามเครดิต"
+msgstr "เลื่อนเพื่อข้ามโฆษณา"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "ข้ามเครดิตแล้ว"
+msgstr "ข้ามพรีวิว"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "ข้ามเครดิตแล้ว"
+msgstr "ข้ามพรีวิวแล้ว"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "เลื่อนเพื่อข้ามเครดิต"
+msgstr "เลื่อนเพื่อข้ามพรีวิว"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "ข้ามการสรุป"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "ข้ามเครดิตแล้ว"
+msgstr "ข้ามการสรุปแล้ว"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "เลื่อนเพื่อข้ามเครดิต"
+msgstr "เลื่อนเพื่อข้ามการสรุป"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "ข้ามอินโทรแล้ว"
+msgstr "ข้ามอินโทร"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -387,7 +367,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "ถาม"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
@@ -536,7 +516,7 @@ msgstr "เปิดใช้งานการแสดงตัวอย่า
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "โหมดกลางคืน (ปรับเสียงอัตโนมัติ)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
