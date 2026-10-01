@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-29 18:15+0000\n"
+"PO-Revision-Date: 2026-10-01 12:57+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -427,7 +427,7 @@ msgstr "字幕の色: {0}"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Transcode Hi10p to 8bit"
-msgstr "Hi10pを8bitにトランスコードする"
+msgstr "Hi10p を 8bit にトランスコードする"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Transcode HDR"
@@ -1038,7 +1038,7 @@ msgstr "ビット深度"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d ビット"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
@@ -1262,7 +1262,7 @@ msgstr "音声のサンプリングレートはサポートされていません
 # seeded from jellyfin-web: AudioBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's bit depth is not supported"
-msgstr "音声のbit深度はサポートされていません"
+msgstr "音声のビット深度がサポートされていません"
 
 # seeded from jellyfin-web: ContainerBitrateExceedsLimit
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1277,7 +1277,7 @@ msgstr "動画のビットレートがサポートされていません"
 # seeded from jellyfin-web: AudioBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's bitrate is not supported"
-msgstr "サポートされていない音声ビットレートです"
+msgstr "音声ビットレートがサポートされていません"
 
 # seeded from jellyfin-web: UnknownVideoStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -2034,6 +2034,8 @@ msgid ""
 "Turn this on for a controller whose A button is on the right rather than at "
 "the bottom (Switch Pro, most 8BitDo pads)."
 msgstr ""
+"A ボタンが下ではなく右にあるコントローラー（Switch Pro、ほとんどの 8BitDo 製"
+"コントローラー）では、この設定をオンにしてください。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2282,6 +2284,9 @@ msgid ""
 "client does. It shows more of the artwork without taking any more vertical "
 "space."
 msgstr ""
+"Webクライアントと同様に、詳細ページでは背景画像をウィンドウの端まで表示するよ"
+"うにします。これにより、縦方向の無駄なスペースを取ることはなく、アートワーク"
+"をより広く表示できます。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
@@ -3801,7 +3806,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Resume"
-msgstr "レジューム"
+msgstr "再開"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -4721,6 +4726,9 @@ msgid ""
 "Not active: the \"pypresence\" package is missing or failed to load. Install "
 "it and restart. (Details in the Logs tab.)"
 msgstr ""
+"有効になっていません : 「pypresence」パッケージが見つからないか、読み込みに失"
+"敗しました。パッケージをインストールして、再起動してください。（詳細は「ログ"
+"」タブをご覧ください。）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
@@ -5241,8 +5249,8 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"レモート動画はトランスコード中！\n"
-"必要ではない場合は、帯域幅設定を調整するに「C」を押し下さい。"
+"リモート動画をトランスコード中！\n"
+"必要でない場合は、帯域幅設定を調整する「C」を押してください。"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."

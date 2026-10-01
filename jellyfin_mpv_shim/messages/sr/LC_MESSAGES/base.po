@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-08-17 17:57+0000\n"
-"Last-Translator: nenadsuperzmaj <nenadsuperzmaj@gmail.com>\n"
+"PO-Revision-Date: 2026-10-01 12:57+0000\n"
+"Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sr/>\n"
 "Language: sr\n"
@@ -101,16 +101,12 @@ msgid "Account already exists. Updating credentials."
 msgstr "Налог већ постоји. Ажурирам креденцијале."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Успешно је додат сервер."
+msgstr "Успешно ажурирани серверски акредитиви."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Додавање сервера није успело."
+msgstr "Ажурирање серверских акредитива није успело."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -129,14 +125,8 @@ msgid "Add another server?"
 msgstr "Додати други сервер?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће повезати се са сервером."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
@@ -147,10 +137,8 @@ msgid "Could not start Quick Connect."
 msgstr "Није успело покретање Брзог повезивања."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Прескочене одјавне шпице"
+msgstr "Прескочи кредите"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -161,61 +149,44 @@ msgid "Seek to Skip Credits"
 msgstr "Прескочи одјавну шпицу"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Специјали"
+msgstr "Прескочи рекламу"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Прескочене одјавне шпице"
+msgstr "Прескочио рекламу"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Прескочи одјавну шпицу"
+msgstr "Покушај да прескочиш рекламу"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Прескочене одјавне шпице"
+msgstr "Прескочи преглед"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Прескочене одјавне шпице"
+msgstr "Прескочио преглед"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Прескочи одјавну шпицу"
+msgstr "Покушај да прескочиш преглед"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
 msgstr "Прескочи сажетак"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Прескочене одјавне шпице"
+msgstr "Прескок рекапитулације"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Прескочи одјавну шпицу"
+msgstr "Потражите прескок резимеа"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Прескочени уводи"
+msgstr "Прескочи увод"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -223,11 +194,11 @@ msgstr "Прескочени уводи"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Intro"
-msgstr "Прескочи увод"
+msgstr "Увод у Потрагу за Искораком"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
-msgstr " (Транскодуј)"
+msgstr " (Транскод)"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "White"
@@ -321,10 +292,8 @@ msgstr "Промени профил репродукције снимка"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "Изађи и означи негледано"
+msgstr "Откажи и обележи као неодмeтано"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -511,34 +480,25 @@ msgid "Discord Rich Presence"
 msgstr "Discord богат приказ"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Прескочени уводи"
+msgstr "Прескочи уводе"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Прескочене одјавне шпице"
+msgstr "Прескочи кредите"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "Специјали"
+msgstr "Прескочи рекламе"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Прескочене одјавне шпице"
+msgstr "Прескочи прегледе"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Прескочене одјавне шпице"
+msgstr "Прескочи рекапи"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -577,10 +537,8 @@ msgstr "Прва страница"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Успешно је додат сервер."
+msgstr "Претходна страна"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -642,16 +600,12 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Није могло да се аутоматски поново покрене — изађите из апликације и поново "
+"је покрените да бисте применили измене."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Још увек не могу да се повежем са сервером."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -681,10 +635,9 @@ msgid "Incorrect PIN."
 msgstr "Нетачан ПИН."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Сервер:"
+msgstr "Поставите ПИН за %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
@@ -704,10 +657,8 @@ msgid "Require this PIN at startup"
 msgstr "Тражи овај ПИН при покретању"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Уклоните сервер"
+msgstr "Уклони ПИН"
 
 # seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -745,10 +696,8 @@ msgid "Connect to Jellyfin"
 msgstr "Повежи се са Џелифином"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Успешно је додат сервер."
+msgstr "Раније додати сервери"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
@@ -764,28 +713,20 @@ msgid "Enter this code in the Jellyfin app or web client:"
 msgstr "Унесите овај код у Џелифин апликацији или у веб клијенту:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "СВП Подешавања"
+msgstr "Захтевајући…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "УРЛ сервера: "
+msgstr "URL сервера"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Корисничко име:"
+msgstr "Korisničko ime"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Лозинка:"
+msgstr "Lozinka"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -802,14 +743,8 @@ msgid "Enter the server URL first."
 msgstr "Прво унесите УРЛ сервера."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Контактирање сервера…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -824,14 +759,8 @@ msgid "Connecting…"
 msgstr "Повезивање…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће повезати се. Молимо проверите своје податке."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -877,10 +806,8 @@ msgid "Ready to cast"
 msgstr "Спремно за емитовање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Изаберите свој медиј у Jellyfin-у и пустите га овде"
+msgstr "Изаберите свој медиј у Jellyfin-у и пустите га овде."
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -897,16 +824,12 @@ msgstr "Преузми"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "Уклоните сервер"
+msgstr "Уклони преузимање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Изађи и означи негледано"
+msgstr "Погледано"
 
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -917,7 +840,7 @@ msgstr "Омиљено"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "Веб"
 
 # seeded from jellyfin-web: Video
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -933,10 +856,8 @@ msgstr "Звук"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Величина титла: {0}"
+msgstr "Поднаслов"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -954,10 +875,8 @@ msgid "Container"
 msgstr "Контејнер"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "Нормално"
+msgstr "Формат"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -976,10 +895,8 @@ msgstr "Да"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "Ниједан"
+msgstr "Не"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1005,10 +922,8 @@ msgid "Codec tag"
 msgstr "Ознака кодека"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "Нова група"
+msgstr "Профил"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1022,7 +937,6 @@ msgstr "Резолуција"
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Aspect ratio"
 msgstr "Однос страна"
 
@@ -1087,16 +1001,12 @@ msgid "%d bit"
 msgstr "%d бита"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "Видео подешавања"
+msgstr "Видео опсег"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "Видео профил подтип"
+msgstr "Тип видео опсега"
 
 # seeded from jellyfin-web: ColorSpace
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1105,11 +1015,11 @@ msgstr "Простор боја"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color transfer"
-msgstr ""
+msgstr "Пренос боје"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color primaries"
-msgstr ""
+msgstr "Основне боје"
 
 # seeded from jellyfin-web: MediaInfoPixelFormat
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1133,10 +1043,8 @@ msgid "Default"
 msgstr "Подразумевано"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " Форсирано"
+msgstr "Наметнуто"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1146,27 +1054,22 @@ msgstr "Спољни"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Timestamp"
-msgstr "Време"
+msgstr "Временски жиг"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "DV title"
-msgstr "Величина титла: {0}"
+msgstr "Наслов ДВ"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version major"
-msgstr "Верзија"
+msgstr "DV верзија major"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version minor"
-msgstr "Верзија"
+msgstr "DV верзија мања"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1203,13 +1106,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f Mbps"
-msgstr ""
+msgstr "%.1f Мбпс"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "Директни пут"
+msgstr "Директно свирање"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1223,10 +1124,8 @@ msgstr "Ремуксовање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Транскодуј)"
+msgstr "Транскодирање"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1355,15 +1254,15 @@ msgstr "Тип распона видеа није подржан"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "Овај уређај"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Унос"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "Прозор"
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1372,13 +1271,11 @@ msgstr "Тема"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Library Browser"
-msgstr ""
+msgstr "Прегледач библиотеке"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Reading"
-msgstr " (Транскодуј)"
+msgstr "Читање"
 
 # seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1388,16 +1285,13 @@ msgid "Downloads"
 msgstr "Преузимања"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Download Tuning"
-msgstr "Уклоните сервер"
+msgstr "Преузми Тунинг"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Player Controls"
-msgstr "Број репродукција"
+msgstr "Контроле плејера"
 
 # seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1408,17 +1302,15 @@ msgstr "Репродукција"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
-msgstr ""
+msgstr "Титлови и језици"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
-msgstr ""
+msgstr "Побољшање видео записа"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Прескочи одјавну шпицу"
+msgstr "Прескочи увод / О заслугама"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1427,21 +1319,20 @@ msgstr "Напредно"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "Искључено (софтверско декодирање)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "Само изнад 1080p"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "On"
-msgstr ""
+msgstr "Укључено"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Copy (advanced)"
-msgstr "Напредно"
+msgstr "Копирај (напредно)"
 
 # seeded from jellyfin-web: Off
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1450,420 +1341,400 @@ msgstr "Искључи"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Гладан покрет"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Blend Frames"
-msgstr "Референтни оквири"
+msgstr "Бленд оквира"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Глатка (висококвалитетна)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Лагано (живо)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Стандард (анимација)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Јако"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (MPV decides)"
-msgstr ""
+msgstr "Аутоматски (одлучује MPV)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 (референца)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "БТ.2446а"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "Сплајн"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Disable"
 msgid "Hable"
-msgstr "Онемогући"
+msgstr "Говори"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "Рејнхард"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Клип (без мапирања тонова)"
 
 # seeded from jellyfin-web: Default
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "MPV default"
-msgstr "Подразумевано"
+msgstr "MPV подразумевано"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "High quality"
-msgstr "Промени квалитет снимка"
+msgstr "Висок квалитет"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default (1 second)"
-msgstr ""
+msgstr "MPV подразумевано (1 секунда)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Large (20 seconds)"
-msgstr ""
+msgstr "Велика (20 секунди)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Very large (60 seconds)"
-msgstr ""
+msgstr "Веома велико (60 секунди)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
-msgstr ""
+msgstr "Јеллифин кориснички интерфејс"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "МПВ УИ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "Прилагођени OSC"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
-msgstr ""
+msgstr "Нема контрола играча"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
-msgstr ""
+msgstr "100% (без скалирања)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
-msgstr ""
+msgstr "125%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "150%"
-msgstr ""
+msgstr "150%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No minimum"
-msgstr ""
+msgstr "Нема минималног"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "14 px"
-msgstr ""
+msgstr "14 пк"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "16 px"
-msgstr ""
+msgstr "16 пк"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "18 px"
-msgstr ""
+msgstr "18 пк"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "20 px"
-msgstr ""
+msgstr "20 пк"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
-msgstr ""
+msgstr "Пратите приказ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "200%"
-msgstr ""
+msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr ""
+msgstr "Непрекидан"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr ""
+msgstr "Усклађено са редовима"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr ""
+msgstr "Један ред по удубљењу"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
-msgstr ""
+msgstr "Само када прозор нема насловну траку"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Dark"
-msgstr ""
+msgstr "Тамно"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Sepia"
-msgstr ""
+msgstr "Сепија"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "Светло"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Width"
-msgstr ""
+msgstr "Прилагођена ширина"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Page"
-msgstr ""
+msgstr "Прилагоди страницу"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr ""
+msgstr "Панел иза контрола"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "Ништа (онемогућено)"
+msgstr "Ниједан (текст у сенци)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr ""
+msgstr "Сакриј осим када је прелети курсор"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "Увек прескочи одјавну шпицу"
+msgstr "Увек сакриј"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Никада се не криј док си у паузи"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Проширите размаке"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Центрирајте плочице"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Остави га на десној страни"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Тема по подразумеваном"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Екстра компактно"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Компактно"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Средње"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Велике"
+msgstr "Ekstra veliki"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
-msgstr ""
+msgstr "Аутоматски (препоручено)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Vulkan"
-msgstr ""
+msgstr "Вулкан"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Direct3D 11 (Windows only)"
-msgstr ""
+msgstr "Direct3D 11 (само за Windows)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "OpenGL (compatibility)"
-msgstr ""
+msgstr "OpenGL (компатибилност)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default (auto)"
-msgstr ""
+msgstr "Подразумјевано (ауто)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Force Stereo"
-msgstr ""
+msgstr "Форс Стерео"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Optical Surround"
-msgstr ""
+msgstr "Оптички саунд"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDMI Passthrough"
-msgstr ""
+msgstr "Пропуштање HDMI-а"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
-msgstr ""
+msgstr "Неподешено"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (shows only)"
-msgstr ""
+msgstr "Дублирано (само у представама)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (shows only)"
-msgstr ""
+msgstr "Преведено (само приказивање)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (all)"
-msgstr ""
+msgstr "Насловљено (све)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
-msgstr ""
+msgstr "Преведено (све)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
-msgstr ""
+msgstr "Прилагођено (подешено у конфигурацији)"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Game Controller"
-msgstr "Број репродукција"
+msgstr "Контролер за игре"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Заменити дугмад Потврди и Назад"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
-msgstr ""
+msgstr "Преузимање фасцикле"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
-msgstr ""
+msgstr "Преферирајте преузету копију"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Левим кликом се паузира репродукција"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Прикажи постерe на страницама детаља"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Прикажи минијатуре епизода на страницама са детаљима"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Hardware Decoding"
-msgstr "Прекини снимање"
+msgstr "Апаратно декодирање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Аутоматски уклонити шаре"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Интерполација кретања"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (Транскодуј)"
+msgstr "Укидање појасева"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "HDR тонирање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Rendering Quality"
-msgstr "Промени квалитет снимка"
+msgstr "Квалитет рендеровања"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Мрежни бафер"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Аутоматски преузимање предстојећих епизода"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Укључи Следеће"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "Следећи предлози за разматрање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Епизоде за праћење (0 = искључено)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Ограничење простора за аутоматско преузимање (GB)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Уклоните сервер"
+msgstr "Избриши аутоматска преузимања након што их погледаш"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Избриши негледано након (дана, 0 = никада)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Провери сваких (минута)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "Допуни када је мање од (епизода)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "Допуни до (епизода)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Максималан број преузимања по провери"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
@@ -1875,33 +1746,31 @@ msgstr "Настави извршавање у позадини"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
-msgstr ""
+msgstr "Запамти величину прозора"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "Дугмад за прозоре у горњој траци"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Window Buttons in Full Screen"
-msgstr ""
+msgstr "Нека дугмад прозора буду у пуном екрану"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "Сакриј насловну траку радне површине"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
 msgstr "Изглед контрола плејера"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "Омогући преглед сличица"
+msgstr "Омогућите минијатуре за Trickplay"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "Учитајте све прегледе претраге одједном"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
@@ -1912,8 +1781,6 @@ msgid "Interface Scale"
 msgstr "Скалирање интерфејса"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Text Size"
 msgid "Text size"
 msgstr "Величина текста"
 
@@ -1928,15 +1795,15 @@ msgstr "Величина омота"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
-msgstr ""
+msgstr "Задње позадине пуне ширине"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "12-Hour Clock"
-msgstr ""
+msgstr "12-часовни сат"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
-msgstr ""
+msgstr "Растојање између мрежа"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
@@ -1948,9 +1815,8 @@ msgstr "Побољшај читљивост логотипа у библиоте
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Type Size"
-msgstr "Тип"
+msgstr "Тип величине"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
@@ -1978,7 +1844,7 @@ msgstr "Преглед библиотеке преко целог екрана"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "Блокира пречице на тастатури током претраживања"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
@@ -1990,10 +1856,8 @@ msgstr "Кључ за активацију контрола плејера"
 
 # seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Select All"
 msgid "Select Key"
-msgstr "Изабери све"
+msgstr "Изабери кључ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
@@ -2008,10 +1872,8 @@ msgid "Hide the Player Controls After (seconds)"
 msgstr "Сакриј контроле плејера после (секунде)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "When the Player Controls Hide"
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr "Кад се сакривају контроле плејера"
+msgstr "Смањите контроле плејера на уском прозору"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
@@ -2030,16 +1892,12 @@ msgid "Take the Device Exclusively"
 msgstr "Користи ексклузивно овај уређај"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "Профил репродукције снимка"
+msgstr "Омогући профиле за репродукцију видео записа"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "Нова група"
+msgstr "Профил група"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
@@ -2091,12 +1949,20 @@ msgid ""
 "with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
 "log says so. Any button can be reassigned in your input.conf."
 msgstr ""
+"Померите се помоћу D-пада или левог џојстика, користите десни џојстик за "
+"претрагу, дугмад на раменима за прелазак на страницу, Start за мени. "
+"Контролер није свестан фокуса, па ће се ова апликација покренути чак и када "
+"је други прозор испред. Потребна је mpv изграђена са SDL2 подршком за "
+"gamepad; ако вашој верзији то недостаје, ова поставка се игнорише и лог ће "
+"то показати. Било које дугме може бити прерасподељено у вашем input.conf."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Turn this on for a controller whose A button is on the right rather than at "
 "the bottom (Switch Pro, most 8BitDo pads)."
 msgstr ""
+"Укључите ово за контролер чије је А дугме са десне стране уместо на дну "
+"(Switch Pro, већина 8BitDo падова)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2105,6 +1971,10 @@ msgid ""
 "no video for them to act on. Turn it off to use your own MPV key bindings "
 "there."
 msgstr ""
+"Онемогућава MPV-ове сопствене пречице — подешавање слике, прављење снимка "
+"екрана, пребацивање титлова и звука — док сте у библиотеци, где нема видео-"
+"записа на који би се могле применити. Искључите га да бисте тамо користили "
+"своје MPV пречице на тастатури."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2112,6 +1982,9 @@ msgid ""
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
 msgstr ""
+"Активира све што је означено, у библиотеци и на контролама плејера. То је "
+"име тастера у mpv-у; промена тог имена враћа Enter у MPV. Следе потврдни "
+"тастер гејмпада и тастер Select на телефону."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2128,17 +2001,14 @@ msgid ""
 msgstr "Сличица епизоде је слика из епозоде коју још није погледали."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Off gives MPV's own mouse behaviour instead: drag the video to move the "
-#| "window, and right click to pause. Double click is full screen either way."
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and the right button does whatever your MPV config gives it. Double "
 "click is full screen either way."
 msgstr ""
-"Искључено чини да се миш понаша као у MPV-у: вуците видео да помериоте "
-"прозор, десни клик за паузу и дупли клик за пун екран."
+"Off уместо тога даје сопствено понашање миша у MPV-у: повуците видео да "
+"бисте померили прозор, а десно дугме ради оно што му ваша MPV конфигурација "
+"додели. Дупли клик увек пребацује на пун екран."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2149,6 +2019,13 @@ msgid ""
 "player's settings menu, which lasts until you return to the library. Needs "
 "MPV 0.38 or newer."
 msgstr ""
+"Деинтерласирајте видео за који датотека наводи да је интерлацен. По "
+"подразумеваној поставци онемогућено, као и у самом MPV-у: ова опција није "
+"поуздана ни у једном правцу, а деинтерласирање прогресивног видео-а замућује "
+"слику која је иначе била оштра. Да бисте је присилили за нешто што је "
+"интерлацено без да је тако назначено, користите опцију \"Deinterlace\" у "
+"менију подешавања плејера, која остаје активна док се не вратите у "
+"библиотеку. Потребан је MPV 0.38 или новији."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2160,6 +2037,13 @@ msgid ""
 "if you set the deband options in mpv.conf yourself — Off writes nothing at "
 "all, so your values are left alone."
 msgstr ""
+"Изглађује пикселиране степенице које се појављују у градијентима — небу, "
+"мрачним сценама, прелазима. Анимације и аниме имају највећу корист, јер су "
+"равни градијенти већина слике; у играним филмовима је утицај углавном "
+"неупадљив, иако јако подешавање може да ублажи заиста фине детаље. Користи "
+"GPU без обзира на садржај, што је корисно знати на малим или старијим "
+"машинама. Оставите ово на Off ако сами подесите deband опције у mpv.conf — "
+"Off уопште не врши никакве измене, па ваше вредности остају непромењене."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2169,6 +2053,11 @@ msgid ""
 "is the reference curve, and Clip is what to try if highlights look grey "
 "rather than bright."
 msgstr ""
+"Како је HDR видео прилагођен SDR екрану. Ово нема ефекта када се HDR "
+"прослеђује на HDR екран, јер се тада не врши мапирање тонова. Оставите га на "
+"\"Аутоматски\", осим ако вам HDR филмови не изгледају погрешно; BT.2390 је "
+"референтна крива, а \"Clip\" је опција коју треба испробати ако вам "
+"најсветлији тонови изгледају сиви уместо светли."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2177,6 +2066,10 @@ msgid ""
 "files and does not use up your shader profile, so it is the thing to try "
 "before the shader pack below."
 msgstr ""
+"High Quality примењује исте опције као MPV-ов сопствени high-quality пресет: "
+"боље увећање резолуције и обраду HDR-а, уз одређену цену у погледу GPU-а. Не "
+"захтева шејдер фајлове и не користи ваш шејдер профил, па је ово прва опција "
+"коју треба испробати пре шејдер пакета испод."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2185,6 +2078,11 @@ msgid ""
 "this if playback keeps stopping for buffering. Larger buffers use more "
 "memory and make the first few seconds of a file slower to start."
 msgstr ""
+"Колико унапред читати пре репродукције. Подразумјевана вредност у MPV-у је "
+"једна секунда, што је премало за сервер који се приступа преко интернета или "
+"за спору везу — повећајте ову вредност ако се репродукција стално зауставља "
+"због кеширања. Већи буфери користе више меморије и чине да првих неколико "
+"секунди датотеке буде спорије при покретању."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2193,6 +2091,10 @@ msgid ""
 "display. May cause dropped frames if your displays have mismatched frame "
 "rates."
 msgstr ""
+"Фузија кадрова (спојај кадрова, није исто као SVP/DLSS/framegen). Смањује "
+"треперење изазвано неусклађеном брзином кадрова између садржаја и приказа. "
+"Може довести до губитка кадрова ако ваши дисплеји имају неусклађену брзину "
+"кадрова."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2209,51 +2111,31 @@ msgstr ""
 "покрените поново уз опцију --disable-hwdec да бисте поништили ово подешавање."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Off means command-line mode: no window, no system tray and no settings "
-#| "screen, so the only way back is editing conf.json by hand. It is not how "
-#| "you get MPV's own on-screen controls — \"Player Controls Style\" under "
-#| "Interface does that."
 msgid ""
 "Off means command-line mode: no window, no system tray and no settings "
 "screen, so the only way back is to edit conf.json by hand. This is not how "
 "you get MPV's own on-screen controls; use Player Controls Style under "
 "Interface for that."
 msgstr ""
-"Искључено значи мод командне линије: без прозора, без систмсле касете и "
-"екрана са подешавањима. Једини начин да се поново укључи је ручна измена "
-"датотеке conf.json. Ово НИЈЕ опција за графичке контоле MPV-a. Пробајте "
-"\"Изглед контрола плејера\" у одељку \"Сучеље\"."
+"Off значи режим командне линије: нема прозора, нема системске траке и нема "
+"екрана подешавања, па је једини начин повратка ручно уређивање датотеке "
+"conf.json. Ово није начин да добијете MPV-ове сопствене контроле на екрану; "
+"за то користите Player Controls Style у одељку Interface."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Show only what is cast to this machine — the library, including this "
-#| "settings screen, can't be reached from here. Without a system tray icon "
-#| "the only way back is editing conf.json. For the classic cast-target setup "
-#| "you want the Interface settings instead; this is for a shared TV nobody "
-#| "should be able to browse from."
 msgid ""
 "Show only what is cast to this machine. The library, including this settings "
 "screen, cannot be reached from here, and without a system tray icon the only "
 "way back is to edit conf.json. This is for a shared TV nobody should be able "
 "to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
-"Прикажи само што се кастује на ову машину - без библиотеке и екрана за "
-"подешавања. Једини начин за повратак је ручна измена датотеке conf.json. Ова "
-"опција се користи само за телевизоре за које није предвиђена контрола и "
-"промена опција."
+"Прикажи само оно што се стримује на овај уређај. Библиотека, укључујући и "
+"овај екран подешавања, одавде није доступна, а без иконе у системској траци "
+"једини начин повратка је уређивање conf.json. Ово је за заједнички ТВ који "
+"нико не би требало да може да претражује; за обичан уређај за стримовање "
+"користите подешавања интерфејса."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Some desktops — GNOME on Wayland in particular — draw no title bar on the "
-#| "player window, leaving no way to move or close it. This puts minimize, "
-#| "maximize and close in the top bar instead, and lets you drag the window "
-#| "by it. Left on \"Only when the window has no title bar\", MPV is asked "
-#| "whether this window got one, so desktops that do decorate it are left "
-#| "alone."
 msgid ""
 "Some desktops, GNOME on Wayland in particular, draw no title bar on the "
 "player window, leaving no way to move or close it. This puts minimize, "
@@ -2261,9 +2143,12 @@ msgid ""
 "it. On \"Only when the window has no title bar\", MPV is asked whether this "
 "window got one, so desktops that draw a title bar are left alone."
 msgstr ""
-"Не неким десктопима, као ГНОМ или Вејланд, не види се трака на врху прозора, "
-"па је немогуће померати или минизовати прозор. Оставите на \"Само кад прозор "
-"нема траку\" да бисте додали контроле мимо десктопа."
+"Неки десктопи, а посебно GNOME на Wayland-у, не цртају насловни појас на "
+"прозору плејера, чиме не остављају могућност да га померите или затворите. "
+"Уместо тога, минимизација, максимизација и затварање се налазе у горњој "
+"траци, и омогућавају вам да прозор вучете за њу. У опцији \"Само када прозор "
+"нема насловни појас\", MPV се пита да ли овај прозор има насловни појас, "
+"тако да десктопи који цртају насловни појас остају нетакнути."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2271,6 +2156,9 @@ msgid ""
 "the buttons are normally hidden there. Turn this on to keep a way out of "
 "full screen that is not a keyboard shortcut."
 msgstr ""
+"Цели екран нема траку наслова нигде и нема шта да се помери или максимизира, "
+"па су дугмад обично скривена тамо. Укључите ово да бисте имали начин да "
+"изађете из режима пуног екрана који није пречица на тастатури."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2280,6 +2168,11 @@ msgid ""
 "unless you want them, since a window with neither can be awkward to move on "
 "some desktops."
 msgstr ""
+"Тражи од десктопа да плејерски прозор нема траку наслова, тако да је горња "
+"трака једина. Упарује се са горе наведеном опцијом: када је укључено \"Само "
+"када прозор нема траку наслова\", дугмад се појављују чим се то укључи. "
+"Оставите обе опције искључене осим ако их не желите, јер прозор без обе може "
+"бити незгодан за померање на неким десктопима."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2288,6 +2181,11 @@ msgid ""
 "images are fetched from the server per video, which costs disk space and "
 "memory -- tens of MB for an episode, a few hundred for a long film."
 msgstr ""
+"Приказује прегледни кадар док повлачите траку за тражење. Ради са сваким "
+"стилом контроле плејера, укључујући и ваш сопствени OSC скрипт ако подржава "
+"thumbfast. Слике се преузимају са сервера за сваки видео, што заузима "
+"простор на диску и меморију – десетине MB за епизоду, неколико стотина MB за "
+"дугачак филм."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2298,14 +2196,14 @@ msgid ""
 "the next time you seek somewhere new; turning it off applies to the next "
 "video."
 msgstr ""
+"Прегледи премотавања се обично учитавају неколико минута унапред око тачке "
+"премотавања, па премотавање на ново место кратко чека. Укључите ову опцију "
+"да бисте их унапред учитали све: ништа неће чекати, али дуг филм може "
+"потрошити неколико стотина MB меморије. Укључивање важи за оно што ћете "
+"гледати следећи пут када премотате на нову тачку; искључивање важи за "
+"следећи видео."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Requires restart to change. MPV keybinds are used by default. Press ENTER "
-#| "to drive the player controls by keyboard. \"No player controls\" leaves "
-#| "playback bare; the library, the keyboard shortcuts and the menu key still "
-#| "work."
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard. \"No player controls\" leaves playback bare; the library, the "
@@ -2314,10 +2212,13 @@ msgid ""
 "library a solid background, so the script's idle screen cannot show through "
 "it."
 msgstr ""
-"Захтева поновно покретање да би се променило. Подразумевано понашање је да "
-"се користе интерне пречице са тастатуре за MPV. Ако се изабере \"без "
-"контрола плејера\", оставља само приказ медија на ком ће радити пречице и "
-"мени."
+"MPV пречице на тастатури се користе по подразумеваном. Притисните ENTER да "
+"бисте управљали контролама плејера помоћу тастатуре. Опција \"Нема контрола "
+"плејера\" оставља репродукцију голу; библиотека, пречице на тастатури и мени "
+"тастер и даље функционишу. Изаберите \"Прилагођени OSC\" када сте "
+"инсталирали сопствени OSC скрипт: то искључује MPV-ове сопствене контроле и "
+"обезбеђује библиотеци чврсту позадину, тако да се скриншот неактивности "
+"скрипта не може провлачити кроз њу."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2326,6 +2227,10 @@ msgid ""
 "notches spans one row, in every scroll mode, so a trackpad or trackball "
 "never leaves you a sliver of a row off."
 msgstr ""
+"Пиксели: један зарез на точку помера страницу. Подигните га за брже "
+"померање, спустите за прецизнију контролу. На мрежи се вредност заокружује "
+"тако да цео број зареза обухвата један ред у сваком режиму померања, па вам "
+"тачпад или трачбол никада не остављају ни трачак реда ван видика."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2335,12 +2240,16 @@ msgid ""
 "remote display, or with an external MPV. Pick \"One row per notch\" to move "
 "a whole row, or one home-screen section, at a time."
 msgstr ""
+"\"Континуирано\" листа пикселима и зауставља се на месту где је точак "
+"постави, сам поређава редове ако приказ не може да прати. Изаберите "
+"\"Поређено по редовима\" ако листање и даље заостаје, као што се може десити "
+"на веома великом, спором или удаљеном приказу, или са спољним MPV-ом. "
+"Изаберите \"По један ред по кораку\" да бисте померили цео ред или један део "
+"почетног екрана одједном."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Discord богат приказ"
+msgstr "Discord богат приказ."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2349,12 +2258,20 @@ msgid ""
 "before it'll let *any* audio through in passthrough mode. In my tests I got "
 "silence otherwise, but results may vary."
 msgstr ""
+"Оставите ово на подразумеваној вредности осим ако не подешавате пасстхру. "
+"Имајте у виду да неки аудио сервери, попут Pipewire-а, не подржавају "
+"пасстхру и морају бити онемогућени за картицу пре него што она дозволи "
+"пролаз било ког звука у пасстхру режиму. У мојим тестовима иначе сам добијао "
+"тишину, али резултати могу варирати."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Stop anything else using the device while playing. Needed for passthrough on "
 "some systems, and it means other applications will be silent."
 msgstr ""
+"За време играња, прекините све остало на уређају. Потребно је за пропуштање "
+"(passthrough) на неким системима, а то значи да ће друге апликације бити "
+"тихе."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2362,6 +2279,10 @@ msgid ""
 "screenful with First / Previous / Next / Last controls and a page number you "
 "can type into. Easier than precise scrolling on a trackpad."
 msgstr ""
+"Пређите на мрежу страница библиотеке и музичких плочица уместо да "
+"скролујете: свака страница заузима цео екран са контролама Прва / "
+"Претходна / Следећа / Последња и пољем за унос броја странице. Лакше је него "
+"прецизно скроловање на трачпаду."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2371,6 +2292,12 @@ msgid ""
 "get a drop shadow so they keep an edge against it. Off, they get the theme's "
 "card colour and no shadow, as Jellyfin Web does."
 msgstr ""
+"Логотипи канала су отиснути мастилом на провидној позадини, нацртани за белу "
+"страницу на којој их други клијенти постављају, па на тамној позадини црни "
+"нестају. Када је укључено, сваки лого добија светлу плочу за коју је "
+"направљен, а неколико логотипа са белим оквиром добија падајућу сенку како "
+"би задржали оштрицу. Када је искључено, добијају боју карте теме и немају "
+"сенку, као што то ради Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2379,12 +2306,19 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
+"Исти третман за библиотеку подешену да приказује Logo уметничке радове. По "
+"подразумеваној подешавања: лого филмова или серија је по конвенцији бело и "
+"већ се чита на тамној позадини, а управо та плоча чини да му треба сенка. "
+"Укључите га ако су ваша логоа тамна."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"Палета, сјај, стил насловнице и подразумевана величина насловнице. Боје се "
+"одмах мењају; величине насловнице и наслова ступају на снагу након поновног "
+"покретања."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2392,6 +2326,10 @@ msgid ""
 "gaps keeps the page margins the same on every screen size; centring keeps "
 "the covers evenly spaced and moves both margins instead."
 msgstr ""
+"Када ширина целог броја корица не дели се на крајеве, остају неискоришћени "
+"простори. Проширивање празнина одржава исту ширину маргина на свакој "
+"величини екрана; центрирање равномерно распоређује корице и помера обе "
+"маргине."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2399,10 +2337,15 @@ msgid ""
 "client does. It shows more of the artwork without taking any more vertical "
 "space."
 msgstr ""
+"Покрените позадину на страници са детаљима до ивица прозора, као што то ради "
+"веб-клијент. Тако се приказује више дела без узимања додатног вертикалног "
+"простора."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
+"Прекорачује величину корице теме. Такође у менију Приказ било које "
+"библиотеке."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2410,24 +2353,33 @@ msgid ""
 "and its air times, and the \"Ends at\" labels on a detail page and the "
 "player controls."
 msgstr ""
+"Прикажи временске ознаке као \"20:30\" уместо \"8:30 PM\" — у водичу за Live "
+"TV и његовим терминима емитовања, као и на ознакама \"Завршава се у\" на "
+"страници са детаљима и на контролама плејера."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"Контроле морају остати читке на сваком кадру. \"None\" додаје тексту сенку "
+"уместо да засенчи слику иза ње."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"\"Прикриј осим када је показивач преко њих\" их приказује само док је "
+"показивач преко њих, без обзира да ли је паузирано или не."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"0 их крије чим показивач није на њима и налаже \"Сакриј осим када је "
+"показивач преко њих\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2435,18 +2387,26 @@ msgid ""
 "the accessibility minimum, instead of dropping buttons sooner. Off keeps the "
 "older, larger floor."
 msgstr ""
+"Сужавање прозора смањује контроле док најмањи дугме не достигне минималну "
+"величину приступачности, уместо да раније уклони дугмад. Искључивање "
+"задржава старији, већи ниво."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
+"Само током репродукције; у библиотеци та дугмад остају \"Назад\" и \"Даље\". "
+"По подразумеваној подешавања искључено јер их је лако случајно притиснути на "
+"неким мишевима."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, no-python-format
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
+"\"Прати приказ\" користи скалу коју ваш десктоп извештава, а то је 100% on "
+"на X11."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2456,18 +2416,27 @@ msgid ""
 "captions are ellipsized, and what needs to be bigger is the whole interface, "
 "which is Interface Scale."
 msgstr ""
+"Скала текста мења само величину текста. Скала интерфејса мења величину "
+"свега, укључујући графику, размаке и контроле, па је користите када су речи "
+"премале, а не када је цео интерфејс премали. Зауставља се на 150%: изнад те "
+"вредности већина наслова плочица се скраћује, а оно што треба да буде веће "
+"је цео интерфејс, односно Скала интерфејса."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Nothing renders smaller than this, whatever Text Size works out to. Raises "
 "the smallest labels without enlarging headings, which a percentage cannot do."
 msgstr ""
+"Ништа не приказује мање од овога, без обзира на величину текста. Повећава "
+"најмање етикете без увећања наслова, што проценат не може да уради."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
+"\"Default\" не мења ништа и оставља MPV-у (и вашем mpv.conf) да одлучи. "
+"Изаберите режим само ако шаљете аудио пријемнику."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2475,29 +2444,40 @@ msgid ""
 "surround fits down an optical cable. Turn this off if the encoder causes "
 "audio delay; those tracks become stereo instead."
 msgstr ""
+"Ако аудио који ваш пријемник не може директно да прими буде закодиран у AC3, "
+"једини начин да се сураунд пренесе кроз оптички кабл је да се то укључи. "
+"Искључите ово ако енкодер изазива кашњење звука; ти тракови ће тада постати "
+"стерео."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card."
-msgstr ""
+msgstr "\"hq\" нуди тежи профил. Изабери га ако имаш брзу графичку картицу."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
+"Оставите на \"Аутоматски\" осим ако видео не престане да ради када се учита "
+"профил. Ово важи само док је профил активан, а OpenGL вам може онемогућити "
+"HDR излаз."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "In pixels, before interface scaling. The A- and A+ buttons in the reader "
 "change this too."
 msgstr ""
+"У пикселима, пре скалирања интерфејса. Дугмад A- и A+ у читачу такође то "
+"мењају."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
 msgstr ""
+"Како се страница стрипа прилагођава прозору када га отворите. И сопствена "
+"дугмад читаоца такође то мењају."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2505,6 +2485,9 @@ msgid ""
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
+"Изједначава јаке звучне ефекте и тихи дијалог. Ово искључује пасструтх док "
+"је омогућено, јер се јачина звука мора подесити пре него што ваш ресивер "
+"прими аудио."
 
 # seeded from jellyfin-web: HeaderStatus
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2517,24 +2500,19 @@ msgid "Unplayed"
 msgstr "Нерепродуковано"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Played"
-msgstr "СинкПлеј"
+msgstr "Одиграно"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Favorites"
-msgstr "Уклоните сервер"
+msgstr "Омиљени"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Resumable"
-msgstr "Настави"
+msgstr "Може се наставити"
 
 # seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2545,9 +2523,8 @@ msgstr "Жанрови"
 
 # seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Years"
-msgstr "Година"
+msgstr "Године"
 
 # seeded from jellyfin-web: OptionParentalRating
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2562,13 +2539,11 @@ msgstr "Ознаке"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Audio Language"
-msgstr ""
+msgstr "Језик звука"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Language"
-msgstr "Величина титла: {0}"
+msgstr "Језик титла"
 
 # seeded from jellyfin-web: Features
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2576,28 +2551,24 @@ msgid "Features"
 msgstr "Могућности"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Has Subtitles"
-msgstr "Величина титла: {0}"
+msgstr "Има титлове"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Has Trailer"
-msgstr "Неуспешно"
+msgstr "Има приколицу"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr ""
+msgstr "Има посебне карактеристике"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "Има тему"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "Има видео тему"
 
 # seeded from jellyfin-web: HeaderVideoTypes
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2606,16 +2577,16 @@ msgstr "Типови видео датотека"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "SD"
-msgstr ""
+msgstr "СД"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 msgid "HD"
-msgstr ""
+msgstr "ХД"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4К"
 
 # seeded from jellyfin-web: Option3D
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2629,25 +2600,23 @@ msgstr "DVD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr ""
+msgstr "Блу-реј"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "ISO"
-msgstr ""
+msgstr "Међународна организација за стандартизацију"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Playlist"
-msgstr "Уклоните сервер"
+msgstr "Додај у плејлисту"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "Још нема плејлиста."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "Нови назив плејлисте…"
 
 # seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2656,13 +2625,11 @@ msgstr "Направи"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
-msgstr ""
+msgstr "Приватно (само ви то можете видети)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "Уклоните сервер"
+msgstr "Збирке…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2672,22 +2639,16 @@ msgid "Close"
 msgstr "Затвори"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Collection"
-msgstr "Уклоните сервер"
+msgstr "Додај у колекцију"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Уклоните сервер"
+msgstr "Још нема наплата."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Корисничко име: "
+msgstr "Ново име колекције…"
 
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2699,14 +2660,12 @@ msgid "Back"
 msgstr "Назад"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Unkn"
 msgid "Unknown"
 msgstr "Непознато"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No media information is available."
-msgstr ""
+msgstr "Нема доступних медијских информација."
 
 # seeded from jellyfin-web: MoreMediaInfo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2721,41 +2680,33 @@ msgid "OK"
 msgstr "У реду"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће проверити шта треба преузети."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "СВП Подешавања"
+msgstr "Процењивање…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%(count)d items · %(size)s"
-msgstr ""
+msgstr "%(count)d ставки · %(size)s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d already downloaded"
-msgstr ""
+msgstr "%d већ преузето"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
-msgstr ""
+msgstr "%d гледано"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "%d непознате величине"
 
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2765,19 +2716,19 @@ msgstr "Преузми"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
-msgstr ""
+msgstr "Укључи гледано"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Nothing left to download."
-msgstr ""
+msgstr "Ништа није остало за преузимање."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The download could not be started."
-msgstr ""
+msgstr "Преузимање није могло да се покрене."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
-msgstr ""
+msgstr "Ова библиотека не нуди филтере."
 
 # seeded from jellyfin-web: Filters
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2793,25 +2744,21 @@ msgid "%d items"
 msgstr "%d ставки"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Clear All"
-msgstr "СинкПлеј"
+msgstr "Избриши све"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
-msgstr ""
+msgstr "Готово"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Any"
-msgstr ""
+msgstr "Било који"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "Аутоматско пуштање"
+msgstr "Ауто"
 
 # seeded from jellyfin-web: Poster
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2820,13 +2767,11 @@ msgstr "Постер"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
-msgstr ""
+msgstr "Слика"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Banner"
-msgstr "Изађи и означи негледано"
+msgstr "Банер"
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2841,49 +2786,48 @@ msgstr "Диск"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Artwork"
-msgstr ""
+msgstr "Уметничко дело"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
+"\"Auto\" обликује плочице из саме уметничке дела, које обично излазе као "
+"постери. Изаберите \"Poster\" да бисте инсистирали на њима."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "Величина титла: {0}"
+msgstr "Приказивање наслова"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Show years"
-msgstr "Серије"
+msgstr "Прикажи године"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
-msgstr ""
+msgstr "Листа уместо мреже"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "These are stored on your server and shared with Jellyfin Web."
-msgstr ""
+msgstr "Они се чувају на вашем серверу и деле са Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr ""
+msgstr "Страницирано"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
 msgstr ""
+"Прикажи по једну страницу плочица одједном уместо прескакања. Важи за сваку "
+"библиотеку на овом уређају."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "View settings"
-msgstr "СВП Подешавања"
+msgstr "Подешавања приказа"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
@@ -2891,18 +2835,21 @@ msgid ""
 "shadows the ones whose own outline is white. Off puts the theme's card "
 "colour behind them instead, with no shadows."
 msgstr ""
+"Подравњује прозирне логотипе светлом плочом за коју су нацртани и баца сенку "
+"на оне чији је обрис бео. Off уместо тога поставља боју теме картице иза "
+"њих, без сенки."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
-msgstr ""
+msgstr "Obaveštenje"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
-msgstr ""
+msgstr "Копирање у међуспремник није доступно."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pasting from the clipboard is not available."
-msgstr ""
+msgstr "Укљепавање из међуспремника није доступно."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2910,14 +2857,16 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
+"Инсталирајте пакет \"%(package)s\" (на пример \"apt install %(package)s\"), "
+"или користите MPV 0.41 или новији."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Use MPV 0.41 or newer."
-msgstr ""
+msgstr "Користите MPV 0.41 или новији."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Clipboard"
-msgstr ""
+msgstr "Меморијска таблица"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2926,74 +2875,68 @@ msgid ""
 "shows you a number for — so there is nothing meaningful to set by hand. It "
 "is still read from the server and shown above."
 msgstr ""
+"%s бележи вашу позицију као читаоца е-књига, за коју вам ниједна апликација "
+"не приказује број — па нема ничег смисленог што бисте могли подесити ручно. "
+"Она се и даље чита са сервера и приказује горе."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%s stores no reading position."
-msgstr ""
+msgstr "%s не чува положај читања."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Reading Progress"
-msgstr "Отвори фасциклу за конфигурисање"
+msgstr "Напредак у читању"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr ""
+msgstr "Читање положаја…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr ""
+msgstr "Повуци"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr ""
+msgstr "Гурни"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be read."
-msgstr ""
+msgstr "Позиција није могла да се прочита."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Enter a number."
-msgstr "Промени титлове"
+msgstr "Унесите број."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Enter a page between 1 and %d."
-msgstr ""
+msgstr "Унесите страницу између 1 и %d."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Enter a page of 1 or more."
-msgstr ""
+msgstr "Унесите страницу од 1 или више."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading position saved."
-msgstr ""
+msgstr "Позиција читања сачувана."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be saved."
-msgstr ""
+msgstr "Позиција није могла да се сачува."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} се придружио/ла."
+msgstr "%s (придружио се)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "Нова група"
+msgstr "Група"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Нова група"
+msgstr "Нема активних група."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -3007,10 +2950,8 @@ msgid "Resume local playback"
 msgstr "Наставите локалну репродукцију"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Leave"
-msgstr "Нова група"
+msgstr "Отиђи"
 
 # seeded from jellyfin-web: Refresh
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -3020,56 +2961,28 @@ msgid "Refresh"
 msgstr "Освежи"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће придружити се групи SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће креирати групу SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће напустити групу SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not resume SyncPlay playback."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће наставити репродукцију SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Automatic"
 msgid "Automatic: Next Up"
-msgstr "Аутоматски"
+msgstr "Аутоматски: Следеће"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Automatic: Actively Watched"
-msgstr "Уклоните сервер"
+msgstr "Аутоматски: Активно праћено"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/svp_integration.py
@@ -3080,9 +2993,8 @@ msgstr "Аутоматски"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Audiobooks"
-msgstr "Звук"
+msgstr "Аудио књиге"
 
 # seeded from jellyfin-web: Books
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -3093,7 +3005,7 @@ msgstr "Књиге"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Ungrouped"
-msgstr ""
+msgstr "Негруписано"
 
 # seeded from jellyfin-web: Episodes
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -3111,50 +3023,46 @@ msgstr "Специјали"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Season %s"
-msgstr ""
+msgstr "Сезона %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Downloading %d%%"
-msgstr ""
+msgstr "Преузимање %d%%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading"
-msgstr "Уклоните сервер"
+msgstr "Преузимање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Queued"
-msgstr ""
+msgstr "У реду"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Failed"
 msgstr "Неуспешно"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlist"
-msgstr ""
+msgstr "Lista"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
-msgstr ""
+msgstr "Непозната серија"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Movies & Videos"
-msgstr ""
+msgstr "Филмови и видео снимци"
 
 #: jellyfin_mpv_shim/mpvtk_browser/gateway/playback.py
 msgid "Default (mpv decides)"
-msgstr ""
+msgstr "Подразумјевано (одлучује mpv)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No channels available."
-msgstr ""
+msgstr "Ниједан канал није доступан."
 
 # seeded from jellyfin-web: None
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
@@ -3182,9 +3090,8 @@ msgstr "Настави са слушањем"
 # seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Reading"
-msgstr "Настави гледање"
+msgstr "Настави са читањем"
 
 # seeded from jellyfin-web: NextUp
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
@@ -3208,13 +3115,11 @@ msgstr "Активна снимања"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Secondary…"
-msgstr ""
+msgstr "Секундарни…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Subtitle Track"
 msgid "Subtitle Track"
-msgstr "Одабир титлa"
+msgstr "Трака са титловима"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3222,25 +3127,21 @@ msgstr "Одабир титлa"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Chapter %d"
-msgstr ""
+msgstr "Поглавље %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Chapters"
-msgstr ""
+msgstr "Poglavlja"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Audio Track"
 msgid "Audio Track"
-msgstr "Одабир звучног записа"
+msgstr "Аудио снимак"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video Quality"
-msgstr "Промени квалитет снимка"
+msgstr "Квалитет видео-снимка"
 
 # seeded from jellyfin-web: PlaybackRate
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -3254,33 +3155,25 @@ msgstr "Однос страна"
 
 # seeded from jellyfin-web: MediaInfoInterlaced
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Deinterlace"
-msgstr "Преплетено"
+msgstr "Уклањање интерлајса"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Size"
-msgstr "Величина титла: {0}"
+msgstr "Величина поднаслова"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Position: {0}"
 msgid "Subtitle Position"
-msgstr "Позиција титла: {0}"
+msgstr "Позиција потписа"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Color: {0}"
 msgid "Subtitle Color"
-msgstr "Боја титла: {0}"
+msgstr "Боја Поднаслова"
 
 # seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Playback Info"
-msgstr "Репродукција"
+msgstr "Информације о репродукцији"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
@@ -3293,10 +3186,8 @@ msgid "Hardware acceleration"
 msgstr "Хардверско убрзање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video output"
-msgstr "Промени квалитет снимка"
+msgstr "Видео излаз"
 
 # seeded from jellyfin-web: LabelDroppedFrames
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3306,46 +3197,41 @@ msgstr "Испуштени оквири"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%(vo)d output, %(dec)d decoder"
-msgstr ""
+msgstr "%(vo)d излаз, %(dec)d декодер"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "A/V sync"
-msgstr ""
+msgstr "А/В синхронізација"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Buffered"
-msgstr ""
+msgstr "Буферисан"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f s"
-msgstr ""
+msgstr "%.1f с"
 
 # seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Download speed"
-msgstr "Преузимања"
+msgstr "Брзина преузимања"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Media Key Seek"
 msgid "Media type"
-msgstr "Медији тастер претраге"
+msgstr "Тип медија"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "downloaded copy"
-msgstr "Уклоните сервер"
+msgstr "преузета копија"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
-msgstr ""
+msgstr "локална датотека"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "stream from server"
-msgstr ""
+msgstr "стримовање са сервера"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3354,15 +3240,12 @@ msgstr "Метод плејера"
 
 # seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Reasons"
-msgstr "Сезоне"
+msgstr "Разлози"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Player"
-msgstr "СинкПлеј"
+msgstr "Играч"
 
 # seeded from jellyfin-web: File
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3371,7 +3254,7 @@ msgstr "Датотека"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Nothing is playing."
-msgstr ""
+msgstr "Ништа не свира."
 
 # seeded from jellyfin-web: Previous
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3382,25 +3265,21 @@ msgstr "Претходно"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "Успешно је додат сервер."
+msgstr "Претходно поглавље"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
-msgstr ""
+msgstr "Назад 10 секунди"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Forward 30 Seconds"
-msgstr ""
+msgstr "Премотај за 30 секунди"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Next page"
 msgid "Next chapter"
-msgstr "Следећа страница"
+msgstr "Следеће поглавље"
 
 # seeded from jellyfin-web: Next
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3423,21 +3302,17 @@ msgstr "Искључи звук"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "СВП Подешавања"
+msgstr "Подешавања"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Fullscreen"
 msgid "Fullscreen"
-msgstr "Аутоматски пун екран"
+msgstr "Цео екран"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Those items could not be added to the queue."
-msgstr ""
+msgstr "Те ставке нису могле бити додате у ред."
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3451,13 +3326,12 @@ msgstr "Снимање је заказано."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording could not be scheduled."
-msgstr ""
+msgstr "Запис не може бити заказан."
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Cancel recording?"
-msgstr "Прекини снимање"
+msgstr "Откажи снимање?"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3472,38 +3346,36 @@ msgstr "Прекини снимање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
-msgstr ""
+msgstr "Престати да снимам ову серију?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording cancelled."
-msgstr ""
+msgstr "Снимање серије отказано."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Configure Servers"
 msgid "Cancel Series"
-msgstr "Конфигуриши сервере"
+msgstr "Откажи серију"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording could not be cancelled."
-msgstr ""
+msgstr "Снимање није могло бити отказано."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording settings saved."
-msgstr ""
+msgstr "Подешавања снимања сачувана."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording settings could not be saved."
-msgstr ""
+msgstr "Подешавања снимања нису могла да се сачувају."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Избриши са диска"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3517,26 +3389,23 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s је избрисан."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s could not be deleted."
-msgstr ""
+msgstr "%s није могао да се обрише."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "Уклоните сервер"
+msgstr "Избришите преузету копију %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Download"
-msgstr "Уклоните сервер"
+msgstr "Избриши преузимање"
 
 # seeded from jellyfin-web: Delete
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3549,53 +3418,49 @@ msgstr "Обрисати"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
-msgstr ""
+msgstr "Преузимање није могло да се уклони."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "Отварање %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Nothing on this system could open %s."
-msgstr ""
+msgstr "Ништа на овом систему није могло да отвори %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s is already downloaded."
-msgstr ""
+msgstr "%s је већ преузето."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid ""
 "Your account is not allowed to download from this server, and a book can "
 "only be read by downloading it."
 msgstr ""
+"Вашем налогу није дозвољено да преузима са овог сервера, а књига се може "
+"читати само преузимањем."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s has not been downloaded."
-msgstr ""
+msgstr "%s није преузет."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "%s није могао да се преузме."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Downloading %s…"
-msgstr "Уклоните сервер"
+msgstr "Преузимање %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
-msgstr ""
+msgstr "Снимак није могао да се прочита."
 
 # seeded from jellyfin-web: HeaderSeriesOptions
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3604,10 +3469,8 @@ msgid "Series Options"
 msgstr "Опције серије"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (Транскодуј)"
+msgstr "Снимање"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3633,7 +3496,7 @@ msgstr "Не снимајте епизоде које су већ у мојој 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "Only %s"
-msgstr ""
+msgstr "Само %s"
 
 # seeded from jellyfin-web: OneChannel
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3664,13 +3527,12 @@ msgstr "Око %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Original air time"
-msgstr ""
+msgstr "Оригинално време емитовања"
 
 # seeded from jellyfin-web: LabelRuntimeMinutes
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Anytime"
-msgstr "Дужина трајања"
+msgstr "Било када"
 
 # seeded from jellyfin-web: LabelKeepUpTo
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3679,11 +3541,11 @@ msgstr "Наставите са"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Start early (minutes)"
-msgstr ""
+msgstr "Почните рано (минуте)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Stop late (minutes)"
-msgstr ""
+msgstr "Заустави касно (минуте)"
 
 # seeded from jellyfin-web: AsManyAsPossible
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3707,16 +3569,12 @@ msgid "Sort channels by"
 msgstr "Поређај канале по"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Channel number"
-msgstr "Промени титлове"
+msgstr "Број канала"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Recently watched"
-msgstr "Изађи и означи негледано"
+msgstr "Недавно гледано"
 
 # seeded from jellyfin-web: PlaceFavoriteChannelsAtBeginning
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3740,20 +3598,17 @@ msgstr "Категорије"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Guide Settings"
-msgstr "СВП Подешавања"
+msgstr "Подешавања водича"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Guide settings could not be saved."
-msgstr ""
+msgstr "Подешавања водича нису могла да се сачувају."
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "HD programs"
-msgstr "Програми"
+msgstr "HD програми"
 
 # seeded from jellyfin-web: LiveBroadcasts
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3762,9 +3617,8 @@ msgstr "Преноси уживо"
 
 # seeded from jellyfin-web: NewEpisodesOnly
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "New episodes"
-msgstr "Само нове епизоде"
+msgstr "Нове епизоде"
 
 # seeded from jellyfin-web: Premieres
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3773,9 +3627,8 @@ msgstr "Премијере"
 
 # seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Repeat episodes"
-msgstr "Све епизоде"
+msgstr "Поновљене епизоде"
 
 # seeded from jellyfin-web: Movies
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3825,60 +3678,47 @@ msgstr "Понови"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Scheduled"
-msgstr ""
+msgstr "Zakazano"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Timed out loading this item"
-msgstr ""
+msgstr "Истекло је време при учитавању овог елемента"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће репродуковати овај став"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid "No Transcode"
 msgid "Retry with Transcode"
-msgstr "Без транскодирања"
+msgstr "Поново покушати са транскодирањем"
 
 # seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat all"
-msgstr "Понови"
+msgstr "Понови све"
 
 # seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat one"
-msgstr "Понови"
+msgstr "Понови један"
 
 # seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat off"
-msgstr "Понови"
+msgstr "Поновити офф"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, python-format
 msgid "Back %d seconds"
-msgstr ""
+msgstr "Назад %d секунди"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play"
-msgstr "СинкПлеј"
+msgstr "Пусти"
 
 # seeded from jellyfin-web: ButtonPause
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3888,7 +3728,7 @@ msgstr "Пауза"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, python-format
 msgid "Forward %d seconds"
-msgstr ""
+msgstr "Напред %d секунди"
 
 # seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3898,37 +3738,27 @@ msgstr "Заустави"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from favorites"
-msgstr "Уклоните сервер"
+msgstr "Уклони из омиљених"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to favorites"
-msgstr "Уклоните сервер"
+msgstr "Додај у омиљене"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Volume"
-msgstr ""
+msgstr "Јачина"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not open that link."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће отворити тај линк."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d chapters"
-msgstr ""
+msgstr "%d поглавља"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3945,24 +3775,22 @@ msgstr "Поново покренути"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to play queue"
-msgstr "Уклоните сервер"
+msgstr "Додај у ред за репродукцију"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
-msgstr ""
+msgstr "Завршено"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Item not available."
-msgstr ""
+msgstr "Ставка није доступна."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%s in"
-msgstr ""
+msgstr "Од %s"
 
 # seeded from jellyfin-web: ButtonStart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3972,63 +3800,57 @@ msgstr "Покрени"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d pages"
-msgstr ""
+msgstr "%d страница"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "Учитај"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Open Externally"
-msgstr "Спољни"
+msgstr "Отвори споља"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading…"
-msgstr "Уклоните сервер"
+msgstr "Преузимање…"
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Progress…"
-msgstr "Програми"
+msgstr "Напредак…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing here."
-msgstr "Конфигурација сервера"
+msgstr "Ништа овде."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This comic could not be opened."
-msgstr ""
+msgstr "Овај стрип није могао да се отвори."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This page could not be read."
-msgstr ""
+msgstr "Ова страница није могла да се прочита."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "The download failed."
-msgstr ""
+msgstr "Преузимање је неуспело."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
-msgstr ""
+msgstr "Добијање стрипа…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
-msgstr ""
+msgstr "Удаљи"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "Зумирај"
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -4039,14 +3861,12 @@ msgstr "Више оваквих"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
-msgstr ""
+msgstr "Иди на серије"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "Неуспешно"
+msgstr "Трејлер"
 
 # seeded from jellyfin-web: HeaderScenes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -4056,7 +3876,7 @@ msgstr "Сцене"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
-msgstr ""
+msgstr "Верзија %d"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -4065,7 +3885,7 @@ msgstr "Верзија"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
+msgstr "Суб"
 
 # seeded from jellyfin-web: EndsAtValue
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -4075,16 +3895,16 @@ msgstr "Завршава се у %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
 msgid "Nothing is marked as a favourite yet."
-msgstr ""
+msgstr "Још ништа није обележено као омиљено."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/genres.py
 msgid "No genres to show for this library."
-msgstr ""
+msgstr "За ову библиотеку нема доступних жанрова."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Name"
-msgstr ""
+msgstr "Име"
 
 # seeded from jellyfin-web: OptionDateAdded
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -4102,10 +3922,8 @@ msgid "Community Rating"
 msgstr "Оцена заједнице"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Date Played"
-msgstr "Аутоматско пуштање"
+msgstr "Датум репродуковања"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -4119,9 +3937,8 @@ msgstr "Дужина трајања"
 
 # seeded from jellyfin-web: OptionCommunityRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Critics Rating"
-msgstr "Оцена заједнице"
+msgstr "Оцена критичара"
 
 # seeded from jellyfin-web: OptionRandom
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -4129,28 +3946,25 @@ msgid "Random"
 msgstr "Насумично"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Date Episode Added"
-msgstr "Датум додавања"
+msgstr "Датум додавања епизоде"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
-msgstr ""
+msgstr "Pogledaj"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Networks"
-msgstr ""
+msgstr "Мреже"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections"
-msgstr "Уклоните сервер"
+msgstr "Збирке"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "Filter (%d)"
-msgstr ""
+msgstr "Филтер (%d)"
 
 # seeded from jellyfin-web: Filter
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -4159,10 +3973,8 @@ msgstr "Филтер"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play All"
-msgstr "СинкПлеј"
+msgstr "Пусти све"
 
 # seeded from jellyfin-web: Shuffle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -4179,12 +3991,12 @@ msgstr "Сортирај"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "That view setting could not be saved."
-msgstr ""
+msgstr "То подешавање приказа није могло да се сачува."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to play."
-msgstr ""
+msgstr "Овде нема ничега за играње."
 
 # seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -4193,7 +4005,7 @@ msgstr "Библиотеке"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Nothing to show yet."
-msgstr ""
+msgstr "Још нема шта да се покаже."
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -4229,107 +4041,95 @@ msgstr "Серија"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No programs are listed right now."
-msgstr ""
+msgstr "Тренутно нису наведени никакви програми."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "Успешно је додат сервер."
+msgstr "Predhodni dan"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
-msgstr ""
+msgstr "Раније"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Later"
-msgstr ""
+msgstr "Касније"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Next Day"
-msgstr ""
+msgstr "Sledeći dan"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Now"
-msgstr ""
+msgstr "Sada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Channels %(from)d-%(to)d of %(total)d"
-msgstr ""
+msgstr "Канали %(from)d-%(to)d од %(total)d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "Успешно је додат сервер."
+msgstr "Претходни канали"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
-msgstr ""
+msgstr "Више канала"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No favorite channels yet."
-msgstr ""
+msgstr "Још нема омиљених канала."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "%d channels"
-msgstr ""
+msgstr "%d канала"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Latest Recordings"
-msgstr ""
+msgstr "Најновија снимања"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Recording Folders"
-msgstr "Отвори фасциклу за конфигурисање"
+msgstr "Папке за снимање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "Конфигурација сервера"
+msgstr "Још ништа није забележено."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
-msgstr ""
+msgstr "Ништа није заказано за снимање."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No series are set to record."
-msgstr ""
+msgstr "Ниједна серија није подешена за снимање."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Scheduled to record"
-msgstr ""
+msgstr "Закажено за снимање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording now"
-msgstr ""
+msgstr "Снимање сада"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording this series"
-msgstr ""
+msgstr "Снимање ове серије"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "This series is set to record, but this showing is not scheduled"
-msgstr ""
+msgstr "Ова серија је подешена за снимање, али ова емисија није заказана"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch"
-msgstr "Изађи и означи негледано"
+msgstr "Гледај"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch Channel"
-msgstr "Изађи и означи негледано"
+msgstr "Погледајте канал"
 
 # seeded from jellyfin-web: HeaderStopRecording
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -4351,25 +4151,21 @@ msgstr "Сними"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Record series"
-msgstr "Уклоните сервер"
+msgstr "Рекордне серије"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
-msgstr ""
+msgstr "За овај канал нису доступни подаци водича."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Showing the next %d programs."
-msgstr ""
+msgstr "Приказивање следећих %d програма."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Channel"
-msgstr "Изађи и означи негледано"
+msgstr "Канал"
 
 # seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
@@ -4381,25 +4177,22 @@ msgstr "Албуми"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
-msgstr ""
+msgstr "Слични извођачи"
 
 # seeded from jellyfin-web: HeaderInstantMix
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Instant mix"
 msgstr "Инстант микс"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "Одабир звучног записа"
+msgstr "%d траке"
 
 # seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Album artists"
-msgstr "Извођачи"
+msgstr "Извођачи албума"
 
 # seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -4416,14 +4209,8 @@ msgid "Songs"
 msgstr "Песме"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not start playback."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће покренути репродукцију."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -4433,15 +4220,15 @@ msgstr "Уреди"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
-msgstr ""
+msgstr "Ова плејлиста је празна."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
-msgstr ""
+msgstr "Ова плејлиста нема подржане типове медија."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Play Queue"
-msgstr ""
+msgstr "Ред за репродукцију"
 
 # seeded from jellyfin-web: Up
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4456,7 +4243,7 @@ msgstr "Доле"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
 msgid "%d selected"
-msgstr ""
+msgstr "%d изабрано"
 
 # seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4465,57 +4252,48 @@ msgstr "Изабери све"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Clear"
-msgstr ""
+msgstr "Очисти"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "To Playlist"
-msgstr "Уклоните сервер"
+msgstr "У плејлисту"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove"
-msgstr "Уклоните сервер"
+msgstr "Уклони"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue is empty."
-msgstr ""
+msgstr "Ред је празан."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Those items could not be removed."
-msgstr ""
+msgstr "Те ставке нису могле бити уклоњене."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue could not be reordered."
-msgstr ""
+msgstr "Ред није могао бити преуређен."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Корисничко име:"
+msgstr "Преименуј"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
-msgstr ""
+msgstr "Јавно"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Playlist"
-msgstr "Уклоните сервер"
+msgstr "Избриши плејлисту"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Уклоните сервер"
+msgstr "Избриши плејлисту %s?"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4530,106 +4308,92 @@ msgstr "Време"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
-msgstr ""
+msgstr "Плејлиста није могла да се преуреди."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be deleted."
-msgstr ""
+msgstr "Плејлиста није могла да се обрише."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid ""
 "Still reading this playlist's visibility from the server. Try again in a "
 "moment."
 msgstr ""
+"Још увек се чита видљивост ове плејлисте са сервера. Покушајте поново за "
+"тренутак."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "This book could not be opened."
-msgstr ""
+msgstr "Ову књигу није било могуће отворити."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
-msgstr ""
+msgstr "Копирај пасус"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
 msgid "Copy Page"
-msgstr "Копирај"
+msgstr "Копирај страницу"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
-msgstr ""
+msgstr "Копирао сам пасус."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the page."
-msgstr ""
+msgstr "Копирао сам страницу."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "There is nothing to copy."
-msgstr ""
+msgstr "Нема шта да се копира."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copying is not available."
-msgstr ""
+msgstr "Копирање није доступно."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy"
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће копирати"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "No clipboard available — saved to %s"
-msgstr ""
+msgstr "Копија-табла није доступна — сачувано у %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Contents"
-msgstr ""
+msgstr "Садржај"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Getting the book…"
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Добијање књиге…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "This book could not be drawn."
-msgstr ""
+msgstr "Ову књигу није било могуће нацртати."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
-msgstr ""
+msgstr "Мањи текст"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Large"
 msgid "Larger text"
-msgstr "Велике"
+msgstr "Већи текст"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
-msgstr ""
+msgstr "Боја странице"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
-msgstr ""
+msgstr "Унесите у поље за претрагу изнад."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Сервер:"
+msgstr "Резултати за \"%s\""
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4640,7 +4404,7 @@ msgstr "Серије"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Videos"
-msgstr ""
+msgstr "Видеоснимци"
 
 # seeded from jellyfin-web: People
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4649,7 +4413,7 @@ msgstr "Особе"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
-msgstr ""
+msgstr "На ТВ"
 
 # seeded from jellyfin-web: Other
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4663,7 +4427,7 @@ msgstr "Нема резултата."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 msgid "To Series"
-msgstr ""
+msgstr "У серију"
 
 # seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
@@ -4671,24 +4435,12 @@ msgid "Seasons"
 msgstr "Сезоне"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће учитати више ставки."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће учитати ову страницу."
 
 # seeded from jellyfin-web: HeaderOnNow
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -4697,39 +4449,37 @@ msgstr "Тренутно"
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "Последње"
+msgstr "Недавно додато у {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
-msgstr ""
+msgstr "Предстојеће епизоде"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Movies"
-msgstr ""
+msgstr "Наредни филмови"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Sports"
-msgstr ""
+msgstr "Предстојећи спортови"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Kids"
-msgstr ""
+msgstr "Наступајући дечији програми"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming News"
-msgstr ""
+msgstr "Предстојеће вести"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailers"
-msgstr "Неуспешно"
+msgstr "Трејлери"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
-msgstr ""
+msgstr "Преузето"
 
 # seeded from jellyfin-web: TypeOptionPluralSeries
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -4743,63 +4493,57 @@ msgstr "Листе"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
-msgstr ""
+msgstr "Преузети филмови"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Videos"
-msgstr ""
+msgstr "Преузети видео снимци"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Shows"
-msgstr ""
+msgstr "Преузете емисије"
 
 # seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Downloaded Books"
-msgstr "Преузимања"
+msgstr "Преузете књиге"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "Season %d"
-msgstr ""
+msgstr "Сезона %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Saved: %s"
-msgstr ""
+msgstr "Сачувано: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Invalid value: %s"
-msgstr ""
+msgstr "Неважећа вредност: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Saved: %(key)s (also turned off \"%(other)s\")"
-msgstr ""
+msgstr "Сачувано: %(key)s (такође искључено \"%(other)s\")"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
-msgstr ""
+msgstr "Још ништа није преузето."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Remove Watched"
-msgstr "Изађи и означи негледано"
+msgstr "Уклонити праћено"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "watched"
-msgstr "Изађи и означи негледано"
+msgstr "гледао"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Уклоните сервер"
+msgstr "Избришите праћене преузимања у %s?"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -4818,140 +4562,147 @@ msgid ""
 "Hardware Decoding is the exception: set hwdec there and this app leaves it "
 "alone."
 msgstr ""
+"Напредне MPV опције се налазе у mpv.conf, у овом фолдеру. MPV их чита при "
+"покретању и ове поставке се примењују након тога, па већина њих прекорачује "
+"оригиналне поставке. Хардверско декодирање је изузетак: тамо подесите hwdec "
+"и ова апликација их неће мењати."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid "Require this PIN at startup"
 msgid "Requires restart"
-msgstr "Тражи овај ПИН при покретању"
+msgstr "Потребан је поновно покретање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "No settings match \"%s\"."
-msgstr ""
+msgstr "Нема подешавања која одговарају \"%s\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
 "Only the General, Browse and Playback tabs are searched. Some settings are "
 "hidden until the setting they depend on is turned on."
 msgstr ""
+"Претражују се само картице Опште, Прегледање и Пуштање. Нека подешавања су "
+"скривена док не буде укључено подешавање од које зависе."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Matches: %d. Pick a tab above to stop searching."
-msgstr ""
+msgstr "Утакмице: %d. Изаберите картицу изнад да бисте прекинули претрагу."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
-msgstr ""
+msgstr "Помери"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
 "To stop the application, re-launch and uncheck this option or run `jellyfin-"
 "mpv-shim stop`."
 msgstr ""
+"Да бисте зауставили апликацију, поново покрените апликацију и уклоните "
+"ознаку са ове опције или покрените `jellyfin-mpv-shim stop`."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
 "Not active: the \"pypresence\" package is missing or failed to load. Install "
 "it and restart. (Details in the Logs tab.)"
 msgstr ""
+"Није активно: пакет \"pypresence\" недостаје или се није успео учитати. "
+"Инсталирајте га и поново покрените. (Детаљи у картици \"Логс\".)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Pinned by config: your mpv.conf sets hwdec=%s, which overrides this."
 msgstr ""
+"Наведено у конфигурацији: ваш mpv.conf поставља hwdec=%s, што ово "
+"прекорачује."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Applies to %s, enable other servers in servers tab."
-msgstr ""
+msgstr "Примењује се на %s, омогућите друге сервере у картици \"Сервери\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
-msgstr ""
+msgstr "Померите преузимања назад у подразумевану фасциклу?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the default folder"
-msgstr ""
+msgstr "Користите подразумевану фасциклу"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Moving downloads… %d%%"
-msgstr ""
+msgstr "Пренос преузимања… %d%%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving the downloads failed."
-msgstr ""
+msgstr "Пренос преузимања је неуспео."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Download folder moved. Restart to finish switching."
 msgstr ""
+"Преузету фасциклу је премештено. Поново покрените да бисте довршили "
+"пребацивање."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving downloads…"
-msgstr ""
+msgstr "Пренос преузимања…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "A move is already in progress."
-msgstr ""
+msgstr "Померање је већ у току."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Nothing downloaded to browse offline."
-msgstr ""
+msgstr "Ништа није преузето за прегледање ван мреже."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће да се успостави веза са сервером."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
-msgstr ""
+msgstr "Početni ekran"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Connect to a server to change the home screen sections."
-msgstr ""
+msgstr "Повежите се на сервер да бисте променили одељке почетног екрана."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These settings could not be loaded from your server."
-msgstr ""
+msgstr "Ове поставке нису могле да се учитају са вашег сервера."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Try Again"
-msgstr ""
+msgstr "Покушај поново"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These settings are stored on your server and shared with Jellyfin Web."
-msgstr ""
+msgstr "Ова подешавања се чувају на вашем серверу и деле са Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Sections"
-msgstr "Уклоните сервер"
+msgstr "Sekcije"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
 msgstr ""
+"Редове које почетни екран приказује, по редоследу. Одељци које ова "
+"апликација не може да прикаже остављени су онако како их је поставио ваш веб "
+"клијент."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Set to “%s” in Jellyfin Web, which this app does not display."
-msgstr ""
+msgstr "Подешено на \"%s\" у Jellyfin Web-у, што ова апликација не приказује."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Section %d"
-msgstr ""
+msgstr "Одјељак %d"
 
 # seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -4963,44 +4714,29 @@ msgid ""
 "Off by default: the show's artwork is used instead, because an episode image "
 "can spoil the episode you have not watched yet."
 msgstr ""
+"По подразумеваном подешавању искључено: уместо тога се користи уметничка "
+"илустрација серије, јер слика епизоде може открити спојлер за епизоду коју "
+"још нисте гледали."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen settings."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће учитати подешавања почетног екрана."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen settings saved."
-msgstr ""
+msgstr "Подешавања почетног екрана сачувана."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen settings."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће сачувати подешавања почетног екрана."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr ""
+msgstr "Сачуван је распоред почетног екрана."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"Додавање сервера није успело.\n"
-"Молимо проверите податке о вези."
+msgstr "Није могуће сачувати распоред почетног екрана."
 
 # seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -5013,21 +4749,17 @@ msgid "Browse"
 msgstr "Преглед"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "УРЛ сервера: "
+msgstr "Сервери и корисници"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Logs"
-msgstr ""
+msgstr "Логови"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Search settings…"
-msgstr "СВП Подешавања"
+msgstr "Подешавања претраге…"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -5036,75 +4768,62 @@ msgstr "Копирај"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
-msgstr ""
+msgstr "Још није записан ниједан лог."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
-msgstr ""
+msgstr "Још нема шта да се копира."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "Copied %d log lines."
-msgstr ""
+msgstr "Копирано %d редака из лога."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Корисничко име: "
+msgstr "Ново корисничко име…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Add Server"
 msgid "Add User"
-msgstr "Додај сервер"
+msgstr "Додај корисника"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Конфигурација сервера"
+msgstr "Још нису конфигурисани сервери."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Корисничко име:"
+msgstr "Korisnici"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
+"Сваки корисник има свој сервер и идентитет уређаја; закључани корисник треба "
+"ПИН да би се пребацио на њега."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Сервер:"
+msgstr "Сервери за %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Сервер:"
+msgstr "Сервери"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Change Audio"
 msgid "Change PIN"
-msgstr "Промени звук"
+msgstr "Промени ПИН"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Сервер:"
+msgstr "Постави ПИН"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Delete user %s and its saved logins?"
-msgstr ""
+msgstr "Избришите корисника %s и његова сачувана пријављивања?"
 
 # seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -5113,25 +4832,24 @@ msgstr "Избриши корисника"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
-msgstr ""
+msgstr "aktivan"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Connected"
-msgstr ""
+msgstr "Повезано"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Offline"
-msgstr ""
+msgstr "Неактиван"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Auto-download"
-msgstr ""
+msgstr "Аутоматско преузимање"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "Уклоните сервер"
+msgstr "Уклоните %s и сачувано пријављивање?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -5139,19 +4857,19 @@ msgstr "Уклоните сервер"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "The server could not be removed."
-msgstr ""
+msgstr "Сервер није могао да се уклони."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be added."
-msgstr ""
+msgstr "Тај корисник није могао бити додатан."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Rename User"
-msgstr ""
+msgstr "Промени име корисника"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be renamed."
-msgstr ""
+msgstr "Тај корисник није могао бити преименован."
 
 # seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -5160,7 +4878,7 @@ msgstr "Година"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"
-msgstr ""
+msgstr "Дужина"
 
 # seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -5179,71 +4897,59 @@ msgstr "Репродукуј од почетка"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Play next"
-msgstr "Број репродукција"
+msgstr "Пусти следеће"
 
 # seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Mark unplayed"
-msgstr "Нерепродуковано"
+msgstr "Ознака нерешена"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark played"
-msgstr "Изађи и означи негледано"
+msgstr "Марк је играо"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to playlist"
-msgstr "Уклоните сервер"
+msgstr "Додај у плејлисту"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from playlist"
-msgstr "Уклоните сервер"
+msgstr "Уклони са плејлисте"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from collection"
-msgstr "Уклоните сервер"
+msgstr "Уклони из колекције"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "Уклоните сервер"
+msgstr "Уклонити %s са ове плејлисте?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "Уклоните сервер"
+msgstr "Уклонити %s из ове колекције?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
-msgstr ""
+msgstr "Овде нема ничега за чекање у реду."
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 #, python-brace-format
 msgctxt "12-hour clock"
 msgid "{time} {period}"
-msgstr ""
+msgstr "{time} {period}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "AM"
-msgstr ""
+msgstr "PREPODNE"
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "PM"
-msgstr ""
+msgstr "POPODNE"
 
 # seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
@@ -5253,7 +4959,7 @@ msgstr "Тражи"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Minimize"
-msgstr ""
+msgstr "Минимизирај"
 
 # seeded from jellyfin-web: LabelRestore
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -5261,14 +4967,12 @@ msgid "Restore"
 msgstr "Врати"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Maximum"
 msgid "Maximize"
-msgstr "Максимално"
+msgstr "Максимизирај"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "Промени величину"
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -5276,53 +4980,48 @@ msgid "Home"
 msgstr "Почетна"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Сервер:"
+msgstr "Сервер"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Корисничко име:"
+msgstr "Корисник"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
-msgstr ""
+msgstr "Претражите…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Restart to apply: %s"
-msgstr ""
+msgstr "Поново применити: %s"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Restart Now"
-msgstr "Поново покренути"
+msgstr "Поново покрени сада"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "Restart banner"
 msgid "Later"
-msgstr ""
+msgstr "Касније"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s"
-msgstr ""
+msgstr "Доступно ажурирање: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Open"
-msgstr ""
+msgstr "Отворено"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Dismiss"
-msgstr ""
+msgstr "Одбаци"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "Офлајн — приказује шта је доступно."
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py jellyfin_mpv_shim/tray.py
 msgid "Configure Servers"
@@ -5331,44 +5030,40 @@ msgstr "Конфигуриши сервере"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr ""
+msgstr "Преузимање %(name)s — %(n)d преостало"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading — %(n)d remaining"
-msgstr ""
+msgstr "Преузимање — %(n)d преостало"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
-msgstr ""
+msgstr "Прикажи преузимања"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr ""
+msgstr "nepoznato"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
-msgstr ""
+msgstr "Подаци о репродукцији"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Транскодуј)"
+msgstr "Транскодовање"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 msgid "Use the default"
-msgstr ""
+msgstr "Користи подрезумевано"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay омогућен."
+msgstr "SyncPlay омогућен"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
-msgstr ""
+msgstr "Молим вас, чекајте, учитавање..."
 
 #: jellyfin_mpv_shim/player.py
 msgid ""
@@ -5381,7 +5076,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
+msgstr "Следећа епизода није преузета."
 
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
@@ -5414,52 +5109,64 @@ msgstr "Омогући SVP"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "The downloads are already in that folder."
-msgstr ""
+msgstr "Преузимања су већ у тој фасцикли."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"Не можете да промените фасциклу за преузимање док је преузимање у току. "
+"Сачекајте да се заврши, па покушајте поново."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "That folder is inside the current download folder. Choose one outside it."
 msgstr ""
+"Тај фасцикл се налази у тренутној фасцикли за преузимање. Изаберите неку "
+"фасциклу ван ње."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't read that folder. Check the path and its permissions."
-msgstr ""
+msgstr "Не може да се отвори тај фасцикл. Проверите путању и овлашћења."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
-msgstr ""
+msgstr "Та фасцикла већ садржи преузимања. Изаберите празну фасциклу."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
+"Тај фолдер није празан. Изаберите празан фолдер — фолдер за преузимања "
+"управља ова апликација и све остало у њему може бити премештено или уклоњено."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
-msgstr ""
+msgstr "Не може да се креира тај фасцикл. Проверите путању и његова овлашћења."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
 msgstr ""
+"Преузимање се још увек завршава. Сачекајте да се заустави, па покушајте "
+"поново."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
 msgstr ""
+"На том диску нема довољно простора да се преместе преузимања. Ослободите "
+"мало простора и покушајте поново — ништа није премештено."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"Премештање преузимања је неуспело. Остала су на месту; фасцикла за "
+"преузимања није промењена."
 
 #: jellyfin_mpv_shim/syncplay.py
 msgid "The specified SyncPlay group does not exist."
@@ -5478,10 +5185,9 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "Приступ SyncPlay библиотеци је одбијен."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0}'s Group"
+#, python-brace-format
 msgid "{0}'s group"
-msgstr "{0} група"
+msgstr "Група {0}"
 
 #: jellyfin_mpv_shim/syncplay.py
 #, python-brace-format
@@ -5516,10 +5222,9 @@ msgid "{0} has left."
 msgstr "{0} је отишао/ла."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} баферује."
+msgstr "{0} баферира…"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
@@ -5527,16 +5232,22 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"GNOME сам по себи не приказује системску траку. Инсталирајте екстензију "
+"\"AppIndicator and KStatusNotifierItem Support\" да бисте је добили, или "
+"укључите опцију \"Allow Background\" у Подешавањима како бисте га покретали "
+"без прозора."
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
+"На овом десктопу није покренута ни једна трака система. Укључите \"Дозволи у "
+"позадини\" у Подешавања да бисте могли да покрећете без прозора."
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr ""
+msgstr "Прикажи прегледач библиотеке"
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Console"
@@ -5557,23 +5268,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
-msgstr ""
+msgstr "(подразумевано)"
 
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Novi korisnik"
 
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Пре него што обришете овог корисника, пређите на другог корисника."
 
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Потребан је барем један корисник."
 
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "Корисник није пронађен."
 
 #: jellyfin_mpv_shim/utils.py
 msgid "Unkn"
@@ -5617,40 +5328,37 @@ msgstr "Anime4K x2 Perceptual + Deblur (за HD)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN (Denoise + Sharpen)"
-msgstr ""
+msgstr "ArtCNN (уклањање шума + оштрење)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN High (C4F32)"
-msgstr ""
+msgstr "ArtCNN Високо (C4F32)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Default (all media)"
-msgstr ""
+msgstr "Стандардно (сви медији)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "Ова библиотека"
 
 # seeded from jellyfin-web: Series
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
 msgid "This Series"
-msgstr "Серија"
+msgstr "Ова серија"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "Није подешено"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr ""
+msgstr "{0} <-- у ствари"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Video Playback Profile"
-msgstr "Профил репродукције снимка"
+msgstr "Профил за репродукцију видео записа"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
@@ -5672,12 +5380,10 @@ msgctxt "guide badge"
 msgid "Repeat"
 msgstr "Понови"
 
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "Потврди"
 
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "Потврди"
@@ -5686,19 +5392,17 @@ msgctxt "subtitle position"
 msgid "Top"
 msgstr "Горе"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Top"
-msgstr "Горе"
+msgstr "Врх"
 
 msgctxt "subtitle position"
 msgid "Bottom"
 msgstr "Доле"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
-msgstr "Доле"
+msgstr "Дно"
 
 #, fuzzy
 #~| msgid ""
