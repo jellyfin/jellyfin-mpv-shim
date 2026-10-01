@@ -34,4 +34,29 @@ if [ -n "$MPV_APP" ] && [ -d "$MPV_APP" ]; then
     chmod +x "${APP_PATH}/Contents/MacOS/mpv"
 fi
 
+# Bundle MoltenVK if available on build host
+MOLTENVK_LIB=""
+if [ -f "/opt/homebrew/lib/libMoltenVK.dylib" ]; then
+    MOLTENVK_LIB="/opt/homebrew/lib/libMoltenVK.dylib"
+elif [ -f "/usr/local/lib/libMoltenVK.dylib" ]; then
+    MOLTENVK_LIB="/usr/local/lib/libMoltenVK.dylib"
+fi
+
+if [ -n "$MOLTENVK_LIB" ]; then
+    echo "Bundling MoltenVK from ${MOLTENVK_LIB}..."
+    mkdir -p "${APP_PATH}/Contents/MacOS/lib"
+    cp "${MOLTENVK_LIB}" "${APP_PATH}/Contents/MacOS/lib/libMoltenVK.dylib"
+    mkdir -p "${APP_PATH}/Contents/Resources/vulkan/icd.d"
+    cat << 'EOF' > "${APP_PATH}/Contents/Resources/vulkan/icd.d/MoltenVK_icd.json"
+{
+    "file_format_version": "1.0.0",
+    "ICD": {
+        "library_path": "../../../MacOS/lib/libMoltenVK.dylib",
+        "api_version": "1.4.0",
+        "is_portability_driver": true
+    }
+}
+EOF
+fi
+
 codesign --force --deep --sign - "${APP_PATH}"

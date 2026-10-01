@@ -395,6 +395,7 @@ jobs:
         tar -xzf mpv-arm64.tar.gz -C mpv-bundle
     - name: Install dependencies
       run: |
+        brew install molten-vk
         pip install wheel pyinstaller
         pip install '.[all]'
         ./gen_pkg.sh --skip-build

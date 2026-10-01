@@ -30,7 +30,7 @@ from . import conffile
 import threading
 
 from .utils import (same_origin, synchronous, Timer, get_resource,
-                    item_is_audio)
+                    item_is_audio, configure_macos_vulkan)
 from .media import segment_labels
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
@@ -126,6 +126,9 @@ def _disarm_sdl_signal_handlers():
                 os.environ["SDL_NO_SIGNAL_HANDLERS"])
         return
     os.environ["SDL_NO_SIGNAL_HANDLERS"] = "1"
+
+
+configure_macos_vulkan()
 
 
 def _rejected_option(error):
@@ -960,6 +963,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # dict: mpv reads `input-gamepad` from the user's own mpv.conf too,
         # where we cannot see it. See the function.
         _disarm_sdl_signal_handlers()
+        configure_macos_vulkan()
 
         dropped_gamepad = False
         dropped_osc = False
