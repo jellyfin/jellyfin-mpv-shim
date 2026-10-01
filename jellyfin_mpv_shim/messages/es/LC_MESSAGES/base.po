@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-21 00:20+0000\n"
-"Last-Translator: Arnau Balanzá Guerra <arnau.balanza.guerra@gmail.com>\n"
+"PO-Revision-Date: 2026-10-01 12:57+0000\n"
+"Last-Translator: Antonio Toledo <atoledozambrana@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -1369,10 +1369,8 @@ msgid "Clip (no tone mapping)"
 msgstr "Extracto (Sin mapeo de tonos)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "MPV built-in default"
 msgid "MPV default"
-msgstr "Configuración por defecto de MPV"
+msgstr "MPV por defecto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "High quality"
