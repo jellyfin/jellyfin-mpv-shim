@@ -407,7 +407,10 @@ jobs:
         ./build-mac-arm64.sh
     - name: Verify the output is ARM64
       run: |
-        python tools/check_mac_arch.py --skip-interpreter "dist/Jellyfin MPV Shim.app/Contents/MacOS/Jellyfin MPV Shim" "dist/Jellyfin MPV Shim.app/Contents/MacOS/mpv"
+        python tools/check_mac_arch.py --skip-interpreter \
+          "dist/Jellyfin MPV Shim.app/Contents/MacOS/Jellyfin MPV Shim" \
+          "dist/Jellyfin MPV Shim.app/Contents/MacOS/mpv" \
+          "dist/Jellyfin MPV Shim.app/Contents/MacOS/lib/libMoltenVK.dylib"
     - name: Artifact Rename
       run: |
         ./artifacts.sh macos-arm64

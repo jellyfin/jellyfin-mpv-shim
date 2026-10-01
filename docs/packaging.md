@@ -248,15 +248,17 @@ Build with `./build-mac-arm64.sh` after `./gen_pkg.sh --skip-build`.
 
 The build produces a self-contained application bundle `dist/Jellyfin MPV Shim.app`
 and bundles an ARM64 `mpv` binary along with its dynamic libraries (from the
-official pinned stolendata standalone mpv release).
+official pinned stolendata standalone mpv release) as well as `libMoltenVK.dylib`
+and its ICD manifest so hardware-accelerated Vulkan / `gpu-next` works out-of-the-box
+without requiring Homebrew or separate driver installations.
 
 `./artifacts.sh macos-arm64` generates both:
 - `publish/macOS/jellyfin-mpv-shim_<version>_macOS_arm64.dmg`
 - `publish/macOS/jellyfin-mpv-shim_<version>_macOS_arm64.tar.gz`
 
 `tools/check_mac_arch.py` validates that the Python interpreter, the bundled
-mpv binary, and the compiled executable are all native ARM64 binaries to guard
-against silent architecture fallback under Rosetta emulation.
+mpv binary, the MoltenVK driver library, and the compiled executable are all native
+ARM64 binaries to guard against silent architecture fallback under Rosetta emulation.
 
 ## 5. Version spelling
 

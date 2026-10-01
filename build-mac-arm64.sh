@@ -34,18 +34,28 @@ if [ -n "$MPV_APP" ] && [ -d "$MPV_APP" ]; then
     chmod +x "${APP_PATH}/Contents/MacOS/mpv"
 fi
 
-# Bundle MoltenVK if available on build host
+# Bundle MoltenVK driver
 MOLTENVK_LIB=""
-if [ -f "/opt/homebrew/lib/libMoltenVK.dylib" ]; then
-    MOLTENVK_LIB="/opt/homebrew/lib/libMoltenVK.dylib"
-elif [ -f "/usr/local/lib/libMoltenVK.dylib" ]; then
-    MOLTENVK_LIB="/usr/local/lib/libMoltenVK.dylib"
+if command -v brew >/dev/null 2>&1; then
+    BREW_PREFIX=$(brew --prefix molten-vk 2>/dev/null || true)
+    if [ -n "$BREW_PREFIX" ] && [ -f "${BREW_PREFIX}/lib/libMoltenVK.dylib" ]; then
+        MOLTENVK_LIB="${BREW_PREFIX}/lib/libMoltenVK.dylib"
+    fi
+fi
+if [ -z "$MOLTENVK_LIB" ]; then
+    if [ -f "/opt/homebrew/lib/libMoltenVK.dylib" ]; then
+        MOLTENVK_LIB="/opt/homebrew/lib/libMoltenVK.dylib"
+    elif [ -f "/usr/local/lib/libMoltenVK.dylib" ]; then
+        MOLTENVK_LIB="/usr/local/lib/libMoltenVK.dylib"
+    fi
 fi
 
-if [ -n "$MOLTENVK_LIB" ]; then
-    echo "Bundling MoltenVK from ${MOLTENVK_LIB}..."
+if [ -n "$MOLTENVK_LIB" ] && [ -f "$MOLTENVK_LIB" ]; then
+    echo "Bundling MoltenVK driver from ${MOLTENVK_LIB} into ${APP_PATH}..."
     mkdir -p "${APP_PATH}/Contents/MacOS/lib"
     cp "${MOLTENVK_LIB}" "${APP_PATH}/Contents/MacOS/lib/libMoltenVK.dylib"
+    chmod 755 "${APP_PATH}/Contents/MacOS/lib/libMoltenVK.dylib"
+    install_name_tool -id "@rpath/libMoltenVK.dylib" "${APP_PATH}/Contents/MacOS/lib/libMoltenVK.dylib" 2>/dev/null || true
     mkdir -p "${APP_PATH}/Contents/Resources/vulkan/icd.d"
     cat << 'EOF' > "${APP_PATH}/Contents/Resources/vulkan/icd.d/MoltenVK_icd.json"
 {
@@ -57,6 +67,9 @@ if [ -n "$MOLTENVK_LIB" ]; then
     }
 }
 EOF
+else
+    echo "ERROR: MoltenVK driver not found. Install molten-vk (e.g. brew install molten-vk) to build self-contained macOS bundle." >&2
+    exit 1
 fi
 
 codesign --force --deep --sign - "${APP_PATH}"
