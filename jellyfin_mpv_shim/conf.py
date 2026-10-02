@@ -400,16 +400,35 @@ class Settings(SettingsBase):
     # lookahead window, keep_days reclaims a show that was abandoned midway.
     # keep_days = 0 means never expire on age alone.
     auto_download_delete_watched: bool = True
+    # How long a watched auto-download is kept anyway, in hours. 0 is the
+    # old behaviour (gone on the first pass after it is finished). It buys
+    # back the two cases deleting immediately gets wrong: somebody else in
+    # the house has not seen it yet, and "play it again" a few hours later
+    # otherwise means re-downloading the whole episode. Hours rather than
+    # days because the useful values span both -- 12 and 168 are the same
+    # setting -- and only hours can say the first.
+    #
+    # Retention only. The size cap still evicts a watched item inside its
+    # window, or a full budget would stop auto-download for the length of
+    # the window; see docs/offline-sync.md section 4. That is also true at
+    # *exactly* the cap, which is where a capped store settles, and
+    # `auto.reap` is where it is spelt.
+    #
+    # A day rather than nothing, because the reaper no longer asks the server
+    # whether a row is watched: it reads what the last sweep wrote, and with
+    # no server to sweep from there is nothing else holding a file back.
+    # Free to change because the setting has never shipped -- it
+    # was added inside this same branch.
+    auto_download_keep_watched_hours: int = 24
     auto_download_keep_days: int = 30
     auto_download_interval_mins: int = 60
-    # Which servers the scheduler may pull from, as a comma-separated list of
-    # server uuids. Empty means NONE, not all: a logged-in server may be a
-    # friend's, and pointing unattended downloads at someone else's hardware
-    # is a rude thing to do by default. Switching auto-download on seeds this
-    # with the server you were looking at when you did it, which is the one
-    # you meant; every other server — and every other local user, whose
-    # servers have different uuids — stays off until ticked in the Servers
-    # tab.
+    # LEGACY, and read exactly once: `users.UserManager` adopts this list at
+    # load and clears it (`_adopt_legacy_auto_download`). The allow-list is
+    # per profile and keyed on the **account** now, in users.json -- R14, and
+    # the reason is that one server answering at two addresses is two login
+    # uuids and one account, so a uuid list silently stopped applying
+    # whenever the other address won the connect race. Do not add a reader:
+    # on any install that has launched once this is already None.
     auto_download_servers: Optional[str] = None
     media_key_seek: bool = False
     # The mouse's back/forward buttons jump a chapter during playback.

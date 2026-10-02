@@ -166,6 +166,10 @@ class RouteWalkTest(unittest.TestCase):
         self.trap = _LogTrap()
         root = logging.getLogger()
         root.addHandler(self.trap)
+        # See `Session.register_source_login`: the reader screen asks the
+        # catalog a *scoped* question, and a browser on a server the registry
+        # has never heard of is a state production cannot be in.
+        self.session.register_source_login(self)
         self.addCleanup(root.removeHandler, self.trap)
         self.browser = self._browser_cls(
             app=None, source=self.source, server_uuid=_e2e.SOURCE_UUID)

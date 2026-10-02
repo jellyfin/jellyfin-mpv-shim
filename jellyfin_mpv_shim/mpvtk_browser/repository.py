@@ -23,9 +23,13 @@ from jellyfin_apiclient_python import JellyfinClient
 
 from .. import items_api
 from ..books import AUDIOBOOK_TYPE, BOOK_TYPE
-from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
+from ..constants import (offline_playlist_id, split_offline_playlist_id,
+                         USER_APP_NAME, CLIENT_VERSION, USER_AGENT,
+                         OFFLINE_SERVER_UUID)
 from ..i18n import _
-from ..sync.db import SyncDB, STATUS_COMPLETE
+from ..sync.db import (NO_ACTOR, STORE_DIR, SyncDB, STATUS_COMPLETE,
+                       filing_state, playlist_art_dir, season_art_dir,
+                       series_art_dir)
 from . import home_sections
 from . import live_tv
 from . import user_prefs
@@ -536,7 +540,13 @@ class LibrarySource:
     # -- server enumeration ------------------------------------------------
 
     def servers(self):
-        return [{"uuid": uuid, "name": self._conns[uuid].name} for uuid in self._order]
+        # `address` because the switcher marks each entry by where the
+        # server is (components.server_icon). The top bar falls back to this
+        # list when the gateway cannot answer, and an entry without an
+        # address would be drawn as a remote server whatever it really is.
+        return [{"uuid": uuid, "name": self._conns[uuid].name,
+                 "address": self._conns[uuid].address}
+                for uuid in self._order]
 
     def auth_origins(self):
         """``{(scheme, host, port): authorization-header}`` for every server
@@ -2873,18 +2883,38 @@ class _OfflineSnapshot:
     (safe: values are deterministic for the snapshot, so a racing double
     compute is idempotent)."""
 
-    def __init__(self, rows=None, items=None, series_server=None,
-                 season_server=None, season_series=None, playlists=None,
-                 playlist_items=None, playlist_server=None,
-                 books=None, book_items=None):
+    def __init__(self, rows=None, items=None, series_ids=None,
+                 season_ids=None, season_series=None, playlists=None,
+                 playlist_items=None, playlist_server=None, orphans=None,
+                 books=None, book_items=None, userdata=None, actors=None):
         self.rows = rows or {}
+        #: (item_id, server_id, user_id) -> that person's watched state.
+        #: Read once per reload rather than per row: the overlay runs for
+        #: every tile drawn, and a point query each would be a round trip
+        #: per tile.
+        self.userdata = userdata or {}
+        #: Jellyfin ServerId -> the browsing person's account on it. Fixed
+        #: for the life of a snapshot, like everything else here.
+        self.actors = actors or {}
         self.items = items or []
-        self.series_server = series_server or {}
-        self.season_server = season_server or {}
+        #: Ids of series and seasons the downloads imply, as **sets**. They
+        #: were dicts of id -> `downloads.server_id` until 3.0.0 (CX8), and
+        #: that value was NULL on every row -- so what they always were was
+        #: membership plus a scope nobody had. The cached artwork under
+        #: `<root>/server/series/<id>/` is not content scoped; see
+        #: `SyncManager._download_series_art`.
+        self.series_ids = set(series_ids or ())
+        self.season_ids = set(season_ids or ())
         self.season_series = season_series or {}
         self.playlists = playlists or []
         self.playlist_items = playlist_items or {}
         self.playlist_server = playlist_server or {}
+        #: Item ids of downloads whose **content server is unknown**. Their
+        #: manifest named none and could not be read, so nothing can show
+        #: whose content they are. They are listed under their own library
+        #: rather than mixed into Movies or TV, because a scoped read no
+        #: longer answers for them at all -- see `SyncDB._content_clause`.
+        self.orphans = orphans or set()
         #: The top level of the offline books library: every downloaded
         #: `Book`, plus one synthesized container per multi-file audiobook.
         self.books = books or []
@@ -2918,8 +2948,22 @@ class OfflineLibrarySource:
     #: filter. What goes is the panel.
     supported_filters = frozenset()
 
-    def __init__(self, catalog_path):
+    def __init__(self, catalog_path, actor_on=None, server_name=None):
+        """``actor_on(server_id)`` names the person browsing, per Jellyfin
+        server -- ``UserManager.actor_on``. ``server_name(server_id)`` names
+        the *server*, for telling two same-named playlists apart --
+        ``UserManager.server_name_for``.
+
+        Injected rather than imported: which local profile is at the
+        keyboard, and what its servers are called, is the credential layer's
+        business, and this class is already reached through the gateway.
+        Without the first every row overlays the unattributed state, which is
+        what a machine that cannot name anybody has; without the second two
+        playlists of the same name simply stay ambiguous.
+        """
         self.catalog_path = catalog_path
+        self.actor_on = actor_on
+        self.server_name = server_name
         self.root: Optional[str] = (os.path.dirname(catalog_path)
                                     if catalog_path else None)
         self._snap = _OfflineSnapshot()
@@ -2928,7 +2972,11 @@ class OfflineLibrarySource:
     def reload(self):
         rows = []
         playlists = []
-        playlist_rows = {}  # playlist_id -> ordered list of download rows
+        # (playlist_id, server_id) -> ordered download rows. Keyed by the
+        # pair because the catalog is: a playlist id is a hash of its name, so
+        # two servers hand out the same one.
+        playlist_rows = {}
+        userdata = {}
         if self.catalog_path:
             # reload() runs from __init__ (BrowserApp._enter_offline): a corrupt
             # or unreadable catalog must degrade to an empty offline library, not
@@ -2939,61 +2987,94 @@ class OfflineLibrarySource:
                     rows = db.list(status=STATUS_COMPLETE)
                     playlists = db.list_playlists()
                     for pl in playlists:
-                        playlist_rows[pl["playlist_id"]] = db.playlist_item_rows(
-                            pl["playlist_id"])
+                        key = (pl["playlist_id"], pl.get("server_id"))
+                        playlist_rows[key] = db.playlist_item_rows(
+                            pl["playlist_id"], server_id=pl.get("server_id"))
+                    userdata = db.all_userdata()
                 finally:
                     db.close()
             except Exception:
                 log.warning("Failed to open offline catalog %s",
                             self.catalog_path, exc_info=True)
                 rows, playlists, playlist_rows = [], [], {}
+                userdata = {}
+        # Who is browsing, per server the catalog holds rows for. Resolved
+        # once here rather than per row: it cannot change inside a snapshot,
+        # and this is the only thing in reload that reaches outside.
+        actors = {}
+        for row in rows:
+            server_id = row.get("content_server_id") or NO_ACTOR
+            if server_id not in actors:
+                try:
+                    actors[server_id] = (self.actor_on(server_id)
+                                         if self.actor_on else None) or NO_ACTOR
+                except Exception:
+                    log.debug("could not resolve the browsing user for %s",
+                              server_id, exc_info=True)
+                    actors[server_id] = NO_ACTOR
         # Build into locals, then publish ONE snapshot object in a single
         # assignment. reload() can run on a browser api-pool thread (a download
         # finished while browsing offline), so a concurrent reader must never
         # observe a half-populated list or a torn mix of attributes.
         by_id = {r["item_id"]: r for r in rows}
         items = []
-        # series_id -> server_id (for series artwork)
-        series_server: dict[str, Any] = {}
-        # season_id -> server_id (for season artwork)
-        season_server: dict[str, Any] = {}
+        series_ids: set[str] = set()
+        season_ids: set[str] = set()
         # season_id -> series_id (artwork fallback)
         season_series: dict[str, Any] = {}
         for row in rows:
-            item = self._item_from_row(row)
+            item = self._item_from_row(row, userdata, actors)
             if item is not None:
                 items.append(item)
             if row.get("type") == "Episode" and row.get("series_id"):
-                series_server.setdefault(row["series_id"], row.get("server_id"))
+                series_ids.add(row["series_id"])
                 if row.get("season_id"):
-                    season_server.setdefault(row["season_id"], row.get("server_id"))
+                    season_ids.add(row["season_id"])
                     season_series.setdefault(row["season_id"], row["series_id"])
         # Playlist DTOs + their ordered downloaded items (drop empties defensively;
         # list_playlists already requires ≥1 complete item).
+        # **Keyed by `(playlist_id, server)` throughout, spelled as one id.**
+        # Jellyfin derives a playlist id from its name, so two servers hand out
+        # the same one -- and this library is one pseudo-server showing every
+        # download at once, so two tiles sharing an `Id` are one tile as far as
+        # routing is concerned: whichever server's items were built last
+        # answered for both. `constants.offline_playlist_id` is the spelling,
+        # in the manner of `offline:movies` beside it.
         playlist_dtos, playlist_items, playlist_server = [], {}, {}
         for pl in playlists:
-            pid = pl["playlist_id"]
-            pl_items = [self._item_from_row(r) for r in playlist_rows.get(pid, [])]
+            pid, scope = pl["playlist_id"], pl.get("server_id")
+            pl_items = [self._item_from_row(r, userdata, actors)
+                        for r in playlist_rows.get((pid, scope), [])]
             pl_items = [i for i in pl_items if i is not None]
             if not pl_items:
                 continue
-            playlist_dtos.append({"Id": pid, "Name": pl.get("name") or _("Playlist"),
-                                  "Type": "Playlist", "ImageTags": {}})
-            playlist_items[pid] = pl_items
-            playlist_server[pid] = pl.get("server_id")
-        books, book_items = self._book_shelf(items)
+            key = offline_playlist_id(pid, scope)
+            # `ServerId` too, because the delete gesture reads it off the DTO
+            # the way it does for a real one.
+            playlist_dtos.append({"Id": key,
+                                  "Name": pl.get("name") or _("Playlist"),
+                                  "Type": "Playlist", "ServerId": scope,
+                                  "ImageTags": {}})
+            playlist_items[key] = pl_items
+            playlist_server[key] = scope
+        orphans = {row["item_id"] for row in rows
+                   if row.get("item_id") and not row.get("content_server_id")}
+        self._qualify_duplicate_playlists(playlist_dtos)
+        books, book_items = self._book_shelf(
+            self._without_orphans(items, orphans))
         self._snap = _OfflineSnapshot(
-            rows=by_id, items=items, series_server=series_server,
-            season_server=season_server, season_series=season_series,
+            rows=by_id, items=items, series_ids=series_ids,
+            season_ids=season_ids, season_series=season_series,
             playlists=playlist_dtos, playlist_items=playlist_items,
-            playlist_server=playlist_server,
-            books=books, book_items=book_items)
+            playlist_server=playlist_server, orphans=orphans,
+            books=books, book_items=book_items,
+            userdata=userdata, actors=actors)
 
     def stop(self):
         pass
 
     def servers(self):
-        return [{"uuid": "offline", "name": _("Downloaded")}]
+        return [{"uuid": OFFLINE_SERVER_UUID, "name": _("Downloaded")}]
 
     def server_address(self, server_uuid):
         """No server to link to: this source *is* the answer to the server
@@ -3016,16 +3097,16 @@ class OfflineLibrarySource:
     def get_libraries(self, server_uuid):
         snap = self._snap
         libs = []
-        if any(i.get("Type") == "Movie" for i in snap.items):
+        if self._typed(snap, "Movie"):
             libs.append({"Id": "offline:movies", "Name": _("Movies"),
                          "Type": "CollectionFolder", "CollectionType": "movies",
                          "ImageTags": {}})
         # Home videos (Type=Video) are their own section, not lumped in Movies.
-        if any(i.get("Type") == "Video" for i in snap.items):
+        if self._typed(snap, "Video"):
             libs.append({"Id": "offline:videos", "Name": _("Videos"),
                          "Type": "CollectionFolder", "CollectionType": "homevideos",
                          "ImageTags": {}})
-        if any(i.get("Type") == "Episode" for i in snap.items):
+        if self._typed(snap, "Episode"):
             libs.append({"Id": "offline:tv", "Name": _("TV Shows"),
                          "Type": "CollectionFolder", "CollectionType": "tvshows",
                          "ImageTags": {}})
@@ -3040,19 +3121,88 @@ class OfflineLibrarySource:
                          "Type": "CollectionFolder",
                          "CollectionType": BOOKS_COLLECTION,
                          "ImageTags": {}})
+        if snap.orphans:
+            # Last, because it is the exception: a download whose server this
+            # app cannot name. It is still a file on disk -- playable and
+            # deletable -- and without a home of its own it would be listed
+            # nowhere, since no scoped read answers for it any more.
+            libs.append({"Id": "offline:orphans", "Name": _("Orphaned Items"),
+                         "Type": "CollectionFolder",
+                         "CollectionType": "folders", "ImageTags": {}})
         if snap.playlists:
             libs.append({"Id": "offline:playlists", "Name": _("Playlists"),
                          "Type": "CollectionFolder", "CollectionType": "playlists",
                          "ImageTags": {}})
         return libs
 
+    def _qualify_duplicate_playlists(self, dtos):
+        """Name two servers' same-named playlists apart, in place.
+
+        Jellyfin hashes a playlist id from its name, so the collision that
+        makes two tiles is *also* a collision of what they are called: both
+        are "Music", and the scoped id that keeps them apart underneath is
+        not something a user can see.
+
+        **Only where there is a duplicate.** One server and a bare name is
+        the normal case, and qualifying every playlist would be noise on
+        every machine to serve the few with two.
+
+        Left alone when nothing names the server: a raw ServerId is worse than
+        an ambiguous tile, and the pair is still told apart by its contents
+        and its art.
+        """
+        counts = {}
+        for dto in dtos:
+            counts[dto.get("Name")] = counts.get(dto.get("Name"), 0) + 1
+        for dto in dtos:
+            if counts.get(dto.get("Name"), 0) < 2:
+                continue
+            server = None
+            if self.server_name:
+                try:
+                    server = self.server_name(dto.get("ServerId"))
+                except Exception:
+                    log.debug("could not name the server for playlist %s",
+                              dto.get("Id"), exc_info=True)
+            if server:
+                dto["Name"] = _("%(name)s (%(server)s)") % {
+                    "name": dto["Name"], "server": server}
+
+    @staticmethod
+    def _typed(snap, *types):
+        """Items of these types, **without the orphans**.
+
+        Every place that partitions the library by type goes through here, and
+        that is the whole point: an orphan listed under Movies *and* under
+        Orphaned Items is in two places at once, and a rule applied at all but
+        one site is this repository's recurring defect. The test that walks
+        every category and counts an orphan exactly once is what guards it.
+
+        The books shelf is the one site that cannot call this: it is built
+        while the snapshot still is, so there is no `snap` to pass. It calls
+        `_without_orphans` instead, which is the rule itself -- one
+        implementation, two entrances, rather than the second copy that let
+        this happen once already.
+        """
+        return OfflineLibrarySource._without_orphans(
+            [i for i in snap.items if i.get("Type") in types], snap.orphans)
+
+    @staticmethod
+    def _without_orphans(items, orphans):
+        """The rule `_typed` applies, for a caller that has no snapshot yet.
+
+        Separate from `_typed` only because of *when* the books shelf is
+        built, never because the rule differs. R25: an unattributable download
+        is listed under Orphaned Items and **nowhere else** -- an item in two
+        categories at once is worse than an odd one.
+        """
+        return [i for i in items if i.get("Id") not in orphans]
+
     def _series_list(self, snap=None):
         snap = snap or self._snap
         episodes_by_series: dict[str, list[Any]]
         episodes_by_series, names, order = {}, {}, []
-        for item in snap.items:
-            if item.get("Type") != "Episode":
-                continue
+        for item in self._typed(snap, "Episode"):
             sid = item.get("SeriesId")
             if not sid:
                 continue
@@ -3188,11 +3338,11 @@ class OfflineLibrarySource:
         # Heterogeneous by design: titles and item lists go in first, the
         # slot/kind ints are stamped on below.
         rows: list[dict[str, Any]] = []
-        movies = [i for i in snap.items if i.get("Type") == "Movie"]
+        movies = self._typed(snap, "Movie")
         if movies:
             rows.append({"title": _("Downloaded Movies"), "items": movies,
                          "collection_type": "movies"})
-        videos = [i for i in snap.items if i.get("Type") == "Video"]
+        videos = self._typed(snap, "Video")
         if videos:
             rows.append({"title": _("Downloaded Videos"), "items": videos,
                          "collection_type": "homevideos"})
@@ -3252,9 +3402,11 @@ class OfflineLibrarySource:
         # parent ids below already say what they list.
         snap = self._snap
         if parent_id == "offline:movies":
-            items = [i for i in snap.items if i.get("Type") == "Movie"]
+            items = self._typed(snap, "Movie")
         elif parent_id == "offline:videos":
-            items = [i for i in snap.items if i.get("Type") == "Video"]
+            items = self._typed(snap, "Video")
+        elif parent_id == "offline:orphans":
+            items = [i for i in snap.items if i.get("Id") in snap.orphans]
         elif parent_id == "offline:tv":
             items = self._series_list(snap)
         elif parent_id == "offline:books":
@@ -3362,11 +3514,13 @@ class OfflineLibrarySource:
                         limit=QUEUE_LIMIT):
         snap = self._snap
         if parent_id == "offline:tv":
-            pool = [i for i in snap.items if i.get("Type") == "Episode"]
+            pool = self._typed(snap, "Episode")
         elif parent_id == "offline:movies":
-            pool = [i for i in snap.items if i.get("Type") == "Movie"]
+            pool = self._typed(snap, "Movie")
         elif parent_id == "offline:videos":
-            pool = [i for i in snap.items if i.get("Type") == "Video"]
+            pool = self._typed(snap, "Video")
+        elif parent_id == "offline:orphans":
+            pool = [i for i in snap.items if i.get("Id") in snap.orphans]
         else:
             pool = []
         ids = [i["Id"] for i in pool if i.get("Id")]
@@ -3463,37 +3617,93 @@ class OfflineLibrarySource:
                                 i.get("IndexNumber") or 0))
         return eps
 
-    @staticmethod
-    def _item_from_row(row):
-        """Build an item DTO from a catalog row, overlaying the LIVE UserData
-        (downloads.userdata_json — updated by offline playback's periodic
-        position record and watched marks) onto the item_json snapshot frozen
-        at download time. Without the overlay, offline resume positions and
-        watched state were written but never read back — playback always
-        restarted from the beginning after a relaunch."""
+    #: What an actor who has watched nothing reads as, in DTO spelling.
+    #: The keys are exactly the ones `_userdata_for` answers with, so an
+    #: empty answer overwrites every field the snapshot could have set --
+    #: a key missing here is a field of somebody else's viewing left behind.
+    _NO_VIEWING = {"Played": False, "PlaybackPositionTicks": 0,
+                   "PlayCount": 0, "IsFavorite": False,
+                   "LastPlayedDate": None}
+
+    def _userdata_for(self, row, userdata, actors):
+        """This person's state for one row, in Jellyfin's DTO spelling.
+
+        Empty when they have nothing recorded. **That is not the same as what
+        the snapshot says**, which is what this docstring used to claim and
+        what `_item_from_row` acted on: `item_json` is the DTO the server
+        sent, stored verbatim, so its `UserData` is the watched flag and
+        resume position of the account that asked for the download. A caller
+        must overlay an empty answer rather than fall back to the snapshot --
+        state is per actor and "there is no second copy"
+        (`docs/offline-sync.md` section 1).
+        """
+        # The same rule the writer applied, not a second copy of it: this
+        # used to rebuild the key by hand and agreed with the store only by
+        # construction, which is the disagreement C2 exists to prevent.
+        row_server = row.get("content_server_id")
+        _state, key = filing_state(
+            row_server,
+            (row_server, actors.get(row_server or NO_ACTOR)))
+        got = userdata.get((row["item_id"],) + key) if key else None
+        if not got:
+            return {}
+        return {"Played": got["played"],
+                "PlaybackPositionTicks": got["position_ticks"],
+                "PlayCount": got["play_count"],
+                "IsFavorite": got["is_favorite"],
+                "LastPlayedDate": got["last_played_date"]}
+
+    def _item_from_row(self, row, userdata=None, actors=None):
+        """Build an item DTO from a catalog row, overlaying **the browsing
+        person's** live watched state and resume position onto the item_json
+        snapshot frozen at download time.
+
+        Without the overlay, offline resume positions and watched state were
+        written but never read back -- playback always restarted from the
+        beginning after a relaunch.
+
+        Per actor since the state moved off the download row's own blob (a
+        column CX8 has since dropped): overlaying a machine-global blob meant
+        the second account to open a film resumed where the first stopped, and
+        then reported that position to its own server as its own viewing.
+        """
         try:
             item = json.loads(row["item_json"])
         except (TypeError, ValueError):
             return None
-        try:
-            userdata = json.loads(row.get("userdata_json") or "{}")
-        except (TypeError, ValueError):
-            userdata = {}
-        if userdata:
-            merged = dict(item.get("UserData") or {})
-            merged.update(userdata)
-            # PlayedPercentage is derived; the live position is the truth.
-            # Recompute it (a percentage seeded from the server at download
-            # time or left in the snapshot would otherwise freeze the tile
-            # progress bar), and drop it entirely when there is no resume
-            # point (watched items show the badge, not a partial bar).
-            pos = merged.get("PlaybackPositionTicks")
-            runtime = row.get("runtime_ticks") or item.get("RunTimeTicks")
-            if pos and runtime:
-                merged["PlayedPercentage"] = min(pos / runtime * 100, 100.0)
-            else:
-                merged.pop("PlayedPercentage", None)
-            item["UserData"] = merged
+        # Passed in during reload, which runs before the snapshot it is
+        # building has been published -- reading `self._snap` there would
+        # overlay the PREVIOUS reload's state onto the new rows.
+        userdata = self._userdata_for(
+            row,
+            self._snap.userdata if userdata is None else userdata,
+            self._snap.actors if actors is None else actors)
+        # **Unconditional, and `_NO_VIEWING` is why.** This used to be
+        # `if userdata:`, so an actor with nothing recorded was shown the
+        # snapshot -- the downloader's watched flag and resume position,
+        # frozen into `item_json` at download time -- and could press Resume
+        # into somebody else's viewing. Ruled 2026-09-19: nobody inherits a
+        # snapshot, including the account that asked for the download. Their
+        # place comes back the moment they play it here.
+        #
+        # Merged onto the snapshot rather than replacing it, because the
+        # server's `UserData` also carries keys this table has no column for
+        # (`Key`, `ItemId`); only the five that describe a viewing are
+        # overwritten.
+        merged = dict(item.get("UserData") or {})
+        merged.update(userdata or self._NO_VIEWING)
+        # PlayedPercentage is derived; the live position is the truth.
+        # Recompute it (a percentage seeded from the server at download
+        # time or left in the snapshot would otherwise freeze the tile
+        # progress bar), and drop it entirely when there is no resume
+        # point (watched items show the badge, not a partial bar).
+        pos = merged.get("PlaybackPositionTicks")
+        runtime = row.get("runtime_ticks") or item.get("RunTimeTicks")
+        if pos and runtime:
+            merged["PlayedPercentage"] = min(pos / runtime * 100, 100.0)
+        else:
+            merged.pop("PlayedPercentage", None)
+        item["UserData"] = merged
         return item
 
     def get_item(self, server_uuid, item_id):
@@ -3504,7 +3714,7 @@ class OfflineLibrarySource:
             if item is not None:
                 return item
         # Synthesize a Series DTO so the series overview page renders offline.
-        if item_id in snap.series_server:
+        if item_id in snap.series_ids:
             eps = [i for i in snap.items if i.get("SeriesId") == item_id
                    and i.get("Type") == "Episode"]
             name = next((i.get("SeriesName") for i in eps), _("Series"))
@@ -3632,17 +3842,13 @@ class OfflineLibrarySource:
             return self._in_dir(os.path.join(self.root,
                                              os.path.dirname(row["file_path"])), name)
         # Series artwork (cached separately from its episodes).
-        if item_id in snap.series_server:
-            series_dir = os.path.join(self.root,
-                                      snap.series_server[item_id] or "server",
-                                      "series", item_id)
+        if item_id in snap.series_ids:
+            series_dir = series_art_dir(self.root, item_id)
             return self._in_dir(series_dir, name)
         # Season artwork, falling back to the series image when the season has
         # no specific artwork.
-        if item_id in snap.season_server:
-            season_dir = os.path.join(self.root,
-                                      snap.season_server[item_id] or "server",
-                                      "season", item_id)
+        if item_id in snap.season_ids:
+            season_dir = season_art_dir(self.root, item_id)
             found = self._in_dir(season_dir, name)
             if found:
                 return found
@@ -3654,16 +3860,24 @@ class OfflineLibrarySource:
         # its own image; borrowing a member's meant one member without art
         # blanked the whole tile).
         if item_id in snap.playlist_server:
-            return self._in_dir(os.path.join(
-                self.root, snap.playlist_server[item_id] or "server",
-                "playlist", item_id), name)
+            # The key says "this is a downloaded playlist", and it is the
+            # *offline* id -- so the real playlist id, which is the directory's
+            # name on disk, comes back out of it. The content server is in the
+            # path too, below `playlist/` rather than above it, because two
+            # servers can hold a playlist with one id and one poster was
+            # overwriting the other. Through `db.playlist_art_dir` rather than
+            # joined here: this and the writer held separate copies of the
+            # layout, each with a comment explaining the other's absence.
+            real_id, _scope = split_offline_playlist_id(item_id)
+            return self._in_dir(playlist_art_dir(
+                self.root, snap.playlist_server.get(item_id), real_id), name)
         # Synthetic library previews use a representative download.
         if item_id == "offline:movies":
             return self._representative(("Movie",), snap, self.root)
         if item_id == "offline:videos":
             return self._representative(("Video",), snap, self.root)
         if item_id == "offline:tv":
-            for series_id in snap.series_server:
+            for series_id in snap.series_ids:
                 path = self._art_path(series_id, "Primary", snap)
                 if path:
                     return path

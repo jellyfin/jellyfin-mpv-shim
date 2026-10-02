@@ -32,7 +32,8 @@ sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
 from jellyfin_mpv_shim.conf import settings              # noqa: E402
 from jellyfin_mpv_shim.sync import auto                  # noqa: E402
-from jellyfin_mpv_shim.sync.db import (STATUS_COMPLETE,  # noqa: E402
+from jellyfin_mpv_shim.sync.db import (ANY_SERVER,  # noqa: E402
+                                       STATUS_COMPLETE,
                                        STATUS_DOWNLOADING,
                                        STATUS_ERROR,
                                        STATUS_PENDING)
@@ -107,21 +108,46 @@ class _Db:
     def __init__(self, rows):
         self.rows = rows
 
-    def list(self, status=None, series_id=None):
+    def list(self, status=None, series_id=None, *, server_id=ANY_SERVER):
+        # `server_id` mirrors `_content_clause`, and it has **three** branches
+        # rather than two: `ANY_SERVER` asks unscoped, a falsy value means a
+        # login that resolves to no server and matches nothing, and a real id
+        # matches its own rows plus the NULL ones, which cannot be shown to be
+        # somebody else's. The two-way version here read `not server_id` as
+        # unscoped -- and since the sentinel is truthy, that made this fake
+        # answer for NULL rows only when asked its own default. Modelled rather
+        # than accepted-and-ignored: a fake that swallowed the argument would
+        # let `_held_ids` look scoped while answering unscoped.
+        def in_scope(row):
+            if server_id is ANY_SERVER:
+                return True
+            if not server_id:
+                return False
+            return row.get("content_server_id") in (server_id, None)
+
         return [r for r in self.rows
                 if (series_id is None or r.get("series_id") == series_id)
-                and (status is None or r.get("status") == status)]
+                and (status is None or r.get("status") == status)
+                and in_scope(r)]
 
 
 def _downloader(rows):
     d = auto.AutoDownloader.__new__(auto.AutoDownloader)
     d.manager = mock.Mock(db=_Db(rows))
+    # Not left to the Mock. `_held_ids` asks `content_id_for` for the server
+    # to scope on, and a bare Mock answers with a truthy Mock -- which
+    # matches no row's content server, so the held set came back empty and
+    # every lookahead test topped up against a catalog it could not see.
+    # Same value as `_row`'s default, so a row and the login asking about it
+    # are on one server.
+    d.manager.content_id_for = lambda uuid: "S1"
     return d
 
 
-def _row(series="s1", status=STATUS_COMPLETE, server="srv", item_id=None):
+def _row(series="s1", status=STATUS_COMPLETE, server="srv", item_id=None,
+         content_server="S1"):
     return {"series_id": series, "status": status, "server_uuid": server,
-            "item_id": item_id or "e0"}
+            "item_id": item_id or "e0", "content_server_id": content_server}
 
 
 class HeldIdsTest(unittest.TestCase):
@@ -149,8 +175,19 @@ class HeldIdsTest(unittest.TestCase):
         self.assertEqual(d._held_ids("srv", "s1"), {"a"})
 
     def test_another_server_does_not(self):
-        d = _downloader([_row(server="other", item_id="a"),
-                         _row(server="srv", item_id="b")])
+        """Another *server* -- which is not another login.
+
+        This used to separate the rows by `server_uuid` and expect the one
+        belonging to the other login to be excluded. That pinned the defect:
+        one server can carry several logins, "do we hold this file" is a
+        property of the server and the media, and comparing the login made
+        the second account's lookahead read a series it already holds as
+        empty. Re-derived from the content key rather than edited to match
+        it -- the exclusion is real, it is just about a different thing.
+        `HeldIsAContentQuestionTest` covers the two-logins-one-server half.
+        """
+        d = _downloader([_row(content_server="S2", item_id="a"),
+                         _row(content_server="S1", item_id="b")])
         self.assertEqual(d._held_ids("srv", "s1"), {"b"})
 
     def test_a_catalog_failure_is_unknown_rather_than_empty(self):
@@ -272,3 +309,41 @@ class NoExtraWorkWhenUnconfiguredTest(SettingsCase):
         api, db_list = self._run()
         self.assertEqual(api.get_episodes.call_count, 1)
         db_list.assert_called_once()
+
+
+class HeldIsAContentQuestionTest(unittest.TestCase):
+    """"Do we already hold this episode" is about the file, not about who
+    signed in to fetch it.
+
+    One server can carry several saved logins -- two accounts, or a LAN
+    address and a remote one -- and the held set compared the login. So the
+    lookahead for the second login saw a series it already holds as empty and
+    topped it up again, against a catalog that already had the episodes.
+    `enqueue` deduplicates on the content key, so nothing was downloaded
+    twice; what was wrong was the *budget*, which is computed from the held
+    set.
+
+    Its neighbour `_followed_series` deliberately stays keyed on the login --
+    see the note there.
+    """
+
+    def _downloader_on(self, rows, content_of):
+        d = auto.AutoDownloader.__new__(auto.AutoDownloader)
+        d.manager = mock.Mock(db=_Db(rows))
+        d.manager.content_id_for = lambda uuid: content_of.get(uuid)
+        return d
+
+    def test_a_second_login_on_one_server_sees_the_held_episode(self):
+        d = self._downloader_on(
+            [_row(item_id="e1", server="uuidA", content_server="S1")],
+            {"uuidA": "S1", "uuidB": "S1"})
+        self.assertEqual(d._held_ids("uuidB", "s1"), {"e1"})
+
+    def test_another_servers_episode_is_not_held(self):
+        """The scope is not merely dropped: a row from a different server
+        must still not count, or the lookahead would top up against
+        somebody else's catalog."""
+        d = self._downloader_on(
+            [_row(item_id="e1", server="uuidA", content_server="S1")],
+            {"uuidA": "S1", "uuidB": "S2"})
+        self.assertEqual(d._held_ids("uuidB", "s1"), set())

@@ -162,9 +162,11 @@ write-gated and read-ungated, with the key hidden from the settings form.
 
 ### 3.5 State with no clear path — **medium-high**
 
-Verified: `_sync_path` (SET 1 / CLEAR 0) is a never-cleared mirror that **wins
+Verified: `_sync_path` (SET 1 / CLEAR 0) was a never-cleared mirror that **wins
 over** the saved setting the visible field was drawn from, and drives a
-recursive relocation of the download store; `ThumbnailStore._gone` records
+relocation of the download store -- **fixed**, see `docs/do-not-fix.md` F42;
+the mirror is now dropped on the first frame its field is not drawn, which is
+the clear site the count was looking for. `ThumbnailStore._gone` records
 401/403 as permanent absence, keyed without server or user; `mpv.TIMEOUT` is
 lowered 120s→5s for teardown and never restored, from a call site that also
 runs on the *minimize* path.
@@ -284,7 +286,7 @@ Applied by measurement, not judgement. A setting is reachable if it appears in
 
 | finding | how a user reaches it |
 |---|---|
-| `_sync_path` drives a download-store move from a stale mirror | Settings → Downloads → Move. **Destructive, and the visible field disagrees with what happens.** |
+| ~~`_sync_path` drives a download-store move from a stale mirror~~ | **Fixed** (`do-not-fix.md` F42). Was: Settings → Browse → Move, destructive, with the visible field disagreeing with what happens. |
 | `ThumbnailStore._gone` caches 401/403 as permanent absence | sign out, switch server, or any fetch in flight across `set_auth` |
 | R7 / F15 — `set_picture_view` has no `_video`/`_loading` guard | open a comic, let a remote start playback, scroll the page |
 | R11 — HUD gear menu gated on `_video is not None` | play music, press the menu key (needs a product read first) |

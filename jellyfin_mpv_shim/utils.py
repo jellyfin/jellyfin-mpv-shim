@@ -160,6 +160,54 @@ def is_local_domain(client: "JellyfinClient_type"):
         return False
 
 
+def resolved_host_is_private(address):
+    """Does ``address`` resolve to an address on this machine's own network?
+
+    ``True``/``False``, or ``None`` when the name could not be resolved at
+    all -- three answers, because "we asked and it is remote" and "we could
+    not ask" want different fallbacks.
+
+    **This is the half of `is_local_domain` that a name lookup can settle**,
+    and it is the half that matters for split-horizon DNS: a self-hoster's
+    own domain resolves to a LAN address at home and a public one away, so
+    nothing about the spelling of the URL can answer it. `is_local_domain`
+    goes further -- hairpin NAT, and an IPv6 fallback that asks the server
+    -- because it is deciding a *bitrate*, where being wrong costs a
+    transcode. Callers who only want to describe the connection should stop
+    here rather than make an outbound request to a third party.
+
+    **Blocking, and there is no bounding it** -- ``getaddrinfo`` takes no
+    timeout, and ``socket.setdefaulttimeout`` does not reach it on glibc. It
+    would also be the wrong tool: that setting is process-global, so bracketing
+    this call with it hands an unasked-for timeout to every socket any other
+    thread opens in the window, and connects run several at a time here. So
+    call this from somewhere already waiting on the network -- never from the
+    render path.
+    """
+    try:
+        host = urllib.parse.urlsplit(str(address or "")).hostname
+    except ValueError:
+        return None
+    if not host:
+        return None
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except Exception:
+        log.debug("Could not resolve %s", host, exc_info=True)
+        return None
+    for info in infos:
+        try:
+            ip = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            continue
+        # Any private answer is enough. A dual-stack name can hand back a
+        # public IPv6 address and a LAN IPv4 one, and the connection we are
+        # describing may have used either.
+        if ip.is_private:
+            return True
+    return False
+
+
 #: Ports a URL need not spell out. `https://h` and `https://h:443` are one
 #: origin to a browser and to Jellyfin, and comparing raw ports made them two
 #: -- so a sidecar on our own server, written with its port, was classified as

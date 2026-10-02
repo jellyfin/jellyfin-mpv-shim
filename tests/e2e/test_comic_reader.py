@@ -89,6 +89,11 @@ class ComicReaderTest(_e2e.E2ETestCase):
 
         self.source = self.session.library_source()
         self.addCleanup(self.source.stop)
+        # The browser holds a login uuid and the catalog scopes by ServerId, so
+        # the screen's "is this downloaded" question goes through the registry.
+        # Without this the catalog answers "nothing", and what gets built is
+        # the placeholder.
+        self.session.register_source_login(self)
         self.source.get_libraries(_e2e.SOURCE_UUID)
         self.comic = self._comic()
         self._download_into_a_temp_store(self.comic)
@@ -160,8 +165,16 @@ class ComicReaderTest(_e2e.E2ETestCase):
         self.addCleanup(shutil.rmtree, root, ignore_errors=True)
         db = SyncDB(os.path.join(root, "catalog.db"))
         self.addCleanup(db.close)
+        # `get_clients` as well as `get_client`, which is how `start` wires
+        # the real one -- both read the same dict there, so they always agree.
+        # The download queue resolves a row's client through the *list* now
+        # (it matches on the account that asked, not on the login that
+        # enqueued), so a manager with only the single-lookup form cannot
+        # start an attributed row.
         for attr, value in (("db", db), ("root", root),
-                            ("get_client", lambda uuid: self.session.client)):
+                            ("get_client", lambda uuid: self.session.client),
+                            ("get_clients",
+                             lambda: {_e2e.SOURCE_UUID: self.session.client})):
             patcher = mock.patch.object(syncManager, attr, value)
             patcher.start()
             self.addCleanup(patcher.stop)

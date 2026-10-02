@@ -298,6 +298,58 @@ class SyncPlayManager:
         if from_server:
             self.player_message(_("SyncPlay enabled."))
 
+        # A group can be joined while a film is ALREADY playing, and the local
+        # copy was cleared for playback under the rules that applied then --
+        # which did not include a group. Queued rather than called: this can
+        # re-resolve an item over the network and start playback, which is the
+        # action thread's job, and `enabled_at` is set above so the group is
+        # already visible to the check by the time it runs.
+        self.playerManager.put_task(self._drop_a_local_copy_a_group_cannot_use)
+
+    def _drop_a_local_copy_a_group_cannot_use(self):
+        """Swap a downloaded file for the server's copy when a group needs it.
+
+        **Runs on the action thread**, because it makes a network round trip
+        (the remote `Video` asks get_item and PlaybackInfo) and then starts
+        playback.
+
+        `restart_playback` is deliberately **not** the mechanism: it replays the
+        *same* video object, so it cannot change where the media comes from.
+        The item is re-resolved as a remote `Video` directly, bypassing the
+        offline factory rather than asking it to refuse.
+
+        Tracks are re-derived rather than carried. The file is a different one,
+        so a raw stream index from the old file means nothing; the remembered
+        audio/subtitle choice is re-matched against the new file's streams by
+        language, title and codec (docs/track-selection.md).
+        """
+        try:
+            from .media import Video
+            from .sync.offline_media import still_substitutable
+
+            video = self.playerManager.get_video()
+            if video is None or still_substitutable(video):
+                return
+            position = self.playerManager.get_time() or 0
+            parent = video.parent
+            remote = Video(video.item_id, parent)
+            # The Media caches its index-0 video and hands it back from
+            # `get_video(0)`, and player.py reads `media.video` for the group
+            # skip -- so leaving it behind keeps a torn-down local video alive
+            # in two places. Identity-checked: only the video being replaced.
+            if getattr(parent, "video", None) is video:
+                parent.video = remote
+            log.warning(
+                "The downloaded copy of %s does not match what the server "
+                "holds now; a SyncPlay group plays the server's copy.",
+                video.item_id)
+            self.playerManager.play(remote, position, apply_memory=True)
+        except Exception:
+            # Never take the group down over this. Worst case the local copy
+            # keeps playing, which is the behaviour before this existed.
+            log.warning("Could not swap a local copy for the server's",
+                        exc_info=True)
+
     def disable_sync_play(self, from_server: bool):
         # Mark the session disabled *before* tearing down the scheduled
         # commands, so that any callback still in flight (a TimeoutThread we are

@@ -261,6 +261,12 @@ class GeneralTabMixin:
                 on_select=lambda i, _v, k=key, o=opts: self._set_setting(
                     k, o[i]))
         elif key == "sync_path":
+            # The field is on screen this frame, so a path typed into it is
+            # still live. `_drop_abandoned_sync_path` consumes this every
+            # frame and throws the typed path away on the first one that does
+            # not set it -- see there for why the Move button cannot simply
+            # fall back to `val`.
+            self._sync_path["drawn"] = True
             widget = Row([
                 TextBox("set-" + key, text="" if val is None else str(val),
                         w=250,
@@ -442,15 +448,20 @@ class GeneralTabMixin:
         unticking servers elsewhere, the note has to describe what is
         configured, not what happens to be on screen.
         """
-        picked = self._auto_dl_servers()
         try:
             servers = self.controller.list_servers() if self.controller else []
         except Exception:
             log.debug("list_servers failed", exc_info=True)
             servers = []
         names = {sv.get("uuid"): sv.get("name") for sv in servers}
-        if picked:
-            chosen = [names.get(u) or u for u in picked]
+        # Asked of the rows rather than read as a set of ids: the allow-list
+        # holds accounts now, which have no display name of their own. The
+        # membership set is read once for the whole note -- see `_auto_dl_on`
+        # for what asking per row costs on the render path.
+        on_logins = self._auto_dl_logins()
+        chosen = [names.get(sv.get("uuid")) or sv.get("uuid")
+                  for sv in servers if self._auto_dl_on(sv, on_logins)]
+        if chosen:
             if len(chosen) == 1:
                 return chosen[0]
             # Plural: the note's "enable other servers" advice still applies,
@@ -463,16 +474,16 @@ class GeneralTabMixin:
         """Switching auto-download on means "for the server I am looking at".
 
         The allow-list is empty by default and empty means none, so without
-        this the feature would switch on and do nothing. Only ever seeds an
-        empty list: re-enabling after a deliberate change must not silently
-        re-add a server the user unticked.
+        this the feature would switch on and do nothing. It seeds only when
+        **nothing is ticked anywhere**, so unticking one of several servers
+        sticks -- while unticking every one of them is indistinguishable
+        from never having configured it, and does get re-seeded.
         """
-        cfg = self._config()
-        if (cfg.get_settings().get("auto_download_servers") or "").strip():
+        if self.controller is None or not self.server:
             return
-        if not self.server:
+        if self.controller.auto_download_any():
             return
-        cfg.set_setting("auto_download_servers", str(self.server))
+        self.controller.set_auto_download(self.server, True)
     def _apply_work_offline(self, offline):
         """Swap the data source when the setting is toggled, rather than
         persisting a key that does nothing until the next launch. Tk

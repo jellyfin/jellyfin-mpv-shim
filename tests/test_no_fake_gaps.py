@@ -79,5 +79,59 @@ class FakeContractsTest(unittest.TestCase):
                     "this pair has been checking nothing" % (pair.reads,))
 
 
+class DoubleSignaturesTest(unittest.TestCase):
+    """No stand-in accepts a call the real method would reject.
+
+    The other half of the same subject, and the half the contract check above
+    is blind to: those four doubles all *had* the method. What they had was a
+    scope argument with a default where the real store requires one, so a
+    production caller that forgot the scope passed the suite and would have
+    asked the wrong server in the field.
+    """
+
+    def test_no_double_is_more_permissive_than_what_it_stands_for(self):
+        loose = audit.signature_findings()
+        if loose:
+            lines = ["%s:%s (for %s): %s" % (rel, cls, real, "; ".join(notes))
+                     for rel, cls, real, notes in loose]
+            self.fail("\n".join(lines) +
+                      "\n\nSee tools/audit_fake_contracts.py — match the "
+                      "signature, or accept it there with a reason.")
+
+    def test_nothing_is_accepted_that_no_longer_differs(self):
+        """`ACCEPTED_SIGNATURES` excuses a difference that exists. An entry for
+        one that does not is an excuse issued in advance, and the day somebody
+        adds the default back the audit says nothing.
+
+        The same guard this file already makes over `accepted`, and
+        `tests/test_no_second_owner.py` over `owners`.
+        """
+        reals = audit._real_methods()
+        live = set()
+        for rel, node, real, shared in audit.doubles():
+            fake = audit._methods(node)
+            for name in shared:
+                if audit.more_permissive(fake[name], reals[real][name]):
+                    live.add((rel, node.name, name))
+        dead = sorted(set(audit.ACCEPTED_SIGNATURES) - live)
+        self.assertFalse(
+            dead,
+            "ACCEPTED_SIGNATURES excuses differences that are not there: %s. "
+            "Drop them; re-add one only when the double really is more "
+            "permissive, which is the moment somebody has to think about it."
+            % (dead,))
+
+    def test_the_discovery_still_finds_doubles(self):
+        """The guard on the guard, as above: a match rule that finds nothing
+        reports every double as faithful. Four is well under what is there and
+        well over zero."""
+        found = audit.doubles()
+        self.assertGreater(
+            len(found), 4,
+            "the double discovery found %d classes — the real classes in "
+            "REALS were renamed, or the match rule stopped matching, and this "
+            "check has been passing on an empty set" % len(found))
+
+
 if __name__ == "__main__":
     unittest.main()

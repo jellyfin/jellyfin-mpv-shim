@@ -23,14 +23,37 @@ from ..utils import same_origin
 from ..books import AUDIOBOOK_TYPE, BOOK_TYPE, book_format, is_book
 from ..conf import settings
 from ..conffile import confdir
-from ..constants import APP_NAME
+from ..constants import APP_NAME, OFFLINE_SERVER_UUID
 from ..i18n import _
 from ..utils import get_profile
 from .auto import AutoDownloader
-from .db import (SyncDB, STATUS_PENDING, STATUS_DOWNLOADING, STATUS_COMPLETE,
-                 STATUS_ERROR, ORIGIN_USER, is_auto)
+from .db import (ANY_SERVER, NO_ACTOR, STORE_DIR, SyncDB, STATUS_PENDING,
+                 STATUS_DOWNLOADING, STATUS_COMPLETE, STATUS_ERROR,
+                 ORIGIN_USER, is_auto, item_dir, legacy_playlist_art_dir,
+                 playlist_art_dir, season_art_dir, series_art_dir)
 
 log = logging.getLogger("sync.manager")
+
+# -- Reading `ServerId` off a raw DTO -----------------------------------------
+#
+# Several places here take the content server straight from the item the server
+# sent, rather than from `content_id_for(login)`: it is the right key for a
+# question *about that DTO*, and the wrong one is what CR8 removed. This note
+# is the one place that says what a **falsy** answer means, because it used to
+# mean two opposite things sixteen lines apart -- "match no rows" at
+# `is_complete`, and "clear the tombstone on every server" at the two
+# `_clear_discard` calls beside it. Both shipped in `d00daafc`, unremarked.
+#
+# **They agree now, and the agreement is the point:** a falsy `ServerId` means
+# *no effect anywhere*. Nothing matches (`SyncDB._content_clause`, whose NULL
+# branch step 5 removed) and nothing is cleared (`SyncDB.clear_discarded`, which
+# has no broad row left to clear since the tombstones became one scoped table).
+#
+# It is also **expected never to happen**: `_add_row` refuses a DTO that names
+# no server, loudly, measured against a real server across every downloadable
+# type including under a restricted `Fields` list. The sites below cite this
+# note rather than restating it; if a third meaning is ever wanted, it goes here
+# first.
 
 #: Item types this manager knows how to fetch. Books and audiobooks are in
 #: for opposite reasons: an AudioBook is an ordinary audio file and needs
@@ -120,6 +143,15 @@ USERDATA_SWEEP_FLOOR = 300
 #: is not "a sweep that found nothing": docs/offline-sync.md section 3).
 USERDATA_SWEEP_SETTLE = 60
 
+#: How long a reap may be held waiting for a sweep that has not landed.
+#: The guarantee is "succeeded, with a bound", and this is the bound. A constant
+#: rather than a setting: it is the width of a failure window, not a
+#: preference. One auto interval is too coarse to bound anything (it is an
+#: hour by default) and USERDATA_SWEEP_FLOOR is five minutes, which a server
+#: that is merely slow to come back would exceed for reasons that are not a
+#: failure. docs/offline-sync.md section 4.
+REAP_SWEEP_HOLD = 900
+
 #: Ids per request. They travel in the query string, which servers and
 #: proxies cap (the apiclient's own note on get_items says so), and a
 #: catalog of a few hundred downloads would otherwise be one 414.
@@ -142,8 +174,73 @@ USERDATA_EVENT_MAX = 200
 STOP_JOIN_TIMEOUT = 10     # how long stop() waits for the worker to unwind (s)
 
 
+def normalize_root(path):
+    """Clean up a hand-entered download folder, or None for "the default".
+
+    The field is typed into, and on Windows it is typed into by pasting:
+    Explorer's Copy as path and the address bar's context menu both hand over
+    a **quoted** path, and every measured refusal of one was
+    `Can't create that folder` -- a message about permissions for a path that
+    was only ever mis-spelled. Stripping is not cosmetic there, because a
+    double quote is not a legal filename character on NTFS, so the quoted
+    spelling can never name anything.
+
+    Applied by `start()` as well as `relocate()`: `sync_path` is a JSON key a
+    person can edit by hand, and a root the app declines to normalize is a
+    root it silently treats as a different folder from the one the settings
+    field will show.
+    """
+    if not path:
+        return None
+    text = str(path).strip()
+    for quote in ('"', "'"):
+        if len(text) >= 2 and text[0] == quote and text[-1] == quote:
+            text = text[1:-1].strip()
+            break
+    return text or None
+
+
+#: What `_destination_is_writable` writes to prove it can. Named once
+#: because the emptiness check has to recognise it: the probe tolerates its
+#: own removal failing, and a leftover then refuses the user's chosen folder
+#: as "not empty" over a dotfile only this app writes.
+WRITE_PROBE_NAME = ".jellyfin-mpv-shim-write-test"
+
+
+def same_directory(a, b):
+    """Do these two paths name the same directory?
+
+    `==` is the wrong test on Windows, where the filesystem is
+    case-insensitive: a user who retypes their own download folder with the
+    drive letter in the other case fell past the equality check and into the
+    *containment* one, which answered -- correctly, and uselessly -- that the
+    folder is inside itself. `normcase` is the per-platform answer to
+    "would the filesystem call these the same name", and `realpath` is what
+    makes a junction or a symlink to the store resolve to the store.
+    """
+    if not a or not b:
+        return False
+    try:
+        return (os.path.normcase(os.path.realpath(a))
+                == os.path.normcase(os.path.realpath(b)))
+    except OSError:
+        return False
+
+
 class _Stopped(Exception):
     """Raised inside the worker when the app is shutting down mid-download."""
+
+
+class DownloadCollision(Exception):
+    """Every item asked for is already held under a different server.
+
+    Item ids are not unique across servers (docs/jellyfin-api-notes.md 13b)
+    and `downloads.item_id` is the catalog-wide primary key, so the second
+    server's copy cannot be held alongside the first. Raised rather than
+    returning zero because the gateway turns an exception into the failure
+    line the user sees, and a silent no-op is how "Download" came to look
+    like it had worked.
+    """
 
 
 class _Cancelled(Exception):
@@ -214,10 +311,118 @@ def _sub_format(codec):
     return "srt"  # subrip and unknowns -> srt
 
 
+def _requested_user_id(server_uuid):
+    """The Jellyfin ``UserId`` behind a saved login, or ``NO_ACTOR``.
+
+    Only the person: the server half of `requested_by` is taken from the item
+    being enqueued, which names it, so this cannot disagree with the row about
+    which server it belongs to.
+
+    Never raises. A login that will not resolve is recorded as `NO_ACTOR`
+    rather than refused, because the row is about to describe a file on disk.
+    """
+    try:
+        actor = _actor_for(server_uuid)
+    except Exception:
+        log.debug("could not resolve who is asking for a download",
+                  exc_info=True)
+        return NO_ACTOR
+    return (actor[1] if actor and actor[1] else NO_ACTOR)
+
+
+def _actor_for(server_uuid):
+    """Who a saved login belongs to, for `SyncDB`'s userdata migration.
+
+    A module function rather than a bound method so the catalog can be
+    handed a resolver without being handed the manager. Imported per call:
+    `users` reaches back into this package, and a module-scope import here
+    is a cycle.
+
+    **Loads the registry itself rather than trusting a caller to have done
+    it.** `userManager.users` is empty until `load()` runs, whose only caller
+    is `clientManager.load_credentials` from `login_servers()` -- which
+    `mpv_shim.main` reaches *after* `syncManager.start()` has already opened
+    and migrated the catalog. So this answered `None` for every login on a
+    real launch, and a migration that drops what it cannot attribute deleted
+    every queued offline playstate entry on upgrade. `load()` is idempotent
+    and reads one file, so asking here costs a flag check and makes the
+    guarantee independent of anyone's call order.
+    """
+    from ..users import userManager
+    try:
+        userManager.load()
+        return userManager.actor_for(server_uuid)
+    except Exception:
+        log.debug("could not resolve the actor for %s", server_uuid,
+                  exc_info=True)
+        return None
+
+
+def _registry_unreadable():
+    """Did `users.json` exist and fail to parse, with nothing to restore?
+
+    **One predicate, asked in two places**, because the two answers must never
+    disagree: `start` refuses to open the catalog on it, and `_actor_resolver`
+    withholds the resolver on it. Two spellings of "is the registry usable"
+    is how a subsystem ends up half-running.
+
+    Note what it is *not*: being offline. A launch with no network reads the
+    same registry as any other. R12 was about corruption -- [iw], on being
+    shown that not loading also confiscates offline playback: *"that was
+    directed at 'the critical config files for corrupted not it is offline'."*
+
+    `load()` is idempotent and, since the registry gained a backup, answers
+    True only when the primary **and** the copy are both unusable.
+    """
+    from ..users import userManager
+    userManager.load()
+    return bool(userManager.load_failed)
+
+
+def _names_an_account(asked_by):
+    """Does this ``(server, user)`` pair name a person?
+
+    `NO_ACTOR` and the empty string both mean "could not say who", which is a
+    different thing from a person: `db.upsert` substitutes the column default
+    for a writer that omits the pair, and `_backfill_requested_by` fills the
+    rest in with `NO_ACTOR` where the enqueuing login no longer resolves.
+    """
+    return bool(asked_by[1]) and asked_by[1] != NO_ACTOR
+
+
+def _actor_resolver():
+    """The resolver to hand `SyncDB`, or **None when the registry is unreadable**.
+
+    `SyncDB`'s migrations already draw the right distinction -- *"cannot ask, so
+    has not been told nobody"* -- but they draw it on the resolver being
+    **absent**, and a resolver that answers `None` for everything looks exactly
+    like one that has been told nobody. A resolver that *raises* is no better:
+    the migration catches that and drops the entry too.
+
+    **Kept as the second line, not the first.** Since R12, `start` refuses to
+    open the catalog at all when the registry is unreadable, so in a running
+    app this branch is unreachable -- and that is the point rather than a
+    redundancy to tidy away: what made the `''` sentinel reachable was a
+    catalog that opened and migrated with nobody to ask. Tests drive `SyncDB`
+    directly, and they are the remaining caller of the withheld path.
+    """
+    if _registry_unreadable():
+        log.warning("The saved logins could not be read, so the catalog "
+                    "migration is not attributing anything this launch.")
+        return None
+    return _actor_for
+
+
 class SyncManager:
     def __init__(self):
         self.db = None
         self.root = None
+        #: Set when `start` declined to open the catalog, so the rest of the
+        #: app can say why instead of showing an empty download list as
+        #: though nothing had ever been downloaded. None when the subsystem
+        #: is running normally, which is every ordinary launch. See R12 and
+        #: `_registry_unreadable`.
+        self.unavailable = None
         self.get_client = lambda server_uuid: None
         self.on_change = lambda: None
         self.on_progress = lambda item_id, name, downloaded, total: None
@@ -225,8 +430,10 @@ class SyncManager:
         # drive directly, without start()) stays safe.
         self.auto = None
 
-        #: series/item id -> the CollectionFolder it lives in, for
-        #: _library_id_for. Positive answers only; see there.
+        #: (Jellyfin ServerId, series/item id) -> the CollectionFolder it
+        #: lives in, for _library_id_for. Positive answers only; see there.
+        #: The server is in the key because item ids are only unique within
+        #: one -- Jellyfin derives them from the media's path.
         self._library_ids = {}
 
         self._worker = None
@@ -244,7 +451,10 @@ class SyncManager:
         # downloading: the worker owns cleanup so files/rows can't be yanked
         # out from under an in-flight write.
         self._active_lock = threading.Lock()
-        self._active_item = None
+        #: worker generation -> the item that worker is downloading. A dict
+        #: rather than one slot because two workers can be live at once; see
+        #: `_claim_active`.
+        self._active = {}
         self._cancelled = set()
         # Set while relocate() is moving the store (worker stopped, catalog
         # closed). enqueue/delete short-circuit so nothing writes to a catalog
@@ -263,6 +473,24 @@ class SyncManager:
         #: until then, which reads as "no settle to serve" -- a manager
         #: driven directly (every test) is not a client starting up.
         self._started_at = 0.0
+        #: Accounts whose downloaded rows a sweep has fully refreshed this
+        #: session -- every batch covering them returned. Read only by
+        #: `_sweep_owed`, and the reason it is "answered" rather than "swept":
+        #: `_refresh_userdata` clears `_sweep_due` before it asks anything and
+        #: swallows each server's failures, so "a sweep happened" is true of a
+        #: pass that refreshed nothing.
+        #:
+        #: **The account, as ``(ServerId, UserId)``, not the server** (D1).
+        #: The sweep asks a server as one signed-in login and files the
+        #: answers under that login's account, so the account is what an
+        #: answer belongs to -- and a profile switch then stops the previous
+        #: person's answer counting *by construction*. That is what let
+        #: `request_profile_sweep`, and the epoch race between its clear and
+        #: a pass in flight, be deleted instead of repaired.
+        self._answered_accounts = set()
+        #: Monotonic deadline for the hold above, set the first time a reap
+        #: is held and cleared when it releases. None while nothing is held.
+        self._reap_hold_until = None
         #: Server uuids that had a client last time the worker looked. The
         #: transition *into* this set is the reconnect signal; see
         #: _note_connected_servers for why it is watched here rather than
@@ -283,14 +511,40 @@ class SyncManager:
     def start(self, get_client, get_clients=None, is_busy=None):
         """get_clients (() -> {uuid: client}) and is_busy (() -> bool) power
         auto-download; both optional so existing callers and the tests keep
-        working, in which case auto-download simply finds no servers."""
+        working, in which case auto-download simply finds no servers.
+
+        **Refuses outright when the saved logins cannot be read.** R12: *"If
+        users.json is broken, don't load the sync subsystem."* Not a
+        precaution -- it is what makes a whole class of defect unreachable.
+        Everything this subsystem does is filed under a person: a catalog
+        opened with nobody to ask still runs its migrations, still stamps the
+        rows it cannot attribute with an empty actor, and still runs the
+        sweep that deletes them for not matching a real server id. Both
+        review rounds found that pair independently. Not opening removes the
+        state they need rather than guarding the two sites that read it.
+
+        The cost is this launch's downloads: `offline_video_factory` answers
+        None with no catalog, so playback falls back to streaming, and the
+        download list is empty. That is deliberate and it is bounded -- the
+        registry now keeps a backup, so reaching here means the primary and
+        the copy are both unusable, and the bytes of both are on disk to be
+        looked at.
+        """
+        if _registry_unreadable():
+            self.unavailable = "registry"
+            log.error("Not starting the download subsystem: the saved logins "
+                      "could not be read. Downloads are unavailable this "
+                      "launch, and nothing in the catalog will be touched.")
+            return
+        self.unavailable = None
         self.get_client = get_client
         if get_clients is not None:
             self.get_clients = get_clients
         self.auto = AutoDownloader(self, get_clients=get_clients,
                                    is_busy=is_busy,
                                    should_stop=lambda: self._stop)
-        self.root = settings.sync_path or os.path.join(confdir(APP_NAME), "offline")
+        self.root = (normalize_root(settings.sync_path)
+                     or os.path.join(confdir(APP_NAME), "offline"))
         self._open_and_run()
 
     def _open_and_run(self):
@@ -306,7 +560,23 @@ class SyncManager:
         catalog_path = os.path.join(self.root, "catalog.db")
         catalog = self._open_catalog(catalog_path)
         # Recover rows interrupted mid-download on a previous run.
+        #
+        # **Except one that a worker is streaming right now.** On an ordinary
+        # launch there is no such worker and this requeues everything, which
+        # is the point. Reached from `relocate`'s refusal path there is: a
+        # worker that outlived the `stop()` asking it to quit still has that
+        # row's `.part` open, and requeuing it hands the same row to the
+        # replacement this is about to start -- two writers interleaving into
+        # one file, which is the corruption `_generation` was introduced to
+        # prevent and, as `relocate`'s own comment admits, does not cover
+        # mid-`_stream`. The survivor writes the row back itself on its way
+        # out, so nothing is stranded by waiting for it.
+        in_flight = self._active_ids()
         for row in self.db.list(status=STATUS_DOWNLOADING):
+            if row["item_id"] in in_flight:
+                log.info("Leaving %s downloading: a worker still has it.",
+                         row["item_id"])
+                continue
             self.db.update(row["item_id"], status=STATUS_PENDING)
         # Reconcile the catalog with what is actually on disk (best-effort) --
         # but NEVER against a catalog that did not exist a moment ago.
@@ -321,11 +591,29 @@ class SyncManager:
         # costs nothing; anything else is media we cannot prove is orphaned.
         if catalog is not CATALOG_ABSENT:
             try:
+                # Before the reconcile, because a homed row is one the sweep
+                # and the download door can both reason about -- and after
+                # the store's own pass, which has already tried the column.
+                self.home_orphans_from_manifests()
+                # After the homing, not before: a row rescued from its
+                # manifest is syncable again, and pruning first would throw
+                # away the entries that just became deliverable.
+                self.db.drop_unsyncable_playstate()
+            except Exception:
+                log.debug("Homing orphans from manifests failed.",
+                          exc_info=True)
+            try:
                 # The rows a restore is missing come back on the next
                 # sweep-eligible launch; the files must survive until then.
                 self._reconcile_disk(sweep_orphans=catalog is CATALOG_TRUSTED)
             except Exception:
                 log.debug("Startup disk reconcile failed.", exc_info=True)
+            try:
+                # After the reconcile, because it reads the catalog's playlist
+                # rows and the homing above is what gives them their servers.
+                self._rehome_playlist_art()
+            except Exception:
+                log.debug("Re-homing the playlist art failed.", exc_info=True)
         elif any(os.path.isdir(os.path.join(self.root, n))
                  for n in (os.listdir(self.root) if os.path.isdir(self.root)
                            else [])):
@@ -375,7 +663,7 @@ class SyncManager:
         an exception, or the backup beside the damaged file is never restored.
         """
         try:
-            return SyncDB(catalog_path)
+            return SyncDB(catalog_path, actor_for=_actor_resolver())
         except sqlite3.Error:
             log.warning("The download catalog at %s could not be opened.",
                         catalog_path, exc_info=True)
@@ -403,7 +691,7 @@ class SyncManager:
         # tidying up.
         missing = not os.path.exists(catalog_path)
         if missing and not os.path.exists(backup_path):
-            self.db = SyncDB(catalog_path)      # a genuine first run
+            self.db = SyncDB(catalog_path, actor_for=_actor_resolver())  # first run
             return CATALOG_ABSENT
         if missing:
             log.warning("The download catalog at %s is missing; restoring the "
@@ -544,22 +832,29 @@ class SyncManager:
         move failure the downloads are left untouched at the old location and
         the manager resumes there.
         """
+        if self.unavailable:
+            # `self.root` is None here, and `same_directory(None, ...)` is not
+            # the error anyone would want to read. Refusing is also correct on
+            # its own terms: moving a store whose catalog was never opened
+            # would leave the rows describing it untouched.
+            return False, _("Downloads are unavailable: the saved logins "
+                            "could not be read.")
         old_root = self.root
+        new_path = normalize_root(new_path)
         if new_path:
             new_root = os.path.abspath(os.path.expanduser(new_path))
         else:
             new_root = os.path.join(confdir(APP_NAME), "offline")
-        if old_root and os.path.abspath(old_root) == new_root:
+        if same_directory(old_root, new_root):
             # Truthfully, rather than as a successful move. The caller shows
             # `message or "Download folder moved"`, so an empty string here
             # claimed a move that never happened -- which is exactly how a
             # dead Move button read as a working one.
             return True, _("The downloads are already in that folder.")
-        with self._active_lock:
-            if self._active_item is not None:
-                return False, _("Can't change the download folder while a "
-                                "download is in progress. Wait for it to finish, "
-                                "then try again.")
+        if self._active_ids():
+            return False, _("Can't change the download folder while a "
+                            "download is in progress. Wait for it to finish, "
+                            "then try again.")
         # Containment, not just equality. An empty folder *inside* the current
         # download folder passes both the equality check and the non-empty
         # check, and then `_copy_tree` walks into the destination it is
@@ -595,7 +890,15 @@ class SyncManager:
         # gesture to connect it to. An empty folder is the only one where
         # "the store owns this" is true when we say it.
         try:
-            existing = os.listdir(new_root) if os.path.isdir(new_root) else []
+            # Our own leftover probe does not count. It is there because a
+            # previous attempt got exactly this far and could not clean up
+            # after itself, and refusing over it strands the user on the
+            # folder they picked, with nothing visible in it to explain why.
+            # Only this exact name, so somebody else's marker file (a
+            # `.stfolder`, a `.nomedia`) still means "not ours".
+            existing = [n for n in os.listdir(new_root)
+                        if n != WRITE_PROBE_NAME] \
+                if os.path.isdir(new_root) else []
         except OSError:
             return False, _("Can't read that folder. Check the path and its "
                             "permissions.")
@@ -614,13 +917,25 @@ class SyncManager:
         except OSError:
             return False, _("Can't create that folder. Check the path and its "
                             "permissions.")
+        # **An existing folder answers `makedirs(exist_ok=True)` without ever
+        # being written to**, so a destination the user can list and not write
+        # -- another account's folder, a read-only share, a drive mounted ro --
+        # got all the way past every check here, stopped the download worker,
+        # closed the catalog, and only then failed, as the generic "moving
+        # failed". Writing one file is the only question that was actually
+        # being asked, and asking it costs nothing while everything is still
+        # running.
+        if not self._destination_is_writable(new_root):
+            return False, _("This app isn't allowed to write to that folder. "
+                            "Pick one you own, or change its permissions, "
+                            "and try again.")
         # Stop the worker and close the catalog so nothing is open mid-move.
         # _relocating keeps enqueue/delete off the (closed) catalog until we
         # reopen at the destination.
         self._relocating = True
         if not self.stop():
             # The worker is still alive and still holds an open .part handle.
-            # The _active_item check above is not enough on its own: it is
+            # The `_active_ids` check above is not enough on its own: it is
             # sampled before stop(), and the chunk loop only notices _stop
             # between chunks -- a stalled connection parks it in a socket read
             # for up to the 60s read timeout. Moving the tree out from under
@@ -629,6 +944,14 @@ class SyncManager:
             # root: two writers interleaving into one .part, which is the
             # corruption _generation was introduced to prevent and does not
             # cover mid-_stream.
+            #
+            # The reopen below is what would have handed that row over --
+            # `start()` requeues every DOWNLOADING row, which is right on an
+            # ordinary launch and wrong here. It now leaves the one the
+            # survivor still holds alone, and `_release_active` keeps that
+            # survivor from freeing the replacement's claim on its way out.
+            # Both are keyed on the generation, so an ordinary launch (where
+            # nothing is claimed) behaves exactly as before.
             #
             # Reopen where the files still are and refuse the move.
             self.root = old_root
@@ -656,6 +979,18 @@ class SyncManager:
                 return False, _("There isn't enough space on that drive to "
                                 "move the downloads. Free some space and try "
                                 "again — nothing was moved.")
+            # The backstop behind the pre-flight probe above, which writes one
+            # file at the top of the destination and cannot speak for what is
+            # under it: a per-entry denial (an antivirus holding a media file
+            # open, a permission that differs inside the tree) and anything
+            # that revoked access between the probe and the move both land
+            # here, and "moving failed" sends people looking for a bug in this
+            # app instead of at the folder they chose.
+            if getattr(exc, "errno", None) in (errno.EACCES, errno.EPERM):
+                return False, _("This app wasn't allowed to write to that "
+                                "folder. The downloads were left in place; "
+                                "check the folder's permissions and try "
+                                "again.")
             return False, _("Moving the downloads failed. They were left in "
                             "place; the download folder was not changed.")
         self.root = new_root
@@ -670,6 +1005,34 @@ class SyncManager:
             # items were queued.
             self._relocating = False
         return True, ""
+
+    @staticmethod
+    def _destination_is_writable(new_root):
+        """Can this process actually create a file in `new_root`?
+
+        Written and removed rather than asked about: `os.access(W_OK)` reports
+        the mode bits, which on Windows do not describe an ACL at all (a
+        folder denied to this account answers True) and on Linux do not
+        describe a read-only mount, an immutable flag or a full quota either.
+        The destination is empty by the time this runs, so the probe file is
+        the only thing in it and removing it puts the folder back exactly as
+        it was found.
+        """
+        probe = os.path.join(new_root, WRITE_PROBE_NAME)
+        try:
+            with open(probe, "wb") as fh:
+                fh.write(b"")
+        except OSError:
+            return False
+        try:
+            os.remove(probe)
+        except OSError:
+            # Written but not removable is still writable, and the move is
+            # what this was asking about. The file is inside a folder the
+            # store is about to own, so nothing else trips over it.
+            log.debug("Could not remove the write probe at %s", probe,
+                      exc_info=True)
+        return True
 
     def _move_tree(self, old_root, new_root, progress=None):
         """Move every entry from old_root into new_root (created by the caller).
@@ -739,7 +1102,29 @@ class SyncManager:
             if renamed:
                 state[0] += sizes[name]
                 self._emit_progress(state, progress, force=True)
-        # Everything is across. Only now is dropping the originals safe.
+        # Everything is across -- **and verified** before anything is dropped.
+        # The copy loop raises on a real write error, so ENOSPC is already
+        # handled; what this catches is a copy that returns *without* raising
+        # and is short anyway (a truncating or buffering filesystem, a chunk
+        # that never lands). Nothing compared the two sides, so that case
+        # removed the original and there was no other copy of it -- and a move
+        # legitimately carries the user's own files alongside ours, so the
+        # thing lost need not be a download at all. Sizes rather than hashes:
+        # this runs over whole media trees and the failure being guarded is
+        # truncation, not corruption.
+        for src, dest, renamed in done:
+            if renamed:
+                continue
+            want, got = self._tree_size(src), self._tree_size(dest)
+            if want != got:
+                log.error("Copy of %s is %d byte(s) where the original is %d; "
+                          "keeping the original and undoing the move.",
+                          src, got, want)
+                self._undo_move(done)
+                raise OSError(
+                    errno.EIO,
+                    "the copy of %s did not come out the same size as the "
+                    "original" % os.path.basename(src))
         for src, _dest, renamed in done:
             if not renamed:
                 self._discard(src)
@@ -876,14 +1261,153 @@ class SyncManager:
 
     # -- queries (also used by the browser via IPC) ------------------------
 
-    def downloaded_item_ids(self):
-        return self.db.downloaded_item_ids() if self.db else set()
+    @staticmethod
+    def content_id_for(server_uuid):
+        """The catalog's content key for a saved login: a ServerId,
+        ``ANY_SERVER``, or ``None``.
 
-    def downloaded_series_ids(self):
-        return self.db.downloaded_series_ids() if self.db else set()
+        **The one place a login uuid becomes a server id.** Every caller in
+        the app holds the first (it is what the browser browses with, and
+        what a live client is registered under) and the catalog is scoped by
+        the second, so translating once here keeps the rule from being
+        re-applied, differently, at each site -- which is exactly how this
+        file ended up with two scoping keys in the first place.
 
-    def downloaded_season_ids(self):
-        return self.db.downloaded_season_ids() if self.db else set()
+        **Three answers, where there used to be two.** The third is the fix:
+
+        * a ``ServerId`` -- the ordinary case, scope to that server;
+        * ``ANY_SERVER`` when **no login was named at all** (a falsy uuid) or
+          when the uuid is the downloads browser's pseudo-server. Both are
+          structurally unscoped: there is no second server to confuse a row
+          with, and the catalog is the only source of items there is;
+        * ``None`` when a login *was* named and did not resolve. That used to
+          be the same falsy answer as the two above, so a read asked about a
+          login we do not have answered for **every** server. It now matches
+          nothing.
+
+          **A resolution result, not proof of absence.** It is whatever
+          `server_id_for` returns, which is also `None` for a credential that
+          is present but carries no ``Id``, and its scan is deliberately
+          unlocked so it can miss an entry. "The registry has no such login"
+          was the old wording and claimed more than the call can establish --
+          which does not weaken the rule, because none of those situations is
+          evidence that a particular server owns the content.
+
+        The distinction is not theoretical: `_content_clause` serves both a
+        read, where permissive is right, and a narrowing, where permissive is
+        maximally wrong. Ratified 2026-09-13, with all fourteen call sites
+        classified first.
+        """
+        if server_uuid is ANY_SERVER:
+            # A caller with no server to name says so here, and it travels
+            # the same road as every other scope rather than round it.
+            return ANY_SERVER
+        if not server_uuid or server_uuid == OFFLINE_SERVER_UUID:
+            return ANY_SERVER
+        from ..users import userManager
+        try:
+            return userManager.server_id_for(server_uuid)
+        except Exception:
+            # Cannot ask, which is not the same as "no such login" -- the
+            # registry is what failed, not the lookup. Unscoped keeps a
+            # broken read showing the user their downloads.
+            log.debug("could not resolve the content id for %s", server_uuid,
+                      exc_info=True)
+            return ANY_SERVER
+
+    def is_complete(self, item_id, server_uuid):
+        """Do we hold a finished copy, as far as this saved login is
+        concerned? Translates the login to its server, like the id sets
+        below -- callers outside the sync package hold a uuid, and this is
+        the boundary where that becomes the catalog's content key.
+
+        **No default.** The parameter used to default to None, which read as
+        "unscoped" -- so a caller that simply forgot the argument got every
+        server's answer and looked correct. The two callers that genuinely
+        have no server to name now say `ANY_SERVER` where the uuid goes."""
+        if not self.db:
+            return False
+        return self.db.is_complete(
+            item_id, server_id=self.content_id_for(server_uuid))
+
+    @staticmethod
+    def actor_of(*, acting_login=None, server_id=None, user_id=None):
+        """Who a piece of watched state belongs to, as (ServerId, UserId).
+
+        **The one resolver.** Three ways in, tried in that order, because
+        each call site holds a different thing and resolving them
+        separately is how the catalog ended up with two scoping keys:
+
+        1. an explicit pair -- the websocket already announces one;
+        2. ``acting_login``, a saved login, which a live client gives us;
+        3. the server alone, which is the offline case: no client to ask, so
+           the active local profile's credential for that server names the
+           person at the keyboard.
+
+        **``acting_login`` is the login DOING the thing, never one read off
+        a catalog row.** A row's login names whoever downloaded the copy,
+        which on a shared machine is a different person from the one at the
+        keyboard -- and because it is tried before the server, it won
+        wherever the downloader's credential still existed. Keyword-only
+        and named for the rule so a site passing the wrong thing has to say
+        so out loud.
+
+        A login belonging to a *different* server than ``server_id`` is
+        still answered **as itself** -- see the comment in the code, which
+        is the C2 repair. This paragraph used to say the opposite, four
+        lines above the code contradicting it: that it was "passed over
+        rather than answered with". That described the pre-C2 behaviour,
+        which resolved the mismatch away into a pair the store then
+        accepted, and it survived the change that removed it.
+
+        Never None. When nobody can be named it answers ``NO_ACTOR``, which
+        is a real key rather than a NULL, so the progress is still recorded
+        locally and simply never queued for a server -- there is no account
+        to send it as. [iw]'s ruling; docs/offline-sync.md section 1.
+        """
+        from ..users import userManager
+        try:
+            if server_id and user_id:
+                return (server_id, user_id)
+            if acting_login:
+                actor = userManager.actor_for(acting_login)
+                if actor:
+                    # **As itself, even when it is on another server.** This
+                    # used to fall through to the profile's account on
+                    # `server_id`, producing a pair that *matches* the row --
+                    # so the store's check accepted it and the mark landed on
+                    # a film that account has never opened. A check cannot
+                    # catch a mismatch resolved away before it runs, so the
+                    # acting identity has to arrive intact and be refused
+                    # there. docs/offline-sync.md section 1.
+                    return actor
+                if not server_id:
+                    server_id = userManager.server_id_for(acting_login)
+            if server_id:
+                found = userManager.actor_on(server_id)
+                if found:
+                    return (server_id, found)
+        except Exception:
+            log.debug("could not resolve the acting user", exc_info=True)
+        return (server_id or NO_ACTOR, NO_ACTOR)
+
+    def downloaded_item_ids(self, server_uuid):
+        if not self.db:
+            return set()
+        return self.db.downloaded_item_ids(
+            server_id=self.content_id_for(server_uuid))
+
+    def downloaded_series_ids(self, server_uuid):
+        if not self.db:
+            return set()
+        return self.db.downloaded_series_ids(
+            server_id=self.content_id_for(server_uuid))
+
+    def downloaded_season_ids(self, server_uuid):
+        if not self.db:
+            return set()
+        return self.db.downloaded_season_ids(
+            server_id=self.content_id_for(server_uuid))
 
     def state(self):
         """Snapshot the browser caches for indicators + the status bar."""
@@ -911,7 +1435,13 @@ class SyncManager:
         items = self._expand(client.jellyfin, item_id, item_type)
         total = sum(self._source_size(i) for i in items)
         watched = sum(1 for i in items if (i.get("UserData") or {}).get("Played"))
-        already = sum(1 for i in items if self.db.is_complete(i.get("Id")))
+        # The item's own server, like every other question asked about an
+        # item we are holding a DTO for. Asked through the credential, an
+        # estimate disagreed with the enqueue that followed it whenever the
+        # two derivations did -- CR8.
+        already = sum(1 for i in items
+                      if self.db.is_complete(i.get("Id"),
+                                             server_id=i.get("ServerId")))
         # Flag a music (audio-only) collection so the dialog can default to
         # including "watched" (played) items — you don't skip played songs.
         audio_only = bool(items) and all(
@@ -934,13 +1464,53 @@ class SyncManager:
         client = self.get_client(server_uuid)
         if not client:
             return 0
-        server_id = client.config.data.get("auth.server-id")
+        # Scoping is by Jellyfin server, so a second account on the same box
+        # is not refused a film that box is already holding.
+        #
+        # **The login's** content id -- what this sign-in is browsing. The
+        # rule that has not changed: nothing here may take one from
+        # `client.config.data`. The one that used to be read from there was
+        # always None, so every playlist row ever written carried a NULL
+        # server and the badge scope those rows feed narrowed nothing.
+        # docs/do-not-fix.md 1 holds the mechanism (CR12).
+        #
+        # This used to be the *only* content id here, and that was the defect:
+        # a question about a row or a DTO takes the server off the DTO (see
+        # the note at the top of this file), and the playlist's scope below is
+        # one of those.
+        content_id = self.content_id_for(server_uuid)
         items = self._expand(client.jellyfin, item_id, item_type)
         # For a playlist, capture which items already existed before this
         # download so ownership (what a later "delete playlist" may remove) goes
         # only to items this playlist actually pulls down — see _record_playlist.
         pre_existing = ({i.get("Id") for i in items if self.db.get(i.get("Id"))}
                         if item_type == "Playlist" else set())
+        # **A playlist is (id, content server), and the server is its items'.**
+        # Not `content_id`: that is the login's, and where the registry is
+        # present but unreadable `content_id_for` answers `ANY_SERVER` -- which
+        # a read takes as "every server" while all three playlist writers fold
+        # it to the NULL row, so the read and the writes stopped being about
+        # one row. Ownership then came back from another server's claims and
+        # was written onto the unscoped playlist.
+        #
+        # Taken from the members because that is the value they carry
+        # themselves (`_add_row`), so a playlist and its membership cannot
+        # disagree about whose they are. No members, or none naming a server:
+        # `None`, the representable "could not tell" row -- an unknown scope
+        # is that row and never every server. Ruled 2026-09-19.
+        playlist_scope = None
+        if item_type == "Playlist":
+            playlist_scope = next(
+                (i.get("ServerId") for i in items if i.get("ServerId")), None)
+            if playlist_scope is None and content_id is not ANY_SERVER:
+                # **No member to take it from**, which is the emptied
+                # playlist -- and that is the path `_record_playlist` deletes
+                # the row on, so it has to name the row the last download
+                # wrote. The login's server is the only thing left that does.
+                # `ANY_SERVER` is excluded rather than passed through: "every
+                # server" is the reading this whole change removes, and a
+                # delete is the last place to reintroduce it.
+                playlist_scope = content_id
         # Computed once, here, because this is the only place that knows it:
         # a playlist download is what `_record_playlist` recomputes ownership
         # for, so releasing a claim it already holds over a row it already has
@@ -962,9 +1532,68 @@ class SyncManager:
             self._uncancel(iid)
             members.append(iid)
 
+        refused = 0
         for item in items:
             iid = item.get("Id")
-            if self.db.is_complete(iid):
+            verdict = self.claim_identity(iid, item, may_reap=False)
+            if verdict == "refused":
+                # Another server already holds this id, and holds it under
+                # a name: not an orphan, so `claim_identity` had no evidence
+                # to weigh and would not guess. It is the *same* id because
+                # Jellyfin derives one from the media's path with no server
+                # component in it, and `item_id` is the catalog-wide primary
+                # key -- so `_add_row`'s INSERT OR REPLACE would take the
+                # other server's row, and its files, which `_item_dir` puts
+                # in the same place, would be orphaned with nothing pointing
+                # at them. docs/jellyfin-api-notes.md 13b.
+                #
+                # An ORPHAN row does not arrive here: the claim re-homes it
+                # when the byte counts agree and reaps it when they do not,
+                # because the user asking for a download outranks a copy the
+                # catalog cannot account for. docs/offline-sync.md section 3b.
+                log.warning("Not downloading %s from %s: the same id is "
+                            "already held from %s, and the catalog can only "
+                            "keep one copy of it.",
+                            item.get("Name") or iid,
+                            server_uuid, self.db.owner_of(iid))
+                refused += 1
+                continue
+            if not include_watched and (item.get("UserData") or {}).get("Played"):
+                # Before the reap and after the refusal, which is the whole
+                # of the ordering: this is the one filter that says whether
+                # the request wants the item at all, and it reads the
+                # server's DTO rather than the catalog, so it is free.
+                continue
+            if verdict == "stale":
+                # **Only now.** The claim found an orphan whose bytes do not
+                # match and deliberately did not act: this door can delete
+                # media, and what justifies that is *"the user already
+                # asked for a download"*, and an item the two filters above
+                # decline was never asked for. Run destructively at the top,
+                # a watched orphan inside a series download was reaped and
+                # then skipped -- the user lost an episode they already had,
+                # and the log said "Re-downloading" for a download that
+                # never happened.
+                if self.claim_identity(iid, item) == "busy":
+                    keep(iid)   # already coming down; nothing to queue
+                    continue
+            # The item's own server. `content_id` is what *this login* is
+            # on, which is the right key for browsing and the wrong one for
+            # a question about the DTO in hand: where the two disagree, the
+            # read said "we do not hold it" about a copy we hold and the
+            # door said "refused" about a row that is ours. One derivation,
+            # and it is the one `_add_row` writes -- CR8.
+            # A falsy `ServerId` matches no rows; see "Reading `ServerId`
+            # off a raw DTO" at the top of this file.
+            if self.db.is_complete(iid, server_id=item.get("ServerId")):
+                # **After the reap, not before it.** The premise this comment
+                # used to give is gone: a complete orphan no longer answers
+                # every scope (step 5), so it answers False here and is
+                # re-fetched -- which homes the row to the server that asked,
+                # at the cost of downloading it again. The ordering still
+                # stands on its own: a row the reap is about to remove must
+                # not be reported as held, or the claim door is switched off
+                # for the case it was written for.
                 keep(iid)  # already downloaded → still a member
                 # A user asking for something the scheduler already fetched
                 # takes ownership of it, so the reaper stops considering it.
@@ -974,28 +1603,44 @@ class SyncManager:
                     row = self.db.get(iid)
                     if row and is_auto(row["origin"]):
                         self.db.set_origin(iid, ORIGIN_USER)
-                    self._clear_discard(iid)
+                    # Falsy: nothing to clear. See the note at the top.
+                    self._clear_discard(iid, item.get("ServerId"))
                     if not claims_its_members:
                         self._claim_from_playlists(iid)
                 continue
-            if not include_watched and (item.get("UserData") or {}).get("Played"):
-                continue
             if origin == ORIGIN_USER:
                 # Asking for it by hand overrides a previous auto discard,
-                # which is the only signal that outranks the reaper.
-                self._clear_discard(iid)
+                # which is the only signal that outranks the reaper. Scoped
+                # by the item's server, matching the tombstone the scheduler
+                # wrote from `row["content_server_id"]`; falsy clears nothing,
+                # and there is nothing broad left for it to clear. See the note
+                # at the top of this file.
+                self._clear_discard(iid, item.get("ServerId"))
                 if not claims_its_members:
                     self._claim_from_playlists(iid)
             keep(iid)
-            self._add_row(server_uuid, server_id, item, origin=origin)
-            added += 1
+            if self._add_row(server_uuid, item, origin=origin):
+                added += 1
         if item_type == "Playlist":
-            self._record_playlist(server_uuid, server_id, client.jellyfin,
-                                  item_id, members, pre_existing)
+            self._record_playlist(server_uuid, playlist_scope,
+                                  client.jellyfin, item_id, members,
+                                  pre_existing)
         if added:
             log.info("Queued %d item(s) for offline download.", added)
             self._notify_change()
             self._wake.set()
+        if refused and not members:
+            # Only when the collision cost the whole request. A season with
+            # one shared episode still fetches the other nine, and saying so
+            # in the log beats refusing all ten.
+            #
+            # `members`, not `added`: an item already on disk, or already
+            # coming down, is kept without being queued, so `added == 0` is
+            # also what a request nine tenths of which was *already satisfied*
+            # looks like -- and this raise is the user being told their
+            # download failed (`gateway.download_enqueue` does not catch it).
+            # CR7.
+            raise DownloadCollision(item_id)
         return added
 
     def _is_cancelled(self, item_id):
@@ -1072,23 +1717,30 @@ class SyncManager:
             log.debug("Could not claim %s from its playlist", item_id,
                       exc_info=True)
 
-    def _clear_discard(self, item_id):
+    def _clear_discard(self, item_id, server_id):
         """Best-effort: a missing tombstone table or a closed catalog must
-        not fail a download the user asked for."""
+        not fail a download the user asked for.
+
+        ``server_id`` is required rather than defaulted, mirroring the
+        store's own signature: a default None here is the broad clear
+        arrived at by omission, which is exactly what that keyword-only
+        argument exists to prevent.
+        """
         try:
-            self.db.clear_discarded(item_id)
+            self.db.clear_discarded(item_id, server_id=server_id)
         except Exception:
             log.debug("Could not clear the discard for %s", item_id,
                       exc_info=True)
 
-    def _record_playlist(self, server_uuid, server_id, api, playlist_id,
+    def _record_playlist(self, server_uuid, content_server_id, api, playlist_id,
                          member_ids, pre_existing):
         """Persist a downloaded playlist and its membership. An item is `owned`
         by this playlist if this download is what pulls it in (it wasn't already
         in the catalog), or it was already owned by this playlist on a prior
         download. Items that pre-existed from another route stay unowned so a
         later playlist delete leaves them (and their original grouping) intact."""
-        already_owned = self.db.playlist_owned_ids(playlist_id)
+        already_owned = self.db.playlist_owned_ids(
+            playlist_id, server_id=content_server_id)
         # A playlist may list the same item twice; membership is keyed by
         # item_id, so keep the first position and drop later duplicates.
         entries, seen = [], set()
@@ -1105,8 +1757,9 @@ class SyncManager:
         # zero, and the record goes with them -- so an emptied playlist does
         # not linger in the offline UI and there is no name to fetch or art to
         # cache for it.
-        if not self.db.replace_playlist_items(playlist_id, entries):
-            self.db.delete_playlist(playlist_id)
+        if not self.db.replace_playlist_items(
+                playlist_id, entries, server_id=content_server_id):
+            self.db.delete_playlist(playlist_id, server_id=content_server_id)
             return
         try:
             name = (api.get_item(playlist_id) or {}).get("Name") or "Playlist"
@@ -1114,10 +1767,14 @@ class SyncManager:
             log.debug("Failed to fetch playlist name for %s", playlist_id,
                       exc_info=True)
             name = "Playlist"
-        self.db.upsert_playlist(playlist_id, server_id, server_uuid, name)
+        self.db.upsert_playlist(playlist_id, content_server_id, server_uuid, name)
         try:
+            # The **content** server, which goes below `playlist/` rather than
+            # above it -- see `db.playlist_art_dir`, which both this and the
+            # offline reader build the path with. Posters written before that
+            # are moved into place by `_rehome_playlist_art` at startup.
             self._download_playlist_art(
-                self.get_client(server_uuid), server_id, playlist_id)
+                self.get_client(server_uuid), content_server_id, playlist_id)
         except Exception:
             log.debug("Could not cache playlist art for %s", playlist_id,
                       exc_info=True)
@@ -1126,7 +1783,9 @@ class SyncManager:
         """If the worker is downloading `item_id`, flag it for cancellation and
         let the worker do the file/row cleanup. Returns True if it was active."""
         with self._active_lock:
-            if self._active_item == item_id:
+            # Read directly rather than through `_active_ids`, which takes
+            # this same plain Lock.
+            if item_id in self._active.values():
                 self._cancelled.add(item_id)
                 return True
         return False
@@ -1191,7 +1850,7 @@ class SyncManager:
 
     def delete(self, item_id=None, series_id=None, season_id=None,
                watched_only=False, watched_all=False, playlist_id=None,
-               only_if_auto=False):
+               only_if_auto=False, playlist_server_id=None):
         """Flexible delete: a single item, a season, a whole series, a
         playlist's downloads, and/or only watched items within that scope.
 
@@ -1206,7 +1865,10 @@ class SyncManager:
         -- so ``watched_all=True`` alone deleted everything, watched or not,
         under the one name in this signature that reads like a filter. There
         is now no combination of these arguments that deletes an unwatched
-        download outside a named series, season or playlist."""
+        download outside a named series, season or playlist.
+
+        ``playlist_server_id`` says which server's playlist, since two can
+        hold one with the same id; see `_delete_playlist`."""
         if self._relocating:
             return  # catalog is mid-move; caller can retry after
         if watched_all:
@@ -1220,7 +1882,8 @@ class SyncManager:
                       "the whole catalog")
             return
         if playlist_id:
-            self._delete_playlist(playlist_id, watched_only=watched_only)
+            self._delete_playlist(playlist_id, watched_only=watched_only,
+                                  server_id=playlist_server_id)
             return
         rows = self.db.list(series_id=series_id) if series_id else self.db.list()
         removed = 0
@@ -1228,11 +1891,11 @@ class SyncManager:
             if season_id and row.get("season_id") != season_id:
                 continue
             if watched_only:
-                try:
-                    userdata = json.loads(row.get("userdata_json") or "{}")
-                except ValueError:
-                    userdata = {}
-                if not userdata.get("Played"):
+                # ANY actor, not the asking one. One file on disk, so one
+                # decision -- requiring every account to have watched it
+                # would mean a shared machine never reclaims anything.
+                # [iw]'s ruling; docs/offline-sync.md section 1.
+                if not self.db.played_by_anyone(row["item_id"]):
                     continue
             if self._cancel_if_active(row["item_id"]):
                 removed += 1
@@ -1245,24 +1908,29 @@ class SyncManager:
         if removed:
             self._notify_change()
 
-    def _delete_playlist(self, playlist_id, watched_only=False):
-        """Delete a downloaded playlist. Only the items this playlist *owns*
-        (pulled down itself) are removed from disk; items that were already
-        downloaded another way stay put. The playlist record is then dropped."""
-        owned = self.db.playlist_owned_ids(playlist_id)
+    def _delete_playlist(self, playlist_id, watched_only=False,
+                         server_id=None):
+        """Delete one server's downloaded playlist. Only the items this
+        playlist *owns* (pulled down itself) are removed from disk; items that
+        were already downloaded another way stay put. The playlist record is
+        then dropped.
+
+        ``server_id`` says *whose* playlist, because two servers can hold one
+        with the same id (a playlist id is a hash of its name). It is
+        `None`-defaulted rather than required for one reason only: `None` is
+        also the representable "could not tell" scope, so it names a real row
+        rather than standing for "any". A caller that has a server and omits it
+        deletes the unscoped row and leaves the one it meant -- which is a
+        wrong answer rather than a broad one, and the Downloads tree carries
+        the server precisely so no caller has to omit it.
+        """
+        owned = self.db.playlist_owned_ids(playlist_id, server_id=server_id)
         for item_id in owned:
-            if watched_only:
-                row = self.db.get(item_id)
-                try:
-                    played = bool(json.loads(
-                        (row or {}).get("userdata_json") or "{}").get("Played"))
-                except ValueError:
-                    played = False
-                if not played:
-                    continue
+            if watched_only and not self.db.played_by_anyone(item_id):
+                continue
             self.delete_item(item_id)  # removes files + row, cleans membership
         if not watched_only:
-            self.db.delete_playlist(playlist_id)
+            self.db.delete_playlist(playlist_id, server_id=server_id)
         self._notify_change()
 
     # -- expansion / helpers ----------------------------------------------
@@ -1361,28 +2029,306 @@ class SyncManager:
         this runs once per item on a path that is already doing network I/O,
         and a download queued during a blip should get its library on the
         next one rather than never.
+
+        **The catalog is the last resort, and it is what makes not caching
+        failure safe.** `upsert` is INSERT OR REPLACE over the whole row, so
+        re-queuing an item writes whatever this answers -- and without the
+        fallback a re-queue during a blip would overwrite a library resolved
+        back when the server was up. Asking what we already recorded is one
+        indexed point query and cannot regress the answer.
         """
-        lookup = (item or {}).get("SeriesId") or (item or {}).get("Id")
+        item = item or {}
+        lookup = item.get("SeriesId") or item.get("Id")
         if not lookup:
             return None
-        if lookup in self._library_ids:
-            return self._library_ids[lookup]
-        found = None
-        try:
-            client = self.get_client(server_uuid)
-            if client is not None:
-                for ancestor in client.jellyfin.get_ancestors(lookup) or []:
-                    if ancestor.get("Type") == "CollectionFolder":
-                        found = ancestor.get("Id")
-                        break
-        except Exception:
-            log.debug("could not resolve the library for %s", lookup,
-                      exc_info=True)
+        # Scoped to the *server*, and **the item's server, never the asker's**.
+        # A CollectionFolder id is server-wide, so two accounts on one box are
+        # one answer -- but the scope has to come off the DTO, because the
+        # library belongs to the item's server and not to whoever asked.
+        #
+        # There used to be a fallback here to `content_id_for(server_uuid)`,
+        # for a DTO that names no server. It was dead -- `_add_row` is the one
+        # production caller and refuses such a DTO first (`ecfd316c`) -- and it
+        # was not harmless: reached through an unscoped login it answers
+        # `ANY_SERVER`, and that value then becomes part of `_library_ids`'
+        # **cache key**, which is one entry shared by every server. Ruled
+        # 2026-09-19, after two reviewers disagreed about it.
+        server_id = item.get("ServerId")
+        if not server_id:
+            # No scope is available and inventing one is what this removes.
             return None
-        self._library_ids[lookup] = found
-        return found
+        key = (server_id, lookup)
+        if key in self._library_ids:
+            found = self._library_ids[key]
+        else:
+            found = None
+            try:
+                client = self.get_client(server_uuid)
+                if client is not None:
+                    for ancestor in client.jellyfin.get_ancestors(lookup) or []:
+                        if ancestor.get("Type") == "CollectionFolder":
+                            found = ancestor.get("Id")
+                            break
+            except Exception:
+                log.debug("could not resolve the library for %s", lookup,
+                          exc_info=True)
+                return self.db.library_id(lookup,
+                                          server_id=server_id)
+            # Positive answers only, which is what the promise above costs:
+            # `client is None` and an ancestor list with no CollectionFolder in
+            # it are blips wearing the shape of an answer, and caching either
+            # one recorded NULL for every later episode of the series.
+            if found:
+                self._library_ids[key] = found
+        return found or self.db.library_id(lookup,
+                                            server_id=server_id)
 
-    def _add_row(self, server_uuid, server_id, item, origin=ORIGIN_USER):
+    def home_orphans_from_manifests(self):
+        """Give rows their content server from the manifest beside the media.
+
+        The **second** source, after `SyncDB._backfill_content_server_id`,
+        which reads the `item_json` column and skips a row whose column is
+        NULL or will not parse. The same DTO is on disk next to the file --
+        `_download` writes it so a download describes itself, and
+        `_adopt_orphan` proves it carries `ServerId` because that is where
+        adoption gets it from.
+
+        It lives here rather than in `SyncDB` for a structural reason, not a
+        stylistic one: the store is constructed with a `db_path` and no store
+        root, so it cannot reach a manifest at all.
+
+        A row this cannot home stays an orphan, which is a **recognised
+        state and not an error**: it is an item downloaded locally whose
+        server was later removed from the client. It plays, it records
+        playstate locally, and it syncs in neither direction ([iw], 11c).
+        Never deletes; returns how many were homed.
+        """
+        if not self.db or not self.root:
+            return 0
+        homed = 0
+        try:
+            rows = self.db.list()
+        except Exception:
+            log.debug("could not list the catalog to home orphans",
+                      exc_info=True)
+            return 0
+        for row in rows:
+            if row.get("content_server_id"):
+                continue
+            manifest = os.path.join(self._item_dir(row), "item.json")
+            try:
+                with open(manifest, encoding="utf-8") as fh:
+                    server_id = (json.load(fh) or {}).get("ServerId")
+            except (OSError, ValueError):
+                continue        # locked out, deliberately, not deleted
+            if not server_id:
+                continue
+            if self.db.home_content_server(row["item_id"], server_id):
+                homed += 1
+        if homed:
+            log.info("Catalog: homed %d row(s) from the file beside the "
+                     "media.", homed)
+        return homed
+
+    @staticmethod
+    def _declared_bytes(source):
+        """A positive byte count from a MediaSource, or None.
+
+        None is *not* zero and not "no evidence is fine": a source with no
+        usable `Size` -- which is every `Book`, since `Book : BaseItem` is
+        not `IHasMediaSources` (docs/readers.md 27) -- yields nothing to
+        compare, and C4 says an unanswerable comparison takes the safe route.
+        """
+        try:
+            size = int((source or {}).get("Size") or 0)
+        except (TypeError, ValueError):
+            return None
+        return size if size > 0 else None
+
+    def _held_bytes(self, row):
+        """What we actually hold, in bytes, or None.
+
+        The file on disk rather than the row's `size_bytes`: that column is
+        the size the server *declared* at enqueue and can be stale or zero,
+        while the bytes cannot lie about themselves.
+        """
+        path = row.get("file_path")
+        if not path:
+            return None
+        try:
+            size = os.path.getsize(os.path.join(self.root, path))
+        except OSError:
+            return None
+        return size if size > 0 else None
+
+    def claim_identity(self, item_id, item, may_reap=True):
+        """Who a downloaded copy belongs to. **The one door**, for both
+        entrances, and it may reap.
+
+        **It derives the content key itself, from the item.** It used to take
+        one, and its two entrances derived it differently: `enqueue` from the
+        saved credential's `Id`, `_adopt_orphan` from the DTO's `ServerId`.
+        Where those disagree -- a credential whose `Id` was never written, a
+        server whose ServerId was regenerated, a login resolved through a
+        different local profile -- `owner == content_id` is false for every
+        row we hold, so this answers "refused" for all of them, `enqueue`
+        raises `DownloadCollision`, and the item can never be re-downloaded.
+        The item is the right source of the two: it is the same value
+        `_add_row` writes into `content_server_id`, so the question this
+        asks and the answer that gets stored cannot drift apart.
+
+        A DTO that names no server answers "refused" against any homed row,
+        which is correct -- nothing can show that copy is this request's --
+        and `_add_row` is where that condition is explained.
+
+        `enqueue` and `_adopt_orphan` both write rows keyed on an item id
+        that is not unique across servers, and only one of them used to
+        check. Answering here rather than at each keeps the rule single, and
+        it is a rule with teeth: it deletes.
+
+        Returns one of:
+
+        - ``free`` -- we hold no row; go ahead.
+        - ``ours`` -- the row is already this server's.
+        - ``refused`` -- the row names a *different* server. Ids collide, so
+          this is somebody else's film and neither entrance may take it.
+        - ``rehomed`` -- the row was an orphan and the evidence says it is
+          the same content, so it becomes this server's where it stands. No
+          re-download: the bytes are already right.
+        - ``reaped`` -- the row was an orphan and the evidence does not
+          agree, or there is no evidence. Row, files and local watched state
+          are gone and the caller may download afresh. [iw]: *"the user
+          already asked for a download, an orphan shouldn't stop it."*
+        - ``stale`` -- an orphan whose evidence does not agree, asked with
+          ``may_reap=False``. Nothing has been deleted; ask again when the
+          deletion is actually justified. `enqueue` uses this to keep the
+          *refusal* -- which has to happen before `_add_row`'s INSERT OR
+          REPLACE can take another server's row -- ahead of the filters that
+          decide whether it wants the item, while the *reap* stays behind
+          them. What justifies the reap is "the user already asked for
+          a download"; an item the request then declines was never asked for.
+        - ``busy`` -- it would have reaped, but a worker is writing into that
+          directory now. Left alone; the caller queues nothing, because the
+          copy being asked for is already on its way. This path used to
+          rmtree a directory mid-write, and the worker then carried on into
+          it and updated a row that no longer existed.
+
+        **The evidence is bytes, not metadata.** An id collision already
+        proves the .NET type and the path -- that is the entire derivation
+        -- so `Type` adds nothing, and `Name` is editable while two encodes
+        of one film routinely share a runtime. What separates "the file was
+        upgraded in place" from "a different film at the same path on
+        another install" is its length. Absent on either side, the answer is
+        `reaped`, because reading missing evidence as agreement is precisely
+        the silent failure docs/jellyfin-api-notes.md 13b describes.
+        """
+        content_id = item.get("ServerId")
+        row = self.db.get(item_id)
+        if row is None:
+            return "free"
+        owner = row.get("content_server_id")
+        if owner:
+            return "ours" if owner == content_id else "refused"
+        want = self._declared_bytes((item.get("MediaSources") or [{}])[0])
+        have = self._held_bytes(row)
+        if want is not None and have is not None and want == have:
+            if not self._home_row(item_id, content_id):
+                # The store refused, so the row is still an orphan. Saying
+                # "rehomed" here made `enqueue` skip the download on an
+                # unscoped `is_complete`, and the user's explicit Download
+                # did nothing at all. "free" is the honest answer: nothing
+                # owns this id, carry on and write the row.
+                log.warning("Could not home %s to %s; treating it as "
+                            "unclaimed.", item_id, content_id)
+                return "free"
+            return "rehomed"
+        if not may_reap:
+            # The caller has not established that it wants the item yet, so
+            # nothing may be deleted on its behalf. It asks again once it
+            # has. See `enqueue`, which is the only caller that splits them.
+            return "stale"
+        if item_id in self._active_ids():
+            # A worker is writing into this very directory. Deleting it now
+            # races the write, and the worker would then update a row that
+            # is gone. Left alone, and the caller queues nothing: the copy
+            # being asked for is already on its way.
+            #
+            # Read-only on purpose -- **not** `_cancel_if_active`, which is
+            # what the other deleters use. Cancelling here would abandon the
+            # very download the user just asked for and then decline to
+            # re-queue it, which is the same "asked for a download, got
+            # nothing" outcome by a different route.
+            log.info("Not reaping %s: it is downloading right now.", item_id)
+            return "busy"
+        log.info("Re-downloading %s: the copy on disk cannot be shown to be "
+                 "the same content (%s on disk, server says %s).",
+                 row.get("name") or item_id, have, want)
+        self._remove_files(row)
+        self.db.delete(item_id)
+        return "reaped"
+
+    def _home_row(self, item_id, content_id):
+        """Give an orphan row its server, in the catalog **and beside the
+        media**.
+
+        Both, because they answer the question at different times: the row
+        answers now, and the manifest answers after a catalog loss, when
+        `_adopt_orphan` rebuilds from the file. Homing only the row leaves a
+        restore to orphan it again, silently.
+
+        Returns whether the row was homed. The store can refuse -- an empty
+        content id is not a server -- and the caller has to know, because a
+        claim reported as `rehomed` on a row that is still an orphan sends
+        `enqueue` down the "already held" path for a copy nobody owns.
+        """
+        if not self.db.home_content_server(item_id, content_id):
+            return False
+        row = self.db.get(item_id) or {}
+        manifest = os.path.join(self._item_dir(row), "item.json")
+        try:
+            with open(manifest, encoding="utf-8") as fh:
+                data = json.load(fh)
+            data["ServerId"] = content_id
+            with open(manifest, "w", encoding="utf-8") as fh:
+                json.dump(data, fh)
+        except (OSError, ValueError):
+            # A manifest we cannot rewrite is survivable -- the row is homed
+            # and only a catalog loss would expose it -- and refusing here
+            # would undo a claim the caller has already been told about.
+            log.debug("could not record the server in the manifest for %s",
+                      item_id, exc_info=True)
+        return True
+
+    def _add_row(self, server_uuid, item, origin=ORIGIN_USER):
+        """Write the catalog row for an item about to be downloaded.
+
+        **Takes no path key, and there is no longer a column to take one.**
+        This used to write `downloads.server_id` from `client.config.data`,
+        where the value was always absent; CX8 dropped the column, and the rule
+        that outlives it is that nothing here may read a server identity out of
+        `config.data` at all. docs/do-not-fix.md 1 holds the mechanism (CR12).
+
+        **Refuses a DTO that does not name its server**, and returns whether
+        it wrote. A row with no `content_server_id` is a legacy state -- the
+        migration fills it from the manifest, and one that still has none is
+        one whose manifest could not be read -- and writing a new one by
+        hand makes the legacy case unreachable by repair and permanent by
+        construction: it answers for every server that asks, forever.
+
+        Measured against the 12.0 QA server on 2026-09-18, which is the
+        oracle for what a real DTO carries: Movie, Episode, Audio, Book,
+        AudioBook, Photo, MusicVideo and Video all name their server, and so
+        do items fetched with a restricted `Fields` list. So this is expected
+        never to fire, which is why it is loud rather than silent.
+        """
+        # The site that makes the note at the top of this file true: every
+        # other reader of a raw `ServerId` is downstream of this refusal.
+        if not item.get("ServerId"):
+            log.error("Refusing to queue %s: the item does not name its "
+                      "server, so nothing could say which server's copy it "
+                      "is. This should not happen against a real server.",
+                      item.get("Id"))
+            return False
         if self.db.get(item["Id"]) is None:
             # **A row this writes starts unclaimed**, whoever asked for it. A
             # standing `owned=1` over an item the catalog does not have is a
@@ -1397,8 +2343,33 @@ class SyncManager:
         ext = self._ext_for(item)
         self.db.upsert({
             "item_id": item["Id"],
-            "server_id": server_id,
+            # The CONTENT key, from the item itself rather than from the
+            # client's config -- this is the same value `_adopt_orphan`
+            # recovers from the manifest. Guaranteed present by the refusal
+            # above, so no `or None` fallback: an empty string used to reach
+            # here and it is the worst of both, matching no server *and*
+            # failing the `IS NULL` branch every content read leans on, so
+            # the row was invisible everywhere rather than answering for
+            # everyone.
+            "content_server_id": item["ServerId"],
+            # The LOGIN that asked. A delivery address rather than an
+            # identity -- see `requested_*` below, which is the identity.
             "server_uuid": server_uuid,
+            # **Who asked, as an account**, recorded now rather than derived
+            # later. Deriving works today (measured 14/14 on 2026-09-19) and
+            # stops the first time a server connection is deleted and added
+            # back, which mints a new login uuid for the same person.
+            #
+            # Two uses of one record, stated together because this is where it
+            # has drifted twice: it is a record of *who asked*, which the
+            # sweep's scoping relies on, and resolving a live *client* by it is
+            # the defect F48 names. R19; docs/rulings-log.md.
+            #
+            # The server half comes off the DTO, not the credential: the
+            # refusal above guarantees it, and a login we cannot place must
+            # still produce a row for a file that is about to exist on disk.
+            "requested_server_id": item["ServerId"],
+            "requested_user_id": _requested_user_id(server_uuid),
             "type": item.get("Type"),
             "name": item.get("Name"),
             "series_id": item.get("SeriesId"),
@@ -1416,15 +2387,14 @@ class SyncManager:
             "library_id": self._library_id_for(server_uuid, item),
             "item_json": json.dumps(item),
             "source_json": json.dumps(source),
-            "userdata_json": json.dumps(item.get("UserData") or {}),
             "added_at": int(time.time()),
             "origin": origin,
             "completed_at": None,
         })
+        return True
 
     def _item_dir(self, row):
-        return os.path.join(self.root, row.get("server_id") or "server",
-                            row["item_id"])
+        return item_dir(self.root, row["item_id"])
 
     def _remove_files(self, row):
         """Remove a download's directory. Returns whether it is gone.
@@ -1449,6 +2419,64 @@ class SyncManager:
             return False
         return True
 
+    def _rehome_playlist_art(self):
+        """Move each cached playlist poster under its content server.
+
+        R23: *"Moving is fine, we should just make it transactional so it
+        doesn't strand files."* So:
+
+        * `os.replace` per file, which is atomic within a filesystem, rather
+          than a copy-then-delete that can be interrupted holding neither end;
+        * **unconditional, on every open** -- the shape `_migrate`'s `origin`
+          backfill uses and for its reason. An interrupted pass leaves each
+          poster at one path or the other, and the next open finishes the job.
+          There is no marker to get wrong, and nothing to re-run by hand.
+        * per playlist, so one unmovable directory costs its own poster and not
+          the rest.
+
+        The one file this deletes is a duplicate: if the destination already
+        holds a poster of that name, the *newer* write is the one at the
+        destination, and the old copy has to go or the pass never converges.
+
+        Orphaned directories -- a playlist deleted while its poster stayed --
+        are **not** touched, because this walks catalog rows. That is
+        unchanged: nothing has ever removed them, which is why `playlist` is in
+        `RESERVED_STORE_DIRS` (the orphan sweep used to delete the whole cache).
+        """
+        try:
+            rows = self.db.list_playlists(ANY_SERVER)
+        except Exception:
+            log.debug("Could not list playlists to re-home their art",
+                      exc_info=True)
+            return
+        moved = 0
+        for row in rows:
+            playlist_id = row.get("playlist_id")
+            if not playlist_id:
+                continue
+            old = legacy_playlist_art_dir(self.root, playlist_id)
+            new = playlist_art_dir(self.root, row.get("server_id"),
+                                   playlist_id)
+            if old == new or not os.path.isdir(old):
+                continue
+            try:
+                os.makedirs(new, exist_ok=True)
+                for name in os.listdir(old):
+                    src, dst = (os.path.join(old, name),
+                                os.path.join(new, name))
+                    if os.path.exists(dst):
+                        os.remove(src)
+                    else:
+                        os.replace(src, dst)
+                os.rmdir(old)
+                moved += 1
+            except OSError:
+                log.debug("Could not re-home the art for playlist %s",
+                          playlist_id, exc_info=True)
+        if moved:
+            log.info("Moved the cached art of %d playlist(s) under its "
+                     "server.", moved)
+
     def _reconcile_disk(self, sweep_orphans=True):
         """Best-effort startup sweep to keep the catalog and the file store in
         agreement (S12):
@@ -1459,10 +2487,15 @@ class SyncManager:
 
         The second half **identifies what it deletes rather than inferring
         it**, and all four tests are load-bearing -- the catalog reads
-        (`db.healthy`), the server directory is one the catalog *names*, the
-        child is shaped like an item id, and it is not a live row. Each exists
-        because inferring instead deleted something: docs/offline-sync.md
-        section 5.
+        (`db.healthy`), there is at least one row (so an empty catalog sweeps
+        nothing), the child is shaped like an item id, and it is not a live
+        row. Each exists because inferring instead deleted something:
+        docs/offline-sync.md section 5.
+
+        The second of those used to be "the directory is one a row *names*",
+        through `downloads.server_id`. That column is gone (CX8) and was NULL
+        on every row ever written, so what it actually asserted was
+        `known` being non-empty -- which is the form it takes now.
         """
         if not self.db.healthy():
             # Refusing the requeue half too: a `[]` from an unreadable catalog
@@ -1471,13 +2504,12 @@ class SyncManager:
             log.error("Skipping the disk reconcile: the catalog is unreadable.")
             return
         rows = self.db.list()
-        known = {}  # server_dir -> set(item_id)
-        server_uuids = {}   # server_dir -> server_uuid, for _adopt_orphan
+        known = set()           # every item id the catalog holds
+        server_uuid = None      # any login we know, for _adopt_orphan
         for row in rows:
-            server_dir = row.get("server_id") or "server"
-            known.setdefault(server_dir, set()).add(row["item_id"])
-            if row.get("server_uuid"):
-                server_uuids.setdefault(server_dir, row["server_uuid"])
+            known.add(row["item_id"])
+            if server_uuid is None and row.get("server_uuid"):
+                server_uuid = row["server_uuid"]
             if row["status"] != STATUS_COMPLETE:
                 continue
             file_path = row.get("file_path")
@@ -1490,38 +2522,40 @@ class SyncManager:
 
         if not sweep_orphans:
             return
-        # Only the server directories the catalog names -- never everything
-        # in the root. A store with no rows sweeps nothing, which is correct:
-        # there is no such thing as an orphan we can prove.
-        for server_dir, item_ids in known.items():
-            base = os.path.join(self.root, server_dir)
-            if not os.path.isdir(base):
+        # **Only the one store directory, and only when the catalog holds a
+        # row.** A store with no rows sweeps nothing, which is correct: there
+        # is no such thing as an orphan we can prove. Never the root either --
+        # `<root>` is a folder the user chose and may share with their own
+        # files, and only `<root>/server/` is ours.
+        if not known:
+            return
+        base = os.path.join(self.root, STORE_DIR)
+        if not os.path.isdir(base):
+            return
+        try:
+            children = os.listdir(base)
+        except OSError:
+            return
+        for child in children:
+            if child in RESERVED_STORE_DIRS or child in known:
                 continue
-            try:
-                children = os.listdir(base)
-            except OSError:
+            child_path = os.path.join(base, child)
+            if not os.path.isdir(child_path):
                 continue
-            for child in children:
-                if child in RESERVED_STORE_DIRS or child in item_ids:
-                    continue
-                child_path = os.path.join(base, child)
-                if not os.path.isdir(child_path):
-                    continue
-                if not _looks_like_item_id(child):
-                    # Not a name this app writes. Leaving it costs a stale
-                    # directory; deleting it is unrecoverable and, on a store
-                    # sharing a folder with anything else, not even ours.
-                    log.warning("Leaving %s alone: it is inside the download "
-                                "store but is not named like a download.",
-                                child_path)
-                    continue
-                if self._adopt_orphan(server_dir, child, child_path,
-                                      server_uuids):
-                    continue
-                log.warning("Removing orphaned download dir: %s", child_path)
-                shutil.rmtree(child_path, ignore_errors=True)
+            if not _looks_like_item_id(child):
+                # Not a name this app writes. Leaving it costs a stale
+                # directory; deleting it is unrecoverable and, on a store
+                # sharing a folder with anything else, not even ours.
+                log.warning("Leaving %s alone: it is inside the download "
+                            "store but is not named like a download.",
+                            child_path)
+                continue
+            if self._adopt_orphan(child, child_path, server_uuid):
+                continue
+            log.warning("Removing orphaned download dir: %s", child_path)
+            shutil.rmtree(child_path, ignore_errors=True)
 
-    def _adopt_orphan(self, server_dir, item_id, item_dir, server_uuids):
+    def _adopt_orphan(self, item_id, item_dir, server_uuid):
         """Rebuild the catalog row for a complete download that has none.
 
         `_download` writes `item.json` and `source.json` beside the media so a
@@ -1556,15 +2590,40 @@ class SyncManager:
                     source = json.load(fh)
             media_path = media[0]
             size = os.path.getsize(media_path)
+            # **The same door `enqueue` uses.** This upserted unconditionally,
+            # and `INSERT OR REPLACE` on a catalog-wide primary key means a
+            # directory found here could take a row that belongs to another
+            # server -- leaving that server's media in a place nothing points
+            # at. **Today's sweep cannot reach that**: `known` holds every id
+            # the catalog has, so a child it names is never a candidate. The
+            # check stays because what makes this door's "yes" safe is the
+            # claim and not its caller -- a second caller with a set built
+            # some other way is the shape this repository has hit before, and
+            # the cost here is media deleted for a row that exists.
+            verdict = self.claim_identity(item_id, item)
+            if verdict in ("ours", "refused", "busy"):
+                # A row already answers for this id. Do not replace it, and
+                # do NOT report it unadopted either: the caller deletes what
+                # it cannot adopt, and deleting media on the strength of a
+                # claim we just declined is the irrecoverable direction. It
+                # stays on disk, unreferenced, and says so in the log.
+                log.warning("Not adopting %s: the catalog already holds "
+                            "that id for %s. Its files are left in place.",
+                            item_id, self.db.owner_of(item_id))
+                return True
             self.db.upsert({
                 "item_id": item_id,
-                "server_id": None if server_dir == "server" else server_dir,
-                # Recovered from a surviving row for the same server: the id
-                # is in the path, the uuid is only ever in the catalog. None
+                # From the manifest, which is why an adopted row can be
+                # content-scoped even when the uuid below comes back None:
+                # the login is only ever in the catalog, but the server is
+                # in the file beside the media.
+                "content_server_id": item.get("ServerId") or None,
+                # Recovered from a surviving row, because the login is only
+                # ever in the catalog while the item id is in the path. None
                 # is survivable (the copy still plays offline; only its
                 # watched-state sync waits for a re-download) and is better
                 # than guessing.
-                "server_uuid": server_uuids.get(server_dir),
+                "server_uuid": server_uuid,
                 "type": item.get("Type"),
                 "name": item.get("Name"),
                 "series_id": item.get("SeriesId"),
@@ -1582,7 +2641,6 @@ class SyncManager:
                 "library_id": None,
                 "item_json": json.dumps(item),
                 "source_json": json.dumps(source),
-                "userdata_json": json.dumps(item.get("UserData") or {}),
                 "added_at": int(time.time()),
                 # Never auto: the reaper deletes auto rows, and a row this
                 # method invented has no evidence it was ever a scheduled
@@ -1640,22 +2698,11 @@ class SyncManager:
                 self._note_connected_servers()
                 self._sweep_if_due(now)
                 row = self._next_runnable()
-                # Only between downloads: a pass here would otherwise
-                # enqueue work while the user's own download is streaming,
-                # and tick() is a no-op unless the interval has elapsed.
-                # Gated on *runnable* work, not on the queue being empty: a
-                # pending row for a server we cannot reach is not a download
-                # in progress, and treating it as one used to mean one dead
-                # server switched auto-download's reaper off for the life of
-                # the process — retention and the cap silently stopped being
-                # enforced, with the queue's own log line the only clue.
-                if self.auto is not None and row is None:
-                    self.auto.tick()
-                    row = self._next_runnable()
+                row = self._auto_after_sweep(now, row, stopping=stopping)
                 if row is None:
                     self._wake.wait(5)
                     continue
-                self._download(row, stopping=stopping)
+                self._download(row, stopping=stopping, gen=gen)
                 error_streak = 0
             except Exception:
                 # The worker must survive anything (disk full, DB errors —
@@ -1664,6 +2711,138 @@ class SyncManager:
                 error_streak += 1
                 log.exception("Download worker iteration failed.")
                 self._wake.wait(min(60, 5 * error_streak))
+
+    def _auto_after_sweep(self, now, row, stopping=None):
+        """Run one auto-download pass, behind a sweep that landed.
+        docs/offline-sync.md section 4.
+
+        The reaper deletes on watched state, so it must not decide from a
+        snapshot taken before the network came back. It used to ask the
+        server itself, once per row; that was replaced with an ordering
+        -- *reap after the sweep* -- and this is the ordering.
+
+        Both a request and a hold are needed, and neither alone works. A
+        request alone: the pass fires before the first sweep of the session,
+        because `last_run` starts at zero (so a pass is due at launch) while
+        `USERDATA_SWEEP_SETTLE` holds the first sweep back a minute. A hold
+        alone: nothing ever sets `_sweep_due`, so hours into a session with
+        no trigger the flag is down, nothing holds, and the reap runs stale.
+
+        Only between downloads: a pass here would otherwise enqueue work
+        while the user's own download is streaming, and tick() is a no-op
+        unless the interval has elapsed. Gated on *runnable* work, not on
+        the queue being empty: a pending row for a server we cannot reach is
+        not a download in progress, and treating it as one used to mean one
+        dead server switched auto-download's reaper off for the life of the
+        process -- retention and the cap silently stopped being enforced,
+        with the queue's own log line the only clue.
+
+        Returns the row to start next, which a pass may have queued.
+        """
+        if self.auto is None or row is not None:
+            return row
+        try:
+            # Eligibility *after* `_next_runnable`, deliberately: asking
+            # first would fire a network sweep ahead of a queued user
+            # download, on behalf of a pass that then cannot run anyway.
+            # due() covers playback too, so a busy machine never gets here.
+            if not self.auto.due():
+                return row
+        except Exception:
+            log.debug("could not tell whether an auto pass is due",
+                      exc_info=True)
+            return row
+        self._sweep_due = True
+        self._sweep_if_due(now)
+        if self._sweep_owed(now):
+            return row
+        # `stopping`, not the constructor's flag: a worker stop() gave up
+        # on has had `_stop` cleared under it by the next start(), so its
+        # generation is the only thing that still says it was replaced.
+        self.auto.tick(should_stop=stopping)
+        return self._next_runnable()
+
+    def _sweep_owed(self, now):
+        """Is a reap waiting on a sweep that has not landed yet?
+        docs/offline-sync.md section 4.
+
+        Owed means: some server owning a row this pass could delete has not
+        been fully refreshed, **and** somebody is signed in who could still
+        answer for it. Offline requires no sweep, and the watched grace
+        period carries that case instead (`auto_download_keep_watched_hours`,
+        whose default was moved off zero so that there is a grace to carry it
+        with).
+
+        **A client-list failure reads as offline, not as unknown.** We
+        cannot tell which it is, and holding on what we cannot tell is the
+        starvation direction -- the same failure `_next_runnable` records
+        having fixed once already.
+
+        **Answered is per session, not per pass**, and that is a reading of
+        the guarantee rather than a detail: what the ordering closes is a
+        reaper deciding from a *download-time snapshot*, and once a sweep has
+        written into the catalog for a server the websocket keeps it live, so
+        a second reading before each pass adds delay rather than safety. It
+        would also make the hold routine instead of exceptional -- every pass
+        whose hour fell inside `USERDATA_SWEEP_FLOOR` would wait the floor
+        out.
+
+        **What is owed is an account's answer, not a server's** (D1). The
+        sweep asks one server as whichever login is signed in for it and
+        files what comes back under that login's account, so that account is
+        what "answered" can honestly record -- and a profile switch then
+        invalidates the record by changing the answer, with nothing to clear.
+        Both sides derive the account with the same `actor_of` call, so they
+        agree by construction.
+
+        A server nobody is signed in for is **not** owed a sweep, as before:
+        offline requires none. Unchanged too, and worth saying because the
+        narrowed pull makes it easier to misread: a row whose downloading
+        account is not the one signed in is not represented here at all,
+        because no connected account can answer for it. That was already true
+        of every row on a server nobody is signed in for.
+
+        Bounded: at `REAP_SWEEP_HOLD` past the first hold the pass runs
+        regardless, so a server that answers the connection but never the
+        request cannot switch retention off for the life of the process.
+        """
+        try:
+            wanted = {row["content_server_id"]
+                      for row in self.db.list_auto(status=STATUS_COMPLETE)
+                      if row["content_server_id"]}
+        except Exception:
+            log.debug("could not list the reaper's candidates", exc_info=True)
+            return False
+        if not wanted:
+            self._reap_hold_until = None
+            return False
+        try:
+            routes = self._connected_routes()
+        except Exception:
+            # A client-list failure reads as offline, per the paragraph
+            # above: nothing is owed, so nothing is held.
+            log.debug("could not read the connected server list",
+                      exc_info=True)
+            self._reap_hold_until = None
+            return False
+        owed = {self.actor_of(acting_login=routes[content_id][0])
+                for content_id in wanted if content_id in routes}
+        unanswered = owed - self._answered_accounts
+        if not unanswered:
+            self._reap_hold_until = None
+            return False
+        named = ", ".join(sorted("%s/%s" % a for a in unanswered))
+        if self._reap_hold_until is None:
+            self._reap_hold_until = now + REAP_SWEEP_HOLD
+            log.debug("Holding the auto-download pass for a sweep as %s.",
+                      named)
+            return True
+        if now >= self._reap_hold_until:
+            self._reap_hold_until = None
+            log.info("Auto-download: reaping without a fresh sweep as %s; "
+                     "held for %ds.", named, REAP_SWEEP_HOLD)
+            return False
+        return True
 
     def _next_runnable(self):
         """The first pending row we can actually start now, or None.
@@ -1681,15 +2860,181 @@ class SyncManager:
         _sync_playstate already iterates past unresolvable clients for exactly
         this reason; this is the same rule for the download queue.
         """
+        # **Once per pass, not once per row.** Each rebuild calls
+        # `content_id_for` per live client, which scans every local profile's
+        # whole credential list -- so a few hundred rows queued against an
+        # unreachable server, the case this method exists for, was thousands
+        # of list scans every five seconds for the life of the process.
+        # `routes_for`'s docstring already said callers that need several in
+        # a pass read the index once.
+        #
+        # `{}` on failure, which is what `routes_for` answers with too: no
+        # route found, and the row falls through to its own login.
+        try:
+            routes = self._connected_routes()
+        except Exception:
+            log.debug("could not read the connected server list",
+                      exc_info=True)
+            routes = {}
         blocked = 0
         for row in self.db.list(status=STATUS_PENDING):
-            if self.get_client(row["server_uuid"]) is not None:
+            if self._client_for_row(row, routes=routes) is not None:
                 if blocked:
                     log.debug("Skipped %d pending download(s) whose server is "
                               "unreachable.", blocked)
                 return row
             blocked += 1
         return None
+
+    def _client_for_row(self, row, routes=None):
+        """A live client that may fetch one download row's file, or None.
+
+        Three questions in order, and the order is the point (F48):
+
+        1. **the account that asked for it** -- `requested_*`, written at
+           enqueue since R19. This is what closes the case the entry names: a
+           server answering at two addresses is two logins and one account,
+           `clients._connect_all` registers the client under whichever
+           address answered first, and a row carrying the other uuid sat
+           pending forever with a perfectly good route open beside it. Asking
+           by account also means a download is never fetched as somebody
+           else, which resolving by server alone would allow.
+        2. **any login for the row's own server**, for a row that names no
+           account: rows enqueued before R19, and enqueues that could not
+           resolve a login. Whoever is signed in there is the only candidate
+           available, and it is also what the third question answered for
+           these rows before.
+        3. **the login on the row**, last, because an orphan row (no
+           `content_server_id`, and its DTO never named one) has no other
+           handle at all. Exactly the old behaviour, kept so that no row
+           becomes unstartable.
+
+        None means "not now, not never": the row stays pending and
+        `_next_runnable` skips past it. [iw] on the case:
+        *"let the download fall back to a queue."*
+
+        ``routes`` is `_connected_routes` already built, for a caller asking
+        about several rows in one pass. Omitted, this builds its own -- which
+        is what every caller outside the queue loop does, and what keeps the
+        three questions above readable from here.
+        """
+        actor = (row.get("requested_server_id"), row.get("requested_user_id"))
+        client = self._client_for_actor(*actor)
+        if client is not None:
+            return client
+        try:
+            live = bool(self.get_clients())
+        except Exception:
+            log.debug("could not read the connected server list", exc_info=True)
+            live = False
+        if live and actor[1] and actor[1] != NO_ACTOR:
+            # The row knows whose it is and that person is not signed in.
+            # Falling through would fetch their file as whoever else is on
+            # that server, under their token and their permissions.
+            #
+            # **Only when there IS a client list to have looked in.** An empty
+            # one is "cannot tell", not "that person is absent" -- the same
+            # rule this subsystem applies everywhere else -- and `get_clients`
+            # is an *optional* argument to `start`, so a manager can be wired
+            # with `get_client` alone. Refusing on that made every attributed
+            # row unstartable and the queue silently stopped; found by the e2e
+            # legs, which are wired exactly that way. Nothing is fetched as
+            # somebody else either way: with no client list the only route
+            # left below is the row's own login.
+            return None
+        content_id = row.get("content_server_id")
+        if routes is None:
+            route = self.routes_for(content_id)
+        else:
+            # The same two refusals `routes_for` makes, against an index that
+            # is already built: a falsy server is not a question, and the
+            # index never files a route under `ANY_SERVER`, so a lookup of it
+            # answers None on its own.
+            route = routes.get(content_id) if content_id else None
+        if route is not None:
+            return route[1]
+        return self.get_client(row.get("server_uuid"))
+
+    def _client_for_actor(self, server_id, user_id):
+        """A live client that can speak for this person, or None.
+
+        Matched on the actor rather than on the login that queued the entry.
+        A person can hold several logins for one server -- a LAN address and
+        a remote one are two -- and the one they were signed in as offline
+        is often not the one that comes back first. Keyed on the uuid, such
+        an entry stayed pending with a perfectly good route sitting open
+        next to it.
+
+        Only the connected clients are considered, so this answers None
+        while that person is not signed in anywhere, which is the state the
+        queue exists for.
+        """
+        if not user_id or user_id == NO_ACTOR:
+            return None
+        try:
+            from ..users import userManager
+            for uuid, client in (self.get_clients() or {}).items():
+                if userManager.actor_for(uuid) == (server_id, user_id):
+                    return client
+        except Exception:
+            log.debug("could not find a route for %s on %s", user_id,
+                      server_id, exc_info=True)
+        return None
+
+    def routes_for(self, content_server_id):
+        """The live login that can reach one server, as ``(uuid, client)``.
+
+        **The one index between a ServerId and a way to talk to it**, and the
+        question it answers is "which door is open", never "who is this". The
+        account question is :meth:`_client_for_actor`, which is a different
+        one and deliberately not merged with this: it must not answer with a
+        client belonging to somebody else, and this one may.
+
+        Callers that need several in a pass read :meth:`_connected_routes`
+        once instead -- the index is cheap but it is not free, and rebuilding
+        it per row was the shape this replaced.
+
+        **No guard against `ANY_SERVER` here, deliberately.** The sentinel is
+        truthy, so one looks as though it belongs -- but the index refuses to
+        file a route under it (see `_connected_routes`), so asking for it
+        already answers None. A second check here could not change an answer
+        and would suggest to the next reader that it can.
+        """
+        if not content_server_id:
+            return None
+        try:
+            return self._connected_routes().get(content_server_id)
+        except Exception:
+            log.debug("could not read the connected server list",
+                      exc_info=True)
+            return None
+
+    def _connected_routes(self):
+        """content server -> (login uuid, client) for everything connected.
+
+        The inverse of :meth:`content_id_for`, built once per pass because
+        several logins can answer for one server -- two addresses, or two
+        people -- and a caller wants exactly one of them: the one that is
+        signed in, whose account a sweep's answers will be filed under.
+
+        First match wins and the order is the registry's, which is the order
+        the chains connected in. Only one client per server can be live at
+        all (`clients._connect_all` groups the credentials by ``Id`` into one
+        fallback chain), so "first" and "only" are the same thing here --
+        stated rather than relied on silently, because the day that changes
+        this becomes a choice.
+        """
+        routes = {}
+        for uuid, client in (self.get_clients() or {}).items():
+            content_id = self.content_id_for(uuid)
+            # `is not ANY_SERVER` and not just truthiness: the sentinel is
+            # truthy, so a client whose login will not resolve used to be filed
+            # under "the server called ANY_SERVER" and then answered as *a*
+            # route. A route is a real ServerId or it is not a route.
+            if (content_id and content_id is not ANY_SERVER
+                    and content_id not in routes):
+                routes[content_id] = (uuid, client)
+        return routes
 
     def _sync_playstate(self):
         """Replay offline playstate once a server is reachable — advancing only:
@@ -1698,10 +3043,14 @@ class SyncManager:
         if not pending:
             return
         done = []
+        routes = {}
         for entry in pending:
-            client = self.get_client(entry.get("server_uuid"))
+            actor = (entry.get("server_id"), entry.get("user_id"))
+            if actor not in routes:
+                routes[actor] = self._client_for_actor(*actor)
+            client = routes[actor]
             if client is None:
-                continue  # still offline for this server
+                continue  # nobody signed in who can speak for this person
             try:
                 server_ud = client.jellyfin.get_userdata_for_item(
                     entry["item_id"]) or {}
@@ -1801,7 +3150,32 @@ class SyncManager:
         self._sweep_due = True
         self._wake.set()
 
-    def mirror_playstate(self, item_id, position_ticks=None, played=None):
+    # A profile switch has no trigger of its own (D1, R16 in the narrow
+    # form). `request_profile_sweep` was one, and all three things it did are
+    # either unnecessary or the descope:
+    #
+    # - clearing the answered set: unnecessary. It is keyed on the account
+    #   now, so the new profile's accounts were never in it.
+    # - firing a sweep: `stop_all_clients` + `connect_all` empties the
+    #   connected set and refills it with this profile's uuids, and
+    #   `_note_connected_servers` reads that as servers becoming reachable.
+    #   Its docstring's reason for not trusting that -- two profiles sharing
+    #   a credential uuid -- rested on `force_unique`, which nothing passed and
+    #   which has since been deleted: `_finalize_login` now always mints a
+    #   uuid4.
+    # - clearing the floor and resetting the settle: dropped on purpose. With
+    #   no deferred-sweep obligation a switch is a reconnect like any other,
+    #   so it waits out the floor and the settle like any other. The cost is
+    #   that a switch inside `USERDATA_SWEEP_FLOOR` of the last sweep sees
+    #   this account's state up to five minutes late; what it buys is one
+    #   schedule instead of two, and the reap is still held correctly for
+    #   the new account by the point above.
+    #
+    # Do not add a switch trigger back without a ruling: the deferred model
+    # it belonged to is the thing R16 removed.
+
+    def mirror_playstate(self, item_id, position_ticks=None, played=None,
+                         server_uuid=None):
         """Record what *this* app just played, for an item we hold a copy of.
 
         The catalog is what offline browsing reads, and until this existed
@@ -1821,6 +3195,11 @@ class SyncManager:
         a call site again.
 
         Advance-only, like every other writer of this column. Never raises.
+
+        ``server_uuid`` is the login that is *playing*, which is who the
+        progress belongs to. Without it the actor is resolved from the row's
+        own server and the active local profile, which is right for the
+        common single-profile case and is the best available offline.
         """
         if not item_id or (played is None and position_ticks is None):
             return False
@@ -1828,14 +3207,18 @@ class SyncManager:
         if db is None:
             return False
         try:
-            return db.update_userdata(item_id, played=played,
+            row = db.get(item_id)
+            actor = self.actor_of(
+                acting_login=server_uuid,
+                server_id=(row["content_server_id"] if row else None))
+            return db.update_userdata(item_id, actor=actor, played=played,
                                       position_ticks=position_ticks)
         except Exception:
             log.debug("Could not mirror playstate for %s", item_id,
                       exc_info=True)
             return False
 
-    def mirror_watched(self, item_id, played):
+    def mirror_watched(self, item_id, played, server_uuid=None):
         """Record a *deliberate* watched mark in the catalog, immediately.
 
         The counterpart to :meth:`mirror_playstate` and deliberately not the
@@ -1856,15 +3239,23 @@ class SyncManager:
         if db is None:
             return 0
         try:
-            targets = db.watched_targets(item_id)
+            targets = db.watched_targets(
+                item_id, server_id=self.content_id_for(server_uuid))
         except Exception:
             log.debug("Could not resolve downloads for %s", item_id,
                       exc_info=True)
             return 0
         moved = 0
-        for target_id, _server in targets:
+        for target_id, target_server in targets:
+            # Resolved per target, from the login doing the *marking* and
+            # the row's own content server: a mark is an act by a person, so
+            # it belongs to whoever made it and not to whoever happened to
+            # download the file -- and it is filed under the server that
+            # holds the row, which is where `set_watched` will look for it.
+            actor = self.actor_of(acting_login=server_uuid,
+                                  server_id=target_server)
             try:
-                if db.set_watched(target_id, played):
+                if db.set_watched(target_id, played, actor=actor):
                     moved += 1
             except Exception:
                 log.debug("Could not mirror the watched mark for %s",
@@ -1875,7 +3266,7 @@ class SyncManager:
             self._notify_change()
         return moved
 
-    def apply_userdata_event(self, arguments):
+    def apply_userdata_event(self, arguments, server_uuid=None):
         """Apply a ``UserDataChanged`` push to the catalog. No requests.
 
         This is how watched state normally arrives, and it is free: the server
@@ -1892,7 +3283,29 @@ class SyncManager:
         to the sweep instead of walked here.
         See docs/offline-sync.md section 2.
         """
-        entries = (arguments or {}).get("UserDataList") or []
+        arguments = arguments or {}
+        # The payload names the actor and this used to throw the server half
+        # away, so a push about one account moved every account's copy.
+        #
+        # **The server comes from the connection first.** `ServerId` in the
+        # body is a claim the message makes about itself; which socket it
+        # arrived on is a fact, and it cannot be absent. With the field
+        # missing, `actor_of` answered `(NO_ACTOR, NO_ACTOR)` and every entry
+        # was filed with nobody named, for rows whose server is perfectly
+        # well known. Taking it from the socket removes the case instead of
+        # guarding it.
+        # `or` would be wrong now: `content_id_for` answers `ANY_SERVER`
+        # when no login was named, and that is truthy. Spelled out, because
+        # this is the one site of the fourteen whose question is not "which
+        # rows do we hold" but "who is this event about" -- a scope is not an
+        # answer to it, so both non-answers fall through to the body's claim
+        # exactly as they did before.
+        from_socket = self.content_id_for(server_uuid)
+        if from_socket is ANY_SERVER or from_socket is None:
+            from_socket = arguments.get("ServerId")
+        actor = self.actor_of(server_id=from_socket,
+                              user_id=arguments.get("UserId"))
+        entries = arguments.get("UserDataList") or []
         if not entries:
             return
         if len(entries) > USERDATA_EVENT_MAX:
@@ -1909,13 +3322,19 @@ class SyncManager:
             if not item_id:
                 continue
             try:
-                # `or None` on played, matching the sweep: db.update_userdata
-                # is advance-only, and False there would mean "leave it
-                # alone" anyway. An un-watch elsewhere does not retreat the
-                # local copy -- see _refresh_userdata's note on that rule,
-                # which this deliberately does not change.
+                # `or None` on played: db.update_userdata is advance-only
+                # unless asked otherwise, and False there means "leave it
+                # alone". So an un-watch announced over the socket does not
+                # retreat the local copy.
+                #
+                # **The sweep does retreat and this does not**
+                # (`allow_retreat`; docs/offline-sync.md section 1), and the
+                # asymmetry is deliberate rather than pending. [iw]: a sweep runs at launch anyway, and somebody
+                # managing watch state for their downloads is almost
+                # certainly doing it on this client, where `record_watched`
+                # writes both ways immediately. docs/do-not-fix.md F47.
                 if db.update_userdata(
-                        item_id,
+                        item_id, actor=actor,
                         played=entry.get("Played") or None,
                         position_ticks=entry.get("PlaybackPositionTicks")):
                     updated += 1
@@ -1939,10 +3358,57 @@ class SyncManager:
         Batched one request per ``USERDATA_BATCH`` ids per server and spaced by
         ``USERDATA_BATCH_PAUSE``; nothing is waiting on it.
 
-        **Advance-only**, via ``db.update_userdata``: an item un-watched on
-        another device stays watched here. That is the inherited rule rather
-        than a decision taken here, and it is the one thing about this worth
-        revisiting. See docs/offline-sync.md section 1.
+        **Grouped by the row's content server, asked as whichever account is
+        connected for it** (C5). Grouping by the row's saved login instead
+        made two things wrong at once: one box reached through two addresses
+        is two logins and one server, so half its rows were never refreshed
+        while the other half were; and two people on one box are two logins
+        and one server, so the sweep asked as whoever downloaded the copy
+        rather than as whoever is signed in. Both observed on the QA server
+        -- one ServerId behind two addresses and two accounts.
+
+        **Lazy, per connected account** (docs/offline-sync.md section 3): an
+        account that is not
+        connected is not asked and not waited for. Its rows keep the state
+        they had until it signs in, which is what makes a profile switch need
+        no schedule of its own -- see the note where
+        ``request_profile_sweep`` used to be.
+
+        **Scoped to the union R21 names** (R16 in the narrow form): for each
+        server, this asks about *the rows the signed-in account downloaded*,
+        and about **all** of them when that account is one the machine has
+        auto-download turned on for. The second half is ongoing interest --
+        the profile fetches from that server unattended, so its whole
+        catalog there is live state -- and the first is R16's own scoping,
+        durable since R19 gave a row the account that asked for it.
+
+        **A row that names no account is swept by whoever is signed in**, and
+        that is the third clause rather than an exception. R19 writes the pair
+        at enqueue and the backfill fills old rows, so an unattributed row is
+        one whose enqueuing login could not be resolved at all -- it is in
+        nobody's scope, and scoping it to nobody means its state can never
+        refresh again for anyone. The same shape as `_client_for_row`'s second
+        question, for the same reason. Found by the e2e leg: every fixture
+        there wrote rows with no account, and the whole pull went silent.
+
+        Four cases, which is how R21 was checked before it was adopted: a
+        profile that downloaded by hand with auto-download off is still swept
+        (the downloader half); a profile with neither is not swept, which is
+        the saving; another person's watches still reach their server through
+        their own queue drain, because **push stays universal**; and a
+        profile with auto-download on for a server it has not downloaded from
+        yet is swept, which is the interest the descoped opt-in was for.
+
+        What this stops paying for: on a shared machine, sweeping the whole
+        catalog as whoever happens to be signed in -- which cost a request
+        per batch *and* wrote a second account's userdata row for every item
+        somebody else had downloaded.
+
+        **The pull may retreat**, which the push may not: the
+        server clearing a watched flag is applied here unless the queue
+        still owes that actor the mark. ``db.update_userdata`` holds the
+        rule and the transaction; see it for why. docs/offline-sync.md
+        section 1.
         """
         try:
             rows = self.db.list(status=STATUS_COMPLETE)
@@ -1952,15 +3418,52 @@ class SyncManager:
             return
         by_server = {}
         for row in rows:
-            if row.get("item_id"):
-                by_server.setdefault(row.get("server_uuid"), []).append(
-                    row["item_id"])
+            if not row.get("item_id"):
+                continue
+            if not row.get("content_server_id"):
+                # An orphan: the row's server is unknown, so there is no
+                # account to ask as and nowhere to file the answer if there
+                # were. It plays and records locally and syncs in neither
+                # direction ([iw], 11c) -- asking anyway would spend a
+                # request to write into the machine-wide bucket under a
+                # person the server named and this row cannot.
+                continue
+            by_server.setdefault(row["content_server_id"], []).append(
+                (row["item_id"], (row.get("requested_server_id"),
+                                  row.get("requested_user_id"))))
+        routes = self._connected_routes()
+        try:
+            from ..users import userManager
+            wide = userManager.auto_download_accounts()
+        except Exception:
+            # Cannot say is not everybody: an unreadable allow-list narrows
+            # the sweep to what each account downloaded rather than widening
+            # it to every row.
+            log.debug("could not read the auto-download allow-list",
+                      exc_info=True)
+            wide = set()
+        answered = set()
         updated = 0
         sent = 0
-        for server_uuid, ids in by_server.items():
-            client = self.get_client(server_uuid)
-            if client is None:
+        for content_id, held in by_server.items():
+            route = routes.get(content_id)
+            if route is None:
                 continue        # still offline for this server
+            server_uuid, client = route
+            # The sweep asks one server as one login, so everything it
+            # brings back belongs to that login's account -- which is what
+            # makes this the one userdata writer that needs no guesswork.
+            actor = self.actor_of(acting_login=server_uuid)
+            # Answered even when the narrowing leaves nothing to ask: the key
+            # is the account and this one owes nothing here, so holding a reap
+            # for it would wait out REAP_SWEEP_HOLD every session on a shared
+            # machine.
+            answered.add(actor)
+            ids = [item_id for item_id, asked_by in held
+                   if actor in wide or asked_by == actor
+                   or not _names_an_account(asked_by)]
+            if not ids:
+                continue
             for start in range(0, len(ids), USERDATA_BATCH):
                 if self._stop:
                     return      # shutdown: the catalog closes behind us
@@ -1986,6 +3489,11 @@ class SyncManager:
                 except Exception:
                     log.debug("Userdata refresh failed for %s", server_uuid,
                               exc_info=True)
+                    # Half a server is not a server: `break` leaves the rest
+                    # of its ids unasked, so it must not count as answered.
+                    # The reap-after-sweep hold is what reads this
+                    # (docs/offline-sync.md section 4).
+                    answered.discard(actor)
                     break
                 for item in result.get("Items") or []:
                     data = item.get("UserData") or {}
@@ -1993,14 +3501,22 @@ class SyncManager:
                         continue
                     try:
                         if self.db.update_userdata(
-                                item["Id"],
-                                played=data.get("Played") or None,
+                                item["Id"], actor=actor,
+                                played=data.get("Played"),
                                 position_ticks=data.get(
-                                    "PlaybackPositionTicks")):
+                                    "PlaybackPositionTicks"),
+                                allow_retreat=True):
                             updated += 1
                     except Exception:
                         log.debug("Could not store userdata for %s",
                                   item.get("Id"), exc_info=True)
+        # Rebound rather than `|=`: nothing clears this set any more (D1),
+        # but a read-modify-store from the worker while another thread reads
+        # it is still worth avoiding, and one STORE_ATTR cannot be seen
+        # half-applied. The race this replaced -- `request_profile_sweep`'s
+        # fresh empty set thrown away between the read and the store -- is
+        # gone with the call.
+        self._answered_accounts = self._answered_accounts | answered
         if updated:
             log.info("Refreshed watched state for %d downloaded item(s).",
                      updated)
@@ -2032,14 +3548,69 @@ class SyncManager:
         if not is_auto(row["origin"]):
             return
         try:
-            self.db.mark_discarded(row["item_id"])
+            self.db.mark_discarded(row["item_id"],
+                                   server_id=row.get("content_server_id"))
         except Exception:
             log.debug("Could not record the failure of %s", row["item_id"],
                       exc_info=True)
 
-    def _download(self, row, stopping=None):
+    # -- the in-progress claim ---------------------------------------------
+    #
+    # Three questions are asked of it and they are not the same question:
+    # "is anything live" (relocate), "is this item live" (_cancel_if_active)
+    # and "which items are live" (the requeue on reopen). They go through
+    # `_active_ids` and `_cancel_if_active` rather than reading the state,
+    # because there can be more than one live worker and every reader that
+    # assumed otherwise was wrong in a different way.
+    #
+    # Locking is deliberately split: `_active_ids` and `_cancel_if_active`
+    # take `_active_lock` themselves, while `_claim_active` and
+    # `_release_active` require it, because both of those sit inside larger
+    # critical sections (the commit holds the lock across the rename, the
+    # row update and the release). `_active_lock` is a plain Lock, so
+    # calling a self-locking one from inside a held section deadlocks.
+
+    def _claim_active(self, gen, item_id):
+        """Record that worker `gen` is downloading `item_id`.
+
+        Keyed by generation, not a single slot. `relocate`'s refusal path
+        starts a replacement while the worker that outlived `stop()` is
+        still parked in a socket read, so two workers are live at once and a
+        slot can only name one -- the replacement overwrote the survivor's
+        claim on the way in, and after that a delete for the survivor's row
+        was answered "not downloading" while it was.
+
+        The generation is the key rather than the item id because both
+        workers can be on the *same* row: it is still PENDING, the stale one
+        not having written anything back.
+
+        **Caller must hold `_active_lock`.**
+        """
+        self._active[gen] = item_id
+
+    def _release_active(self, gen):
+        """Give up worker `gen`'s claim, and only that one.
+
+        Two places let go -- the commit, and the `finally` that covers every
+        other way out -- and they must agree, so they ask here. Popping by
+        generation is what makes "if it is still ours" structural rather
+        than a comparison somebody has to keep right: a superseded worker
+        cannot reach the replacement's entry, and the replacement finishing
+        first cannot free the survivor's.
+
+        **Caller must hold `_active_lock`.**
+        """
+        self._active.pop(gen, None)
+
+    def _active_ids(self):
+        """The items every live worker is holding. Empty when the store is
+        idle, which is what `relocate` asks. Takes `_active_lock`."""
+        with self._active_lock:
+            return set(self._active.values())
+
+    def _download(self, row, stopping=None, gen=None):
         item_id = row["item_id"]
-        client = self.get_client(row["server_uuid"])
+        client = self._client_for_row(row)
         if client is None:
             # Now only reachable if the server went away between _run picking
             # this row and getting here — _next_runnable does the skipping.
@@ -2047,14 +3618,14 @@ class SyncManager:
             # skips this row and idles on the queue as a whole.
             log.warning("No client for download %s; leaving pending.", item_id)
             return
-        # Deletion requested before we got here. Ahead of `_active_item`, so
-        # this invocation never clears ownership it did not take.
+        # Deletion requested before we got here. Ahead of the claim, so this
+        # invocation never has one to release.
         if self._drop_cancelled(row):
             log.info("Download cancelled before it started: %s",
                      row.get("name") or item_id)
             return
         with self._active_lock:
-            self._active_item = item_id
+            self._claim_active(gen, item_id)
         try:
             # A delete may have raced in just before we marked the item active
             # (it would have taken the direct path and removed the row). If the
@@ -2063,7 +3634,7 @@ class SyncManager:
                 self._remove_files(row)
                 return
             # Inside the try, so a catalog error here still leaves through the
-            # `finally` rather than stranding `_active_item` set.
+            # `finally` rather than stranding the claim.
             self.db.update(item_id, status=STATUS_DOWNLOADING)
             self._notify_change()
             log.info("Downloading %s…", row.get("name") or item_id)
@@ -2099,11 +3670,9 @@ class SyncManager:
                 self._download_trickplay(client, item_id, source, item_dir)
                 self._download_segments(client, source, item_dir)
             if item.get("Type") == "Episode" and item.get("SeriesId"):
-                self._download_series_art(client, row.get("server_id"),
-                                          item["SeriesId"])
+                self._download_series_art(client, item["SeriesId"])
                 if item.get("SeasonId"):
-                    self._download_season_art(client, row.get("server_id"),
-                                              item["SeasonId"])
+                    self._download_season_art(client, item["SeasonId"])
 
             media_path = os.path.join(item_dir, "media." + (row["ext"] or "mkv"))
             tmp = media_path + ".part"
@@ -2161,7 +3730,7 @@ class SyncManager:
             # Commit point: promote the .part and mark complete atomically with a
             # final cancellation check under the active lock, so a delete that
             # lands after the last chunk (S4) is honoured instead of being lost
-            # to a COMPLETE row. Clearing _active_item here means any delete that
+            # to a COMPLETE row. Releasing the claim here means any delete that
             # arrives after the commit takes the direct path against the now
             # fully-downloaded item rather than the deferred-cancel path.
             rel = os.path.relpath(media_path, self.root)
@@ -2180,7 +3749,7 @@ class SyncManager:
                                # queue for hours should age from when it landed
                                # on disk.
                                completed_at=int(time.time()))
-                self._active_item = None
+                self._release_active(gen)
             log.info("Downloaded %s (%.1f MiB).", row.get("name") or item_id,
                      size / (1 << 20))
         except _Cancelled:
@@ -2223,7 +3792,7 @@ class SyncManager:
             self.db.update(item_id, status=STATUS_ERROR)
         finally:
             with self._active_lock:
-                self._active_item = None
+                self._release_active(gen)
             # Here rather than in each handler because "the delete wins" is a
             # property of leaving this method at all, including by paths not
             # yet written. Every handler above ends by writing this row back --
@@ -2430,11 +3999,23 @@ class SyncManager:
         log.debug("Downloaded %d media segments for %s.", len(items),
                   source.get("Id"))
 
-    def _download_series_art(self, client, server_id, series_id):
+    def _download_series_art(self, client, series_id):
         """Cache series poster/backdrop so offline series tiles + the series page
-        have artwork (episodes only carry their own images)."""
-        series_dir = os.path.join(self.root, server_id or "server", "series",
-                                  series_id)
+        have artwork (episodes only carry their own images).
+
+        **Not scoped by content server, and that is correct** -- unlike
+        `playlist_art_dir`, which needs a scope because a playlist id hashes its
+        *name*. A series id is derived from the media path, so two servers
+        handing out the same one are describing the same folder, and one cached
+        poster for it is right rather than a collision. **R26**; do not add a
+        scope here on the strength of the playlist one, because they are keyed
+        on different things -- that one hashes a playlist's *name*.
+
+        The `server_id` parameter that used to sit here was never that scope: it
+        was `downloads.server_id`, NULL on every row, so this path has always
+        been the literal below.
+        """
+        series_dir = series_art_dir(self.root, series_id)
         poster = os.path.join(series_dir, "poster.jpg")
         backdrop = os.path.join(series_dir, "backdrop.jpg")
         if os.path.exists(poster) and os.path.exists(backdrop):
@@ -2459,14 +4040,18 @@ class SyncManager:
             except Exception:
                 log.debug("Series art failed: %s", url, exc_info=True)
 
-    def _download_playlist_art(self, client, server_id, playlist_id):
+    def _download_playlist_art(self, client, content_server_id, playlist_id):
         """Cache the playlist's own poster so its offline tile has artwork.
 
         A playlist carries its own image; the tile used to borrow a member's
         poster, which meant a playlist whose first member had no art on disk
-        showed a bare glyph."""
-        pl_dir = os.path.join(self.root, server_id or "server", "playlist",
-                              playlist_id)
+        showed a bare glyph.
+
+        ``content_server_id`` scopes the directory, through the one helper the
+        offline reader uses too (`db.playlist_art_dir`): two servers can hold
+        a playlist with the same id, and one poster was overwriting the other.
+        """
+        pl_dir = playlist_art_dir(self.root, content_server_id, playlist_id)
         poster = os.path.join(pl_dir, "poster.jpg")
         if os.path.exists(poster):
             return
@@ -2501,10 +4086,10 @@ class SyncManager:
         msid = row.get("media_source_id")
         return next((s for s in sources if s.get("Id") == msid), sources[0])
 
-    def _download_season_art(self, client, server_id, season_id):
-        """Cache season poster so offline season tiles have artwork."""
-        season_dir = os.path.join(self.root, server_id or "server", "season",
-                                  season_id)
+    def _download_season_art(self, client, season_id):
+        """Cache season poster so offline season tiles have artwork. Not content
+        scoped either; see `_download_series_art`."""
+        season_dir = season_art_dir(self.root, season_id)
         poster = os.path.join(season_dir, "poster.jpg")
         if os.path.exists(poster):
             return

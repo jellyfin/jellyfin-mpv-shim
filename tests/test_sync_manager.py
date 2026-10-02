@@ -25,12 +25,17 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
+from tests._catalog_fixtures import set_columns
 from jellyfin_mpv_shim.sync import manager as manager_module
 from jellyfin_mpv_shim.sync.manager import SyncManager
-from jellyfin_mpv_shim.sync.db import (SyncDB, STATUS_PENDING, STATUS_COMPLETE,
+from jellyfin_mpv_shim.sync.db import (ANY_SERVER, NO_ACTOR, SyncDB,
+                                       STATUS_PENDING,
+                                        STATUS_COMPLETE,
                                        STATUS_ERROR, ORIGIN_USER,
-                                       ORIGIN_AUTO_NEXT_UP)
+                                       ORIGIN_AUTO_NEXT_UP, COLUMNS,
+                                       NOT_UPSERTED, STATUS_DOWNLOADING)
 
 
 import contextlib
@@ -130,11 +135,30 @@ def make_manager(root, cleanup=None, clients=None):
     return m
 
 
-def add_row(m, item_id, server_id="srv", status=STATUS_PENDING, size_bytes=0,
-            file_path=None, server_uuid="uuid", origin=ORIGIN_USER):
+#: The Jellyfin ServerId `add_row` gives a row unless a test says otherwise.
+#: **Not None.** A row with no content server is an *orphan*, which is its own
+#: contract -- it never syncs, and the download door reaps it rather than let
+#: a second server take its files. Defaulting to None made every row here an
+#: orphan by construction, so tests named after ordinary behaviour were
+#: quietly exercising that path.
+CONTENT_SERVER = "srv-content"
+
+
+def add_row(m, item_id, status=STATUS_PENDING, size_bytes=0,
+            file_path=None, server_uuid="uuid", origin=ORIGIN_USER,
+            content_server_id=CONTENT_SERVER):
+    """One catalog row.
+
+    There was a `server_id="srv"` here -- the on-disk path key -- and it put
+    every fixture's media under `<root>/srv/`, a layout no build ever wrote:
+    the column was NULL on every real row, so the store is `<root>/server/`.
+    So the whole of `_reconcile_disk`'s suite was exercising a sharded store
+    that did not exist, and the one-directory case production actually has was
+    untested. The column is gone as of 3.0.0 (CX8).
+    """
     m.db.upsert({
         "item_id": item_id,
-        "server_id": server_id,
+        "content_server_id": content_server_id,
         "server_uuid": server_uuid,
         "origin": origin,
         "type": "Movie",
@@ -150,7 +174,6 @@ def add_row(m, item_id, server_id="srv", status=STATUS_PENDING, size_bytes=0,
         "runtime_ticks": None,
         "item_json": json.dumps({"Id": item_id, "Type": "Movie"}),
         "source_json": json.dumps({"Id": "ms"}),
-        "userdata_json": "{}",
         "added_at": 1,
     })
 
@@ -226,7 +249,7 @@ class DownloadCommitTest(TmpTest):
         self.assertIsNone(m.db.get("a"))
         self.assertFalse(os.path.exists(item_dir))
 
-    def test_active_item_cleared_after_commit(self):
+    def test_the_claim_is_released_after_commit(self):
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, "a", size_bytes=100)
 
@@ -244,8 +267,248 @@ class DownloadCommitTest(TmpTest):
 
         m._stream = fake_stream
         m._download(m.db.get("a"))
-        self.assertIsNone(m._active_item)
+        self.assertEqual(m._active_ids(), set())
         self.assertNotIn("a", m._cancelled)
+
+
+class ASupersededWorkerOwnsNothingTest(TmpTest):
+    """A worker that outlived the `stop()` that asked it to quit.
+
+    `relocate` refuses when `stop()` times out and reopens the store where
+    the files still are -- which starts a NEW worker. The old one is still
+    parked in a socket read for up to the read timeout, and when it finally
+    unwinds it runs the same `finally` as any other download.
+
+    That `finally` cleared the one ownership slot unconditionally, so the stale
+    worker cleared the *replacement's* claim. The next relocation then
+    passed the "a download is in progress" guard and moved the tree out from
+    under an open `.part` handle -- which is the corruption the whole
+    generation counter exists to prevent, arriving by the one door it did
+    not cover.
+    """
+
+    def _manager(self, replacement_claims=None):
+        """`replacement_claims` is what the NEW worker is downloading by the
+        time the stale one wakes up.
+
+        Claimed from inside the stream, which is the only place it can
+        happen: the stale worker is already past its own claim and parked in
+        a socket read when `relocate`'s refusal starts the replacement. A
+        fixture that claimed it before calling `_download` would have the
+        stale worker take the marker on its way IN, which is not the
+        sequence and cannot show the bug.
+        """
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "a", size_bytes=100)
+        add_row(m, "b", size_bytes=100)
+
+        def fake_stream(url, dest, item_id, name, expected,
+                        stopping=None, headers=None, on_headers=None):
+            if replacement_claims is not None:
+                with m._active_lock:
+                    m._claim_active(2, replacement_claims)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest + ".part", "wb") as fh:
+                fh.write(b"x" * 100)
+            return 100, 100
+
+        m._stream = fake_stream
+        return m
+
+    def test_it_does_not_clear_the_replacements_claim(self):
+        m = self._manager(replacement_claims="b")
+        m._download(m.db.get("a"), gen=1)
+        self.assertEqual(m._active_ids(), {"b"},
+                         "a superseded worker cleared the live worker's "
+                         "claim, so the next relocate would move an open "
+                         "download out from under it")
+
+    def test_even_when_both_were_on_the_same_item(self):
+        """The replacement picks the same row up again -- it is still
+        PENDING, because the stale worker has not written anything back yet
+        -- so comparing item ids alone cannot tell the two apart."""
+        m = self._manager(replacement_claims="a")
+        m._download(m.db.get("a"), gen=1)
+        self.assertEqual(m._active_ids(), {"a"})
+
+    def test_but_the_current_worker_still_clears_its_own(self):
+        """The negative control. A guard that never releases the marker
+        makes every later relocation refuse forever."""
+        m = self._manager()
+        m._download(m.db.get("a"), gen=1)
+        self.assertEqual(m._active_ids(), set())
+
+    def test_reopening_does_not_requeue_what_that_worker_is_streaming(self):
+        """The other half, and the one `relocate`'s own comment admits it
+        does not cover: "two writers interleaving into one .part, which is
+        the corruption _generation was introduced to prevent and does not
+        cover mid-_stream".
+
+        `start()` requeues every DOWNLOADING row, because on an ordinary
+        launch those are rows a crash interrupted. Reached from `relocate`'s
+        refusal path they are not: a worker that outlived `stop()` is still
+        streaming one of them, and requeuing it hands the same row to the
+        replacement while the original still has the `.part` open.
+        """
+        m = self._manager()
+        m.db.update("a", status=STATUS_DOWNLOADING)
+        m.db.update("b", status=STATUS_DOWNLOADING)
+        with m._active_lock:
+            m._claim_active(1, "a")    # the survivor is still streaming it
+        # No client, so the worker `_open_and_run` starts cannot pick a row
+        # up and overwrite the statuses this test is reading. It raced the
+        # assertion otherwise, which is a test measuring the worker rather
+        # than the recovery.
+        m.get_client = lambda uuid: None
+        self.addCleanup(m.stop)
+        m._open_and_run()
+        self.addCleanup(lambda: m.db.close())
+        self.assertEqual(m.db.get("a")["status"], STATUS_DOWNLOADING,
+                         "handed the replacement a row the surviving worker "
+                         "still has open")
+        self.assertEqual(m.db.get("b")["status"], STATUS_PENDING,
+                         "and stopped recovering the rows that really were "
+                         "interrupted")
+
+    def test_an_ordinary_launch_still_recovers_everything(self):
+        """The negative control. Nothing is claimed on a cold start, so
+        every interrupted row must come back."""
+        m = self._manager()
+        m.db.update("a", status=STATUS_DOWNLOADING)
+        m.db.update("b", status=STATUS_DOWNLOADING)
+        self.assertEqual(m._active_ids(), set())
+        m.get_client = lambda uuid: None       # see the test above
+        self.addCleanup(m.stop)
+        m._open_and_run()
+        self.addCleanup(lambda: m.db.close())
+        self.assertEqual(m.db.get("a")["status"], STATUS_PENDING)
+        self.assertEqual(m.db.get("b")["status"], STATUS_PENDING)
+
+    def test_and_a_caller_with_no_generation_still_clears(self):
+        """`_download` is reachable without one; it must not leak the
+        marker when nothing has a generation to compare."""
+        m = self._manager()
+        m._download(m.db.get("a"))
+        self.assertEqual(m._active_ids(), set())
+
+
+class TwoLiveWorkersAreTwoClaimsTest(TmpTest):
+    """The half the generation check did not reach.
+
+    `relocate` refuses when `stop()` times out and reopens the store, which
+    starts a replacement while the original is still streaming. Ownership
+    was one slot, so with two live workers it could only name one of them.
+    The replacement overwrote the survivor's claim on the way in, and after
+    that the store lied in both directions: a delete for the survivor's row
+    was told nothing was downloading it, and the replacement finishing
+    emptied the slot while the survivor still held an open `.part`, so the
+    next relocation saw an idle store and moved the tree out from under it.
+    """
+
+    def _two_rows(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "a", size_bytes=100)
+        add_row(m, "b", size_bytes=100)
+        return m
+
+    def test_a_delete_reaches_the_survivor_while_the_replacement_runs(self):
+        """Claimed from inside the stream, which is the only place it can
+        happen: the survivor is past its own claim and parked in a socket
+        read when `relocate`'s refusal starts the replacement."""
+        m = self._two_rows()
+        answers = []
+
+        def fake_stream(url, dest, item_id, name, expected,
+                        stopping=None, headers=None, on_headers=None):
+            with m._active_lock:
+                m._claim_active(2, "b")     # the replacement, on its way in
+            # ...and now the user deletes the row THIS worker is streaming.
+            answers.append(m._cancel_if_active("a"))
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest + ".part", "wb") as fh:
+                fh.write(b"x" * 100)
+            return 100, 100
+
+        m._stream = fake_stream
+        m._download(m.db.get("a"), gen=1)
+        self.assertEqual(answers, [True],
+                         "a delete for a row that was genuinely downloading "
+                         "was answered 'not active', so nothing cancelled it")
+
+    def test_the_replacement_finishing_leaves_the_survivor_claimed(self):
+        m = self._two_rows()
+        with m._active_lock:
+            m._claim_active(1, "a")     # the survivor, still streaming
+            m._claim_active(2, "b")     # the replacement relocate started
+            m._release_active(2)        # which happens to finish first
+        self.assertEqual(m._active_ids(), {"a"},
+                         "the replacement's release freed a claim that was "
+                         "not its own")
+
+    def test_relocate_refuses_while_the_survivor_holds_its_part(self):
+        """The consequence, at the gesture that causes the damage.
+
+        The destination is non-empty on purpose: if the busy check stops
+        answering, relocate refuses for that reason instead and no tree is
+        moved, so a failure here reports rather than destroys.
+        """
+        other = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, other, ignore_errors=True)
+        with open(os.path.join(other, "someone-elses-file"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("x")
+        m = self._two_rows()
+        with m._active_lock:
+            m._claim_active(1, "a")
+            m._claim_active(2, "b")
+            m._release_active(2)
+        ok, message = m.relocate(other)
+        self.assertFalse(ok)
+        self.assertIn("in progress", message.lower(),
+                      "the store reported itself idle while a worker still "
+                      "had a .part open")
+
+    def test_the_requeue_skips_every_live_workers_row(self):
+        """`start()` requeues every DOWNLOADING row, and must leave alone
+        the ones that any live worker is holding -- not just the last one to
+        claim."""
+        m = self._two_rows()
+        add_row(m, "c", size_bytes=100)
+        for item_id in ("a", "b", "c"):
+            m.db.update(item_id, status=STATUS_DOWNLOADING)
+        with m._active_lock:
+            m._claim_active(1, "a")
+            m._claim_active(2, "b")
+        # No client, so the worker `_open_and_run` starts cannot pick a row
+        # up and overwrite the statuses this reads.
+        m.get_client = lambda uuid: None
+        self.addCleanup(m.stop)
+        m._open_and_run()
+        self.addCleanup(lambda: m.db.close())
+        self.assertEqual(m.db.get("a")["status"], STATUS_DOWNLOADING,
+                         "requeued a row the surviving worker still has open")
+        self.assertEqual(m.db.get("b")["status"], STATUS_DOWNLOADING)
+        self.assertEqual(m.db.get("c")["status"], STATUS_PENDING,
+                         "and stopped recovering the rows that really were "
+                         "interrupted")
+
+    def test_a_failed_download_leaves_no_claim(self):
+        """A new obligation, created by the fix rather than found by it.
+
+        One slot was self-healing in the worst way: a leaked marker was
+        overwritten by the next download, which is exactly the overwrite
+        that lost the survivor. Entries keyed by generation are not, so a
+        claim that leaks blocks every later relocation for the life of the
+        process -- and every way out of `_download` has to release.
+        """
+        m = self._two_rows()
+
+        def boom(*a, **k):
+            raise RuntimeError("the network went away")
+
+        m._stream = boom
+        m._download(m.db.get("a"), gen=1)
+        self.assertEqual(m._active_ids(), set())
 
 
 class StreamResumeTest(TmpTest):
@@ -337,9 +600,9 @@ class ReconcileDiskTest(TmpTest):
 
     def test_present_complete_file_kept(self):
         m = make_manager(self.tmp, self.addCleanup)
-        item_dir = os.path.join(self.tmp, "srv", "here")
+        item_dir = os.path.join(self.tmp, "server", "here")
         os.makedirs(item_dir)
-        rel = os.path.join("srv", "here", "media.mkv")
+        rel = os.path.join("server", "here", "media.mkv")
         with open(os.path.join(self.tmp, rel), "wb") as fh:
             fh.write(b"x")
         add_row(m, "here", status=STATUS_COMPLETE, file_path=rel)
@@ -349,13 +612,13 @@ class ReconcileDiskTest(TmpTest):
 
     def test_orphan_dir_removed(self):
         m = make_manager(self.tmp, self.addCleanup)
-        # A row for this server, because a server directory the catalog does
-        # not name is not a sweep candidate at all. The dir this test used to
+        # A row, because an empty catalog is not swept at all -- there is no
+        # such thing as an orphan it could prove. The dir this test used to
         # use was called "orphan", which is not a name this app ever writes:
         # the sweep passed only because it deleted anything it found, which
         # is the behaviour that ate `~/Videos/Holidays/2019 Italy`.
         add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
-        orphan = os.path.join(self.tmp, "srv", ORPHAN_ID)
+        orphan = os.path.join(self.tmp, "server", ORPHAN_ID)
         os.makedirs(orphan)
         m._reconcile_disk()
         self.assertFalse(os.path.exists(orphan))
@@ -366,14 +629,14 @@ class ReconcileDiskTest(TmpTest):
         thing that tells the two apart."""
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID, status=STATUS_PENDING)
-        theirs = os.path.join(self.tmp, "srv", "2019 Italy")
+        theirs = os.path.join(self.tmp, "server", "2019 Italy")
         os.makedirs(theirs)
         m._reconcile_disk()
         self.assertTrue(os.path.exists(theirs))
 
     def test_a_server_dir_the_catalog_does_not_name_is_left(self):
         m = make_manager(self.tmp, self.addCleanup)
-        add_row(m, ORPHAN_ID, server_id="srv", status=STATUS_PENDING)
+        add_row(m, ORPHAN_ID, status=STATUS_PENDING)
         theirs = os.path.join(self.tmp, "Holidays", ORPHAN_ID)
         os.makedirs(theirs)
         m._reconcile_disk()
@@ -386,7 +649,7 @@ class ReconcileDiskTest(TmpTest):
         4 KiB page, zero survivors."""
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID, status=STATUS_COMPLETE)
-        live = os.path.join(self.tmp, "srv", ORPHAN_ID)
+        live = os.path.join(self.tmp, "server", ORPHAN_ID)
         os.makedirs(live)
         m.db.healthy = lambda: False
         m._reconcile_disk()
@@ -395,7 +658,7 @@ class ReconcileDiskTest(TmpTest):
     def test_a_complete_download_with_no_row_is_re_adopted(self):
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
-        item_dir = os.path.join(self.tmp, "srv", ORPHAN_ID)
+        item_dir = os.path.join(self.tmp, "server", ORPHAN_ID)
         os.makedirs(item_dir)
         with open(os.path.join(item_dir, "item.json"), "w",
                   encoding="utf-8") as fh:
@@ -418,7 +681,7 @@ class ReconcileDiskTest(TmpTest):
         delete whose unlink failed, is what the sweep is actually for."""
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
-        item_dir = os.path.join(self.tmp, "srv", ORPHAN_ID)
+        item_dir = os.path.join(self.tmp, "server", ORPHAN_ID)
         os.makedirs(item_dir)
         with open(os.path.join(item_dir, "item.json"), "w",
                   encoding="utf-8") as fh:
@@ -439,7 +702,7 @@ class ReconcileDiskTest(TmpTest):
         """
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID, status=STATUS_PENDING)
-        dirs = [os.path.join(self.tmp, "srv", kind, "id1")
+        dirs = [os.path.join(self.tmp, "server", kind, "id1")
                 for kind in ("series", "season", "playlist")]
         for path in dirs:
             os.makedirs(path)
@@ -462,7 +725,7 @@ class ReconcileDiskTest(TmpTest):
         # fixture out of the constant under test means emptying the constant
         # empties the fixture and the test passes with nothing left to check.
         # (It did. That is the second tautology this one file has grown.)
-        dirs = [os.path.join(self.tmp, "srv", kind, "id1")
+        dirs = [os.path.join(self.tmp, "server", kind, "id1")
                 for kind in ("series", "season", "playlist")]
         for path in dirs:
             os.makedirs(path)
@@ -481,7 +744,7 @@ class ReconcileDiskTest(TmpTest):
         coverage at all."""
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
-        item_dir = os.path.join(self.tmp, "srv", ORPHAN_ID)
+        item_dir = os.path.join(self.tmp, "server", ORPHAN_ID)
         os.makedirs(item_dir)
         with open(os.path.join(item_dir, "item.json"), "w",
                   encoding="utf-8") as fh:
@@ -504,8 +767,8 @@ class RelocateTest(TmpTest):
     def _seed_download(self, m):
         """A COMPLETE row with its media file on disk, so a move+reconcile keeps
         it (an orphan dir with no catalog row would be swept)."""
-        rel = os.path.join("srv", "keep", "media.mkv")
-        os.makedirs(os.path.join(m.root, "srv", "keep"))
+        rel = os.path.join("server", "keep", "media.mkv")
+        os.makedirs(os.path.join(m.root, "server", "keep"))
         with open(os.path.join(m.root, rel), "wb") as fh:
             fh.write(b"x" * 100)
         add_row(m, "keep", status=STATUS_COMPLETE, file_path=rel)
@@ -523,7 +786,7 @@ class RelocateTest(TmpTest):
         self.assertEqual(os.path.abspath(m.root), os.path.abspath(new))
         self.assertTrue(os.path.exists(os.path.join(new, "catalog.db")))
         self.assertTrue(os.path.exists(
-            os.path.join(new, "srv", "keep", "media.mkv")))
+            os.path.join(new, "server", "keep", "media.mkv")))
         self.assertFalse(os.path.exists(old))
         # Catalog reopened at the new root and the row survived reconcile.
         self.assertEqual(m.db.path, os.path.join(new, "catalog.db"))
@@ -547,14 +810,14 @@ class RelocateTest(TmpTest):
 
     def test_refuse_while_download_active(self):
         m = make_manager(self.tmp, self.addCleanup)
-        m._active_item = "busy"
+        m._claim_active(1, "busy")
         ok, msg = m.relocate(os.path.join(self.tmp, "elsewhere"))
         self.assertFalse(ok)
         self.assertIn("in progress", msg)
         self.assertEqual(m.root, self.tmp)  # unchanged
 
     def test_refuse_when_the_worker_will_not_stop(self):
-        """The _active_item check is sampled BEFORE stop(), and the chunk loop
+        """The `_active_ids` check is sampled BEFORE stop(), and the chunk loop
         only notices _stop between chunks — a stalled connection parks it in a
         socket read for up to the 60s read timeout, well past
         STOP_JOIN_TIMEOUT. stop() used to log a warning and let the move
@@ -581,7 +844,7 @@ class RelocateTest(TmpTest):
         # Nothing moved, and the catalog is open again where the files are.
         self.assertEqual(os.path.abspath(m.root), os.path.abspath(old))
         self.assertTrue(os.path.exists(
-            os.path.join(old, "srv", "keep", "media.mkv")))
+            os.path.join(old, "server", "keep", "media.mkv")))
         self.assertFalse(os.path.exists(os.path.join(self.tmp, "drive2",
                                                      "catalog.db")))
         # And the guard was released, or every later enqueue/delete no-ops.
@@ -640,14 +903,14 @@ class RelocateTest(TmpTest):
         import errno
         from unittest import mock
         old = os.path.join(self.tmp, "old")
-        os.makedirs(os.path.join(old, "srv", "big"))
-        rel = os.path.join("srv", "big", "media.mkv")
+        os.makedirs(os.path.join(old, "server", "big"))
+        rel = os.path.join("server", "big", "media.mkv")
         size = manager_module.PROGRESS_STEP * 2 + 1234
         with open(os.path.join(old, rel), "wb") as fh:
             fh.write(b"z" * size)
         m = make_manager(old, self.addCleanup)
         self.addCleanup(m.stop)
-        add_row(m, "big", server_id="srv", status=STATUS_COMPLETE, file_path=rel)
+        add_row(m, "big", status=STATUS_COMPLETE, file_path=rel)
         new = os.path.join(self.tmp, "new")
         calls = []
 
@@ -705,7 +968,7 @@ class RelocateTest(TmpTest):
         # Downloads still readable at the old location.
         self.assertEqual(m.db.get("keep")["status"], STATUS_COMPLETE)
         self.assertTrue(os.path.exists(
-            os.path.join(old, "srv", "keep", "media.mkv")))
+            os.path.join(old, "server", "keep", "media.mkv")))
 
     def test_a_cross_drive_move_that_fails_partway_destroys_nothing(self):
         """A real partial move, which is where the downloads were lost.
@@ -734,13 +997,13 @@ class RelocateTest(TmpTest):
         m = make_manager(old, self.addCleanup)
         self.addCleanup(m.stop)
         self._seed_download(m)
-        media = os.path.join(old, "srv", "keep", "media.mkv")
+        media = os.path.join(old, "server", "keep", "media.mkv")
         real_listdir = os.listdir
         real_copy_tree = m._copy_tree
 
         def copy_tree(src, dst, state, progress):
             # The disk fills on the media, after the catalog has gone across.
-            if os.path.basename(src) == "srv":
+            if os.path.basename(src) == "server":
                 raise OSError(errno.ENOSPC, "No space left on device")
             return real_copy_tree(src, dst, state, progress)
 
@@ -813,10 +1076,10 @@ class RelocateTest(TmpTest):
                         side_effect=no_rename):
             ok, _msg = m.relocate(new)
         self.assertFalse(ok)
-        self.assertFalse(os.path.exists(os.path.join(new, "srv")),
+        self.assertFalse(os.path.exists(os.path.join(new, "server")),
                          "a half-copied destination was left behind")
         self.assertTrue(os.path.exists(
-            os.path.join(old, "srv", "keep", "media.mkv")))
+            os.path.join(old, "server", "keep", "media.mkv")))
 
 
 class ReconcileGateTest(TmpTest):
@@ -826,8 +1089,8 @@ class ReconcileGateTest(TmpTest):
 
     def test_a_brand_new_catalog_does_not_sweep_existing_media(self):
         root = os.path.join(self.tmp, "root")
-        os.makedirs(os.path.join(root, "srv", "keep"))
-        media = os.path.join(root, "srv", "keep", "media.mkv")
+        os.makedirs(os.path.join(root, "server", "keep"))
+        media = os.path.join(root, "server", "keep", "media.mkv")
         with open(media, "wb") as fh:
             fh.write(b"x" * 100)
         self.assertFalse(os.path.exists(os.path.join(root, "catalog.db")))
@@ -850,13 +1113,13 @@ class ReconcileGateTest(TmpTest):
         os.makedirs(root)
         m = make_manager(root, self.addCleanup)   # creates the catalog
         self.addCleanup(m.stop)
-        # A row, so "srv" is a server directory the catalog names, and an
+        # A row, so the catalog is non-empty and the store is swept, and an
         # item-shaped orphan beside it. Both are now required: this used to
         # sweep a dir called "nobody" out of a catalog holding no rows at
         # all, which is the same permission the corrupt-catalog wipe used.
         add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
         m.db.close()
-        orphan = os.path.join(root, "srv", ORPHAN_ID)
+        orphan = os.path.join(root, "server", ORPHAN_ID)
         os.makedirs(orphan)
         m._open_and_run()
         self.assertFalse(os.path.exists(orphan),
@@ -899,7 +1162,7 @@ class SupersededWorkerTest(TmpTest):
         stopped = []
 
         # Drive _run's loop body once as generation 7, then supersede it.
-        def fake_download(row, stopping=None):
+        def fake_download(row, stopping=None, gen=None):
             m._generation = 8          # a newer worker took over
             stopped.append(stopping())
         m._download = fake_download
@@ -916,7 +1179,7 @@ class SupersededWorkerTest(TmpTest):
         m._generation = 3
         seen = []
 
-        def fake_download(row, stopping=None):
+        def fake_download(row, stopping=None, gen=None):
             seen.append(stopping())
             m._stop = True             # end the loop the normal way
         m._download = fake_download
@@ -1085,7 +1348,7 @@ class QueueHeadOfLineTest(TmpTest):
         add_row(m, "c", server_uuid="here")
         done = []
 
-        def fake_download(row, stopping=None):
+        def fake_download(row, stopping=None, gen=None):
             done.append(row["item_id"])
             m.db.update(row["item_id"], status=STATUS_COMPLETE)
 
@@ -1106,11 +1369,20 @@ class QueueHeadOfLineTest(TmpTest):
         ticks = []
 
         class FakeAuto:
-            def tick(self):
+            #: The worker asks this *before* tick() now, to decide whether a
+            #: sweep is owed first (docs/offline-sync.md section 4). A stand-in
+            #: without it answers AttributeError, the worker treats that as
+            #: "not due", and the pass silently never runs -- which is what
+            #: this test would then be asserting the absence of.
+            def due(self):
+                return True
+
+            def tick(self, should_stop=None):
                 ticks.append(1)
 
         m.auto = FakeAuto()
-        m._download = lambda row, stopping=None: self.fail("nothing is runnable")
+        m._download = lambda row, stopping=None, gen=None: self.fail(
+            "nothing is runnable")
         self._worker(m, lambda: len(ticks) >= 1)
         self.assertTrue(ticks, "the auto pass never ran")
 
@@ -1122,10 +1394,18 @@ class QueueHeadOfLineTest(TmpTest):
         ticks, done = [], []
 
         class FakeAuto:
-            def tick(self):
+            #: The worker asks this *before* tick() now, to decide whether a
+            #: sweep is owed first (docs/offline-sync.md section 4). A stand-in
+            #: without it answers AttributeError, the worker treats that as
+            #: "not due", and the pass silently never runs -- which is what
+            #: this test would then be asserting the absence of.
+            def due(self):
+                return True
+
+            def tick(self, should_stop=None):
                 ticks.append(1)
 
-        def fake_download(row, stopping=None):
+        def fake_download(row, stopping=None, gen=None):
             self.assertEqual(ticks, [], "auto ran with a download queued")
             done.append(row["item_id"])
             m.db.update(row["item_id"], status=STATUS_COMPLETE)
@@ -1143,6 +1423,306 @@ class QueueHeadOfLineTest(TmpTest):
         self.assertEqual(m._next_runnable()["item_id"], "z")
         m.get_client = lambda uuid: None
         self.assertIsNone(m._next_runnable())
+
+
+class ASupersededWorkerDoesNotAutoDownloadTest(TmpTest):
+    """The generation predicate has to reach the auto pass, not only the
+    chunk loop.
+
+    `stop()` joins with a timeout and leaves a busy worker running; the next
+    `start()` sets `_stop` back to False. So an abandoned worker's shutdown
+    flag goes back *down*, and its generation is the only thing that still
+    says it was replaced -- which is why `tick` takes the worker's own
+    predicate rather than reading the constructor's (`sync/auto.py`'s
+    contract on `tick`). Without it a stale worker reaps and enqueues against
+    the catalog the worker replacing it reopened.
+    """
+
+    def test_the_pass_is_told_the_worker_was_superseded(self):
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        add_row(m, "blocked", server_uuid="gone")     # nothing runnable
+        told = []
+
+        class FakeAuto:
+            #: Asked before `tick()`, to decide whether a sweep is owed
+            #: first. The supersede is bumped here because that is a point
+            #: the real worker is *inside* the iteration: it entered while
+            #: current, and stop()+start() ran on another thread while it
+            #: was deciding. Asked before the loop's own check, it would
+            #: never get this far.
+            @staticmethod
+            def due():
+                m._generation += 1
+                return True
+
+            @staticmethod
+            def tick(should_stop=None):
+                told.append(None if should_stop is None else should_stop())
+
+        m.auto = FakeAuto()
+        m._download = lambda row, stopping=None, gen=None: self.fail(
+            "nothing is runnable")
+
+        m._stop = False
+        gen = m._generation
+        t = threading.Thread(target=m._run, args=(gen,), daemon=True)
+        t.start()
+        deadline = time.monotonic() + 5.0
+        while not told and time.monotonic() < deadline:
+            time.sleep(0.01)
+        m._stop = True
+        m._wake.set()
+        t.join(2)
+        self.assertFalse(t.is_alive(), "worker did not stop")
+
+        self.assertEqual(told, [True],
+                         "the auto pass was not handed the worker's own "
+                         "generation-aware predicate")
+
+
+class AskingForAnOrphanHomesItTest(unittest.TestCase):
+    """What an enqueue does with a *complete* row that names no server.
+
+    Before step 5 it answered `is_complete` for every scope, so the enqueue
+    reported it already held and stopped. Now it answers only the unscoped
+    ask -- so a user asking for that item from a named server falls through to
+    `_add_row`, which rewrites the row with the server the DTO names.
+
+    Written because the comment at that site used to state the old premise, and
+    replacing a premise with a claim is not the same as checking it.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def test_the_row_ends_up_named_after_the_server_that_asked(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "film", content_server_id=None, status=STATUS_COMPLETE,
+                file_path="film/f.mkv")
+        self.assertIsNone(m.db.get("film")["content_server_id"])
+        m._add_row("uuid", {"Id": "film", "Name": "Film", "Type": "Movie",
+                            "ServerId": "SRV",
+                            "MediaSources": [{"Id": "ms", "Size": 1,
+                                              "Container": "mkv"}]},
+                   origin=ORIGIN_USER)
+        row = m.db.get("film")
+        self.assertEqual("SRV", row["content_server_id"],
+                         "the orphan was not homed to the asking server")
+        self.assertEqual(STATUS_PENDING, row["status"],
+                         "it has to be fetched again, which is the cost")
+
+    def test_and_it_is_no_longer_reported_as_held_for_that_server(self):
+        """The step that makes the fall-through happen at all."""
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "film", content_server_id=None, status=STATUS_COMPLETE,
+                file_path="film/f.mkv")
+        self.assertFalse(m.db.is_complete("film", server_id="SRV"))
+        self.assertTrue(m.db.is_complete("film", server_id=ANY_SERVER),
+                        "and it must still play offline")
+
+
+class TheDownloadQueueResolvesByTheRowTest(unittest.TestCase):
+    """F48: a download queued through one door of a server could not run
+    through another.
+
+    `clients._connect_all` groups a server's credentials by ServerId into one
+    fallback chain and registers the client under whichever address answered,
+    and priority depends on which subnet the machine is on. So the LAN
+    credential wins at home and the remote one wins away -- and a row
+    resolved by `get_client(row["server_uuid"])` was stranded on exactly the
+    trip it was downloaded for, with a working route open beside it.
+
+    Resolved by the row instead: the **account** that asked (R19), then any
+    door to the row's own server, then the row's login. The middle step is
+    what a row predating R19 gets; the last is for an orphan, which has no
+    other handle.
+    """
+
+    SERVER = "srv-content"          # what add_row files rows under
+    OTHER = "srv-elsewhere"
+    LAN, WAN, THEIRS = "login-lan", "login-wan", "login-theirs"
+    IZZIE, SAM = "u-izzie", "u-sam"
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        from jellyfin_mpv_shim.users import userManager
+        patch = mock.patch.object(userManager, "users", [{
+            "id": "local", "credentials": [
+                {"uuid": self.LAN, "Id": self.SERVER, "UserId": self.IZZIE},
+                {"uuid": self.WAN, "Id": self.SERVER, "UserId": self.IZZIE},
+                {"uuid": self.THEIRS, "Id": self.SERVER, "UserId": self.SAM},
+            ]}])
+        self.addCleanup(patch.stop)
+        patch.start()
+
+    def _mgr(self, *connected):
+        """A manager with exactly these logins live.
+
+        **More permissive than production on purpose:** `_connect_all` allows
+        only one client per server, so a test that needs the *choice* between
+        two accounts to be observable has to hand the manager both.
+        """
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        self.clients = {uuid: FakeClient() for uuid in connected}
+        m.get_client = lambda uuid: self.clients.get(uuid)
+        m.get_clients = lambda: dict(self.clients)
+        return m
+
+    def _row(self, m, item_id="film", login=None, asked_by=None, **over):
+        add_row(m, item_id, server_uuid=login or self.LAN, **over)
+        if asked_by:
+            # Through set_columns rather than db.update, whose allow-list
+            # refuses these two on purpose: who asked is written once at
+            # enqueue and is not a field anything later revises.
+            set_columns(m.db, item_id, requested_server_id=asked_by[0],
+                        requested_user_id=asked_by[1])
+        return m.db.get(item_id)
+
+    def test_a_row_queued_at_home_runs_from_away(self):
+        """The entry's case, end to end: queued through the LAN address, and
+        the remote one is what came back."""
+        m = self._mgr(self.WAN)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIs(m._client_for_row(row), self.clients[self.WAN])
+        self.assertEqual(m._next_runnable()["item_id"], "film")
+
+    def test_it_is_that_persons_client_and_not_the_other_accounts(self):
+        m = self._mgr(self.WAN, self.THEIRS)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIs(m._client_for_row(row), self.clients[self.WAN])
+
+    def test_a_row_whose_person_is_absent_waits_rather_than_borrowing(self):
+        """The negative control, and the reason this asks by account rather
+        than by server: the file would be fetched with somebody else's token,
+        under their permissions, and filed as this person's download."""
+        m = self._mgr(self.THEIRS)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIsNone(m._client_for_row(row))
+        self.assertIsNone(m._next_runnable())
+
+    def test_a_row_naming_no_account_takes_any_door_to_its_server(self):
+        """Rows enqueued before R19, and enqueues that could not resolve a
+        login. Whoever is signed in there is the only candidate there is --
+        and it is what the login fallback answered for these rows before."""
+        m = self._mgr(self.WAN)
+        row = self._row(m, login=self.LAN)
+        self.assertEqual(row["requested_user_id"], "")
+        self.assertIs(m._client_for_row(row), self.clients[self.WAN])
+
+    def test_an_orphan_row_falls_back_to_the_login_it_carries(self):
+        """No account and no content server: an orphan's own login is the only
+        handle left, so this stays exactly the old behaviour rather than
+        making such a row unstartable."""
+        m = self._mgr(self.LAN)
+        row = self._row(m, login=self.LAN, content_server_id=None)
+        self.assertIs(m._client_for_row(row), self.clients[self.LAN])
+
+    def test_and_waits_when_that_login_is_the_one_that_is_gone(self):
+        m = self._mgr(self.WAN)
+        row = self._row(m, login=self.LAN, content_server_id=None)
+        self.assertIsNone(m._client_for_row(row))
+
+    def test_a_stranded_row_does_not_block_the_one_behind_it(self):
+        """The head-of-line rule still applies, now that "resolvable" is a
+        different question."""
+        m = self._mgr(self.THEIRS)
+        self._row(m, "waiting", login=self.LAN,
+                  asked_by=(self.SERVER, self.IZZIE))
+        self._row(m, "runnable", login=self.LAN,
+                  asked_by=(self.SERVER, self.SAM))
+        self.assertEqual(m._next_runnable()["item_id"], "runnable")
+
+    def test_the_index_is_read_once_per_row_not_rebuilt_per_question(self):
+        """`routes_for` is a lookup on one index. Asserted because the shape
+        it replaced resolved a client per row from `get_clients` directly, and
+        a rebuild per question is how that came back."""
+        m = self._mgr(self.WAN)
+        with mock.patch.object(SyncManager, "_connected_routes",
+                               return_value={}) as index:
+            self.assertIsNone(m.routes_for(self.SERVER))
+        index.assert_called_once_with()
+
+    def test_and_a_whole_pass_builds_it_once_however_many_rows_wait(self):
+        """The half the test above cannot see, and the reason it is here.
+
+        That one asks a single question and watches a single lookup.
+        `_next_runnable` asks one **per pending row**, on every five-second
+        worker iteration, and each rebuild calls `content_id_for` per live
+        client -- which scans every local profile's whole credential list. On
+        a catalog with a few hundred rows queued against an unreachable
+        server, the case `_next_runnable`'s own comment says it was hardened
+        for, that is thousands of list scans every five seconds for the life
+        of the process. `routes_for`'s docstring already prescribed the fix
+        and named this as "the shape this replaced".
+
+        The rows carry no `requested_*` pair on purpose: an attributed row
+        whose account is absent is refused before the route question, so it
+        would never reach the index at all.
+        """
+        m = self._mgr(self.THEIRS)
+        for i in range(5):
+            self._row(m, "blocked-%d" % i, login=self.LAN,
+                      content_server_id=self.OTHER)
+        with mock.patch.object(m, "_connected_routes",
+                               wraps=m._connected_routes) as index:
+            self.assertIsNone(m._next_runnable(),
+                              "the fixture stopped posing the question: a "
+                              "row became runnable, so the pass stopped early")
+        self.assertEqual(
+            1, index.call_count,
+            "the route index was rebuilt once per pending row")
+
+    def test_the_index_refuses_the_sentinel_and_the_unknown(self):
+        """`ANY_SERVER` is truthy and "every server" is not a route.
+
+        Enforced one layer down -- the index will not file a route under the
+        sentinel -- so this is here as the behaviour rather than as the site.
+        The site's own check is
+        `test_catalog_content_scope.py:test_a_client_that_will_not_resolve_claims_no_route`,
+        which is what fails if it is removed.
+        """
+        m = self._mgr(self.WAN)
+        self.assertIsNone(m.routes_for(ANY_SERVER))
+        self.assertIsNone(m.routes_for(None))
+        self.assertIsNone(m.routes_for(self.OTHER))
+        self.assertIsNotNone(m.routes_for(self.SERVER))
+
+    def test_an_empty_client_list_is_not_proof_the_person_is_absent(self):
+        """`get_clients` is an **optional** argument to `start`, so a manager
+        can be wired with `get_client` alone -- and then the refusal above
+        fires on every attributed row and the queue silently stops.
+
+        An empty list is "cannot tell", not "that person is not signed in",
+        which is the rule this subsystem applies everywhere else. Nothing is
+        fetched as somebody else either way: with no list, the only route left
+        is the row's own login.
+
+        Found by the e2e legs, which are wired exactly that way -- production
+        passes both and they read the same dict.
+        """
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        only = FakeClient()
+        m.get_client = lambda uuid: only if uuid == self.LAN else None
+        m.get_clients = lambda: {}
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIs(m._client_for_row(row), only)
+
+    def test_but_a_list_that_answers_is_taken_at_its_word(self):
+        """The control: with a real client list, an absent person still waits
+        rather than borrowing the account that is there."""
+        m = self._mgr(self.THEIRS)
+        row = self._row(m, login=self.LAN, asked_by=(self.SERVER, self.IZZIE))
+        self.assertIsNone(m._client_for_row(row))
+
+    def test_a_client_list_that_raises_leaves_the_row_pending(self):
+        """Not an exception out of the worker, and not a borrowed client
+        either: the row waits."""
+        m = self._mgr(self.WAN)
+        row = self._row(m, login=self.LAN)
+        m.get_clients = lambda: (_ for _ in ()).throw(RuntimeError("gone"))
+        self.assertIsNone(m._client_for_row(row))
 
 
 def _http_error(status):
@@ -1175,7 +1755,14 @@ class PermanentFailureTest(TmpTest):
         m = self._fail_with(_http_error(404))
         m._download(m.db.get("a"))
         self.assertEqual(m.db.get("a")["status"], STATUS_ERROR)
-        self.assertEqual(m.db.discarded_ids(), {"a"},
+        # Asked with the server the row actually carries, which is what the
+        # scheduler does. This used to ask with `None` and a comment saying
+        # these rows have no content server -- `add_row` defaults it to a
+        # real one, so the tombstone is scoped and the assertion was being
+        # satisfied by the old `None`-means-every-scope reading. A false
+        # premise held up by a permissive read is the shape this change is
+        # removing.
+        self.assertEqual(m.db.discarded_ids(server_id=CONTENT_SERVER), {"a"},
                          "the scheduler will fetch this again next pass")
 
     def test_a_5xx_is_not(self):
@@ -1186,7 +1773,7 @@ class PermanentFailureTest(TmpTest):
         with self.assertRaises(manager_module.requests.HTTPError):
             m._download(m.db.get("a"))
         self.assertEqual(m.db.get("a")["status"], STATUS_PENDING)
-        self.assertEqual(m.db.discarded_ids(), set())
+        self.assertEqual(m.db.discarded_ids(server_id=CONTENT_SERVER), set())
 
     def test_an_unexpected_exception_is_not(self):
         """Disk full, a permissions problem, a bug in us: not the item's
@@ -1195,14 +1782,14 @@ class PermanentFailureTest(TmpTest):
         m = self._fail_with(OSError("No space left on device"))
         m._download(m.db.get("a"))
         self.assertEqual(m.db.get("a")["status"], STATUS_ERROR)
-        self.assertEqual(m.db.discarded_ids(), set())
+        self.assertEqual(m.db.discarded_ids(server_id=CONTENT_SERVER), set())
 
     def test_a_users_own_download_is_never_tombstoned(self):
         """The discard list records the scheduler's decisions. A download the
         user asked for is theirs to see failed and retry."""
         m = self._fail_with(_http_error(404), origin=ORIGIN_USER)
         m._download(m.db.get("a"))
-        self.assertEqual(m.db.discarded_ids(), set())
+        self.assertEqual(m.db.discarded_ids(server_id=CONTENT_SERVER), set())
 
     def test_a_repeatedly_truncated_download_is_remembered(self):
         """The other branch that gives up: a server that keeps ending the
@@ -1214,7 +1801,7 @@ class PermanentFailureTest(TmpTest):
         for _attempt in range(4):
             m._download(m.db.get("a"))
         self.assertEqual(m.db.get("a")["status"], STATUS_ERROR)
-        self.assertEqual(m.db.discarded_ids(), {"a"})
+        self.assertEqual(m.db.discarded_ids(server_id=CONTENT_SERVER), {"a"})
 
 
 class BookDownloadTest(TmpTest):
@@ -1228,8 +1815,11 @@ class BookDownloadTest(TmpTest):
     """
 
     def _book(self, path="/library/A Novel.epub", **extra):
+        # ServerId, because a real one always has it -- measured against the
+        # 12.0 QA server for every downloadable type on 2026-09-18 -- and
+        # `_add_row` now refuses a DTO that does not name its server.
         return {"Id": "b", "Type": "Book", "Name": "A Novel", "Path": path,
-                **extra}
+                "ServerId": CONTENT_SERVER, **extra}
 
     # -- the extension -----------------------------------------------------
 
@@ -1252,7 +1842,7 @@ class BookDownloadTest(TmpTest):
 
     def test_the_row_is_written_with_the_book_extension(self):
         m = make_manager(self.tmp, self.addCleanup)
-        m._add_row("uuid", "srv", self._book(path="/l/A Comic.cbz"))
+        m._add_row("uuid", self._book(path="/l/A Comic.cbz"))
         self.assertEqual(m.db.get("b")["ext"], "cbz")
 
     # -- what the pipeline must NOT do -------------------------------------
@@ -1267,7 +1857,7 @@ class BookDownloadTest(TmpTest):
         for name in ("_playback_source", "_download_subs",
                      "_download_trickplay", "_download_segments"):
             setattr(m, name, lambda *a, _n=name, **k: asked.append(_n))
-        m._add_row("uuid", "srv", self._book())
+        m._add_row("uuid", self._book())
         m._stream = _fake_stream(b"x" * 10)
         m._download(m.db.get("b"))
         self.assertEqual(asked, [])
@@ -1279,7 +1869,7 @@ class BookDownloadTest(TmpTest):
         m = make_manager(self.tmp, self.addCleanup)
         art = []
         m._download_artwork = lambda *a, **k: art.append(1)
-        m._add_row("uuid", "srv", self._book())
+        m._add_row("uuid", self._book())
         m._stream = _fake_stream(b"x" * 10)
         m._download(m.db.get("b"))
         self.assertEqual(len(art), 1)
@@ -1295,7 +1885,7 @@ class BookDownloadTest(TmpTest):
         corruption error.
         """
         m = make_manager(self.tmp, self.addCleanup)
-        m._add_row("uuid", "srv", self._book(path="/l/A Novel.pdf"))
+        m._add_row("uuid", self._book(path="/l/A Novel.pdf"))
         m._stream = _fake_stream(
             b"x" * 10,
             served={"Content-Disposition": 'attachment; filename="A.epub"'})
@@ -1310,7 +1900,7 @@ class BookDownloadTest(TmpTest):
 
     def test_a_disposition_that_agrees_changes_nothing(self):
         m = make_manager(self.tmp, self.addCleanup)
-        m._add_row("uuid", "srv", self._book())
+        m._add_row("uuid", self._book())
         m._stream = _fake_stream(
             b"x" * 10,
             served={"Content-Disposition":
@@ -1320,7 +1910,7 @@ class BookDownloadTest(TmpTest):
 
     def test_a_response_with_no_disposition_keeps_the_path_extension(self):
         m = make_manager(self.tmp, self.addCleanup)
-        m._add_row("uuid", "srv", self._book())
+        m._add_row("uuid", self._book())
         m._stream = _fake_stream(b"x" * 10)
         m._download(m.db.get("b"))
         self.assertTrue(m.db.get("b")["file_path"].endswith("media.epub"))
@@ -1329,7 +1919,7 @@ class BookDownloadTest(TmpTest):
         # There is no size on the wire for a book, so the row starts at 0
         # and the only source of truth is what actually arrived.
         m = make_manager(self.tmp, self.addCleanup)
-        m._add_row("uuid", "srv", self._book())
+        m._add_row("uuid", self._book())
         self.assertEqual(m.db.get("b")["size_bytes"], 0)
         m._stream = _fake_stream(b"x" * 1234)
         m._download(m.db.get("b"))
@@ -1534,7 +2124,7 @@ class CorruptCatalogTest(TmpTest):
     def _seed(self, m, root, n):
         for i in range(n):
             iid = "%032x" % i
-            item_dir = os.path.join(root, "srv", iid)
+            item_dir = os.path.join(root, "server", iid)
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
                 fh.write(b"x" * 64)
@@ -1555,7 +2145,7 @@ class CorruptCatalogTest(TmpTest):
         # the only correct answer left is to touch nothing.
         os.remove(os.path.join(root, SyncManager.CATALOG_BACKUP))
         self._launch(root)
-        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3,
+        self.assertEqual(len(os.listdir(os.path.join(root, "server"))), 3,
                          "an unreadable catalog was read as an empty one and "
                          "the orphan sweep deleted every download")
 
@@ -1571,7 +2161,7 @@ class CorruptCatalogTest(TmpTest):
 
         m = self._launch(root)
         self.assertEqual(len(m.db.list()), 3)
-        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3)
+        self.assertEqual(len(os.listdir(os.path.join(root, "server"))), 3)
         # Kept, not overwritten: it is still the better copy of anything the
         # backup predates, and `.recover` can read it right up until we drop it.
         self.assertTrue([n for n in os.listdir(root)
@@ -1594,10 +2184,10 @@ class CorruptCatalogTest(TmpTest):
         _corrupt_downloads_table(os.path.join(root, "catalog.db"))
 
         m = self._launch(root)
-        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3)
+        self.assertEqual(len(os.listdir(os.path.join(root, "server"))), 3)
         m.stop()
         m = self._launch(root)      # the launch that used to sweep item 2
-        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3)
+        self.assertEqual(len(os.listdir(os.path.join(root, "server"))), 3)
         rows = {r["item_id"]: r for r in m.db.list()}
         self.assertEqual(len(rows), 3)
         # The two the backup carried, plus the one rebuilt from its own
@@ -1622,7 +2212,7 @@ class CorruptCatalogTest(TmpTest):
         self._launch(root).stop()          # backup holds item 0
         # An item queued after the snapshot, interrupted mid-download.
         iid = "%032x" % 7
-        item_dir = os.path.join(root, "srv", iid)
+        item_dir = os.path.join(root, "server", iid)
         os.makedirs(item_dir)
         with open(os.path.join(item_dir, "item.json"), "w",
                   encoding="utf-8") as fh:
@@ -1725,7 +2315,7 @@ class DeleteDuringAnUnwindTest(TmpTest):
 
     def test_the_files_go_too(self):
         m = self._run_with(manager_module._Stopped())
-        self.assertFalse(os.path.exists(os.path.join(self.tmp, "srv", "a")))
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "server", "a")))
 
 
 class PlaylistOwnershipTest(TmpTest):
@@ -1753,11 +2343,20 @@ class PlaylistOwnershipTest(TmpTest):
             config = type("cfg", (), {"data": {"auth.server-id": "srv"}})()
             jellyfin = api
         m.get_client = lambda uuid: C()
+        # Which server the login speaks for: the door compares it against
+        # the row's, so a login belonging to nobody makes every row look
+        # like another server's.
+        m.content_id_for = staticmethod(lambda uuid: CONTENT_SERVER)
         m._download_playlist_art = lambda *a, **k: None
         return m
 
+    #: `_add_row` reads the content server off the DTO, so a DTO without one
+    #: makes every row the production path builds an orphan -- and the
+    #: download door reaps an orphan rather than let a second server take its
+    #: files. A `Size` too, because that is the evidence the door weighs.
     ITEM = {"Id": "X", "Type": "Movie", "Name": "Film",
-            "MediaSources": [{"Id": "s", "Container": "mkv"}]}
+            "ServerId": CONTENT_SERVER,
+            "MediaSources": [{"Id": "s", "Container": "mkv", "Size": 10}]}
 
     def test_an_explicit_download_survives_deleting_the_playlist(self):
         m = self._manager([self.ITEM])
@@ -1766,7 +2365,7 @@ class PlaylistOwnershipTest(TmpTest):
         # The user then browses to the film itself and presses Download. The
         # menu offers it whether or not the item is already downloaded.
         m.enqueue("u", "X", "Movie", include_watched=True)
-        self.assertEqual(m.db.playlist_owned_ids("P"), set())
+        self.assertEqual(m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), set())
         m.delete(playlist_id="P")
         self.assertIsNotNone(m.db.get("X"),
                              "a film the user downloaded by hand was deleted "
@@ -1779,13 +2378,13 @@ class PlaylistOwnershipTest(TmpTest):
         m.enqueue("u", "P", "Playlist", include_watched=True)
         m.db.update("X", status=STATUS_COMPLETE)
         m.enqueue("u", "X", "Movie", include_watched=True)
-        self.assertEqual([r["item_id"] for r in m.db.playlist_item_rows("P")],
+        self.assertEqual([r["item_id"] for r in m.db.playlist_item_rows("P", server_id=CONTENT_SERVER)],
                          ["X"])
 
     def test_a_playlist_download_still_owns_what_it_pulls_in(self):
         m = self._manager([self.ITEM])
         m.enqueue("u", "P", "Playlist", include_watched=True)
-        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"})
+        self.assertEqual(m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), {"X"})
 
     def test_re_downloading_the_playlist_does_not_reclaim_it(self):
         m = self._manager([self.ITEM])
@@ -1793,7 +2392,7 @@ class PlaylistOwnershipTest(TmpTest):
         m.db.update("X", status=STATUS_COMPLETE)
         m.enqueue("u", "X", "Movie", include_watched=True)
         m.enqueue("u", "P", "Playlist", include_watched=True)
-        self.assertEqual(m.db.playlist_owned_ids("P"), set(),
+        self.assertEqual(m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), set(),
                          "the playlist took back an item the user had claimed")
 
     # The two below are the guard on the *other* side of this rule. A release
@@ -1808,9 +2407,9 @@ class PlaylistOwnershipTest(TmpTest):
         m = self._manager([self.ITEM])
         m.enqueue("u", "P", "Playlist", include_watched=True)
         m.db.update("X", status=STATUS_COMPLETE)
-        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"})
+        self.assertEqual(m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), {"X"})
         m.enqueue("u", "P", "Playlist", include_watched=True)
-        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"},
+        self.assertEqual(m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), {"X"},
                          "re-downloading the playlist disowned the copy it "
                          "had pulled in itself")
 
@@ -1819,9 +2418,9 @@ class PlaylistOwnershipTest(TmpTest):
         not complete, so this enqueue queues it again."""
         m = self._manager([self.ITEM])
         m.enqueue("u", "P", "Playlist", include_watched=True)
-        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"})
+        self.assertEqual(m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), {"X"})
         m.enqueue("u", "P", "Playlist", include_watched=True)
-        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"},
+        self.assertEqual(m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), {"X"},
                          "re-downloading the playlist disowned a member it "
                          "was still fetching")
 
@@ -1842,6 +2441,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
     XID = "%032x" % 1
     YID = "%032x" % 2
     ITEM = {"Id": XID, "Type": "Movie", "Name": "Film",
+            "ServerId": CONTENT_SERVER,
             "MediaSources": [{"Id": "s", "Container": "mkv"}]}
 
     class _API:
@@ -1875,7 +2475,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
     def _on_disk(self, root, iid, describe=True):
         """A download as `_download` leaves it: media plus the manifests that
         let `_adopt_orphan` rebuild the row."""
-        item_dir = os.path.join(root, "srv", iid)
+        item_dir = os.path.join(root, "server", iid)
         os.makedirs(item_dir, exist_ok=True)
         with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
             fh.write(b"x" * 64)
@@ -1910,7 +2510,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
 
         self.assertIsNone(m.db.get(self.XID), "the racing delete did not land")
         self.assertEqual(
-            m.db.playlist_owned_ids("P"), set(),
+            m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), set(),
             "the playlist owns an item the catalog does not have, so the "
             "next thing to write that row hands it the file")
 
@@ -1931,7 +2531,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         row = m.db.get(self.XID)
         self.assertIsNotNone(row, "the orphan was not adopted at all")
         self.assertEqual(
-            m.db.playlist_owned_ids("P"), set(),
+            m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), set(),
             "the row _adopt_orphan marked never-auto to protect the file is "
             "still owned by a playlist, which deletes it unconditionally")
 
@@ -2000,7 +2600,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
                              "the enqueue wrote no row, so this test proves "
                              "nothing about the row it writes")
         self.assertEqual(
-            m.db.playlist_owned_ids("P"), set(),
+            m.db.playlist_owned_ids("P", server_id=CONTENT_SERVER), set(),
             "the row this enqueue created is already owned by a playlist "
             "that never downloaded it")
 
@@ -2036,7 +2636,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         m = self._manager(root)
         self._stale_claim(m, self.XID)
 
-        item_dir = os.path.join(root, "srv", self.XID)
+        item_dir = os.path.join(root, "server", self.XID)
         os.makedirs(item_dir, exist_ok=True)
         with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
             fh.write(b"x" * 64)
@@ -2106,16 +2706,16 @@ class MoveRollbackTest(TmpTest):
         new = os.path.join(self.tmp, "new")
         os.makedirs(old)
         os.makedirs(new)
-        self._tree(old, ["srv"])
+        self._tree(old, ["server"])
         with open(os.path.join(old, "catalog.db"), "wb") as fh:
             fh.write(b"x")
         m = SyncManager()
         m.root = old
         self._move(m, old, new, "catalog.db")   # sorted last, so srv is across
-        self.assertTrue(os.path.exists(os.path.join(old, "srv", "media.mkv"))
-                        or os.path.exists(os.path.join(old, "srv")),
+        self.assertTrue(os.path.exists(os.path.join(old, "server", "media.mkv"))
+                        or os.path.exists(os.path.join(old, "server")),
                         "the original was destroyed by a failed move")
-        self.assertFalse(os.path.exists(os.path.join(new, "srv")),
+        self.assertFalse(os.path.exists(os.path.join(new, "server")),
                          "a failed move left a full second copy at the "
                          "destination that nothing will ever reclaim")
 
@@ -2142,8 +2742,11 @@ class WatchedAllImpliesTheFilterTest(TmpTest):
     def _seed(self, m):
         add_row(m, "seen", status=STATUS_COMPLETE)
         add_row(m, "unseen", status=STATUS_COMPLETE)
-        m.db.update("seen", userdata_json=json.dumps({"Played": True}))
-        m.db.update("unseen", userdata_json=json.dumps({"Played": False}))
+        # Watched state lives in the per-actor table now, and the delete
+        # path asks it rather than the row's blob. No credential here, so
+        # the actor is the unattributed sentinel.
+        m.db.set_watched("seen", True, actor=(None, NO_ACTOR))
+        m.db.set_watched("unseen", False, actor=(None, NO_ACTOR))
 
     def test_it_keeps_the_unwatched(self):
         m = make_manager(self.tmp, self.addCleanup)
@@ -2180,7 +2783,7 @@ class TheBackupNeverDestroysItselfTest(TmpTest):
         m = self._launch(root)
         for i in range(n):
             iid = "%032x" % i
-            item_dir = os.path.join(root, "srv", iid)
+            item_dir = os.path.join(root, "server", iid)
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
                 fh.write(b"x" * 64)
@@ -2232,7 +2835,7 @@ class TheBackupNeverDestroysItselfTest(TmpTest):
                          "the launch that could not restore the backup "
                          "overwrote it with the empty catalog it had just "
                          "opened, so the next launch had nothing left")
-        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3)
+        self.assertEqual(len(os.listdir(os.path.join(root, "server"))), 3)
 
     def test_and_the_next_launch_then_recovers(self):
         """The point of keeping it: the failure is transient, the backup is
@@ -2293,7 +2896,7 @@ class TheCatalogLeavesTheOldRootLastTest(TmpTest):
         """
         old = os.path.join(self.tmp, "old")
         new = os.path.join(self.tmp, "new")
-        os.makedirs(os.path.join(old, "srv"))
+        os.makedirs(os.path.join(old, "server"))
         os.makedirs(new)
         for name in ("catalog.db", SyncManager.CATALOG_BACKUP, "other"):
             with open(os.path.join(old, name), "wb") as fh:
@@ -2314,7 +2917,7 @@ class TheCatalogLeavesTheOldRootLastTest(TmpTest):
             os.rename = real_rename
 
         self.assertEqual(sorted(moved),
-                         sorted(["srv", "other", "catalog.db",
+                         sorted(["server", "other", "catalog.db",
                                  SyncManager.CATALOG_BACKUP]),
                          "not every entry was moved: %r" % (moved,))
         self.assertEqual(moved[-2:],
@@ -2333,6 +2936,7 @@ class AskingForItAgainWithdrawsTheCancelTest(TmpTest):
     def _manager(self):
         m = make_manager(self.tmp, self.addCleanup)
         item = {"Id": "a", "Type": "Movie", "Name": "Film",
+                "ServerId": CONTENT_SERVER,
                 "MediaSources": [{"Id": "s", "Container": "mkv"}]}
 
         class C:
@@ -2344,6 +2948,14 @@ class AskingForItAgainWithdrawsTheCancelTest(TmpTest):
             })()
 
         m.get_client = lambda uuid: C()
+        # The login resolves to the server the DTO names, which is what a
+        # real one does. Without it the enqueue below is correctly REFUSED --
+        # the catalog holds this id for `srv-content` and the request arrives
+        # on behalf of a login that resolves to nothing -- and the refusal
+        # skips `keep()`, which is what withdraws the cancel. A fixture whose
+        # two halves disagree about the server tests the refusal path while
+        # claiming to test the withdrawal.
+        m.content_id_for = staticmethod(lambda uuid: CONTENT_SERVER)
         return m
 
     def test_a_re_enqueue_during_the_unwind_survives(self):
@@ -2356,7 +2968,25 @@ class AskingForItAgainWithdrawsTheCancelTest(TmpTest):
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 8)
             self.assertTrue(m.delete(item_id="a"))
-            self.assertEqual(m.enqueue("u", "a", "Movie", include_watched=True), 1)
+            m.enqueue("u", "a", "Movie", include_watched=True)
+            # NOT `assertEqual(..., 1)`, and the change is a finding rather
+            # than a loosening. Nothing is *added* here: the row still
+            # exists, because `delete` on an active download only raises the
+            # cancel flag and leaves the worker to unwind. What the
+            # re-enqueue owes is the withdrawal, which is asserted below and
+            # in the two assertions after this function.
+            #
+            # It once returned 1, by reaping: the row was an orphan, because
+            # this fixture's DTO carried no ServerId, and with no declared
+            # Size `claim_identity` could not match the bytes -- so it
+            # deleted the directory a worker was writing into and re-added a
+            # row. The count was evidence of the defect. `_add_row` now
+            # refuses a DTO that does not name its server, so the fixture
+            # cannot be in that state any more and the row is properly
+            # homed; the assertion stays as it is because what this test is
+            # about is the withdrawal, not the count.
+            self.assertFalse(m._is_cancelled("a"),
+                             "asking again did not withdraw the cancel")
             raise manager_module.requests.RequestException("reset")
 
         m._stream = fake_stream
@@ -2393,7 +3023,7 @@ class RelocateRefusesItsOwnSubdirectoryTest(TmpTest):
 
     def test_a_nested_destination_is_refused(self):
         root = os.path.join(self.tmp, "offline")
-        os.makedirs(os.path.join(root, "srv", ORPHAN_ID))
+        os.makedirs(os.path.join(root, "server", ORPHAN_ID))
         m = make_manager(root, self.addCleanup)
         m.db.close()
         dest = os.path.join(root, "moved")
@@ -2401,7 +3031,7 @@ class RelocateRefusesItsOwnSubdirectoryTest(TmpTest):
         self.assertFalse(ok)
         self.assertIn("inside", message)
         # And nothing was touched on the way to finding out.
-        self.assertTrue(os.path.isdir(os.path.join(root, "srv", ORPHAN_ID)))
+        self.assertTrue(os.path.isdir(os.path.join(root, "server", ORPHAN_ID)))
         self.assertFalse(os.path.exists(dest))
 
     def test_a_sibling_is_still_accepted(self):
@@ -2539,7 +3169,7 @@ class ADeleteThatRemovedNothingIsNotADeleteTest(TmpTest):
         os.makedirs(root, exist_ok=True)
         m = self._launch(root)
         for iid in ids:
-            item_dir = os.path.join(root, "srv", iid)
+            item_dir = os.path.join(root, "server", iid)
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
                 fh.write(b"x" * 64)
@@ -2607,7 +3237,7 @@ class ADeleteThatRemovedNothingIsNotADeleteTest(TmpTest):
         ids = ["%032x" % i for i in range(3)]
         m = self._store(root, ids)
         for iid in ids:
-            m.db.update(iid, series_id="show")
+            set_columns(m.db, iid, series_id="show")
 
         with self._locked_files():
             m.delete(series_id="show")
@@ -2623,7 +3253,7 @@ class ADeleteThatRemovedNothingIsNotADeleteTest(TmpTest):
 
         self.assertTrue(m.delete_item(iid))
         self.assertIsNone(m.db.get(iid))
-        self.assertFalse(os.path.isdir(os.path.join(root, "srv", iid)))
+        self.assertFalse(os.path.isdir(os.path.join(root, "server", iid)))
 
 
 class EveryDamagedCatalogGetsAVerdictTest(TmpTest):
@@ -2655,7 +3285,7 @@ class EveryDamagedCatalogGetsAVerdictTest(TmpTest):
         m = self._launch(root)
         for i in range(n):
             iid = "%032x" % i
-            item_dir = os.path.join(root, "srv", iid)
+            item_dir = os.path.join(root, "server", iid)
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
                 fh.write(b"x" * 64)
@@ -2682,7 +3312,7 @@ class EveryDamagedCatalogGetsAVerdictTest(TmpTest):
                                  "the backup was never restored, so the store "
                                  "is described by nothing")
                 self.assertEqual(
-                    len(os.listdir(os.path.join(root, "srv"))), 3,
+                    len(os.listdir(os.path.join(root, "server"))), 3,
                     "a download was swept on the strength of a catalog that "
                     "could not be read")
 
@@ -2712,7 +3342,7 @@ class EveryDamagedCatalogGetsAVerdictTest(TmpTest):
         m = self._launch(root)
         self.assertFalse(m.db.healthy(),
                          "a catalog that would not open came back healthy")
-        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3,
+        self.assertEqual(len(os.listdir(os.path.join(root, "server"))), 3,
                          "the sweep ran on the strength of a catalog that "
                          "was never read")
 
@@ -2729,7 +3359,7 @@ class EveryDamagedCatalogGetsAVerdictTest(TmpTest):
         self.assertFalse(m.db.healthy(),
                          "the restored copy of a damaged backup came back "
                          "healthy")
-        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3,
+        self.assertEqual(len(os.listdir(os.path.join(root, "server"))), 3,
                          "the sweep ran after a restore that restored nothing")
 
     def test_an_emptied_catalog_is_not_a_damaged_one(self):
@@ -2773,7 +3403,7 @@ class TheRestoreIsOnePathTest(TmpTest):
         m = self._launch(root)
         for i in range(n):
             iid = "%032x" % i
-            item_dir = os.path.join(root, "srv", iid)
+            item_dir = os.path.join(root, "server", iid)
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
                 fh.write(b"x" * 64)
@@ -2937,7 +3567,7 @@ class TheRestoreIsOnePathTest(TmpTest):
         unlock()          # the lock is transient; the next launch is clean
 
         m = self._launch(root)
-        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3,
+        self.assertEqual(len(os.listdir(os.path.join(root, "server"))), 3,
                          "a download was deleted on the strength of a "
                          "catalog restored over a live sidecar")
         self.assertEqual(len(m.db.list()), 3,
@@ -2958,7 +3588,7 @@ class TheRestoreIsOnePathTest(TmpTest):
                 self.assertEqual(len(m.db.list()), 3,
                                  "the restore was never retried")
                 self.assertEqual(
-                    len(os.listdir(os.path.join(root, "srv"))), 3,
+                    len(os.listdir(os.path.join(root, "server"))), 3,
                     "media was swept on the strength of an empty catalog")
 
     def test_a_failure_between_the_two_renames_is_recoverable(self):
@@ -2995,12 +3625,12 @@ class TheRestoreIsOnePathTest(TmpTest):
         self._seeded(root)
         os.remove(os.path.join(root, "catalog.db"))
         # Media the backup does not know about: the shape a sweep deletes.
-        stranger = os.path.join(root, "srv", "%032x" % 99)
+        stranger = os.path.join(root, "server", "%032x" % 99)
         os.makedirs(stranger)
         with open(os.path.join(stranger, "media.mkv"), "wb") as fh:
             fh.write(b"x" * 64)
         # And a row whose file the user removed: the shape a reconcile fixes.
-        os.remove(os.path.join(root, "srv", "%032x" % 0, "media.mkv"))
+        os.remove(os.path.join(root, "server", "%032x" % 0, "media.mkv"))
 
         m = self._launch(root)
         self.assertTrue(os.path.isdir(stranger),
@@ -3098,6 +3728,7 @@ class TheDeleteWinsEverywhereTest(TmpTest):
     """
 
     ITEM = {"Id": "a", "Type": "Movie", "Name": "Film",
+            "ServerId": CONTENT_SERVER,
             "MediaSources": [{"Id": "s", "Container": "mkv"}]}
 
     def _manager(self):
@@ -3113,6 +3744,12 @@ class TheDeleteWinsEverywhereTest(TmpTest):
             })()
 
         m.get_client = lambda uuid: C()
+        # The login resolves to the server the DTO names. Without it the
+        # second enqueue in each row of this table is REFUSED -- the catalog
+        # holds the id for `srv-content` and the request arrives for a login
+        # that resolves to nothing -- and the table would be measuring the
+        # refusal rather than the exits it is named after.
+        m.content_id_for = staticmethod(lambda uuid: CONTENT_SERVER)
         return m
 
     #: name -> what `_stream` does. Between them these reach every way out of
@@ -3172,7 +3809,7 @@ class TheDeleteWinsEverywhereTest(TmpTest):
                             row, "the delete the user was told had succeeded "
                                  "did not survive this exit")
                         self.assertFalse(
-                            os.path.exists(os.path.join(m.root, "srv", "a")),
+                            os.path.exists(os.path.join(m.root, "server", "a")),
                             "the row went but the bytes stayed")
                     else:
                         self.assertIsNotNone(
@@ -3180,7 +3817,7 @@ class TheDeleteWinsEverywhereTest(TmpTest):
                                  "owed on the way out")
                     # True of every cell: nothing is left flagged or claimed.
                     self.assertEqual(m._cancelled, set())
-                    self.assertIsNone(m._active_item)
+                    self.assertEqual(m._active_ids(), set())
 
     def test_a_cancel_that_beat_the_worker_is_not_downloaded_first(self):
         """The cancel that arrives before the worker reaches the row.
@@ -3217,7 +3854,7 @@ class TheDeleteWinsEverywhereTest(TmpTest):
                 else:
                     self.assertIsNone(m.db.get("a"))
                 self.assertEqual(m._cancelled, set())
-                self.assertIsNone(m._active_item)
+                self.assertEqual(m._active_ids(), set())
 
     def test_the_row_delete_is_atomic_with_the_sample(self):
         """Sampling the cancel under `_active_lock` and deleting the row after
@@ -3295,7 +3932,7 @@ class AnEnqueueOnlyWithdrawsWhatItKeepsTest(TmpTest):
         m = self._manager()
         m.enqueue("u", "a", "Episode", include_watched=True)
         with m._active_lock:
-            m._active_item = "a"           # the worker is on it
+            m._claim_active(1, "a")        # the worker is on it
         self.assertTrue(m.delete(item_id="a"))
         self.assertIn("a", m._cancelled)
 
@@ -3311,7 +3948,7 @@ class AnEnqueueOnlyWithdrawsWhatItKeepsTest(TmpTest):
         m = self._manager()
         m.enqueue("u", "a", "Episode", include_watched=True)
         with m._active_lock:
-            m._active_item = "a"
+            m._claim_active(1, "a")
         self.assertTrue(m.delete(item_id="a"))
         self.assertIn("a", m._cancelled)
 
@@ -3330,7 +3967,7 @@ class AReapItDeclinesIsNotADeleteTest(TmpTest):
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, "a", status=STATUS_COMPLETE, origin=ORIGIN_USER)
         with m._active_lock:
-            m._active_item = "a"           # the worker is on it right now
+            m._claim_active(1, "a")        # the worker is on it right now
         self.assertFalse(m.delete_item("a", only_if_auto=True),
                          "the reaper took a row the user had claimed")
         self.assertEqual(m._cancelled, set(),
@@ -3347,3 +3984,1057 @@ def _http_error(status):
     exc = manager_module.requests.HTTPError("HTTP %d" % status)
     exc.response = type("r", (), {"status_code": status})()
     return exc
+
+
+class FakeAncestorJellyfin(FakeJellyfin):
+    """A server that can answer "which library is this in", which the plain
+    FakeJellyfin cannot -- and `_library_id_for` swallows the AttributeError
+    that causes, so a fake without this silently records no library at all.
+    """
+
+    def __init__(self, ancestors=None, fail=False):
+        self.ancestors = ancestors
+        self.fail = fail
+        self.asked = []
+
+    def get_ancestors(self, item_id):
+        self.asked.append(item_id)
+        if self.fail:
+            raise RuntimeError("server away")
+        return self.ancestors
+
+
+class LibraryRecordedAtDownloadTimeTest(TmpTest):
+    """The library scope for downloaded media.
+
+    `_library_id_for` resolves the CollectionFolder when a download is
+    queued so the play path can answer the shader-profile library scope with
+    the server away. It was resolved, handed to `upsert` -- and dropped,
+    because `COLUMNS` is the whole INSERT and `library_id` was not in it. The
+    column existed, the migration added it, nothing ever wrote to it.
+    """
+
+    def _manager(self, jellyfin):
+        client = FakeClient()
+        client.jellyfin = jellyfin
+        m = make_manager(self.tmp, self.addCleanup,
+                         clients={"uuid": client})
+        return m
+
+    def test_the_library_survives_the_write(self):
+        jf = FakeAncestorJellyfin(
+            [{"Type": "Season", "Id": "s1"},
+             {"Type": "CollectionFolder", "Id": "lib1"},
+             {"Type": "CollectionFolder", "Id": "lib2"}])
+        m = self._manager(jf)
+        m._add_row("uuid", {"Id": "a", "Type": "Movie", "Name": "A",
+                            "ServerId": "SRV"})
+        self.assertEqual(m.db.get("a")["library_id"], "lib1",
+                         "the library was resolved and then dropped on the "
+                         "way into the catalog")
+
+    def test_and_the_scope_lookup_can_find_it(self):
+        """The read side, which is what `video_profile` actually calls."""
+        jf = FakeAncestorJellyfin([{"Type": "CollectionFolder", "Id": "lib1"}])
+        m = self._manager(jf)
+        m._add_row("uuid", {"Id": "a", "Type": "Movie", "Name": "A",
+                            "ServerId": "SRV"})
+        self.assertEqual(m.db.library_id("a", server_id="SRV"), "lib1")
+
+    def test_an_episode_is_found_by_its_series(self):
+        """Keyed on the series, which is how a season costs one request --
+        and how the shader scope asks, since it has the series id."""
+        jf = FakeAncestorJellyfin([{"Type": "CollectionFolder", "Id": "lib1"}])
+        m = self._manager(jf)
+        for n in (1, 2):
+            m._add_row("uuid", {"Id": "e%d" % n, "Type": "Episode",
+                                "SeriesId": "show1", "Name": "E",
+                                "ServerId": "SRV"})
+        self.assertEqual(jf.asked, ["show1"], "asked once per episode")
+        self.assertEqual(m.db.library_id("show1", server_id="SRV"), "lib1")
+
+    def test_a_requeue_with_the_server_away_keeps_what_is_known(self):
+        """The one this makes newly possible. `_library_id_for` deliberately
+        does not cache a failure, so a re-queue during a blip asks again and
+        gets None -- and INSERT OR REPLACE would write that None over a
+        library resolved when the server was up."""
+        jf = FakeAncestorJellyfin([{"Type": "CollectionFolder", "Id": "lib1"}])
+        m = self._manager(jf)
+        m._add_row("uuid", {"Id": "a", "Type": "Movie", "Name": "A",
+                            "ServerId": "SRV"})
+        jf.fail = True
+        m._library_ids.clear()
+        m._add_row("uuid", {"Id": "a", "Type": "Movie", "Name": "A",
+                            "ServerId": "SRV"})
+        self.assertEqual(m.db.get("a")["library_id"], "lib1",
+                         "a re-queue while the server was unreachable "
+                         "erased the library")
+
+    def test_a_blip_is_not_remembered_as_an_answer(self):
+        """The docstring promises failure is not cached: "a download queued
+        during a blip should get its library on the next one rather than
+        never". The `except` arm was the only one that kept that promise --
+        a *returned* None (no client yet, or an ancestor list with no
+        CollectionFolder in it) was stored, so every later episode of the
+        series recorded `library_id` NULL for the life of the process, which
+        is the one outcome the design says it avoids.
+        """
+        jf = FakeAncestorJellyfin([{"Type": "CollectionFolder", "Id": "lib1"}])
+        client = FakeClient()
+        client.jellyfin = jf
+        live = {}                       # make_manager closes over the dict
+        m = make_manager(self.tmp, self.addCleanup, clients=live)
+
+        episode = {"Type": "Episode", "SeriesId": "show1", "Name": "E",
+                   "ServerId": "SRV"}
+        m._add_row("uuid", dict(episode, Id="e1"))
+        self.assertIsNone(m.db.get("e1")["library_id"])
+        self.assertEqual(jf.asked, [], "there was no client to ask")
+
+        live["uuid"] = client
+        m._add_row("uuid", dict(episode, Id="e2"))
+        self.assertEqual(m.db.get("e2")["library_id"], "lib1",
+                         "the blip was cached as the answer")
+
+    def test_an_ancestor_list_without_a_library_is_also_a_blip(self):
+        """The other returned-None arm, which looks like a real answer and is
+        not: a `get_ancestors` that came back empty during a restart."""
+        jf = FakeAncestorJellyfin([])
+        m = self._manager(jf)
+        episode = {"Type": "Episode", "SeriesId": "show1", "Name": "E",
+                   "ServerId": "SRV"}
+        m._add_row("uuid", dict(episode, Id="e1"))
+        self.assertIsNone(m.db.get("e1")["library_id"])
+
+        jf.ancestors = [{"Type": "CollectionFolder", "Id": "lib1"}]
+        m._add_row("uuid", dict(episode, Id="e2"))
+        self.assertEqual(m.db.get("e2")["library_id"], "lib1")
+        self.assertEqual(jf.asked, ["show1", "show1"], "it never re-asked")
+
+    def test_a_resolved_library_is_asked_for_once(self):
+        """The control on the two above: a *positive* answer is still cached,
+        or "not caching failure" would have become "not caching anything" and
+        a season would cost one request per episode."""
+        jf = FakeAncestorJellyfin([{"Type": "CollectionFolder", "Id": "lib1"}])
+        m = self._manager(jf)
+        for n in (1, 2, 3):
+            m._add_row("uuid", {"Id": "e%d" % n, "Type": "Episode",
+                                "SeriesId": "show1", "Name": "E",
+                                "ServerId": "SRV"})
+        self.assertEqual(jf.asked, ["show1"])
+
+    def test_a_server_that_never_answers_records_nothing(self):
+        """The honest None: no library known, rather than a wrong one."""
+        m = self._manager(FakeAncestorJellyfin(fail=True))
+        m._add_row("uuid", {"Id": "a", "Type": "Movie", "Name": "A",
+                            "ServerId": "SRV"})
+        self.assertIsNone(m.db.get("a")["library_id"])
+
+
+@contextlib.contextmanager
+def _credential_store(*users):
+    """One argument per local user, each a list of ``(ServerId, uuid)``
+    credentials filed the way a login files them.
+
+    Users are separate arguments rather than one flat list because the
+    catalog is global -- one download store for the machine, not one per
+    user -- so the translation has to span them. A helper that put
+    everything under one user would leave that claim untested, and order is
+    significant for the same reason: a test meaning to pin it puts the
+    answering login in the *second* user.
+    """
+    from unittest import mock
+
+    from jellyfin_mpv_shim.users import userManager
+
+    stored = [{"id": "local%d" % n,
+               "credentials": [{"Id": server_id, "uuid": uuid}
+                               for server_id, uuid in creds]}
+              for n, creds in enumerate(users)]
+    with mock.patch.object(userManager, "users", stored):
+        yield
+
+
+class TheCatalogAnswersForOneServerTest(TmpTest):
+    """Jellyfin derives an item id from the media's path, so two servers
+    indexing one library hand out identical ids -- and the series fallback
+    answers with a library that exists on only one of them. The download
+    path then persists that answer into the other server's row.
+
+    An earlier attempt scoped on `server_id`, which is NULL on every row
+    this app has ever written (measured 14 of 14 on a real catalog) and so
+    turned the whole fallback off; `server_uuid` is the populated one, and
+    the item DTO's `ServerId` is what both callers hold.
+    docs/do-not-fix.md 1, "downloads.server_id".
+    """
+
+    def _row(self, m, **over):
+        m.db.upsert(dict({c: None for c in COLUMNS}, **over))
+
+    def test_a_shared_series_id_does_not_cross_servers(self):
+        """The handoff's reproducer. Two servers over one library, an
+        episode downloaded from A, and B asking about its own copy."""
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        self._row(m, item_id="epA", server_uuid="A", content_server_id="SA",
+                  series_id="shared", library_id="libA")
+        with _credential_store([("SA", "A"), ("SB", "B")]):
+            self.assertIsNone(m._library_id_for(
+                "B", {"Id": "epB", "SeriesId": "shared", "ServerId": "SB"}))
+
+    def test_a_shared_item_id_does_not_cross_servers(self):
+        """The direct lookup, not just the series fallback.
+
+        `item_id` is the catalog-wide primary key, so the two servers'
+        copies cannot both be held: this pins `library_id`'s isolation and
+        not the two-download case, which needs a composite key and is
+        written up as still open in docs/do-not-fix.md, F43.
+        """
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        self._row(m, item_id="ep1", server_uuid="A",
+                  content_server_id="SA", library_id="libA")
+        with _credential_store([("SA", "A"), ("SB", "B")]):
+            self.assertIsNone(m._library_id_for(
+                "B", {"Id": "ep1", "ServerId": "SB"}))
+
+    def test_a_dto_naming_no_server_gets_no_library_rather_than_the_askers(self):
+        """Ruled 2026-09-19, and resolved here because this is the surface
+        that owns it.
+
+        The scope must come from the ITEM, because a library id is a property
+        of the item's server. This borrowed it from whichever login happened to
+        be asking -- `item.get("ServerId") or self.content_id_for(server_uuid)`
+        -- which is one raw DTO field read under two conventions, the shape
+        item D is about. Dead in production since `ecfd316c`, because `_add_row`
+        refuses such a DTO before it reaches here, and its one production caller
+        is `_add_row`. Dead is not harmless: revived through an unscoped login
+        the fallback answers `ANY_SERVER`, and that becomes a **cache key**
+        shared by every server, which is the collision `_library_key` calls
+        load-bearing.
+
+        The two sorters disagreed about whether to remove it (isolated defect
+        vs. defensible fallback) and the arbitrator did not settle it, so this
+        is the step resolving it rather than a fix landed early.
+        """
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        self._row(m, item_id="ep1", server_uuid="A",
+                  content_server_id="SA", library_id="libA")
+        with _credential_store([("SA", "A"), ("SB", "B")]):
+            self.assertIsNone(
+                m._library_id_for("A", {"Id": "ep1"}),
+                "a DTO that does not name its server was given the library of "
+                "whatever login asked")
+
+    def test_the_cache_does_not_cross_servers(self):
+        """Scoping the query is not enough. `_library_ids` is process-wide
+        and was keyed on the lookup alone, so A's answer came back for B
+        without the query running at all."""
+        clients = {}
+        for uuid, library in (("A", "libA"), ("B", "libB")):
+            client = FakeClient()
+            client.jellyfin = FakeAncestorJellyfin(
+                [{"Type": "CollectionFolder", "Id": library}])
+            clients[uuid] = client
+        m = make_manager(self.tmp, self.addCleanup, clients=clients)
+        episode = {"Id": "e1", "SeriesId": "show1"}
+        with _credential_store([("SA", "A"), ("SB", "B")]):
+            first = m._library_id_for("A", dict(episode, ServerId="SA"))
+            second = m._library_id_for("B", dict(episode, ServerId="SB"))
+        self.assertEqual((first, second), ("libA", "libB"))
+
+    def test_one_server_under_two_logins_still_answers(self):
+        """The negative control against over-scoping. A CollectionFolder id
+        is server-wide, so a download made under one account must answer for
+        another account on the same server -- which is why the scope is the
+        Jellyfin ServerId and not our per-login uuid."""
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        # `content_server_id` spelled out, because this used to pass on the
+        # clause's NULL branch instead: a row naming no server answered every
+        # scope, so the scoping this test is *about* was never exercised.
+        # Production cannot write one -- `_add_row` refuses a DTO with no
+        # ServerId.
+        self._row(m, item_id="ep1", server_uuid="A1", content_server_id="SA",
+                  library_id="libA")
+        # The login whose row this is sits in the SECOND local user, so a
+        # scan that stops at the active one answers None and this says so.
+        with _credential_store([("SA", "A2")], [("SA", "A1")]):
+            self.assertEqual(
+                m._library_id_for("A2", {"Id": "ep1", "ServerId": "SA"}),
+                "libA")
+
+    def test_the_wrong_library_is_not_written_into_the_other_servers_row(self):
+        """The damage the finding names, end to end and through the real
+        write. Server A's episode is downloaded and its library recorded;
+        server B's copy of the same show is queued while B cannot be asked,
+        and B's row must not inherit A's library.
+
+        This used to note that the fixture passed `server_id=None` "because
+        that is what the only real caller passes" -- handing it a value was the
+        fixture defect that made the reverted repair look right. There is no
+        such argument and no such column any more (CX8), so the shape that
+        misled cannot be written.
+        """
+        client = FakeClient()
+        client.jellyfin = FakeAncestorJellyfin(
+            [{"Type": "CollectionFolder", "Id": "libA"}])
+        m = make_manager(self.tmp, self.addCleanup, clients={"A": client})
+        with _credential_store([("SA", "A"), ("SB", "B")]):
+            m._add_row("A", {"Id": "ep1", "Type": "Episode",
+                                   "SeriesId": "show1", "ServerId": "SA",
+                                   "Name": "E"})
+            m._add_row("B", {"Id": "ep2", "Type": "Episode",
+                                   "SeriesId": "show1", "ServerId": "SB",
+                                   "Name": "E"})
+        self.assertEqual(m.db.get("ep1")["library_id"], "libA")
+        self.assertIsNone(m.db.get("ep2")["library_id"],
+                          "server B's row inherited server A's library")
+
+    def test_a_server_we_hold_no_credential_for_is_still_scoped(self):
+        """A DTO names its own server, so the scope survives the credential
+        going away -- which is the case a removed-but-still-downloaded
+        server produces. There is nothing to translate any more: the id in
+        the DTO *is* the key, so an unknown server scopes to itself rather
+        than falling back to the login or dropping the scope.
+
+        Asserted through a sibling row rather than through the answer, so it
+        can tell the two apart: unscoped would return `libX`, and `None` is
+        what proves a scope was applied at all.
+        """
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        self._row(m, item_id="epGone", server_uuid="gone",
+                  content_server_id="SGone", series_id="shared",
+                  library_id=None)
+        self._row(m, item_id="epX", server_uuid="other",
+                  content_server_id="SOther", series_id="shared",
+                  library_id="libX")
+        with _credential_store([("SB", "B")]):
+            self.assertIsNone(m._library_id_for(
+                "gone", {"Id": "epNew", "SeriesId": "shared",
+                         "ServerId": "SGone"}))
+
+    def test_a_dto_naming_no_server_falls_back_to_the_login(self):
+        """Not measured to happen -- every DTO from 12.0.0 names its server
+        -- but the fallback has to be something, and the login doing the
+        download is the one thing this path always holds."""
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        self._row(m, item_id="epX", server_uuid="other",
+                  content_server_id="SOther", series_id="shared",
+                  library_id="libX")
+        with _credential_store([("SB", "B")]):
+            self.assertIsNone(m._library_id_for(
+                "B", {"Id": "epNew", "SeriesId": "shared"}))
+
+
+class TheCatalogAnswersForOneServerOnlyTest(TmpTest):
+    """One row per item id, whichever server it came from.
+
+    Jellyfin derives an item id from the media's path with **no server
+    component in it** -- measured, docs/jellyfin-api-notes.md 13b -- so two
+    servers over one mount hand out identical ids, and two installs both
+    using `/media` do it for *different files*. `downloads.item_id` is the
+    catalog-wide primary key, so only one of them can ever be held.
+
+    The repair is not to hold both, which needs a destructive migration and
+    a new on-disk layout. It is that the catalog only answers "we have this"
+    for the server that owns the row, so the reachable failure stops being
+    "server B's film silently plays server A's file" and becomes "not
+    downloaded, stream it".
+    """
+
+    def _held_by(self, m, server, item_id="ep1"):
+        """A completed row belonging to one Jellyfin server.
+
+        `server` is a ServerId, not a saved login: the catalog scopes content
+        by the server so that two accounts on one box get one answer. The
+        login is recorded too, because a real row has both.
+        """
+        add_row(m, item_id, server_uuid="login-" + server,
+                content_server_id=server, status=STATUS_COMPLETE,
+                file_path="%s/%s/f.mkv" % (server, item_id))
+
+    def test_another_servers_download_does_not_read_as_complete(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A")
+        self.assertFalse(m.db.is_complete("ep1", server_id="B"),
+                         "server B was told it holds a copy of an item only "
+                         "server A has downloaded")
+
+    def test_the_owning_server_still_does(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A")
+        self.assertTrue(m.db.is_complete("ep1", server_id="A"))
+
+    def test_asking_for_any_server_still_answers(self):
+        """The floor, and it is only reachable where there is nothing to be
+        wrong about: fully offline there is no second server to confuse the
+        row with, and the catalog is the only source there is. Said out loud
+        now -- it used to be spelled `None`, which is the same word a failed
+        login lookup answers with."""
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A")
+        self.assertTrue(m.db.is_complete("ep1", server_id=ANY_SERVER))
+
+    def test_a_login_that_resolves_to_nothing_answers_nothing(self):
+        """The other half of that split, and the reason for it. A read asked
+        on behalf of a login the registry cannot place must not be handed
+        every server's rows -- it is a question about a login we do not
+        have, and the permissive answer is a copy of somebody else's film."""
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A")
+        self.assertFalse(m.db.is_complete("ep1", server_id=None))
+        self.assertEqual(set(), m.db.downloaded_item_ids(server_id=None))
+
+    def test_the_downloaded_ticks_are_per_server(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A", "ep1")
+        self._held_by(m, "B", "ep2")
+        self.assertEqual(m.db.downloaded_item_ids(server_id="A"), {"ep1"})
+        self.assertEqual(m.db.downloaded_item_ids(server_id="B"), {"ep2"})
+        self.assertEqual(m.db.downloaded_item_ids(server_id=ANY_SERVER),
+                         {"ep1", "ep2"})
+
+    def test_a_row_with_no_server_answers_only_the_unscoped_ask(self):
+        """**This test asserted the opposite until step 5.** `_adopt_orphan`
+        writes a row with no server -- a download recovered from the disk
+        alone -- and such a row used to answer *every* named server, on the
+        grounds that it could not be shown to belong to another one.
+
+        That is true and it was the wrong direction to be permissive in: it
+        is how one server's tile ticks for another's film, and how the wrong
+        local copy substitutes for a stream. So it answers `ANY_SERVER` and
+        nothing else, which keeps it playable offline, visible (the offline
+        library lists it under Orphaned Items) and deletable, while a named
+        server is told nothing. Online it streams instead of substituting,
+        which is the same fallback a size mismatch takes.
+        """
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "ep1", server_uuid=None, content_server_id=None,
+                status=STATUS_COMPLETE, file_path="x/ep1/f.mkv")
+        self.assertTrue(m.db.is_complete("ep1", server_id=ANY_SERVER),
+                        "offline playback of an adopted orphan broke")
+        self.assertFalse(m.db.is_complete("ep1", server_id="A"))
+        self.assertFalse(m.db.is_complete("ep1", server_id="B"))
+        self.assertEqual(m.db.downloaded_item_ids(server_id="A"), set())
+        self.assertEqual(m.db.downloaded_item_ids(server_id=ANY_SERVER),
+                         {"ep1"}, "it vanished from the unscoped read too, so "
+                                  "it is now invisible and undeletable")
+        self.assertIsNone(m.db.owner_of("ep1"),
+                          "an unknown owner must not read as a refusal")
+
+    def test_a_watched_mark_is_scoped_like_every_other_content_read(self):
+        """Superseded the test that pinned the opposite, and the note it
+        carried: the argument was not a scope but the owner to attribute a
+        mark to when the row recorded none.
+
+        Scoping was tried once and reverted within the hour, because the
+        downloads screen passed the pseudo-server "offline", which matches
+        no row and so silently marked nothing. What removes that objection
+        is not the scope -- it is that the caller now passes the *content*
+        id for its login, and the pseudo-server's is None, which asks
+        unscoped. Filing a mark against the wrong server was never mere
+        bookkeeping either: the pair written existed nowhere and no reader
+        could ever match it.
+        """
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A")
+        self.assertEqual(m.db.watched_targets("ep1", server_id="A"),
+                         [("ep1", "A")],
+                         "the owning server cannot mark its own row")
+        self.assertEqual(m.db.watched_targets("ep1", server_id="B"), [],
+                         "server B reached a row only server A holds")
+        self.assertEqual(m.db.watched_targets("ep1"), [("ep1", "A")],
+                         "asking unscoped -- what the downloads screen "
+                         "does -- must still answer, with the row's own "
+                         "server")
+
+    def test_an_unattributed_row_is_markable_only_unscoped(self):
+        """The NULL policy, which is `_content_clause`'s and not a second one
+        -- so it changed here when the clause did."""
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "ep1", server_uuid=None, content_server_id=None,
+                status=STATUS_COMPLETE, file_path="x/ep1/f.mkv")
+        self.assertEqual(m.db.watched_targets("ep1", server_id=ANY_SERVER),
+                         [("ep1", None)],
+                         "the offline browser could no longer mark it watched")
+        self.assertEqual(m.db.watched_targets("ep1", server_id="A"), [],
+                         "a named server was handed a row it cannot claim")
+
+    def test_enqueue_refuses_rather_than_replacing_the_other_servers_row(self):
+        """The damage. `_add_row` is INSERT OR REPLACE, so without this the
+        second server's enqueue overwrites the first server's row -- and its
+        files, which `_item_dir` puts in the same place, are then orphaned
+        with nothing pointing at them."""
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A")
+        client = FakeClient()
+        client.jellyfin = FakeJellyfin()
+        m.get_client = lambda uuid: client
+        m._expand = lambda api, item_id, item_type: [
+            {"Id": "ep1", "Type": "Episode", "Name": "E", "ServerId": "SB"}]
+        with self.assertRaises(manager_module.DownloadCollision):
+            m.enqueue("B", "ep1", "Episode")
+        row = m.db.get("ep1")
+        self.assertEqual(row["content_server_id"], "A",
+                         "server B's enqueue replaced server A's row")
+        self.assertEqual(row["status"], STATUS_COMPLETE,
+                         "and reset a finished download to pending")
+
+    def test_a_credential_that_disagrees_with_the_dto_refuses_nothing(self):
+        """CR8. The one door was handed the content key by its two
+        entrances, and they derived it differently: `enqueue` from the saved
+        credential's `Id`, `_adopt_orphan` from the DTO's `ServerId`. Where
+        those disagree -- a credential whose `Id` was never written, a server
+        whose ServerId was regenerated, a login resolved through another
+        local profile -- `owner == content_id` was false for every row we
+        hold, so the door answered "refused" for all of them, `enqueue`
+        raised `DownloadCollision`, and the item could never be
+        re-downloaded.
+
+        Here the catalog holds the item for server A, the DTO says server A,
+        and only the credential lookup disagrees. Nothing about this request
+        is a collision."""
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A", "ep1")
+        client = FakeClient()
+        client.jellyfin = FakeJellyfin()
+        m.get_client = lambda uuid: client
+        m.content_id_for = staticmethod(lambda uuid: "a-stale-answer")
+        m._expand = lambda api, item_id, item_type: [
+            {"Id": "ep1", "Type": "Episode", "Name": "E1", "ServerId": "A"}]
+        # No exception, and nothing queued: we already hold it, from the
+        # server the DTO names.
+        self.assertEqual(m.enqueue("login-A", "ep1", "Episode",
+                                   include_watched=True), 0)
+        self.assertEqual(m.db.get("ep1")["content_server_id"], "A")
+        self.assertEqual(m.db.get("ep1")["status"], STATUS_COMPLETE)
+
+    def test_a_mixed_request_queues_what_it_can(self):
+        """A season where one episode collides must still fetch the rest --
+        refusing the whole request would make one shared file cost the user
+        the other nine."""
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A", "ep1")
+        client = FakeClient()
+        client.jellyfin = FakeJellyfin()
+        m.get_client = lambda uuid: client
+        m._expand = lambda api, item_id, item_type: [
+            {"Id": "ep1", "Type": "Episode", "Name": "E1", "ServerId": "SB"},
+            {"Id": "ep2", "Type": "Episode", "Name": "E2", "ServerId": "SB"}]
+        self.assertEqual(m.enqueue("B", "show1", "Series"), 1)
+        self.assertEqual(m.db.get("ep1")["content_server_id"], "A")
+        self.assertEqual(m.db.get("ep2")["server_uuid"], "B")
+
+    def test_and_so_does_one_whose_rest_is_already_downloaded(self):
+        """CR7. `added` counts rows *queued*, and an episode already on disk
+        takes the `keep` path without incrementing it -- so a season where
+        nine are complete and the tenth collides had `added == 0` and reported
+        total failure. `gateway.download_enqueue` does not catch
+        DownloadCollision, so the user was told the download failed about a
+        request that was already satisfied.
+
+        The guard's own comment says it fires "only when the collision cost
+        the whole request", which is what this makes true.
+        """
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A", "ep1")        # the colliding id, held by A
+        self._held_by(m, "SB", "ep2")       # already downloaded from SB
+        client = FakeClient()
+        client.jellyfin = FakeJellyfin()
+        m.get_client = lambda uuid: client
+        m._expand = lambda api, item_id, item_type: [
+            {"Id": "ep1", "Type": "Episode", "Name": "E1", "ServerId": "SB"},
+            {"Id": "ep2", "Type": "Episode", "Name": "E2", "ServerId": "SB"}]
+        # Nothing to queue and nothing wrong: one is somebody else's, the
+        # other is already here.
+        self.assertEqual(m.enqueue("B", "show1", "Series"), 0)
+        self.assertEqual(m.db.get("ep2")["status"], STATUS_COMPLETE)
+
+    def test_a_collision_that_really_did_cost_the_request_still_raises(self):
+        """The control. Without it the repair could be "never raise", which
+        would leave the user pressing Download on a film they can never have
+        and getting no word about it at all."""
+        m = make_manager(self.tmp, self.addCleanup)
+        self._held_by(m, "A", "ep1")
+        client = FakeClient()
+        client.jellyfin = FakeJellyfin()
+        m.get_client = lambda uuid: client
+        m._expand = lambda api, item_id, item_type: [
+            {"Id": "ep1", "Type": "Episode", "Name": "E1", "ServerId": "SB"}]
+        with self.assertRaises(manager_module.DownloadCollision):
+            m.enqueue("B", "show1", "Series")
+
+
+class EveryColumnIsAccountedForTest(TmpTest):
+    """`COLUMNS` is the whole INSERT, so a column missing from it is a value
+    every caller hands over and the write silently discards. That is how
+    `library_id` was resolved at download time, passed to `upsert`, and never
+    stored: the column was in the schema and in the migration, the read side
+    worked, and the value was dropped in between with nothing to say so.
+
+    The list of deliberate omissions is the fix -- a new column now has to be
+    written into one of the two lists, and the choice is the decision.
+    """
+
+    def test_no_column_is_dropped_by_accident(self):
+        db = SyncDB(os.path.join(self.tmp, "c.db"))
+        self.addCleanup(db.close)
+        actual = [r[1] for r in
+                  db._conn.execute("PRAGMA table_info(downloads)")]
+        unaccounted = [c for c in actual
+                       if c not in COLUMNS and c not in NOT_UPSERTED]
+        self.assertEqual(
+            unaccounted, [],
+            "these columns exist and upsert does not write them, so "
+            "whatever a caller passes for them is discarded: %s. Add each "
+            "to COLUMNS, or to NOT_UPSERTED -- and read what that list "
+            "actually promises before choosing it." % unaccounted)
+
+    def test_a_re_upsert_resets_what_it_does_not_write(self):
+        """The fact `NOT_UPSERTED` used to deny. `INSERT OR REPLACE` deletes
+        the conflicting row and inserts a new one, so an omitted column comes
+        back as its DEFAULT -- it is not left alone. Pinned here so the
+        comfortable reading cannot come back: what makes the omission safe is
+        that a row carrying one never reaches `upsert`, not that the write
+        protects it."""
+        db = SyncDB(os.path.join(self.tmp, "c.db"))
+        self.addCleanup(db.close)
+        row = {c: None for c in COLUMNS}
+        row.update({"item_id": "x", "status": STATUS_COMPLETE,
+                    "content_server_id": "S"})
+        db.upsert(row)
+        db.update("x", watched_at=1234567)
+        self.assertEqual(db.get("x")["watched_at"], 1234567)
+        db.upsert(row)
+        self.assertIsNone(
+            db.get("x")["watched_at"],
+            "a re-upsert preserved watched_at, so INSERT OR REPLACE has "
+            "changed behaviour and NOT_UPSERTED's comment needs rewriting "
+            "in the other direction")
+
+    def test_an_identity_column_cannot_be_written_through_update(self):
+        """The repair that removes an authority rather than guarding a site.
+        `server_id` is the dead on-disk path key -- filling it moves every
+        download's directory out from under the row that names it -- and
+        `content_server_id` is the scope every content read leans on. With
+        the allow-list here, nothing in the app can set either through this
+        door, however it is called."""
+        db = SyncDB(os.path.join(self.tmp, "c.db"))
+        self.addCleanup(db.close)
+        row = {c: None for c in COLUMNS}
+        row.update({"item_id": "x", "status": STATUS_PENDING,
+                    "content_server_id": "S"})
+        db.upsert(row)
+        for column, value in (("server_id", "somewhere"),
+                              ("content_server_id", "elsewhere"),
+                              ("server_uuid", "a-login"),
+                              ("userdata_json", "{}")):
+            with self.subTest(column=column):
+                with self.assertRaises(ValueError):
+                    db.update("x", **{column: value})
+        self.assertEqual(db.get("x")["content_server_id"], "S",
+                         "a refused update wrote anyway")
+
+    def test_the_allow_list_is_what_the_package_actually_passes(self):
+        """Derived by AST rather than trusted, because the ratified design's
+        hole check got this wrong: it said five keywords from a grep that
+        could not see a multi-line call, and there are ten. Shipped as five,
+        the commit point of every download would have raised -- it sets
+        eight of them at once.
+
+        Too wide is the failure that matters and the one this catches: a
+        name left here after its last caller went is an authority nobody
+        needs, and adding one to make a new call site pass is meant to be a
+        decision rather than a reflex."""
+        import ast
+
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        passed = set()
+        for dirpath, _dirs, files in os.walk(
+                os.path.join(root, "jellyfin_mpv_shim")):
+            for name in files:
+                if not name.endswith(".py"):
+                    continue
+                path = os.path.join(dirpath, name)
+                with open(path, encoding="utf-8") as fh:
+                    tree = ast.parse(fh.read(), path)
+                for node in ast.walk(tree):
+                    if (isinstance(node, ast.Call)
+                            and isinstance(node.func, ast.Attribute)
+                            and node.func.attr == "update"
+                            and ast.unparse(node.func.value).endswith(
+                                ("db", "self"))):
+                        passed.update(k.arg for k in node.keywords if k.arg)
+        self.assertEqual(
+            set(), passed - SyncDB.UPDATABLE,
+            "these are passed to db.update and the allow-list refuses them")
+        self.assertEqual(
+            set(), SyncDB.UPDATABLE - passed,
+            "these are in the allow-list and nothing passes them any more")
+
+    def test_and_nothing_is_listed_that_the_table_does_not_have(self):
+        """The other direction: a typo in COLUMNS is an `OperationalError`
+        on every write, and a stale name in NOT_UPSERTED excuses a column
+        that is no longer there."""
+        db = SyncDB(os.path.join(self.tmp, "c.db"))
+        self.addCleanup(db.close)
+        actual = {r[1] for r in
+                  db._conn.execute("PRAGMA table_info(downloads)")}
+        self.assertEqual([c for c in COLUMNS + NOT_UPSERTED
+                          if c not in actual], [])
+
+    def test_the_two_lists_do_not_overlap(self):
+        self.assertEqual(sorted(set(COLUMNS) & set(NOT_UPSERTED)), [])
+
+
+class TheIdentityClaimTest(unittest.TestCase):
+    """One door decides what a downloaded copy is, and it asks about bytes.
+
+    An id collision proves the type and the path -- that is the whole of the
+    derivation (docs/jellyfin-api-notes.md 13b) -- and says nothing about the
+    content. §13b names the dangerous case explicitly: two installs with the
+    same internal mount point hand out one id for *different files*, and
+    serving one as the other is silent.
+
+    [iw]'s rulings 3, 4 and 10: re-home the orphan when the versions agree,
+    reap it and download fresh when they do not, and settle it on the
+    MediaSource byte size rather than on metadata. Metadata cannot answer it
+    -- `Type` is an *input* to the id, `Name` is editable, two encodes share a
+    runtime, and a Book has neither.
+    """
+
+    SERVER_A, SERVER_B = "srv-a", "srv-b"
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.m = make_manager(self.tmp, cleanup=self.addCleanup)
+
+    def _orphan_on_disk(self, item_id="x", size=1234):
+        """A complete download whose row does not know its server, with real
+        bytes behind it -- the thing a re-home must not silently replace."""
+        item_dir = os.path.join(self.tmp, "server", item_id)
+        os.makedirs(item_dir, exist_ok=True)
+        media = os.path.join(item_dir, "media.mkv")
+        with open(media, "wb") as fh:
+            fh.write(b"\0" * size)
+        add_row(self.m, item_id, status=STATUS_COMPLETE,
+                size_bytes=size,
+                file_path=os.path.relpath(media, self.tmp),
+                content_server_id=None)
+        return media
+
+    @staticmethod
+    def _item(item_id="x", size=1234, server=None):
+        return {"Id": item_id, "Name": item_id, "Type": "Movie",
+                "ServerId": server,
+                "MediaSources": [{"Id": "ms", "Size": size,
+                                  "Container": "mkv"}]}
+
+    def test_matching_bytes_re_home_the_orphan_without_downloading(self):
+        media = self._orphan_on_disk(size=1234)
+        before = os.path.getsize(media)
+        claimed = self.m.claim_identity(
+            "x", self._item(size=1234, server=self.SERVER_B))
+        self.assertEqual(claimed, "rehomed")
+        self.assertEqual(self.m.db.get("x")["content_server_id"],
+                         self.SERVER_B)
+        self.assertEqual(self.m.db.get("x")["status"], STATUS_COMPLETE,
+                         "a re-home must not put the row back in the queue")
+        self.assertTrue(os.path.exists(media))
+        self.assertEqual(os.path.getsize(media), before)
+
+    def test_differing_bytes_reap_the_orphan_and_start_again(self):
+        media = self._orphan_on_disk(size=1234)
+        claimed = self.m.claim_identity(
+            "x", self._item(size=9999, server=self.SERVER_B))
+        self.assertEqual(claimed, "reaped")
+        self.assertIsNone(self.m.db.get("x"),
+                          "the row was about other content and must go")
+        self.assertFalse(os.path.exists(media),
+                         "and so must its bytes, or the fresh download "
+                         "lands beside a file nothing points at")
+
+    def test_no_evidence_is_not_agreement(self):
+        """The §13b failure in one line: missing evidence read as a match is
+        exactly how one server's film gets served as another's."""
+        self._orphan_on_disk(size=1234)
+        item = self._item(server=self.SERVER_B)
+        item["MediaSources"] = [{"Id": "ms"}]      # no Size, as a Book
+        self.assertEqual(
+            self.m.claim_identity("x", item), "reaped")
+
+    def test_a_row_that_already_names_another_server_is_refused(self):
+        """Not an orphan: we know whose it is, and it is not this caller's."""
+        add_row(self.m, "x", status=STATUS_COMPLETE,
+                content_server_id=self.SERVER_A)
+        self.assertEqual(
+            self.m.claim_identity("x", self._item(server=self.SERVER_B)),
+            "refused")
+        self.assertEqual(self.m.db.get("x")["content_server_id"],
+                         self.SERVER_A)
+
+    def test_our_own_row_is_simply_ours(self):
+        add_row(self.m, "x", status=STATUS_COMPLETE,
+                content_server_id=self.SERVER_B)
+        self.assertEqual(
+            self.m.claim_identity("x", self._item(server=self.SERVER_B)),
+            "ours")
+
+    def test_an_unheld_id_is_free(self):
+        self.assertEqual(
+            self.m.claim_identity("x", self._item(server=self.SERVER_B)),
+            "free")
+
+    def test_a_re_home_is_durable_across_a_catalog_restore(self):
+        """If only the row learns the server, a restore orphans it again --
+        `_adopt_orphan` rebuilds from the manifest, not from the row."""
+        item_dir = os.path.join(self.tmp, "server", "x")
+        self._orphan_on_disk()
+        with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
+            json.dump({"Id": "x", "Type": "Movie"}, fh)   # no ServerId
+        self.m.claim_identity("x", self._item(server=self.SERVER_B))
+        with open(os.path.join(item_dir, "item.json"),
+                  encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh).get("ServerId"), self.SERVER_B,
+                             "the manifest is what survives the catalog")
+
+
+class AdoptionGoesThroughTheSameDoorTest(unittest.TestCase):
+    """`_adopt_orphan` rebuilds a row from a manifest and used to upsert it
+    with no collision check at all.
+
+    **The route that made this reachable is gone, and that is worth stating
+    rather than deleting the test over.** It was the per-server-directory
+    scan: `_reconcile_disk` built its known set per directory, so a row for id
+    X under directory A was absent from directory B's set, an orphan at `B/X`
+    was adopted, and `INSERT OR REPLACE` took A's row -- leaving A's files
+    where nothing points. Dropping `downloads.server_id` (CX8) collapses that
+    to one directory and one known set, so a child whose id the catalog holds
+    is never a sweep candidate at all.
+
+    The check stays, and these call the door directly. `_adopt_orphan` is a
+    door whose "no" deletes media: what makes its "yes" safe is the claim, not
+    the caller, and a second caller arriving with a stale set is exactly the
+    kind of thing this repository has done to itself before.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.m = make_manager(self.tmp, cleanup=self.addCleanup)
+
+    def _dir_with_media(self, server_dir, item_id, manifest):
+        d = os.path.join(self.tmp, server_dir, item_id)
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "media.mkv"), "wb") as fh:
+            fh.write(b"\0" * 64)
+        with open(os.path.join(d, "item.json"), "w", encoding="utf-8") as fh:
+            json.dump(manifest, fh)
+        return d
+
+    def test_adoption_cannot_take_a_row_another_server_owns(self):
+        add_row(self.m, "X", status=STATUS_COMPLETE,
+                content_server_id="srv-a")
+        d = self._dir_with_media("server", "X", {"Id": "X", "Type": "Movie",
+                                                 "ServerId": "srv-b"})
+        adopted = self.m._adopt_orphan("X", d, None)
+        self.assertEqual(self.m.db.get("X")["content_server_id"], "srv-a",
+                         "adoption replaced a row it does not own")
+        self.assertTrue(adopted,
+                        "and the files must not be deleted on the strength "
+                        "of a claim we just refused -- media deleted for a "
+                        "missing row cannot be recovered")
+
+    def test_adoption_still_rebuilds_a_row_that_is_genuinely_gone(self):
+        d = self._dir_with_media("server", "Y", {"Id": "Y", "Type": "Movie",
+                                                 "Name": "Y",
+                                                 "ServerId": "srv-b"})
+        self.assertTrue(self.m._adopt_orphan("Y", d, None))
+        self.assertEqual(self.m.db.get("Y")["content_server_id"], "srv-b")
+
+
+class TheManifestIsTheSecondSourceTest(unittest.TestCase):
+    """`SyncDB._backfill_content_server_id` reads the `item_json` COLUMN and
+    skips any row where it is NULL or will not parse.
+
+    The second copy of the same DTO -- `item.json`, on disk beside the media
+    -- is never consulted, and `_adopt_orphan` proves it carries `ServerId`,
+    because that is where adoption gets it. `SyncDB` is constructed with a
+    db_path and no store root, so it cannot reach the manifests at all; the
+    fallback has to live here. [iw]: *"we should backfill it when possible
+    but backfill failing doesn't mean delete on sight, it means lockout sync
+    function."*
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.m = make_manager(self.tmp, cleanup=self.addCleanup)
+
+    def test_an_unparseable_column_is_rescued_by_the_manifest(self):
+        d = os.path.join(self.tmp, "server", "X")
+        os.makedirs(d)
+        with open(os.path.join(d, "item.json"), "w", encoding="utf-8") as fh:
+            json.dump({"Id": "X", "Type": "Movie", "ServerId": "srv-b"}, fh)
+        add_row(self.m, "X", status=STATUS_COMPLETE,
+                content_server_id=None)
+        set_columns(self.m.db, "X", item_json="{not json")
+        self.assertEqual(self.m.home_orphans_from_manifests(), 1)
+        self.assertEqual(self.m.db.get("X")["content_server_id"], "srv-b")
+
+    def test_a_row_with_no_manifest_stays_an_orphan(self):
+        """Not an error and not a deletion -- it is the locked-out state,
+        which is just "downloaded locally, server since removed"."""
+        add_row(self.m, "X", status=STATUS_COMPLETE,
+                content_server_id=None)
+        set_columns(self.m.db, "X", item_json=None)
+        self.assertEqual(self.m.home_orphans_from_manifests(), 0)
+        self.assertIsNone(self.m.db.get("X")["content_server_id"])
+        self.assertIsNotNone(self.m.db.get("X"), "and it is still held")
+
+    def test_a_homed_row_is_left_alone(self):
+        add_row(self.m, "X", status=STATUS_COMPLETE,
+                content_server_id="srv-a")
+        self.assertEqual(self.m.home_orphans_from_manifests(), 0)
+        self.assertEqual(self.m.db.get("X")["content_server_id"], "srv-a")
+
+
+class TheIdentityDoorOnlyDeletesForADownloadThatHappensTest(TmpTest):
+    """`claim_identity` can delete media, and what justifies that is
+    *"the user already asked for a download, an orphan shouldn't stop it."*
+
+    So the reap is only allowed once the request has established it actually
+    wants the item. Run at the top of `enqueue`'s loop it was allowed
+    unconditionally, and the two filters below it -- already complete, and
+    watched-with-`include_watched=False` -- could then decline the item the
+    door had just cleared the way for. `may_reap=False` splits the refusal
+    (which has to precede `_add_row`'s INSERT OR REPLACE) from the reap.
+    """
+
+    ORPHAN = "ep1"
+
+    def _manager(self, played=False):
+        m = make_manager(self.tmp, self.addCleanup)
+        # An orphan that IS held: complete, real bytes on disk, no server.
+        add_row(m, self.ORPHAN, server_uuid="u", content_server_id=None,
+                status=STATUS_COMPLETE,
+                file_path="%s/f.mkv" % self.ORPHAN)
+        # Both spellings of "where the media is", agreeing the way they do
+        # in production: `_remove_files` walks `_item_dir` (root + the dead
+        # server_id column + item id) and `_held_bytes` measures root +
+        # `file_path`, and a real row's file_path is a relpath from the root
+        # *of a file inside that directory*. `add_row`'s default file_path
+        # omits the server dir, so a fixture that takes it literally has the
+        # two pointing at different places -- and then the byte comparison
+        # measures nothing and the delete removes nothing, which is two
+        # assertions passing for no reason.
+        self.dir = m._item_dir(m.db.get(self.ORPHAN))
+        os.makedirs(self.dir, exist_ok=True)
+        media = os.path.join(self.dir, "f.mkv")
+        with open(media, "wb") as fh:
+            fh.write(b"x" * 32)
+        m.db.update(self.ORPHAN,
+                    file_path=os.path.relpath(media, m.root))
+
+        client = FakeClient()
+        client.jellyfin = FakeJellyfin()
+        m.get_client = lambda uuid: client
+        # No Size, so the byte evidence can never agree -- which is the
+        # branch that reaps. Watched or not is what the test varies.
+        m._expand = lambda api, item_id, item_type: [{
+            "Id": self.ORPHAN, "Type": "Episode", "Name": "E",
+            "ServerId": CONTENT_SERVER,
+            "MediaSources": [{"Id": "s", "Container": "mkv"}],
+            "UserData": {"Played": played},
+        }]
+        return m
+
+    def _agreeing(self):
+        """A DTO whose declared Size matches the bytes on disk, so the claim
+        takes the re-home branch rather than the reap branch."""
+        return {"Id": self.ORPHAN, "Type": "Episode", "Name": "E",
+                "ServerId": CONTENT_SERVER,
+                "MediaSources": [{"Id": "s", "Container": "mkv", "Size": 32}]}
+
+    def _media_on_disk(self):
+        return os.path.exists(os.path.join(self.dir, "f.mkv"))
+
+    def _still_held(self, m):
+        return m.db.get(self.ORPHAN) is not None and self._media_on_disk()
+
+    def test_a_watched_orphan_the_request_declines_is_left_alone(self):
+        """The damage: a series download whose episode 3 is a watched orphan.
+        The claim reaped it, then `include_watched=False` skipped it, so the
+        user asked to download a series and lost an episode they had -- with
+        one INFO line about a re-download that never happened."""
+        m = self._manager(played=True)
+        self.assertEqual(m.enqueue("u", "s1", "Series"), 0)
+        self.assertTrue(self._still_held(m),
+                        "an episode was deleted for a download that the same "
+                        "request then declined to make")
+
+    def test_but_a_wanted_one_is_still_reaped_and_re_fetched(self):
+        """The control, so the guard cannot become "never reap". The reap rule
+        stands for the item the request actually wants."""
+        m = self._manager(played=True)
+        self.assertEqual(m.enqueue("u", "s1", "Series", include_watched=True), 1)
+        self.assertEqual(m.db.get(self.ORPHAN)["status"], STATUS_PENDING,
+                         "the orphan should have been reaped and re-queued")
+
+    def test_an_unwatched_orphan_is_reaped_because_it_is_wanted(self):
+        m = self._manager(played=False)
+        self.assertEqual(m.enqueue("u", "s1", "Series"), 1)
+        self.assertEqual(m.db.get(self.ORPHAN)["status"], STATUS_PENDING)
+
+    def test_a_homing_the_store_refuses_is_not_reported_as_a_claim(self):
+        """`claim_identity` answered `rehomed` without looking at whether
+        the store had actually homed anything.
+
+        `home_content_server` can refuse -- an empty content id is not a
+        server -- and then the row is still an orphan. `enqueue` went on to
+        find it "already held" (an unattributed row answers every scope) and
+        skipped the download, so the user pressed Download and nothing at
+        all happened. `free` is the honest verdict: nothing owns this id.
+        """
+        m = self._manager(played=False)
+        m.db.home_content_server = lambda *a, **kw: False
+        self.assertEqual(m.claim_identity(self.ORPHAN, self._agreeing(), "S1"),
+                         "free",
+                         "a claim the store refused was reported as one")
+
+    def test_the_control_a_homing_that_works_is_reported_as_rehomed(self):
+        """Separate manager, because the control *homes the row* -- asserting
+        both against one would have the second call answering `ours` about
+        the state the first created."""
+        m = self._manager(played=False)
+        self.assertEqual(m.claim_identity(self.ORPHAN, self._agreeing(), "S1"),
+                         "rehomed")
+        # The server the ITEM names, not one the caller chose: the door
+        # derives the content key from the DTO now, so the value it homes to
+        # and the value `_add_row` would write are the same by construction.
+        self.assertEqual(m.db.get(self.ORPHAN)["content_server_id"],
+                         CONTENT_SERVER)
+
+    def test_and_a_refused_homing_leaves_the_row_an_orphan(self):
+        """The consequence, asserted separately so the verdict above is not
+        the only thing standing between this and `enqueue` skipping the
+        download as "already held"."""
+        m = self._manager(played=False)
+        m.db.home_content_server = lambda *a, **kw: False
+        m.claim_identity(self.ORPHAN, self._agreeing())
+        self.assertIsNone(m.db.get(self.ORPHAN)["content_server_id"])
+
+    def test_a_download_in_flight_is_never_deleted_underneath_itself(self):
+        """Every other deleter here goes through the active-download guard
+        and this one did not: it rmtree'd the directory a worker was writing
+        into, and the worker carried on and then updated a row that was
+        gone."""
+        m = self._manager(played=False)
+        m._claim_active(m._generation, self.ORPHAN)
+        m.enqueue("u", "s1", "Series")
+        self.assertTrue(self._media_on_disk(),
+                        "the directory a worker is writing into was deleted")
+        self.assertIsNotNone(m.db.get(self.ORPHAN),
+                             "its row went with the directory")
+        self.assertFalse(m._is_cancelled(self.ORPHAN),
+                         "the user's own in-flight download was cancelled")

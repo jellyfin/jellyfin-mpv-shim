@@ -306,7 +306,15 @@ class TestTheServerTheItemCameFrom(unittest.TestCase):
         import jellyfin_mpv_shim.clients as clients_mod
 
         real = clients_mod.clientManager
-        fake = type("CM", (), {"clients": clients})()
+        # A real ClientManager with just the registry filled in, not a
+        # stand-in carrying `clients` alone: the lookup goes through
+        # `uuid_for_client`, and an object that models the attribute but
+        # not the method answers None for every server.
+        import threading
+
+        fake = clients_mod.ClientManager.__new__(clients_mod.ClientManager)
+        fake._client_lock = threading.RLock()
+        fake.clients = clients
         clients_mod.clientManager = fake
         self.addCleanup(lambda: setattr(clients_mod, "clientManager", real))
 

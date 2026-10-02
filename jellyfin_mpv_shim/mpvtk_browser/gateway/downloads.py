@@ -41,24 +41,39 @@ class DownloadsMixin(GatewayCore):
             rows = db.list()
             playlists = db.list_playlists()
             owned = db.playlist_ownership()
+            # Stamped on here rather than looked up per row: the panel asks
+            # "has this been watched" for every row it draws and again for
+            # every group total, and the answer is one query for the whole
+            # catalog. ANY actor, matching what Remove Watched will actually
+            # delete -- one file, one decision (docs/offline-sync.md
+            # section 1).
+            played = {key[0] for key, data in db.all_userdata().items()
+                      if data["played"]}
+            for row in rows:
+                row["played"] = row["item_id"] in played
         except Exception:
             log.error("mpvtk list_downloads failed", exc_info=True)
             return []
 
-        def items_of(playlist_id):
+        def items_of(playlist_id, server_id):
             try:
-                return db.playlist_item_rows(playlist_id)
+                members = db.playlist_item_rows(playlist_id,
+                                                server_id=server_id)
+                for row in members:
+                    row["played"] = row["item_id"] in played
+                return members
             except Exception:
                 # One unreadable playlist collapses to empty rather than
                 # taking the whole downloads list down with it.
-                log.warning("playlist rows unreadable: %s", playlist_id,
-                            exc_info=True)
+                log.warning("playlist rows unreadable: %s on %s", playlist_id,
+                            server_id, exc_info=True)
                 return []
 
         return group_downloads(rows, playlists, items_of, owned)
 
     def delete_download(self, item_id=None, series_id=None, season_id=None,
-                        playlist_id=None, watched_only=False):
+                        playlist_id=None, watched_only=False,
+                        playlist_server_id=None):
         """Delete one item, a season, a series, or a playlist's downloads.
 
         ``watched_only`` keeps unwatched items — the "reclaim space on a
@@ -72,7 +87,8 @@ class DownloadsMixin(GatewayCore):
         from ...sync.manager import syncManager
         syncManager.delete(item_id=item_id, series_id=series_id,
                            season_id=season_id, playlist_id=playlist_id,
-                           watched_only=watched_only)
+                           watched_only=watched_only,
+                           playlist_server_id=playlist_server_id)
 
     def download_status(self):
         """Global download progress for the status bar:
@@ -107,22 +123,32 @@ class DownloadsMixin(GatewayCore):
         except Exception:
             return (0, 0)
 
-    def downloaded_ids(self):
-        """(item ids, series ids, season ids, playlist ids).
+    def downloaded_ids(self, server_uuid=None):
+        """(item ids, series ids, season ids, playlist ids) for one server.
 
         Neither a playlist nor a season is ever itself a downloads row —
         playlists live in their own table, and a season is expanded into its
         episodes — so without the last two sets a fully downloaded playlist
-        or season could never read as downloaded."""
+        or season could never read as downloaded.
+
+        Scoped, because item ids collide across servers
+        (docs/jellyfin-api-notes.md 13b) and an unscoped set ticks one
+        server's tile for a copy held from another.
+        """
         from ...sync.manager import syncManager
         try:
             db = getattr(syncManager, "db", None)
             playlists = set()
             if db is not None:
-                playlists = {p["playlist_id"] for p in db.list_playlists()}
-            return (set(syncManager.downloaded_item_ids()),
-                    set(syncManager.downloaded_series_ids()),
-                    set(syncManager.downloaded_season_ids()),
+                # Scoped like the other three. Left unscoped, one member of
+                # the tuple answered for every server and a playlist held
+                # from server A ticked a tile on server B -- playlist ids
+                # collide across servers exactly as item ids do.
+                playlists = {p["playlist_id"] for p in db.list_playlists(
+                    syncManager.content_id_for(server_uuid))}
+            return (set(syncManager.downloaded_item_ids(server_uuid)),
+                    set(syncManager.downloaded_series_ids(server_uuid)),
+                    set(syncManager.downloaded_season_ids(server_uuid)),
                     playlists)
         except Exception:
             return (set(), set(), set(), set())
@@ -135,8 +161,17 @@ class DownloadsMixin(GatewayCore):
     # the rest of the download API never had to answer: where is the file,
     # and would the desktop open it.
 
-    def book_download_state(self, item_id):
-        """``(status, path)`` for one item's download.
+    def book_download_state(self, item_id, server_uuid):
+        """``(status, path)`` for one item's download, on one server.
+
+        ``server_uuid`` is a saved **login**, converted here with
+        `content_id_for` like the other scoped readers in this file. It has no
+        default on purpose: item ids collide across servers, so an unscoped
+        answer here hands the reader **another server's file** for an item of
+        the same id -- and for a book that file is the only way to read it at
+        all. A defaulted scope would let a new call site ask the permissive
+        question without saying so, which is the shape the rest of this work
+        removed (CX7).
 
         ``status`` is a catalog status (``"complete"``, ``"downloading"``,
         ``"pending"``, ``"error"``) or ``None`` when nothing is queued;
@@ -156,10 +191,11 @@ class DownloadsMixin(GatewayCore):
         if db is None:
             return (None, None)
         try:
-            row = db.get(item_id)
+            row = db.get(item_id,
+                         server_id=syncManager.content_id_for(server_uuid))
         except Exception:
-            log.debug("book_download_state failed for %s", item_id,
-                      exc_info=True)
+            log.debug("book_download_state failed for %s on %s", item_id,
+                      server_uuid, exc_info=True)
             return (None, None)
         if not row:
             return (None, None)
@@ -170,8 +206,12 @@ class DownloadsMixin(GatewayCore):
         path = os.path.join(syncManager.root or "", rel)
         return (status, path) if os.path.exists(path) else (status, None)
 
-    def open_downloaded_file(self, item_id):
+    def open_downloaded_file(self, item_id, server_uuid):
         """Hand this item's downloaded file to the desktop. ``(ok, method)``.
+
+        ``server_uuid`` for the reason `book_download_state` needs one: this
+        is the method that actually hands a path to the desktop, so an
+        unscoped answer opens another server's file.
 
         Lives here rather than in the page because it is the shell reaching
         outside the process, which is what this gateway is for — and because
@@ -179,7 +219,7 @@ class DownloadsMixin(GatewayCore):
         business opening itself.
         """
         from ...system_open import open_path
-        _status, path = self.book_download_state(item_id)
+        _status, path = self.book_download_state(item_id, server_uuid)
         if not path:
             return (False, None)
         return open_path(path)

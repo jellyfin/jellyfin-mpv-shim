@@ -35,6 +35,14 @@ sys.path.insert(0, os.path.join(
     "tests", "integration"))
 import _harness as h  # noqa: E402
 
+sys.path.insert(0, os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "tests", "e2e"))
+# Shared with the e2e suite rather than copied: qa-admin's password is random
+# per server state now, and a second copy of the lookup is a second thing to
+# forget. Free of side effects, unlike `_e2e` itself.
+import _accounts  # noqa: E402
+
 h.prime_args()
 
 from jellyfin_apiclient_python import JellyfinClient  # noqa: E402
@@ -46,7 +54,6 @@ from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource  # noqa
 
 SERVER = (os.environ.get("JMS_E2E_SERVER") or "").rstrip("/")
 ACCOUNT = os.environ.get("JMS_SHOT_USER", "qa-user")
-PASSWORD = "stdjflib"
 UUID = "shot"
 
 
@@ -89,7 +96,8 @@ def login():
     client.config.data["http.user_agent"] = USER_AGENT
     client.config.data["auth.ssl"] = True
     client.auth.connect_to_address(SERVER)
-    result = client.auth.login(SERVER, ACCOUNT, PASSWORD)
+    result = client.auth.login(SERVER, ACCOUNT,
+                               _accounts.password_for(ACCOUNT, SERVER))
     if "AccessToken" not in result:
         raise SystemExit("could not log in as %s: %r" % (ACCOUNT, result))
     creds = client.auth.credentials.get_credentials()["Servers"][0]

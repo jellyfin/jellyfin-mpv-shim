@@ -43,9 +43,11 @@ import inspect
 import sys
 import types
 import unittest
+from unittest import mock
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
+from jellyfin_mpv_shim.sync.db import ANY_SERVER  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser import gateway as gw_mod  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.gateway import deps as gw_deps  # noqa: E402
 
@@ -316,48 +318,99 @@ class TestOfflineWatchedQueue(unittest.TestCase):
     """
 
     class FakeDB:
+        #: Every row this fake holds belongs to one Jellyfin server. One is
+        #: enough here: the cross-server cases need a catalog that can hold
+        #: two, and they have one in tests/test_offline_actor_e2e.py.
+        SERVER_ID = "SRV"
+
         def __init__(self, complete=(), rows=()):
             self._complete = set(complete)
             self._rows = list(rows)
             self.playstate = []
             self.userdata = []
 
-        def is_complete(self, item_id):
-            return item_id in self._complete
+        def is_complete(self, item_id, *, server_id):
+            # Required, as the real one is: a default here would let a
+            # caller that forgot the scope pass against the double and fail
+            # in production. `ANY_SERVER` answers for every row; `None`
+            # names a login that resolves to nothing and answers for none.
+            if server_id is ANY_SERVER:
+                return item_id in self._complete
+            return (item_id in self._complete
+                    and server_id == self.SERVER_ID)
 
         def list(self, status=None):
             return self._rows
 
-        def upsert_playstate(self, server, item_id, played=False):
-            self.playstate.append((server, item_id, played))
+        def upsert_playstate(self, item_id, *, actor, played=False):
+            # The real one refuses anything but a `sync` row, so a fake that
+            # accepted everything would let a refusal look like a queue.
+            from jellyfin_mpv_shim.sync.db import filing_state
+            state, key = filing_state(self.SERVER_ID, actor)
+            if state != "sync":
+                return False
+            self.playstate.append((key, item_id, played))
+            return True
 
-        def update_userdata(self, item_id, played=False):
-            self.userdata.append((item_id, played))
+        def update_userdata(self, item_id, played=False, *, actor):
+            # `actor` defaultless, as the real one is, and for the same reason
+            # `is_complete`'s scope is: a caller that forgot who the mark
+            # belongs to would pass here and file it under nobody in
+            # production. It is recorded rather than ignored, because the
+            # writer this class is here to watch is the one that picks it.
+            self.userdata.append((item_id, played, actor))
 
         # Modelled rather than stubbed: the real one is the fan-out this
         # class is largely about, and a stand-in that answered with the id
         # it was handed would make every series test below pass on an app
         # that had stopped fanning out at all.
-        def watched_targets(self, item_id, server_uuid=None):
-            if not item_id:
+        #
+        # It answers with each row's CONTENT server, and that half matters
+        # as much as the fan-out. This used to echo its second argument
+        # back, which stayed arity-compatible when the parameter became a
+        # scope and was quietly wrong -- the caller then resolved to nobody
+        # and the mark went nowhere. A signature change disciplines call
+        # sites; it cannot discipline a double that agrees with whatever it
+        # is handed.
+        def watched_targets(self, item_id, *, server_id=ANY_SERVER):
+            if not item_id or (server_id is not ANY_SERVER
+                               and server_id != self.SERVER_ID):
                 return []
-            if self.is_complete(item_id):
-                return [(item_id, server_uuid)]
-            return [(r["item_id"], r["server_uuid"] or server_uuid)
+            if self.is_complete(item_id, server_id=server_id):
+                return [(item_id, self.SERVER_ID)]
+            return [(r["item_id"], self.SERVER_ID)
                     for r in self.list()
                     if item_id in (r["series_id"], r["season_id"])]
 
-        def set_watched(self, item_id, played):
-            self.userdata.append((item_id, played))
+        def set_watched(self, item_id, played, *, actor):
+            self.userdata.append((item_id, played, actor))
             return True
+
+    #: The login these tests browse as, and the person behind it.
+    LOGIN, USER_ID = "s1", "U1"
 
     def _with_db(self, db):
         import jellyfin_mpv_shim.sync.manager as manager_mod
+        from jellyfin_mpv_shim.users import userManager
 
-        original = manager_mod.syncManager
-        fake = types.SimpleNamespace(db=db)
-        manager_mod.syncManager = fake
-        self.addCleanup(setattr, manager_mod, "syncManager", original)
+        # A REAL SyncManager over the fake catalog. `actor_of` used to be
+        # modelled here and answered with a person whatever it was handed,
+        # which is how three findings in the 2026-09-12 round got past a
+        # green suite -- so the resolver runs for real and is fed only
+        # credentials this machine could plausibly have saved.
+        for attr, value in (
+                ("users", [{"id": "local", "credentials": [
+                    {"uuid": self.LOGIN, "Id": db.SERVER_ID,
+                     "UserId": self.USER_ID}]}]),
+                ("active_id", "local")):
+            patch = mock.patch.object(userManager, attr, value)
+            self.addCleanup(patch.stop)
+            patch.start()
+        mgr = manager_mod.SyncManager.__new__(manager_mod.SyncManager)
+        mgr.db = db
+        patch = mock.patch.object(manager_mod, "syncManager", mgr)
+        self.addCleanup(patch.stop)
+        patch.start()
 
     def _offline(self):
         original = gw_deps.clientManager
@@ -369,26 +422,29 @@ class TestOfflineWatchedQueue(unittest.TestCase):
         self._with_db(db)
         self._offline()
         self.assertTrue(CTL().set_watched("s1", "m1", True))
-        self.assertEqual(db.playstate, [("s1", "m1", True)])
+        self.assertEqual(db.playstate,
+                         [((db.SERVER_ID, self.USER_ID), "m1", True)],
+                         "queued against the wrong person")
         # userdata too: the overlay and the watched-based delete read that,
-        # not the pending queue, so without it the mark is invisible.
-        self.assertEqual(db.userdata, [("m1", True)])
+        # not the pending queue, so without it the mark is invisible. Under the
+        # same actor as the queued entry, which is what makes the two agree
+        # about whose viewing this is.
+        self.assertEqual(db.userdata,
+                         [("m1", True, (db.SERVER_ID, self.USER_ID))])
 
     def test_a_series_fans_out_to_its_downloaded_episodes(self):
         db = self.FakeDB(rows=[
-            {"item_id": "e1", "server_uuid": "s1",
-             "series_id": "sh1", "season_id": None},
-            {"item_id": "e2", "server_uuid": None,
-             "series_id": "sh1", "season_id": None},
-            {"item_id": "other", "server_uuid": "s1",
-             "series_id": "sh2", "season_id": None},
+            {"item_id": "e1", "series_id": "sh1", "season_id": None},
+            {"item_id": "e2", "series_id": "sh1", "season_id": None},
+            {"item_id": "other", "series_id": "sh2", "season_id": None},
         ])
         self._with_db(db)
         self._offline()
-        self.assertTrue(CTL().set_watched("s1", "sh1", True))
+        self.assertTrue(CTL().set_watched(self.LOGIN, "sh1", True))
         self.assertEqual([i for _s, i, _p in db.playstate], ["e1", "e2"])
-        # A row with no server of its own inherits the one asked for.
-        self.assertEqual([s for s, _i, _p in db.playstate], ["s1", "s1"])
+        self.assertEqual([a for a, _i, _p in db.playstate],
+                         [(db.SERVER_ID, self.USER_ID)] * 2,
+                         "a fan-out must file every leaf under one person")
 
     def test_unwatching_offline_is_refused_not_half_applied(self):
         """The pending queue is advance-only, so un-watching cannot be

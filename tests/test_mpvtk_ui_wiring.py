@@ -773,8 +773,8 @@ class TestLoginActions(AuthHarness):
 
     def test_re_authenticating_an_existing_server_keeps_the_place(self):
         """The half a "just pick the last one in the list" fix would break.
-        A login can re-authenticate a server already present -- `force_unique`
-        deliberately reuses its uuid -- and there nothing was added, so the
+        The login form can re-authenticate a server already present, which
+        keeps its uuid (`replacing_uuid`) -- so nothing was added, and the
         remembered choice must still win."""
         from tests._shell_harness import FakeSource
 

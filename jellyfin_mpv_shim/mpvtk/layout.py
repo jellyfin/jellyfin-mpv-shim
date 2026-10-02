@@ -334,6 +334,14 @@ def _measure(el):
                 (text_width(i, el.size) for i in el.items), default=40
             )
             w = widest + 44
+            if el.icons and any(el.icons):
+                # The closed control draws the selected item's icon before
+                # its label and shortens the label to fit (renderer.lua,
+                # `indent`). Asking for that width is what keeps the
+                # shortening from being unnecessary: without it a picker
+                # with icons requested exactly enough room for its longest
+                # name and then spent part of it on a glyph.
+                w += int(el.size * 1.1) + 6
         else:
             w = el.w
         return w, el.h or el.size * 1.9
