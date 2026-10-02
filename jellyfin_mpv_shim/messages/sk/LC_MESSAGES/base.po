@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-08 15:09+0000\n"
+"PO-Revision-Date: 2026-10-03 03:59+0000\n"
 "Last-Translator: dodog <preklady@mayday.sk>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sk/>\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Neznámy formát"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -207,10 +207,8 @@ msgid "Seek to Skip Recap"
 msgstr "Preskočiť titulky"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Intro preskočené"
+msgstr "Preskočiť úvod"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -316,10 +314,8 @@ msgstr "Zmeniť profil prehrávania videa"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "Ukončiť a označiť ako nepozreté"
+msgstr "Ukončiť a označiť ako neprehraté"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -398,7 +394,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Vždy"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -506,22 +502,17 @@ msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Intro preskočené"
+msgstr "Preskočiť úvody"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Titulky preskočené"
+msgstr "Preskočiť titulky"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "Špeciály"
+msgstr "Preskočiť reklamy"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -609,18 +600,18 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Načítava sa…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Prehrávanie sa nepodarilo spustiť."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Poradie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -814,7 +805,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "Pripájanie sa k vášmu serveru…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
@@ -2555,18 +2546,16 @@ msgid "ISO"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Playlist"
-msgstr "Odstrániť server"
+msgstr "Pridať do zoznamu skladieb"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "Zatiaľ tu nie sú žiadne zoznamy skladieb."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "Názov nového zoznamu skladieb…"
 
 # seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -4331,11 +4320,11 @@ msgstr "Upraviť"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
-msgstr ""
+msgstr "Tento zoznam skladieb je prázdny."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
-msgstr ""
+msgstr "Tento zoznam skladieb neobsahuje žiadne podporované typy médií."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Play Queue"
@@ -4366,10 +4355,8 @@ msgid "Clear"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "To Playlist"
-msgstr "Odstrániť server"
+msgstr "Do zoznamu skladieb"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -4399,13 +4386,11 @@ msgstr "Premenovať"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
-msgstr ""
+msgstr "Verejné"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Playlist"
-msgstr "Odstrániť server"
+msgstr "Odstrániť zoznam skladieb"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
@@ -4425,17 +4410,19 @@ msgstr "Čas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
-msgstr ""
+msgstr "Zoznam skladieb sa nedal usporiadať."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be deleted."
-msgstr ""
+msgstr "Zoznam skladieb sa nepodarilo odstrániť."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid ""
 "Still reading this playlist's visibility from the server. Try again in a "
 "moment."
 msgstr ""
+"Stále sa načítava informácia o viditeľnosti tohto zoznamu skladieb zo "
+"servera. Skúste to o chvíľu znova."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "This book could not be opened."
@@ -4630,7 +4617,7 @@ msgstr "Seriály"
 # seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlists"
-msgstr "Playlisty"
+msgstr "Zoznamy skladieb"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
@@ -5075,34 +5062,26 @@ msgid "Mark played"
 msgstr "Ukončiť a označiť ako nepozreté"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to playlist"
-msgstr "Odstrániť server"
+msgstr "Pridať do zoznamu skladieb"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from playlist"
-msgstr "Odstrániť server"
+msgstr "Odstrániť zo zoznamu skladieb"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from collection"
-msgstr "Odstrániť server"
+msgstr "Odstrániť zo zbierky"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "Odstrániť server"
+msgstr "Chcete odstrániť %s z tohto zoznamu skladieb?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "Odstrániť server"
+msgstr "Odstrániť %s z tejto zbierky?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
@@ -5189,11 +5168,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Open"
-msgstr ""
+msgstr "Otvoriť"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Dismiss"
-msgstr ""
+msgstr "Zrušiť"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
@@ -5433,19 +5412,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Nový používateľ"
 
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Pred vymazaním tohto používateľa prepnite na iného používateľa."
 
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Je potrebný aspoň jeden používateľ."
 
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "Používateľ nebol nájdený."
 
 #: jellyfin_mpv_shim/utils.py
 msgid "Unkn"
