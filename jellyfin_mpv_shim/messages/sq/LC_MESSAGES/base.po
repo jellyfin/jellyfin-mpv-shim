@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-08-15 01:00+0000\n"
-"Last-Translator: AlaronAndes <diaforeseggrafes@gmail.com>\n"
+"PO-Revision-Date: 2026-10-02 16:14+0000\n"
+"Last-Translator: Klevix9 <kxhani21@epoka.edu.al>\n"
 "Language-Team: Albanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sq/>\n"
 "Language: sq\n"
@@ -291,8 +291,6 @@ msgstr "Ndrysho profilin e video shikimit"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
 msgstr "Mbyll dhe Shënoje si e Pa shikuar"
 
@@ -490,25 +488,21 @@ msgstr "Kaluam intron"
 #| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Anashkalo hyrjen"
+msgstr "Kalo titrat mbyllese"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Commercials"
-msgstr "Anashkalo hyrjen"
+msgstr "Kalo reklamat"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Anashkalo hyrjen"
+msgstr "Kalo parafishimin"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Anashkalo hyrjen"
+msgstr "Kalo permbledhjen"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -517,67 +511,66 @@ msgstr "Aktivizo pamjet paraprake"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Modalitet Nate (Auto rregullim i volumit)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Mbyllur"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#, fuzzy
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Nuk mund te ngarkohet. Kontrollo lidhjen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Faqe"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, python-format
+#, fuzzy, python-format
 msgid "of %d"
-msgstr ""
+msgstr "i %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Faqja e pare"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Serveri u shtua me sukses."
+msgstr "Faqja e meparshme"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Faqja tjeter"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Faqja e fundit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "Ndryshimi nuk u aplikua."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Live TV"
-msgstr ""
+msgstr "TV Live"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Zgjedhur: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -585,18 +578,19 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Duke ngarkuar…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
+#, fuzzy
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Nuk mundi te nisë."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Radha"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -611,25 +605,20 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Nuk mundi te rinise - mbyll dhe rihap aplikacionin per te ruajtur ndryshimet."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Nuk mund të shtohet serveri.\n"
-"Ju lutem shikoni informacionin e lidhjes."
+msgstr "Serveri eshte i akoma i paarritshem."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Kalo ne %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "PIN"
 
 # seeded from jellyfin-web: ButtonCancel
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -642,58 +631,56 @@ msgstr "Anulo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, fuzzy
 msgid "Switch"
-msgstr ""
+msgstr "Ndrro"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "PIN i gabuar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Serveri:"
+msgstr "Vendos PIN-in per %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "PIN aktual"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "PIN i ri"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Confirm"
-msgstr ""
+msgstr "Konfirmo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Kerko PIN ne hapje"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Hiq Serverin"
+msgstr "Hiq PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Save"
-msgstr ""
+msgstr "Ruaj"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "PIN aktual eshte gabim."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Vendosni PIN e ri."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "PIN nuk jane te njejte."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
@@ -1031,8 +1018,9 @@ msgid "%d Hz"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
 msgid "Bit depth"
-msgstr ""
+msgstr "Numri Biteve"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
@@ -1157,7 +1145,7 @@ msgstr "Transmetim i drejtpërdrejtë"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Remuxing"
-msgstr ""
+msgstr "Remuxing"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
