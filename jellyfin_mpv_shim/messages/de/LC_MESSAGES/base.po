@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-10-01 12:57+0000\n"
+"PO-Revision-Date: 2026-10-03 16:50+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -4167,25 +4167,21 @@ msgstr "Aufnehmen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Record series"
-msgstr "Server entfernen"
+msgstr "Serie aufzeichnen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
-msgstr ""
+msgstr "Für diesen Kanal sind keine Guide-Daten verfügbar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Showing the next %d programs."
-msgstr ""
+msgstr "Zeige die %d nächsten Programme."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Watched"
 msgid "Channel"
-msgstr "Angesehen"
+msgstr "Kanal"
 
 # seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
@@ -4197,31 +4193,27 @@ msgstr "Alben"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
-msgstr ""
+msgstr "Vergleichbare Künstler"
 
 # seeded from jellyfin-web: HeaderInstantMix
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Instant mix"
 msgstr "Sofortmix"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "Audiospur wählen"
+msgstr "%d Spuren"
 
 # seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Album artists"
-msgstr "Interpreten"
+msgstr "Album Interpreten"
 
 # seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Artists"
 msgstr "Interpreten"
 
@@ -4233,10 +4225,8 @@ msgid "Songs"
 msgstr "Lieder"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid "Could not start Quick Connect."
 msgid "Could not start playback."
-msgstr "Quick Connect konnte nicht gestartet werden."
+msgstr "Wiedergabe konnte nicht begonnen werden."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -4246,15 +4236,15 @@ msgstr "Bearbeiten"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
-msgstr ""
+msgstr "Die Wiedergabeliste ist leer."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
-msgstr ""
+msgstr "Die Wiedergabeliste enthält keine unterstützen Medientypen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Play Queue"
-msgstr ""
+msgstr "Schlange abspielen"
 
 # seeded from jellyfin-web: Up
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4269,7 +4259,7 @@ msgstr "Runter"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
 msgid "%d selected"
-msgstr ""
+msgstr "%d ausgewählt"
 
 # seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4281,54 +4271,45 @@ msgid "Clear"
 msgstr "Leer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "To Playlist"
-msgstr "Server entfernen"
+msgstr "Zur Wiedergabeliste"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove"
-msgstr "Server entfernen"
+msgstr "Entfernen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue is empty."
-msgstr ""
+msgstr "Die Schlange ist leer."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Those items could not be removed."
-msgstr ""
+msgstr "Diese Elemente konnten nicht entfernt werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue could not be reordered."
-msgstr ""
+msgstr "Die Schlange konnte nicht neu geordnet werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Benutzername:"
+msgstr "Umbenennen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
 msgstr "Öffentlich"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Playlist"
-msgstr "Server entfernen"
+msgstr "Wiedergabeliste entfernen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Server entfernen"
+msgstr "Die Wiedergabeliste %s löschen?"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4343,41 +4324,39 @@ msgstr "Zeit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
-msgstr ""
+msgstr "Die Wiedergabeliste konnte nicht neu geordnet werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be deleted."
-msgstr ""
+msgstr "Die Wiedergabeliste konnte nicht gelöscht werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid ""
 "Still reading this playlist's visibility from the server. Try again in a "
 "moment."
 msgstr ""
+"Sichtbarkeit der Wiedergabeliste wird immer noch vom Server gelesen. "
+"Versuche es in einem Augenblick wieder."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "The PIN could not be removed."
 msgid "This book could not be opened."
-msgstr "Die PIN konnte nicht entfernt werden."
+msgstr "Dieses Buch konnte nicht geöffnet werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
-msgstr ""
+msgstr "Abschnitt kopieren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Page"
 msgid "Copy Page"
-msgstr "Seite"
+msgstr "Seite kopieren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
-msgstr ""
+msgstr "Abschnitt kopiert."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the page."
-msgstr ""
+msgstr "Seite kopiert."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "There is nothing to copy."
@@ -4561,29 +4540,24 @@ msgstr "Ungültiger Wert: %s"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Saved: %(key)s (also turned off \"%(other)s\")"
-msgstr ""
+msgstr "Gespeichert: %(key)s (auch \"%(other)s\" abgeschaltet)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
-msgstr ""
+msgstr "Noch nichts heruntergeladen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Remove Watched"
-msgstr "Verlassen und als ungesehen markieren"
+msgstr "Angeschaut entfernen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "watched"
-msgstr "Verlassen und als ungesehen markieren"
+msgstr "angeschaut"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Server entfernen"
+msgstr "Die angeschauten Downloads in %s löschen?"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -4602,28 +4576,33 @@ msgid ""
 "Hardware Decoding is the exception: set hwdec there and this app leaves it "
 "alone."
 msgstr ""
+"Erweiterte MPV Optionen sind in mpv.conf, in diesem Ordner. MPV liest es "
+"beim Starten und diesen Einstellungen werden danach angewendet, die meisten "
+"überschreiben es. Hardwaredekodierung ist die Ausnahme: Stelle dort hwdec "
+"ein und diese App lässt es wie es ist."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid "Require this PIN at startup"
 msgid "Requires restart"
-msgstr "Diese PIN beim Start abfragen"
+msgstr "Erfordert Neustart"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "No settings match \"%s\"."
-msgstr ""
+msgstr "Keine Einstellungen übereinstimmend \"%s\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
 "Only the General, Browse and Playback tabs are searched. Some settings are "
 "hidden until the setting they depend on is turned on."
 msgstr ""
+"Nur die Allgemein, Suchen und Wiedergabe Tabs werden durchsucht. Einige "
+"Einstellungen sind versteckt bis die Einstellung von der sie abhängen "
+"anstellt wird."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Matches: %d. Pick a tab above to stop searching."
-msgstr ""
+msgstr "Übereinstimmung: %d. Wähle oben einen Tab aus, um die Suche zu stoppen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
@@ -4634,110 +4613,112 @@ msgid ""
 "To stop the application, re-launch and uncheck this option or run `jellyfin-"
 "mpv-shim stop`."
 msgstr ""
+"Um die Anwendung zu stoppen, starte erneut und wähle diese Option ab oder "
+"führe `jellyfin-mpv-shim stop` aus."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
 "Not active: the \"pypresence\" package is missing or failed to load. Install "
 "it and restart. (Details in the Logs tab.)"
 msgstr ""
+"Nicht aktiv: Das \"pypresence\" Package fehlt oder konnte nicht geladen "
+"werden. Installiere es und starte erneut. (Details im Protokoll Tab.)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Pinned by config: your mpv.conf sets hwdec=%s, which overrides this."
 msgstr ""
+"Durch Konfiguration angepinnt: Deine mpv.conf stellt hwdec=%s ein, dadurch "
+"wird dies überschrieben."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Applies to %s, enable other servers in servers tab."
-msgstr ""
+msgstr "Wird auf %s angewendet, aktiviere weitere Server im Server Tab."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
-msgstr ""
+msgstr "Downloads zurück zum Standardordner verschieben?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the default folder"
-msgstr ""
+msgstr "Standardordner nutzen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Moving downloads… %d%%"
-msgstr ""
+msgstr "Verschiebe Downloads... %d%%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving the downloads failed."
-msgstr ""
+msgstr "Verschieben der Downloads fehlgeschlagen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Download folder moved. Restart to finish switching."
-msgstr ""
+msgstr "Downloadordner verschoben. Neustarten um den Wechsel abzuschliessen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving downloads…"
-msgstr ""
+msgstr "Verschiebe Downloads…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "A move is already in progress."
-msgstr ""
+msgstr "Es findet bereits ein Verschieben statt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Nothing downloaded to browse offline."
-msgstr ""
+msgstr "Nichts heruntergeladen, was offline durchsucht werden kann."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"Server konnte nicht hinzugefügt werden.\n"
-"Bitte überprüfe deine Verbindungsinformationen."
+msgstr "Server konnte nicht erreicht werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
-msgstr ""
+msgstr "Startbildschirm"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Connect to a server to change the home screen sections."
 msgstr ""
+"Mit einem Server verbinden, um die Startbildschirm-Bereiche zu verändern."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "These settings could not be loaded from your server."
-msgstr "Die Änderung konnte nicht durchgeführt werden."
+msgstr "Diese Einstellungen konnten nicht von deinem Server geladen werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Try Again"
-msgstr ""
+msgstr "Erneut versuchen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These settings are stored on your server and shared with Jellyfin Web."
 msgstr ""
+"Diese Einstellungen werden auf deinem Server gespeichert und mit Jellyfin "
+"Web geteilt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Sections"
-msgstr "Server entfernen"
+msgstr "Bereiche"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
 msgstr ""
+"Die Reihen, die der Startbildschirm zeigt, in Reihenfolge. Bereiche die "
+"diese App nicht darstellen kann werden so gelassen wie dein Webclient sie "
+"eingestellt hat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Set to “%s” in Jellyfin Web, which this app does not display."
-msgstr ""
+msgstr "In Jellyfin Web auf \"%s\" gestellt, welches diese App nicht darstellt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Section %d"
-msgstr ""
+msgstr "Bereich %d"
 
 # seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -4750,46 +4731,29 @@ msgid ""
 "Off by default: the show's artwork is used instead, because an episode image "
 "can spoil the episode you have not watched yet."
 msgstr ""
+"Standardmäßig aus: Das Artwork der Serie wird anstelle dessen verwendet, "
+"weil ein Bild einer Folge die Folge spoilern kann, wenn Du sie noch nicht "
+"gesehen hast."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen settings."
-msgstr ""
-"Server konnte nicht hinzugefügt werden.\n"
-"Bitte überprüfe deine Verbindungsinformationen."
+msgstr "Startbildschirm-Einstellungen konnten nicht geladen werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "Home screen settings saved."
-msgstr "Die Änderung konnte nicht durchgeführt werden."
+msgstr "Startbildschirm-Einstellungen gespeichert."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen settings."
-msgstr ""
-"Server konnte nicht hinzugefügt werden.\n"
-"Bitte überprüfe deine Verbindungsinformationen."
+msgstr "Startbildschirm-Einstellungen konnten nicht gespeichert werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr ""
+msgstr "Startbildschirm-Layout gespeichert."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"Server konnte nicht hinzugefügt werden.\n"
-"Bitte überprüfe deine Verbindungsinformationen."
+msgstr "Das Startbildschirm-Layout konnte nicht gespeichert werden."
 
 # seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -4802,10 +4766,8 @@ msgid "Browse"
 msgstr "Durchsuchen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "Server-URL: "
+msgstr "Server & Benutzer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4813,10 +4775,8 @@ msgid "Logs"
 msgstr "Protokolle"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Search…"
 msgid "Search settings…"
-msgstr "Suche…"
+msgstr "Einstellungen durchsuchen…"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4825,75 +4785,62 @@ msgstr "Kopieren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
-msgstr ""
+msgstr "Noch keine Protokollausgabe wurde bis jetzt erfasst."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
-msgstr ""
+msgstr "Es gibt noch nichts zum Kopieren."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "Copied %d log lines."
-msgstr ""
+msgstr "%d Protokollzeilen kopiert."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Benutzername: "
+msgstr "Neuer Benutzername…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Add Server"
 msgid "Add User"
-msgstr "Server hinzufügen"
+msgstr "Benutzer hinzufügen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Server-Konfiguration"
+msgstr "Es sind noch keine Server konfiguriert."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Benutzername:"
+msgstr "Benutzer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
+"Jeder Benutzer hat seine eigenen Server- und Geräteidentitäten; für einen "
+"gesperrten Benutzer wird eine Pin zum Wechsel benötigt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Server:"
+msgstr "Server für %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Server:"
+msgstr "Server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Change Audio"
 msgid "Change PIN"
-msgstr "Audio ändern"
+msgstr "Pin ändern"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Server:"
+msgstr "Pin einstellen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Delete user %s and its saved logins?"
-msgstr ""
+msgstr "Benutzer %s und seine gespeicherten Logins löschen?"
 
 # seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -4917,10 +4864,9 @@ msgid "Auto-download"
 msgstr "Automatisch Herunterladen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "Server entfernen"
+msgstr "%s und seine gespeicherten Logins entfernen?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -4928,19 +4874,19 @@ msgstr "Server entfernen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "The server could not be removed."
-msgstr ""
+msgstr "Der Server konnte nicht entfernt werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be added."
-msgstr ""
+msgstr "Diese Benutzer konnte nicht hinzugefügt werden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Rename User"
-msgstr ""
+msgstr "Benutzer umbenennen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be renamed."
-msgstr ""
+msgstr "Dieser Benutzer konnte nicht umbenannt werden."
 
 # seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -4968,71 +4914,59 @@ msgstr "Von Beginn abspielen"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Play next"
-msgstr "Wiedergabezähler"
+msgstr "Nächstes wiedergeben"
 
 # seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Mark unplayed"
-msgstr "Ungespielt"
+msgstr "Als ungespielt markieren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark played"
-msgstr "Verlassen und als ungesehen markieren"
+msgstr "Als gespielt markieren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to playlist"
-msgstr "Server entfernen"
+msgstr "Zur Wiedergabeliste hinzufügen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from playlist"
-msgstr "Server entfernen"
+msgstr "Von Wiedergabeliste entfernen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from collection"
-msgstr "Server entfernen"
+msgstr "Aus Sammlung entfernen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "Server entfernen"
+msgstr "%s aus der Wiedergabeliste entfernen?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "Server entfernen"
+msgstr "%s aus dieser Sammlung entfernen?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
-msgstr ""
+msgstr "Es gibt hier nichts zum Einreihen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 #, python-brace-format
 msgctxt "12-hour clock"
 msgid "{time} {period}"
-msgstr ""
+msgstr "{time} {period}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "AM"
-msgstr ""
+msgstr "AM"
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "PM"
-msgstr ""
+msgstr "PM"
 
 # seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
@@ -5042,7 +4976,7 @@ msgstr "Suche"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Minimize"
-msgstr ""
+msgstr "Minimieren"
 
 # seeded from jellyfin-web: LabelRestore
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -5050,14 +4984,12 @@ msgid "Restore"
 msgstr "Wiederherstellen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Maximum"
 msgid "Maximize"
-msgstr "Maximum"
+msgstr "Maximieren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "Größe ändern"
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -5139,16 +5071,12 @@ msgid "Transcode"
 msgstr "Transkodieren"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Theme default"
 msgid "Use the default"
-msgstr "Standardthema"
+msgstr "Standard nutzen"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay aktiviert."
+msgstr "SyncPlay aktiviert"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -5198,7 +5126,7 @@ msgstr "SVP aktivieren"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "The downloads are already in that folder."
-msgstr ""
+msgstr "Die Downloads befinden sich bereits in diesem Ordner."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
@@ -5209,18 +5137,16 @@ msgstr ""
 "Warte bis er fertig ist und versuche es wieder."
 
 #: jellyfin_mpv_shim/sync/manager.py
-#, fuzzy
-#| msgid "That folder already contains downloads. Choose an empty folder."
 msgid ""
 "That folder is inside the current download folder. Choose one outside it."
-msgstr "Dieser Ordner enthält bereits Downloads. Wähle einen leeren Ordner."
+msgstr ""
+"Dieser Ordner ist in dem aktuellen Downloadordner. Wähle einen außerhalb "
+"davon."
 
 #: jellyfin_mpv_shim/sync/manager.py
-#, fuzzy
-#| msgid "Can't create that folder. Check the path and its permissions."
 msgid "Can't read that folder. Check the path and its permissions."
 msgstr ""
-"Dieser Ordner kann nicht erstellt werden. Prüfe den Pfad und die "
+"Dieser Ordner kann nicht gelesen werden. Prüfe den Pfad und die "
 "Berechtigungen."
 
 #: jellyfin_mpv_shim/sync/manager.py
@@ -5232,6 +5158,9 @@ msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
+"Dieser Ordner ist nicht leer. Wähle einen leeren Ordner — der Downloadordner "
+"wird von dieser App verwaltet und alles andere darin kann verschoben oder "
+"entfernt werden."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
@@ -5250,6 +5179,9 @@ msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
 msgstr ""
+"Es gibt nicht ausreichen Speicher auf diesem Laufwerk um die Downloads zu "
+"verschieben. Mach etwas Speicher frei und versuche es erneut — nichts wurde "
+"verschoben."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
@@ -5418,36 +5350,33 @@ msgstr "Anime4K x2 Perceptual + Deblur (Für HD)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN (Denoise + Sharpen)"
-msgstr ""
+msgstr "ArtCNN (Entrauschen + Schärfen)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN High (C4F32)"
-msgstr ""
+msgstr "ArtCNN Hoch (C4F32)"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Default (auto)"
 msgid "Default (all media)"
-msgstr "Standard (automatisch)"
+msgstr "Standard (alle Medien)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "Diese Bibliothek"
 
 # seeded from jellyfin-web: Series
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
 msgid "This Series"
-msgstr "Serien"
+msgstr "Diese Serie"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "Nicht eingestellt"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr ""
+msgstr "{0}  <-- im Effekt"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Video Playback Profile"
@@ -5473,12 +5402,10 @@ msgctxt "guide badge"
 msgid "Repeat"
 msgstr "Wiederholen"
 
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "Bestätigen"
@@ -5487,7 +5414,6 @@ msgctxt "subtitle position"
 msgid "Top"
 msgstr "Oben"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Top"
 msgstr "Oben"
@@ -5496,7 +5422,6 @@ msgctxt "subtitle position"
 msgid "Bottom"
 msgstr "Unten"
 
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
 msgstr "Unten"
