@@ -44,6 +44,10 @@ class _Player:
         #: which is what left "does the seek-to-skip prompt appear" checked
         #: by an `assertIn` against update()'s SOURCE.
         self.texts = []
+        self.commands = []
+
+    def command(self, *args):
+        self.commands.append(args)
 
     def show_text(self, text, *a, **kw):
         """An automatic skip announces itself on the OSD."""
@@ -881,6 +885,14 @@ class ResumingIntoAnIntroDoesNotSkipItTest(unittest.TestCase):
         pm._on_seeking("seeking", True)
         pm._player.playback_time = after
         pm._on_seeking("seeking", False)
+
+    def test_a_resume_uses_a_seek_command(self):
+        pm = self._pm()
+
+        pm._apply_resume_offset(30.0)
+
+        self.assertEqual(pm._player.commands, [("seek", 30.0, "absolute+exact")])
+        self.assertEqual(pm.last_seek, 30.0)
 
     def test_a_resume_into_an_intro_leaves_it_alone(self):
         from jellyfin_mpv_shim.conf import settings

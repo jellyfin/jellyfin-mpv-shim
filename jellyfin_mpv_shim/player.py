@@ -2245,7 +2245,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         self.last_seek = offset
         self._last_ui_seek_time = time.time()
-        self._player.playback_time = offset
+        self._player.command("seek", offset, "absolute+exact")
 
     def timeline_handle(self):
         if self.timeline_trigger:
