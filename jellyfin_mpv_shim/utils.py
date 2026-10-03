@@ -1,6 +1,5 @@
 import socket
 import ipaddress
-import requests
 import urllib.parse
 from threading import Lock
 import logging
@@ -132,6 +131,8 @@ def is_local_domain(client: "JellyfinClient_type"):
         # server's view of the client because reverse proxies routinely lie
         # (every connection looks like 127.0.0.1 / the proxy's IP).
         try:
+            import requests
+
             wan_ip = requests.get(
                 "https://checkip.amazonaws.com/", timeout=(3, 10)
             ).text.strip("\r\n")
@@ -453,16 +454,74 @@ def get_resource(*path):
     else:
         application_path = os.path.dirname(os.path.abspath(__file__))
 
-    # ! Test code for Mac
-    if getattr(sys, "frozen", False) and platform.system() == "Darwin":
-        application_path = os.path.join(os.path.dirname(sys.executable), "../Resources")
+    target = os.path.join(application_path, *path)
+    if os.path.exists(target):
+        return target
 
-    return os.path.join(application_path, *path)
+    # Bundled via py2app or external resources in macOS app bundle
+    if getattr(sys, "frozen", False) and platform.system() == "Darwin":
+        macos_dir = os.path.dirname(sys.executable)
+        res_dir = os.path.join(macos_dir, "../Resources")
+        for candidate in (
+            os.path.join(macos_dir, *path),
+            os.path.join(res_dir, "jellyfin_mpv_shim", *path),
+            os.path.join(res_dir, *path),
+        ):
+            if os.path.exists(candidate):
+                return candidate
+        return os.path.join(macos_dir, *path)
+
+    return target
 
 
 def get_text(*path):
     with open(get_resource(*path)) as fh:
         return fh.read()
+
+
+def configure_macos_vulkan():
+    """Ensure Vulkan / MoltenVK is discoverable on macOS.
+
+    mpv on macOS uses libvulkan, which needs to find an ICD JSON file (MoltenVK)
+    to map Vulkan calls onto Metal. Without VK_DRIVER_FILES or VK_ICD_FILENAMES
+    set, libvulkan cannot locate MoltenVK on standard Apple Silicon Homebrew
+    paths or inside packaged app bundles, causing mpv to abort VO initialization
+    when `gpu-api=vulkan` or `vo=gpu-next` is configured in mpv.conf.
+    """
+    if sys.platform != "darwin":
+        return
+    if os.environ.get("VK_DRIVER_FILES") or os.environ.get("VK_ICD_FILENAMES"):
+        return
+
+    candidates = []
+    # Check inside the application bundle if frozen
+    if getattr(sys, "frozen", False):
+        macos_dir = os.path.dirname(sys.executable)
+        bundle_dir = os.path.abspath(os.path.join(macos_dir, ".."))
+        candidates.extend([
+            os.path.join(bundle_dir, "Resources", "vulkan", "icd.d", "MoltenVK_icd.json"),
+            os.path.join(bundle_dir, "Resources", "MoltenVK_icd.json"),
+            os.path.join(bundle_dir, "Frameworks", "MoltenVK_icd.json"),
+            os.path.join(macos_dir, "lib", "MoltenVK_icd.json"),
+            os.path.join(macos_dir, "MoltenVK_icd.json"),
+        ])
+
+    # Standard Homebrew and MacPorts locations
+    candidates.extend([
+        "/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json",
+        "/opt/homebrew/share/vulkan/icd.d/MoltenVK_icd.json",
+        "/usr/local/etc/vulkan/icd.d/MoltenVK_icd.json",
+        "/usr/local/share/vulkan/icd.d/MoltenVK_icd.json",
+    ])
+
+    for candidate in candidates:
+        if os.path.isfile(candidate):
+            os.environ["VK_DRIVER_FILES"] = candidate
+            log.info("Configured macOS Vulkan ICD: %s", candidate)
+            return
+
+
+configure_macos_vulkan()
 
 
 # -- system memory ---------------------------------------------------------
