@@ -159,13 +159,25 @@ class EventHandler(object):
             play_command = "PlayNow"
 
         if play_command == "PlayNow":
+            ids = arguments.get("ItemIds") or []
             seq = arguments.get("StartIndex")
             if seq is None:
                 seq = 0
-            log.debug("EventHandler::playMedia %s" % arguments.get("ItemIds"))
+            log.debug("EventHandler::playMedia %s" % ids)
+            if not 0 <= seq < len(ids):
+                # Indexed straight into the queue, this raised IndexError
+                # inside the websocket callback (hand test, 2026-10-04: an
+                # album and a photo album cast from jellyfin-web). An empty
+                # list is what the server sends when the session's own user
+                # may see none of a folder's children.
+                log.warning("Declined a remote Play: %d item(s), StartIndex "
+                            "%s, from user %s (%s)", len(ids),
+                            arguments.get("StartIndex"),
+                            arguments.get("ControllingUserId"), arguments)
+                return
             start_playback(
                 client,
-                arguments.get("ItemIds"),
+                ids,
                 start_index=seq,
                 offset_ticks=arguments.get("StartPositionTicks"),
                 user_id=arguments.get("ControllingUserId"),
@@ -173,6 +185,10 @@ class EventHandler(object):
                 sid=arguments.get("SubtitleStreamIndex"),
                 srcid=arguments.get("MediaSourceId"),
                 sync_play_group=arguments.get("SyncPlayGroup"),
+                # The server sends a cast folder as its children, so several
+                # ids are a Play All -- which in the browser runs a photo
+                # queue as a slideshow -- and one is "show me this" [iw].
+                pause_stills=len(ids) == 1,
             )
         elif play_command in ("PlayLast", "PlayNext"):
             # Snapshot the video once: another thread can null it between a
