@@ -43,21 +43,30 @@ class _Fresh(unittest.TestCase):
         fontconfig.reset()
         self.addCleanup(fontconfig.reset)
 
+    def child(self, code):
+        """Run ``code`` as the child script in place of the real one."""
+        import tempfile
+
+        fd, path = tempfile.mkstemp(suffix=".py")
+        with os.fdopen(fd, "w") as fh:
+            fh.write(code)
+        self.addCleanup(os.unlink, path)
+        return mock.patch.object(fontconfig, "_CHILD_PATH", path)
+
 
 @unittest.skipUnless(LINUX, "fontconfig is only asked on Linux")
 class LookupTest(_Fresh):
 
     def test_a_child_that_segfaults_is_a_failed_lookup_not_a_crash(self):
         """The reason the query is a child process at all."""
-        with mock.patch.object(fontconfig, "_CHILD",
-                               "import os; os.kill(os.getpid(), 11)"), \
+        with self.child("import os; os.kill(os.getpid(), 11)"), \
                 mock.patch.object(fontconfig, "_from_fc_list",
                                   lambda: None):
             got = fontconfig.lookup(["sans-serif"])
         self.assertEqual(got, {"files": {}, "match": {}})
 
     def test_a_child_that_answers_nonsense_is_a_failed_lookup(self):
-        with mock.patch.object(fontconfig, "_CHILD", "print('[1, 2]')"), \
+        with self.child("print('[1, 2]')"), \
                 mock.patch.object(fontconfig, "_from_fc_list",
                                   lambda: None):
             got = fontconfig.lookup(["sans-serif"])
@@ -65,11 +74,15 @@ class LookupTest(_Fresh):
 
     @unittest.skipUnless(shutil.which("fc-list"), "no fc-list here")
     def test_fc_list_stands_in_for_a_child_that_failed(self):
-        with mock.patch.object(fontconfig, "_CHILD",
-                               "import sys; sys.exit(2)"):
+        with self.child("import sys; sys.exit(2)"):
             got = fontconfig.lookup(["sans-serif"])
         self.assertTrue(got["files"], "fc-list's file list was not used")
         self.assertEqual(got["match"], {})
+
+    def test_the_child_script_ships_beside_the_module(self):
+        """Run by path, never imported: a missing file would make every
+        lookup fall back to fc-list without anything saying why."""
+        self.assertTrue(os.path.isfile(fontconfig._CHILD_PATH))
 
     def test_it_asks_once_per_process(self):
         calls = []
