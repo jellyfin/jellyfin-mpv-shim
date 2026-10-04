@@ -2744,9 +2744,10 @@ class TestNoDeadButtons(unittest.TestCase):
         self.assertIn("Add to favorites", labels)
 
 class TestSeasonPageNextUp(unittest.TestCase):
-    """Tk had Play Next Up on the season page. Landing on a season and being
-    able to carry on is the point of the screen; without it you had to go up
-    to the series page to resume."""
+    """The season page's play button: "Next Up" when the show's next
+    episode is in this season, otherwise "Play" for the season from its
+    start [iw, 2026-10-04]. The series' Next Up can sit in any season, and
+    from Season 3's page it used to play S1E1."""
 
     def _season(self, series_id="sh1"):
         b = MpvtkBrowser(app=None, source=FakeSource(),
@@ -2761,28 +2762,67 @@ class TestSeasonPageNextUp(unittest.TestCase):
         b._load_route(route)
         return b, route
 
-    def test_the_button_is_on_the_season_page(self):
-        b, _r = self._season()
-        nodes, handlers = build_scene(b)
-        self.assertIn("se-nextup", ids(nodes), "no Next Up on the season page")
-        self.assertIn("se-nextup", handlers)
+    def _next_up_is(self, b, item):
+        b.source.get_next_up = lambda srv, series_id: item
 
-    def test_it_plays_the_next_episode_of_the_series(self):
-        b, _r = self._season()
+    def test_next_up_in_this_season_is_offered_as_next_up(self):
+        b, route = self._season()
+        self._next_up_is(b, {"Id": "e2", "Type": "Episode",
+                             "SeriesId": "sh1"})
+        b._load_route(route)
+        nodes, handlers = build_scene(b)
+        self.assertIn("se-nextup", ids(nodes))
+        self.assertNotIn("se-play", ids(nodes))
         played = []
-        # ItemActions.play, not the shell forwarder: Next Up is an action and
-        # now calls its own service rather than bouncing off the shell.
         b._actions.play = lambda item, server, **kw: played.append(
             item.get("Id"))
-        _n, handlers = build_scene(b)
         handlers["se-nextup"]["click"]()
-        self.assertTrue(played, "Next Up played nothing")
+        self.assertEqual(played, ["e2"])
+
+    def test_next_up_in_another_season_plays_this_one_from_its_start(self):
+        """The default fake answers an episode that is not in this season's
+        listing. The queue must be the SEASON's (the query carrying web's
+        missing/unaired filters), started at its first entry."""
+        b, _r = self._season()
+        nodes, handlers = build_scene(b)
+        self.assertNotIn("se-nextup", ids(nodes))
+        self.assertIn("se-play", ids(nodes))
+        asked, played = [], []
+        real = b.source.get_season_queue
+
+        def season_queue(srv, series_id, season_id):
+            asked.append((series_id, season_id))
+            return real(srv, series_id, season_id)
+
+        b.source.get_season_queue = season_queue
+        b._actions.play_list = (
+            lambda ids, server, pos, **kw: played.append((ids, pos)))
+        handlers["se-play"]["click"]()
+        self.assertEqual(asked, [("sh1", "sea1")])
+        self.assertEqual(played, [(["e0", "e1", "e2", "e3", "e4"], 0)])
+
+    def test_no_next_up_or_a_failed_lookup_offers_play(self):
+        def boom(srv, series_id):
+            raise OSError("server gone")
+
+        for answer in (None, boom):
+            with self.subTest(answer=answer):
+                b, route = self._season()
+                if answer is None:
+                    self._next_up_is(b, None)
+                else:
+                    b.source.get_next_up = answer
+                b._load_route(route)
+                nodes, _h = build_scene(b)
+                self.assertIn("se-play", ids(nodes))
+                self.assertNotIn("se-nextup", ids(nodes))
 
     def test_a_season_with_no_series_id_does_not_offer_it(self):
-        """Nothing to resume against."""
+        """Nothing to resume against, and nothing to scope a queue by."""
         b, _r = self._season(series_id=None)
         nodes, _h = build_scene(b)
         self.assertNotIn("se-nextup", ids(nodes))
+        self.assertNotIn("se-play", ids(nodes))
 
 
 class TestSeasonPageShuffle(TestSeasonPageNextUp):

@@ -145,7 +145,7 @@ class ItemActions:
     def play(self, item, server, offset_ticks=None, srcid=None, aid=None,
              sid=None):
         """Yield/keep-browse and start a single ``item``. Episodes queue the
-        rest of the season so autoplay-next chains them (like the Tk
+        rest of the series so autoplay-next chains them (like the Tk
         browser)."""
         # `item_is_audio`, not `Type == "Audio"`: that half of the rule
         # calls an AUDIOBOOK a video (Type="AudioBook", MediaType="Audio"),
@@ -279,6 +279,24 @@ class ItemActions:
         def done(ids):
             if ids:
                 self.play_shuffle(ids, server, audio=False)
+
+        self.run.run(work, done, ep)
+
+    def play_season(self, series_id, season_id, server):
+        """Play one season from its first episode. The season queue, so
+        missing and unaired episodes are left out (as in shuffle_season)."""
+        ep = self.run.epoch
+        source = self.services.source
+
+        def work():
+            return [e for e in
+                    source.get_season_queue(server, series_id, season_id)
+                    if e.get("Id")]
+
+        def done(items):
+            if items:
+                self.play_list([e["Id"] for e in items], server, 0,
+                               items=items)
 
         self.run.run(work, done, ep)
 
