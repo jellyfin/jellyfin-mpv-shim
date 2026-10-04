@@ -2999,6 +2999,10 @@ class OfflineLibrarySource:
     #: filter. What goes is the panel.
     supported_filters = frozenset()
 
+    #: See mark_stale. Class defaults so a source built without __init__
+    #: (tests set `_snap` directly) reads as up to date.
+    _wanted = _built = 0
+
     def __init__(self, catalog_path, actor_on=None, server_name=None):
         """``actor_on(server_id)`` names the person browsing, per Jellyfin
         server -- ``UserManager.actor_on``. ``server_name(server_id)`` names
@@ -3017,8 +3021,39 @@ class OfflineLibrarySource:
         self.server_name = server_name
         self.root: Optional[str] = (os.path.dirname(catalog_path)
                                     if catalog_path else None)
+        # mark_stale bumps `_wanted`; the next read rebuilds. A counter, not
+        # a flag, so a mark arriving during a rebuild is not cleared by it.
+        self._reload_lock = threading.Lock()
         self._snap = _OfflineSnapshot()
         self.reload()
+
+    def mark_stale(self):
+        """Have the next read re-read the catalog.
+
+        Offline the catalog IS the server, and marks and progress made
+        offline are written to it -- so a snapshot kept from the moment the
+        browser went offline showed them, then lost them on the next
+        re-read, and on every return to the page [iw, 2026-10-04]. Called on
+        every route load; cheap here, and the rebuild runs on the reader's
+        (pool) thread rather than the loop thread."""
+        self._wanted += 1
+
+    @property
+    def _snap(self):
+        if self._built != self._wanted:
+            # Readers wait for the rebuild rather than read the old
+            # snapshot: Home reads several sections at once. reload() must
+            # therefore never read `_snap` itself -- it runs under this lock.
+            with self._reload_lock:
+                wanted = self._wanted
+                if self._built != wanted:
+                    self.reload()
+                    self._built = wanted
+        return self._snapshot
+
+    @_snap.setter
+    def _snap(self, snap):
+        self._snapshot = snap
 
     def reload(self):
         rows = []
