@@ -245,6 +245,132 @@ class PlayOfflineTest(_OfflineCase):
                                  "Resume")
 
 
+@_e2e.require_server
+class DownloadedCopyOnlineTest(unittest.TestCase):
+    """Online, with Prefer Downloaded Copy on (the default), a downloaded
+    item plays from its copy -- and the pages still show what the SERVER
+    holds, not what the copy recorded locally.
+
+    Asked by Izzie, 2026-10-04: "Do downloaded episodes in any way mess
+    with the resume behaviour or progress display on Season & Series pages
+    while the server is online?" Every other test with a download in it is
+    offline, or SyncPlay.
+
+    Two facts shape it. The server keeps no resume point for an item under
+    `MinResumeDurationSeconds` (300 by default), and every episode on the
+    QA server is 10 s -- so the episode shows the server's answer winning
+    over the copy's local position, and Resume itself is a long film.
+    Season and series counts are read from the server, because tiles are
+    composited bitmaps the observer cannot read; those pages draw exactly
+    those fields."""
+
+    SHOW, SEASON = "Date Based Show", 2019     # 10 s episodes; no other
+    EPISODE = "Episode of 2019-03-10"           # test changes its state
+    FILM = "Eat for Health"                     # long enough to resume
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        self.me = (self.session.server_id(), self.session.user_id)
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        # No autoplay: the end of an episode must land back on its page,
+        # not start the next one streaming.
+        self.app = _app.App(backend=_backend(),
+                            conf={"prefer_downloaded": True,
+                                  "auto_play": False})
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relay)
+
+    def download(self, query, item_id, section):
+        _flows.open_by_search(self.app, query, item_id, section=section)
+        _flows.download_open_item(self.app, self.catalog, item_id)
+
+    def play_copy(self, button, item_id):
+        self.app.move_to(button)
+        self.app.key("ENTER")
+        self.assertTrue(_in_store(self.app, item_id, self.app.playing_path()),
+                        "online, Prefer Downloaded Copy did not play the copy")
+
+    def unplayed(self, item_id):
+        return self.session.user_data(item_id).get("UnplayedItemCount")
+
+    def test_an_episode_shows_the_servers_state_not_the_copys(self):
+        eps = self.session.episodes(self.SHOW, season=self.SEASON)
+        first = next(e for e in eps if e.get("Name") == self.EPISODE)
+        ep, season, series = first["Id"], first["SeasonId"], first["SeriesId"]
+        ids = [e["Id"] for e in eps]
+        self.session.reset_played(*ids)
+        self.addCleanup(self.session.reset_played, *ids)
+        self.download(self.EPISODE, ep, "Episodes")
+        before = (self.unplayed(season), self.unplayed(series))
+
+        self.play_copy("btn-play", ep)
+        time.sleep(4)
+        self.app.key("q")                      # stop partway (kb_stop)
+        self.assertTrue(
+            _e2e.wait_for(lambda: (self.catalog.userdata(ep).get(self.me)
+                                   or {}).get("position_ticks"), timeout=30),
+            "the premise: the copy recorded no local position")
+        time.sleep(8)                          # past the page's own re-reads
+        f = self.app.frame()
+        self.assertFalse(self.session.user_data(ep).get(
+            "PlaybackPositionTicks"), "the premise: a 10 s item resumable")
+        self.assertTrue(_app.shown(f, "btn-play")
+                        and not _app.shown(f, "btn-resume"),
+                        "the page offers a Resume the server does not hold "
+                        "-- the copy's local position leaked online")
+
+        self.play_copy("btn-play", ep)         # and to the end
+        self.assertTrue(
+            _e2e.wait_for(lambda: self.session.user_data(ep).get("Played"),
+                          timeout=60),
+            "playing the copy to the end did not mark it watched on the "
+            "server")
+        self.app.wait_for(lambda f: _watched_fill(f) is True, timeout=30,
+                          what="the episode's page showing it watched")
+        self.assertEqual(
+            (self.unplayed(season), self.unplayed(series)),
+            (before[0] - 1, before[1] - 1),
+            "the season and series do not count the episode as watched")
+
+    def test_a_film_resumes_from_where_the_copy_stopped(self):
+        film = next(i for i in self.session.find_all(item_type="Movie")
+                    if i.get("Name") == self.FILM)["Id"]
+        self.session.reset_played(film)
+        self.addCleanup(self.session.reset_played, film)
+        self.download(self.FILM, film, "Movies")
+
+        self.play_copy("btn-play", film)
+        deadline = time.monotonic() + 30
+        while (self.app.prop("time-pos") or 0) < 60 \
+                and time.monotonic() < deadline:
+            self.app.key("RIGHT")
+            time.sleep(0.3)
+        stopped_at = self.app.prop("time-pos") or 0
+        self.assertGreaterEqual(stopped_at, 60, "the arrow keys did not seek")
+        self.app.key("q")
+        self.assertTrue(
+            _e2e.wait_for(lambda: abs((self.session.user_data(film).get(
+                "PlaybackPositionTicks") or 0) / 1e7 - stopped_at) < 10,
+                timeout=30),
+            "the server does not hold where the copy stopped (%.0f s): %r"
+            % (stopped_at, self.session.user_data(film)))
+        self.app.wait_for(lambda f: _app.shown(f, "btn-resume"), timeout=30,
+                          what="Resume on the page the stop landed on")
+        time.sleep(8)                          # past the page's own re-reads
+        self.assertTrue(_app.shown(self.app.frame(), "btn-resume"),
+                        "Resume did not survive the page re-reading the "
+                        "server")
+        self.play_copy("btn-resume", film)
+        self.assertTrue(
+            _e2e.wait_for(lambda: (self.app.prop("time-pos") or 0)
+                          > stopped_at - 10, timeout=30),
+            "Resume did not start the copy near where it stopped")
+
 def _in_store(app, item_id, path):
     """Whether mpv's `path` is this item's file in the download store."""
     store = os.path.join(app.config_dir, "offline", "server", item_id)
