@@ -122,6 +122,63 @@ class _JsonipcLike:
         return object.__getattribute__(self, name)
 
 
+class _ShutdownError(SystemError):
+    """python-mpv's `ShutdownError`: a dead core, raised as a subclass of the
+    `SystemError` a failed command raises."""
+
+
+class _LibmpvPublicOnly:
+    """python-mpv as it would be if `_set_property` were renamed: the same
+    swallowing `__setattr__`, and only the public surface the fallback uses
+    -- `property_list`, `command("set", ...)` and option `__setitem__`.
+
+    A failed `set` is a plain `SystemError` carrying -12 whatever the cause,
+    which is what mpv's command interface reports."""
+
+    def __init__(self, known=(), unavailable=(), dead=False):
+        object.__setattr__(self, "_values", {})
+        object.__setattr__(self, "_options", {})
+        object.__setattr__(self, "_unavailable", set(unavailable))
+        object.__setattr__(self, "_dead", dead)
+        object.__setattr__(self, "property_list", list(known))
+        object.__setattr__(self, "handle", object())
+        object.__setattr__(self, "commands", [])
+
+    def option_info(self, name):
+        """Present so the class is recognised as python-mpv, as on the
+        real one; `property_list` is only readable from an instance."""
+
+    def _renamed_write(self, name, value):
+        self.command("set", name, value)
+
+    def command(self, *args):
+        if self._dead:
+            raise _ShutdownError("libmpv core has been shutdown")
+        self.commands.append(args)
+        _verb, name, text = args
+        if name in self._unavailable or name not in self.property_list:
+            raise SystemError("Error running mpv command", -12)
+        self._values[name] = text
+
+    def __setitem__(self, name, value):
+        self._options[name] = value
+
+    def __setattr__(self, name, value):
+        try:
+            if name != "handle" and not name.startswith("_"):
+                self._renamed_write(name.replace("_", "-"), value)
+            else:
+                object.__setattr__(self, name, value)
+        except (AttributeError, SystemError):
+            object.__setattr__(self, name, value)
+
+    def __getattr__(self, name):
+        try:
+            return self._values[name.replace("_", "-")]
+        except KeyError:
+            raise AttributeError(name)
+
+
 def _guarded(base, *args, **kwargs):
     """A guarded player, and the refusal count at the moment it was built.
 
@@ -308,6 +365,62 @@ class TheWindowCannotGoBackwardsTest(unittest.TestCase):
         self.assertEqual((), mpv_guard.refusals_since(object(), 0))
 
 
+class ThePublicFallbackTest(unittest.TestCase):
+    """For a python-mpv without `_set_property`: the guard falls back to the
+    public API instead of failing to build a player [iw, 2026-10-04]."""
+
+    def test_it_is_the_writer_chosen_for_such_a_library(self):
+        self.assertIs(mpv_guard._writer_for(_LibmpvPublicOnly),
+                      mpv_guard._write_libmpv_public)
+
+    def test_an_unavailable_property_leaves_nothing_behind(self):
+        player, mark = _guarded(_LibmpvPublicOnly, known=["playback-time"],
+                                unavailable=["playback-time"])
+
+        player.playback_time = 1079          # must not raise
+
+        self.assertNotIn("playback_time", player.__dict__)
+        self.assertEqual(1, player.failed_writes - mark)
+        self.assertIsInstance(player.last_failed_write.error, AttributeError)
+
+    def test_a_name_outside_the_property_list_is_refused_unsent(self):
+        player, mark = _guarded(_LibmpvPublicOnly, known=[])
+
+        player.osd_border_style = "outline-and-shadow"
+
+        self.assertNotIn("osd_border_style", player.__dict__)
+        self.assertEqual(1, player.failed_writes - mark)
+        self.assertEqual([], player.commands)
+
+    def test_a_scalar_goes_through_set_spelled_as_mpv_reads_it(self):
+        player, mark = _guarded(_LibmpvPublicOnly,
+                                known=["pause", "volume"])
+
+        player.pause = True
+        player.volume = 44
+
+        self.assertEqual([("set", "pause", "yes"), ("set", "volume", "44")],
+                         player.commands)
+        self.assertEqual(0, player.failed_writes - mark)
+
+    def test_a_list_goes_through_the_option_write(self):
+        player, _mark = _guarded(_LibmpvPublicOnly, known=["glsl-shaders"])
+
+        player.glsl_shaders = ["a.glsl", "b.glsl"]
+
+        self.assertEqual({"glsl-shaders": ["a.glsl", "b.glsl"]},
+                         player._options)
+        self.assertEqual([], player.commands)
+
+    def test_a_dead_core_still_raises(self):
+        """Not a refusal: the caller's shutdown handling needs it."""
+        player, _mark = _guarded(_LibmpvPublicOnly, known=["volume"],
+                                 dead=True)
+
+        with self.assertRaises(_ShutdownError):
+            player.volume = 44
+
+
 class TheContractsModelledHereAreTheRealOnesTest(unittest.TestCase):
     """The stand-ins above are a reading of two libraries, and a reading is
     a belief about someone else's code. These pin the parts the guard
@@ -326,6 +439,14 @@ class TheContractsModelledHereAreTheRealOnesTest(unittest.TestCase):
             "mechanism can stop existing without a failure")
         self.assertTrue(hasattr(mpv.MPV, "_set_property"),
                         "mpv_guard writes through _set_property")
+        # And the public surface its fallback writes through, for the day
+        # the private one goes.
+        for public in ("option_info", "command", "__setitem__"):
+            self.assertTrue(hasattr(mpv.MPV, public),
+                            "the public fallback needs MPV.%s" % public)
+        self.assertTrue(issubclass(mpv.ShutdownError, SystemError),
+                        "the fallback tells a dead core from a refused set "
+                        "by ShutdownError being a SystemError subclass")
         source = inspect.getsource(mpv.MPV.__setattr__)
         self.assertIn("except AttributeError", source,
                       "python-mpv no longer swallows a refused write, which "

@@ -83,6 +83,37 @@ def _write_libmpv(player, name, value):
     player._set_property(name.replace("_", "-"), value)
 
 
+def _write_libmpv_public(player, name, value):
+    """The fallback for a python-mpv without ``_set_property``: public API
+    only, and refusals raised as ``AttributeError`` like the other writers.
+
+    Same convention as ``_write_jsonipc``: a name outside ``property_list``
+    is refused before anything is sent. A scalar goes through ``set``, which
+    takes the same string path ``_set_property`` does for scalars. A list or
+    dict goes through ``player[name] = value``, the library's only public
+    structured write, which covers options only. The alternative, spelling a
+    list in mpv's string syntax, has platform-specific separators. Through
+    ``set`` mpv reports an unavailable property and a bad value as the same
+    command error (-12), so here a bad value is a logged refusal rather
+    than a ``TypeError``.
+    """
+    mpv_name = name.replace("_", "-")
+    if mpv_name not in player.property_list:
+        raise AttributeError(name)
+    if isinstance(value, (list, tuple, set, dict)):
+        player[mpv_name] = value
+        return
+    text = ("yes" if value else "no") if isinstance(value, bool) \
+        else str(value)
+    try:
+        player.command("set", mpv_name, text)
+    except SystemError as error:
+        # A dead core is `ShutdownError`, a subclass: not a refusal.
+        if type(error) is not SystemError:
+            raise
+        raise AttributeError(name, *error.args) from error
+
+
 def _write_jsonipc(player, name, value):
     """python-mpv-jsonipc's own write, without its fallback.
 
@@ -108,6 +139,14 @@ def _writer_for(base):
         return _write_jsonipc
     if hasattr(base, "_set_property"):
         return _write_libmpv
+    if hasattr(base, "option_info") and hasattr(base, "command"):
+        # A python-mpv that renamed the private write: carry on through
+        # the public API rather than fail to build a player at all.
+        # `option_info`, not `property_list`: that one is an mpv property
+        # read through the instance's __getattr__, invisible on the class.
+        log.warning("python-mpv has no _set_property; mpv_guard is using "
+                    "its public fallback")
+        return _write_libmpv_public
     raise TypeError(
         "%s is neither backend and models no write of its own" % (base,))
 
