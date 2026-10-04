@@ -105,9 +105,36 @@ class _OfflineCase(unittest.TestCase):
     def repaint(self):
         """A frame drawn after something unrelated moved -- so a state the
         screen shows has survived a rebuild, not just the optimistic flip."""
-        before = self.app.frame()["nav"]
+        before = self.app.frame().get("nav")   # nothing focused yet: None
         self.app.move_to("act-fav" if before != "act-fav" else "btn-play")
         return self.app.frame()
+
+    #: Longer than anything that re-reads a page on its own after an
+    #: action: the timeline thread's 5 s tick, whose second "stopped" push
+    #: refreshes the page a stop landed on.
+    SETTLE = 8
+
+    def holds_after_rereads(self, shows, what):
+        """``shows(frame)`` still true after the page has had time to
+        re-read itself, and after leaving it and coming back.
+
+        Asserted right after the action, these passed while the screen
+        later threw the state away: the offline library kept the catalog
+        as it was when it went offline, so every re-read restored that
+        [iw, 2026-10-04]."""
+        time.sleep(self.SETTLE)
+        f = self.repaint()
+        self.assertTrue(shows(f),
+                        "%s did not survive the page re-reading itself "
+                        "(on screen: %s)\n%s"
+                        % (what, sorted(n.get("id") or "" for n in (f or {}).get("nodes", []) if n.get("vis"))[:40], self.log_tail()))
+        self.app.key("ESC")
+        self.app.wait_for(
+            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
+            timeout=30, what="the offline library after going back")
+        f = self.open_film()
+        self.assertTrue(shows(f), "%s was gone on coming back to the page"
+                        % what)
 
     def played_here(self):
         row = self.catalog.userdata(self.film).get(self.me)
@@ -138,6 +165,7 @@ class MarkWatchedOfflineTest(_OfflineCase):
         f = self.repaint()
         self.assertTrue(self.watched_on_screen(f),
                         "the tick did not survive a repaint")
+        self.holds_after_rereads(self.watched_on_screen, "the tick")
         self.assertEqual(1, self.played_here(),
                          "the catalog does not say this person watched it")
         queued = [p for p in self.catalog.pending(self.film)
@@ -155,6 +183,8 @@ class MarkWatchedOfflineTest(_OfflineCase):
         self.assertFalse(self.watched_on_screen(f),
                          "the un-mark flipped back on screen\n"
                          + self.log_tail())
+        self.holds_after_rereads(lambda f: not self.watched_on_screen(f),
+                                 "the un-mark")
         self.assertEqual(0, self.played_here(),
                          "the catalog still says watched")
         queued = [p for p in self.catalog.pending(self.film)
@@ -198,6 +228,20 @@ class PlayOfflineTest(_OfflineCase):
         self.assertTrue(queued, "nothing queued for the server")
         self.assertEqual({self.me[1]}, {p["user_id"] for p in queued},
                          "queued as someone else: %r" % queued)
+
+    def test_a_half_played_film_offers_resume_and_keeps_offering_it(self):
+        """The reported case: stopped partway offline, the page showed the
+        progress and then, about 5 s later, forgot it."""
+        self.open_film()
+        self.app.move_to("btn-play")
+        self.app.key("ENTER")
+        self.app.playing_path()
+        time.sleep(4)
+        self.app.key("q")                      # stop partway (kb_stop)
+        self.app.wait_for(lambda f: _app.shown(f, "btn-resume"), timeout=30,
+                          what="Resume on the page the stop landed on")
+        self.holds_after_rereads(lambda f: _app.shown(f, "btn-resume"),
+                                 "Resume")
 
 
 def _in_store(app, item_id, path):
