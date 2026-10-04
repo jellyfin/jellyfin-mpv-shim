@@ -115,6 +115,13 @@ queues progress for whoever is playing. One blob per item meant the second
 account to press Resume told *its own* server it had watched what the first
 account watched.
 
+**The offline browser reads it at every page load, not once.** Offline the
+catalog is the server: marks and progress made offline are written to
+`item_userdata`, and `OfflineLibrarySource` rebuilds its snapshot on the first
+read after each `_load_route` (`mark_stale`). It used to keep the snapshot from
+the moment the browser went offline, so a mark or a stop showed, then vanished
+on the next re-read and on every return to the page (hand test, 2026-10-04).
+
 **Two places, and the split is the point.** `SyncManager.actor_of` answers *who
 is acting*: the pair the websocket already sends, else the login doing the
 acting **as itself even when it is on another server**, else — with no acting

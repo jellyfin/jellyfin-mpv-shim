@@ -2122,6 +2122,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # ep is read here, on the loop thread, and handed down: a loader
         # that read it later would be racing the navigation it guards.
         ep = self._epoch if epoch is None else epoch
+        # Offline, every load re-reads the catalog: see mark_stale.
+        mark_stale = getattr(self.source, "mark_stale", None)
+        if mark_stale is not None:
+            mark_stale()
         page = self._page_for(route)
         if page is not None:
             page.load(ep)

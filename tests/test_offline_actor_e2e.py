@@ -242,6 +242,89 @@ class OfflineActorEndToEndTest(unittest.TestCase):
         video.record_offline_progress(ticks, finished=finished)
         return video
 
+    def test_one_source_shows_each_offline_change_after_a_load(self):
+        """The browser builds ONE offline source when it goes offline and
+        keeps it, so a test that builds a fresh source per read (as
+        `_userdata` does) cannot see a source that never re-reads -- which
+        is what shipped: a mark or a stop showed, then vanished on the next
+        re-read and on every return to the page [iw, 2026-10-04].
+
+        Several changes in both directions through the same source, each
+        read after the per-load `mark_stale`."""
+        src = self._source()
+        gw = self._gateway()
+        steps = (
+            (lambda: gw._queue_offline_watched(self.OFFLINE, "m1", True),
+             "m1", "Played", True),
+            (lambda: self._play("m2", 30 * 10000000),
+             "m2", "PlaybackPositionTicks", 30 * 10000000),
+            (lambda: gw._queue_offline_watched(self.OFFLINE, "m1", False),
+             "m1", "Played", False),
+            (lambda: self._play("m2", 50 * 10000000),
+             "m2", "PlaybackPositionTicks", 50 * 10000000),
+        )
+        for i, (act, item_id, field, want) in enumerate(steps):
+            act()
+            src.mark_stale()
+            got = ((src.get_item(self.OFFLINE, item_id) or {})
+                   .get("UserData") or {}).get(field)
+            self.assertEqual(bool(got) if isinstance(want, bool) else got,
+                             want, "step %d: %s %s" % (i, item_id, field))
+
+    def test_concurrent_readers_after_a_load_all_see_the_new_catalog(self):
+        """Home reads several sections at once off one load. A reader that
+        arrived while another was rebuilding must wait for it rather than
+        read the old snapshot -- and the catalog is read once, not once per
+        reader."""
+        import threading
+        import time
+
+        src = self._source()
+        self._gateway()._queue_offline_watched(self.OFFLINE, "m1", True)
+        real, rebuilds = src.reload, []
+
+        def slow_reload():
+            rebuilds.append(1)
+            time.sleep(0.2)
+            real()
+
+        src.reload = slow_reload
+        src.mark_stale()
+        seen = []
+
+        def read():
+            item = src.get_item(self.OFFLINE, "m1") or {}
+            seen.append(bool((item.get("UserData") or {}).get("Played")))
+
+        threads = [threading.Thread(target=read) for _ in range(4)]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join(5)
+        self.assertEqual(seen, [True] * 4)
+        self.assertEqual(len(rebuilds), 1)
+
+    def test_the_browser_rereads_the_catalog_on_every_load(self):
+        """The effect at the screen's end: the real browser, holding one
+        offline source, re-loads a detail page after an offline mark and
+        shows it. Through `_load_route`, the one path every page load and
+        every refresh takes."""
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from tests._shell_harness import _SyncPool
+
+        b = MpvtkBrowser(app=None, source=self._source())
+        b._pool = _SyncPool()
+        b.server = self.OFFLINE
+        route = {"kind": "detail", "server": self.OFFLINE, "item_id": "m1"}
+        b.nav_stack = [route]
+        gw = self._gateway()
+        for played in (True, False, True):
+            gw._queue_offline_watched(self.OFFLINE, "m1", played)
+            b._load_route(route)
+            item = (route.get("_data") or {}).get("item") or {}
+            self.assertEqual(bool((item.get("UserData") or {})
+                                  .get("Played")), played)
+
     def test_two_local_profiles_do_not_share_one_copys_progress(self):
         """X downloaded it and watched half; Y plays the same file.
 
