@@ -1284,6 +1284,8 @@ Other miscellaneous configuration options. You probably won't have to change the
     so. If your original audio is something else, pick `custom` and write the
     rules by hand.
 - `preferred_language` - The language the presets above are built around. Default: `eng`
+  - Shown in Settings only while one of the Dubbed/Subbed presets is selected; under Unset and Custom nothing reads it.
+  - A language code as your files tag it, typically ISO 639-2/B like `eng`.
 - `screenshot_dir` - Sets where screenshots go.
   - Default is the desktop on Windows and unset (current directory) on other platforms.
 - `force_set_played` - This forcibly sets items as played when MPV playback finished.

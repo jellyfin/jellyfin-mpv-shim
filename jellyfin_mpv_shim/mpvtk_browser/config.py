@@ -113,6 +113,22 @@ HUD_ONLY = ("hud_grab_keys", "hud_wake_key", "hud_scrim", "hud_autohide",
 #: show a setting rather than to hide it.
 TRICKPLAY_DEPENDENT = ("trickplay_fast_mode",)
 
+#: Read only when a `language_preference` preset builds its rules, so it does
+#: nothing under Unset or Custom -- and Custom is the default.
+LANGUAGE_PRESET_DEPENDENT = ("preferred_language",)
+
+
+def language_preset_builds_rules():
+    """Whether the chosen `language_preference` writes rules, and so reads
+    `preferred_language`. Asks `preset_rules` itself, so a new preset cannot
+    leave the row hidden while it is in use."""
+    from ..language_config import preset_rules
+
+    try:
+        return bool(preset_rules(settings.language_preference or "", "eng"))
+    except Exception:
+        return False
+
 
 def hud_style_selected():
     """Whether the in-window playback HUD is what `osc_style` resolves to.
@@ -967,6 +983,11 @@ NOTES = {
                           "server per video, which costs disk space and "
                           "memory -- tens of MB for an episode, a few "
                           "hundred for a long film."),
+    "preferred_language": _("The language to use for dubbed audio or subbed "
+                            "subtitles. Note the preference heuristics are "
+                            "built around English naming conventions, your "
+                            "mileage may vary. Use a language code such as "
+                            "eng."),
     "trickplay_fast_mode": _("Seek previews are normally fetched a few "
                              "minutes at a time around where you are "
                              "seeking, so scrubbing somewhere new waits "
@@ -1173,6 +1194,7 @@ def sections(tab=None):
     curated = ({k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
                | set(TRAY_DEPENDENT) | set(BACKGROUND_DEPENDENT)
                | set(HUD_ONLY) | set(TRICKPLAY_DEPENDENT)
+               | set(LANGUAGE_PRESET_DEPENDENT)
                | {"audio_exclusive"})
     out = []
     try:
@@ -1187,6 +1209,8 @@ def sections(tab=None):
         shown.update(HUD_ONLY)
     if settings.thumbnail_enable:
         shown.update(TRICKPLAY_DEPENDENT)
+    if language_preset_builds_rules():
+        shown.update(LANGUAGE_PRESET_DEPENDENT)
     keep_running = "close_to_tray" if tray_available() else "allow_background"
     shown.add(keep_running)
     if getattr(settings, keep_running, False):

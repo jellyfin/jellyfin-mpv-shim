@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-26 13:46-0400\n"
+"POT-Creation-Date: 2026-10-04 14:26-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3084,6 +3084,19 @@ msgid ""
 "control style, including your own OSC script if it supports thumbfast. The "
 "images are fetched from the server per video, which costs disk space and "
 "memory -- tens of MB for an episode, a few hundred for a long film."
+msgstr ""
+
+#. Explanation shown under the "Preferred Language" setting (Settings >
+#. Playback > Subtitles & Languages), which only appears when a Dubbed or
+#. Subbed preset is chosen. "Subbed subtitles" means the subtitles used when
+#. watching with the original audio; "your mileage may vary" means results
+#. may differ for you. "eng" is a literal ISO 639-2 code the user types:
+#. keep it as is.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"The language to use for dubbed audio or subbed subtitles. Note the "
+"preference heuristics are built around English naming conventions, your "
+"mileage may vary. Use a language code such as eng."
 msgstr ""
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
