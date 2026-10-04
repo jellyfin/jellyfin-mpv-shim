@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-10-04 09:46+0000\n"
-"Last-Translator: Sakura <sakura2026@users.noreply.translate.jellyfin.org>\n"
+"PO-Revision-Date: 2026-10-04 10:32+0000\n"
+"Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
 "Language: ja\n"
@@ -1263,7 +1263,7 @@ msgstr "入力"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr "ウインドウ"
+msgstr "ウィンドウ"
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1275,10 +1275,8 @@ msgid "Library Browser"
 msgstr "ライブラリー ブラウザー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Reading"
-msgstr " (トランスコード)"
+msgstr "読書"
 
 # seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1288,36 +1286,31 @@ msgid "Downloads"
 msgstr "ダウンロード"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Download Tuning"
-msgstr "サーバーを削除"
+msgstr "ダウンロード調整"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Player Controls"
-msgstr "再生回数"
+msgstr "プレーヤー操作"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Playback"
-msgstr ""
+msgstr "再生"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
-msgstr ""
+msgstr "字幕と言語"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
-msgstr ""
+msgstr "映像の画質向上"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "クレジットをスキップする"
+msgstr "イントロ・クレジットをスキップ"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1326,21 +1319,20 @@ msgstr "高度"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "オフ ( ソフトウェアデコード )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "1080p 超のみ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "On"
-msgstr ""
+msgstr "オン"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Copy (advanced)"
-msgstr "高度"
+msgstr "コピー ( 詳細 )"
 
 # seeded from jellyfin-web: Off
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1349,210 +1341,202 @@ msgstr "オフ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "スムーズモーション"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Blend Frames"
-msgstr "参照フレーム"
+msgstr "フレーム補間"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "スムーズ ( 高画質 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "弱 ( 実写 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "標準 ( アニメーション )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "強"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (MPV decides)"
-msgstr ""
+msgstr "自動 ( MPV が決定 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 ( 推奨 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "BT.2446a"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "スプライン補間"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Disable"
 msgid "Hable"
-msgstr "無効"
+msgstr "Hable"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "ラインハルト"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "クリップ ( トーンマッピングなし )"
 
 # seeded from jellyfin-web: Default
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "MPV default"
-msgstr "デフォルト"
+msgstr "MPV デフォルト"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "High quality"
-msgstr "画質の変更"
+msgstr "高画質"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default (1 second)"
-msgstr ""
+msgstr "MPV デフォルト ( 1 秒 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Large (20 seconds)"
-msgstr ""
+msgstr "大 ( 20秒 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Very large (60 seconds)"
-msgstr ""
+msgstr "特大 ( 60 秒 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
-msgstr ""
+msgstr "Jellyfin UI"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "MPV UI"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "カスタム OSC"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
-msgstr ""
+msgstr "プレーヤー操作なし"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
-msgstr ""
+msgstr "100% ( 等倍 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
-msgstr ""
+msgstr "125%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "150%"
-msgstr ""
+msgstr "150%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No minimum"
-msgstr ""
+msgstr "最小指定なし"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "14 px"
-msgstr ""
+msgstr "14 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "16 px"
-msgstr ""
+msgstr "16 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "18 px"
-msgstr ""
+msgstr "18 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "20 px"
-msgstr ""
+msgstr "20 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
-msgstr ""
+msgstr "ディスプレーに従う"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "200%"
-msgstr ""
+msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr ""
+msgstr "連続"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr ""
+msgstr "行に合わせて配置"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr ""
+msgstr "1 ノッチに 1 行"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
-msgstr ""
+msgstr "ウィンドウにタイトルバーがない場合のみ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Dark"
-msgstr ""
+msgstr "ダーク"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Sepia"
-msgstr ""
+msgstr "セピア"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "ライト"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Width"
-msgstr ""
+msgstr "幅に合わせる"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Page"
-msgstr ""
+msgstr "ページに合わせる"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr ""
+msgstr "コントロールの後ろのパネル"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "無し（無効）"
+msgstr "なし ( 影付き文字 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr ""
+msgstr "マウスオーバー時のみ表示"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always hide"
@@ -1697,10 +1681,8 @@ msgid "Motion Interpolation"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (トランスコード)"
+msgstr "バンディング低減"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
@@ -1862,11 +1844,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "キャストからライブラリーブラウザーを開く"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "全画面ライブラリーブラウザー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
@@ -2041,6 +2023,14 @@ msgid ""
 "if you set the deband options in mpv.conf yourself — Off writes nothing at "
 "all, so your values are left alone."
 msgstr ""
+"（空、暗いシーン、フェードなど）グラデーションに現れるブロック状の段差を滑ら"
+"かにします。画面の大部分がフラットなグラデーションで構成されるアニメでは、こ"
+"の設定の効果が最も顕著です。実写映像ではどちらの設定でもほとんど影響はありま"
+"せんが、設定を強くすると、本来の細かいディテールがぼやけてしまう場合がありま"
+"す。コンテンツの種類にかかわらず GPU に負荷がかかるため、性能の低いマシンや古"
+"いマシンではこの点を留意しておくことが大切です。自分で mpv.conf で"
+"バンディング低減を設定している場合は、これを「オフ」のままにしてください。「"
+"オフ」設定では何も書き込まないため、設定値をそのまま維持します。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2074,6 +2064,10 @@ msgid ""
 "display. May cause dropped frames if your displays have mismatched frame "
 "rates."
 msgstr ""
+"フレーム補間（隣り合うフレーム同士を合成する機能。SVP・DLSS・framegenとは異な"
+"る）。コンテンツとディスプレーのフレームレートの不一致によって生じるジャダー"
+"を軽減します。ディスプレーのフレームレートが一致していない場合、"
+"フレームドロップが発生する可能性があります。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2260,12 +2254,16 @@ msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"「マウスオーバー時のみ表示」に設定すると、再生中か一時停止中かに関わらず、"
+"ポインタが要素の上にある間のみ表示されます。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"0 を設定すると、ポインタが対象の上を離れた瞬間に非表示になり、「ホバー時のみ"
+"表示」を強制します。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -5347,7 +5345,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr ""
+msgstr "ライブラリーブラウザーを表示"
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Console"
