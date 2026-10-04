@@ -894,6 +894,28 @@ class TestPlaylistPageDownloadButton(unittest.TestCase):
         self.assertIn("pl-undownload", ids(nodes),
                       "playlist page still hardcodes Download")
 
+    def test_remove_download_names_the_playlists_server(self):
+        """The catalog keys a playlist on (id, server) and matches a None
+        server only against the unscoped row, never "any". The page built
+        its item with no ServerId, so online the delete matched nothing and
+        the download stayed [iw, 2026-10-04]. The server is the members',
+        as the download recorded it."""
+        ctl = DownloadsController()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.tiles._downloaded = {"P"}
+        route = {"kind": "playlist", "server": "srv1", "item_id": "P",
+                 "title": "Mix"}
+        b.nav_stack = [route]
+        b._load_route(route)
+        _n, h = build_scene(b)
+        h["pl-undownload"]["click"]()
+        _n, h = build_scene(b)
+        h["dlg-ok"]["click"]()
+        self.assertEqual(ctl.deleted_playlist_server, ["SRVID"])
+        self.assertEqual([d[3] for d in ctl.deleted], ["P"])
+
 class TestDownloadStateAndPush(unittest.TestCase):
     """A playlist's id is never a downloads row, and nothing refreshed the
     badges when a download finished while browsing."""

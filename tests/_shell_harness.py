@@ -488,8 +488,12 @@ class FakeSource:
         return ([{"Id": "al2", "Name": "GenreAlbum", "Type": "MusicAlbum"}], 1)
 
     def get_playlist_items(self, server_uuid, playlist_id):
+        # ServerId, as every server DTO carries: a downloaded playlist's
+        # scope is taken from its members' ServerId, so without it the
+        # playlist page's Remove Download path had nothing to be scoped by.
         return [{"Id": "pi%d" % i, "Name": "Song %d" % i, "Type": "Audio",
-                 "PlaylistItemId": "e%d" % i} for i in range(3)]
+                 "PlaylistItemId": "e%d" % i, "ServerId": "SRVID"}
+                for i in range(3)]
 
     def get_playlists(self, server_uuid, limit=300):
         return [{"Id": "PL1", "Name": "Faves", "Type": "Playlist"},
