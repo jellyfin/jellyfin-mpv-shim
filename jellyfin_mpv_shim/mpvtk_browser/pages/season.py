@@ -1,10 +1,14 @@
 """The season screen: a season picker, the shared actions, an episode grid."""
 
+import logging
+
 from ...i18n import _
 from ...mpvtk.widgets import Column, Dropdown, Row, Text, VScroll
 from ..components import chrome, controls, detail as detail_components
 from ..tile_renderer import GRID_GAP
 from .base import Page
+
+log = logging.getLogger("mpvtk_browser.pages.season")
 
 
 def _grouped(buttons, avail):
@@ -43,10 +47,21 @@ class SeasonPage(Page):
         srv = route.get("server") or self.ctx.server
 
         def work():
+            series_id = route.get("series_id")
+            next_up = None
+            if series_id:
+                # Only decides the play button's label and scope, so a
+                # failed lookup costs "Play" instead of "Next Up", not the
+                # page.
+                try:
+                    next_up = source.get_next_up(srv, series_id)
+                except Exception:
+                    log.debug("next up lookup failed", exc_info=True)
             return {
                 "episodes": source.get_episodes(
-                    srv, route.get("series_id"), route["item_id"]),
-                "seasons": source.get_seasons(srv, route.get("series_id")),
+                    srv, series_id, route["item_id"]),
+                "seasons": source.get_seasons(srv, series_id),
+                "next_up": next_up,
             }
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
@@ -152,13 +167,25 @@ class SeasonPage(Page):
                               or route.get("bar_title") or "")})))
         acts = []
         if route.get("series_id"):
-            # Tk had Play Next Up here too. Landing on a season and being able
-            # to carry on is the point of the screen; without it you had to go
-            # up to the series page to resume.
-            acts.append(controls.action_btn(
-                "play_arrow", _("Next Up"), "se-nextup",
-                lambda: actions.play_next_up(route["series_id"], server),
-                primary=True))
+            # Next Up only when the show's next episode is in THIS season;
+            # otherwise the season plays from its start. The series' Next Up
+            # can be in any season, and from a season's page that played
+            # some other season's episode [iw, 2026-10-04]. Membership is
+            # asked of the listed episodes rather than of SeasonId, which an
+            # offline season may not have.
+            next_up = data.get("next_up") or {}
+            if next_up.get("Id") and any(
+                    e.get("Id") == next_up["Id"] for e in episodes):
+                acts.append(controls.action_btn(
+                    "play_arrow", _("Next Up"), "se-nextup",
+                    lambda: actions.play_next_up(route["series_id"], server),
+                    primary=True))
+            else:
+                acts.append(controls.action_btn(
+                    "play_arrow", _("Play"), "se-play",
+                    lambda: actions.play_season(
+                        route["series_id"], route["item_id"], server),
+                    primary=True))
             acts.append(controls.action_btn(
                 "shuffle", _("Shuffle"), "se-shuffle",
                 lambda: actions.shuffle_season(
