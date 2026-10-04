@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
 "PO-Revision-Date: 2026-10-04 09:46+0000\n"
-"Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
+"Last-Translator: Sakura <sakura2026@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
 "Language: ja\n"
@@ -527,7 +527,7 @@ msgstr "ページ"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
-msgstr ""
+msgstr "(全%d)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
