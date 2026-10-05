@@ -4933,7 +4933,7 @@ msgstr "无法读取该文件夹。请检查路径及其权限。"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
-msgstr "目标目录已存在缓存文件，请选择空文件夹。"
+msgstr "该文件夹中已包含下载内容。请选择一个空文件夹。"
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
