@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-10-04 22:56+0000\n"
+"PO-Revision-Date: 2026-10-05 01:46+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -823,10 +823,8 @@ msgstr "ダウンロード"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "サーバーを削除"
+msgstr "ダウンロードを削除"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Watched"
@@ -1055,7 +1053,6 @@ msgstr "外部"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Timestamp"
 msgstr "時刻"
 
@@ -1812,25 +1809,24 @@ msgstr "テレビ放送のロゴの視認性を高める"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "ライブラリーロゴを見やすくする"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Type Size"
-msgstr "タイプ"
+msgstr "タイプ サイズ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "ページ色"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "文字の両端ぞろえ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "マンガ読書モード"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
@@ -2328,6 +2324,8 @@ msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
 msgstr ""
+"コミックのページを、ウィンドウにどのように表示するかを設定します。読者自らの"
+"ボタン操作でも変更できます。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
