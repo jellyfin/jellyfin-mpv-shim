@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-20 07:38+0000\n"
-"Last-Translator: Jacky He <hekinghung@gmail.com>\n"
+"PO-Revision-Date: 2026-10-05 17:57+0000\n"
+"Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
 "Language: zh_Hans\n"
@@ -27,12 +27,12 @@ msgstr "未知格式"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr "页码 %(page)d of %(total)d"
+msgstr "第%(page)d页，共%(total)d页"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr "页码 %d"
+msgstr "第 %d 页"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
@@ -46,27 +46,27 @@ msgstr "选择音轨..."
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "{0}: No Subtitles"
-msgstr "{0}：无字幕"
+msgstr "{0}: 无字幕"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "{0}: Fail"
-msgstr "{0}：失败"
+msgstr "{0}: 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "Set Subbed: {0} ok, {1} fail"
-msgstr "设置字幕：{0} 成功，{1} 失败"
+msgstr "设置字幕: {0} 成功，{1} 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "设置配音：{0} 成功，{1} 只有音频，{2} 失败"
+msgstr "设置配音: {0} 成功，{1} 只有音频，{2} 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "Manual: {0} ok, {1} fail"
-msgstr "手动：{0} 成功，{1} 失败"
+msgstr "手动: {0} 成功，{1} 失败"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Setting Current..."
@@ -183,15 +183,15 @@ msgstr "快进以跳过剧情回顾"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Intro"
-msgstr "跳过简介"
+msgstr "跳过片头"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
-msgstr "已跳过简介"
+msgstr "已跳过片头"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Intro"
-msgstr "快进以跳过简介"
+msgstr "快进以跳过片头"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -651,7 +651,7 @@ msgstr "启动时需要输入此 PIN 码"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Remove PIN"
-msgstr "移除PIN码"
+msgstr "移除 PIN 码"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -806,7 +806,7 @@ msgstr "演职人员"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Download"
-msgstr "离线下载"
+msgstr "下载"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -1027,7 +1027,7 @@ msgstr "强制"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "External"
-msgstr "外置音轨"
+msgstr "外部"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Timestamp"
@@ -1232,7 +1232,7 @@ msgstr "输入"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr "Window"
+msgstr "窗口"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme"
@@ -1250,7 +1250,7 @@ msgstr "录制"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Downloads"
-msgstr "离线下载"
+msgstr "下载"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Tuning"
@@ -1264,7 +1264,7 @@ msgstr "播放器控制"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Playback"
-msgstr "播放设置"
+msgstr "播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
@@ -1449,7 +1449,7 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr "持续"
+msgstr "连续"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
@@ -1457,7 +1457,7 @@ msgstr "对齐到行"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr "每个凹槽一行"
+msgstr "每格滚动一行"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
@@ -1490,7 +1490,7 @@ msgstr "适合页面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr "控制面板后面"
+msgstr "控制台背板"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "None (shadowed text)"
@@ -1510,15 +1510,15 @@ msgstr "暂停时永不隐藏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr "扩大距离"
+msgstr "扩大间距"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr "将图块居中"
+msgstr "图块居中"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr "放在右边"
+msgstr "靠右不动"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -1578,23 +1578,23 @@ msgstr "未设置"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (shows only)"
-msgstr "仅显示配音版"
+msgstr "配音版（仅限节目）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (shows only)"
-msgstr "仅显示带字幕原版"
+msgstr "字幕版（仅限节目）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (all)"
-msgstr "优先配音版（全部媒体）"
+msgstr "配音版（全部媒体）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
-msgstr "优先原版带字幕（全部媒体）"
+msgstr "字幕版（全部媒体）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
-msgstr "自定义（config 文件内设置）"
+msgstr "自定义（在配置中设置）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Game Controller"
@@ -1610,7 +1610,7 @@ msgstr "下载目录"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
-msgstr "优先播放离线缓存文件"
+msgstr "优先使用下载副本"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
@@ -1622,7 +1622,7 @@ msgstr "在详情页上显示海报"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr "在详情页显示剧集缩略图"
+msgstr "在详情页上显示剧集缩略图"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1639,7 +1639,7 @@ msgstr "运动插值"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Debanding"
-msgstr "去条带"
+msgstr "去色带"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
@@ -1651,23 +1651,23 @@ msgstr "渲染质量"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr "网络缓冲区"
+msgstr "网络缓冲"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr "自动下载后续剧集"
+msgstr "自动下载“即将播出”的剧集"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr "包含「待续」列表内容"
+msgstr "包含“接下来”内容"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr "待续列表读取数量"
+msgstr "“接下来”列表读取数量"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr "预下载集数（0 = 关闭）"
+msgstr "预先保留集数（0 = 关闭）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
@@ -1699,7 +1699,7 @@ msgstr "每次检查的最大下载次数"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr "关闭窗口最小化到 Tray（后台常驻）"
+msgstr "关闭至托盘（保持运行）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
@@ -1792,7 +1792,7 @@ msgstr "漫画阅读模式"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr "Cast-target 模式（禁止浏览媒体库）"
+msgstr "投屏目标模式（禁止浏览媒体库）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
@@ -1800,7 +1800,7 @@ msgstr "收到投屏时打开媒体库界面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr "媒体库全屏显示"
+msgstr "媒体库浏览全屏显示"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
@@ -1861,7 +1861,7 @@ msgstr "配置组"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr "记住上次使用的画质 Profile"
+msgstr "记住上次使用的配置文件"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
@@ -1948,13 +1948,13 @@ msgid ""
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
 msgstr ""
-"除非下载过于频繁导致磁盘被唤醒，否则请将这些选项留空。将前两项同时设置：这"
-"样，当剧集进度不足时，系统会一次性下载所有剧集，而不是逐集下载。"
+"除非下载活动导致硬盘过于频繁地被唤醒，否则请将这些选项留空。建议将前两个选项"
+"同时设置：这样当剧集库存不足时，系统会批量获取新剧集，而不是逐个下载。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
-msgstr "剧集缩略图是您可能尚未观看的剧集的一个画面。"
+msgstr "剧集缩略图可能是您尚未观看剧集的某一个画面。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2227,9 +2227,9 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
-"用于绘制 Logo 图形的库也采用相同的处理方式。默认情况下处于关闭状态：按照惯"
-"例，电影或剧集的 Logo 为白色，并且在深色背景上已经清晰可见，正是底片本身才需"
-"要阴影。如果您的 Logo 为深色背景，请启用此功能。"
+"用于绘制 Logo 图形的库也采用相同的处理方式。默认情况下处于关闭状态：按照惯例"
+"，电影或节目的 Logo 为白色，并且在深色背景上已经清晰可见，正是底片本身才需要"
+"阴影。如果您的 Logo 为深色背景，请启用此功能。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2399,7 +2399,7 @@ msgstr "未播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Played"
-msgstr "播放"
+msgstr "已播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -2512,7 +2512,7 @@ msgstr "暂无播放列表。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr "输入新播放列表名称…"
+msgstr "新播放列表名称…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Create"
@@ -2574,7 +2574,7 @@ msgstr "确定"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Could not check what needs downloading."
-msgstr "无法获取待下载内容清单。"
+msgstr "无法检查需要下载的内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Estimating…"
@@ -2589,12 +2589,12 @@ msgstr "共 %(count)d 项 · 占用 %(size)s"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d already downloaded"
-msgstr "已离线缓存 %d 部"
+msgstr "%d 个已下载"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
-msgstr "已观看 %d 部"
+msgstr "%d 已观看"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2707,7 +2707,7 @@ msgstr "这些信息存储在您的服务器上，并与 Jellyfin Web 共享。"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr "已分页"
+msgstr "分页显示"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
@@ -2778,19 +2778,19 @@ msgstr "阅读进度"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr "正在读取位置…"
+msgstr "正在读取进度…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr "拉"
+msgstr "下拉"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr "推"
+msgstr "上推"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be read."
-msgstr "无法读取位置。"
+msgstr "无法读取进度。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Enter a number."
@@ -2807,11 +2807,11 @@ msgstr "输入一页或多页内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading position saved."
-msgstr "阅读位置已保存。"
+msgstr "阅读进度已保存。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be saved."
-msgstr "该位置无法保存。"
+msgstr "该进度无法保存。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2865,7 +2865,7 @@ msgstr "无法恢同步播放播放。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Automatic: Next Up"
-msgstr "自动：待播内容"
+msgstr "自动：接下来"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Automatic: Actively Watched"
@@ -2920,7 +2920,7 @@ msgstr "正在下载"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Queued"
-msgstr "等待下载"
+msgstr "已加入队列"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Failed"
@@ -2978,18 +2978,18 @@ msgstr "继续阅读"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Next Up"
-msgstr "待续"
+msgstr "接下来"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "Recently Added"
-msgstr "最近新增"
+msgstr "最近添加的"
 
 # seeded from jellyfin-web: HeaderActiveRecordings
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Active Recordings"
-msgstr "正在进行的录制"
+msgstr "正在录制的节目"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Secondary…"
@@ -3127,18 +3127,18 @@ msgstr "文件"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Nothing is playing."
-msgstr "没有播放任何内容。"
+msgstr "没有正在播放的内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Previous"
-msgstr "上一首"
+msgstr "上一个"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Previous chapter"
-msgstr "上一章节"
+msgstr "上一章"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
@@ -3151,18 +3151,18 @@ msgstr "快进 30 秒"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Next chapter"
-msgstr "下一章节"
+msgstr "下一章"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Next"
-msgstr "下一首"
+msgstr "下一个"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #, python-brace-format
 msgid "Ends at {0}"
-msgstr "结束时间 {0}"
+msgstr "结束于 {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Mute"
@@ -3215,7 +3215,7 @@ msgstr "取消录制"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
-msgstr "停止录制此电视节目？"
+msgstr "停止录制此节目？"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording cancelled."
@@ -3329,7 +3329,7 @@ msgstr "录制无法读取。"
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Series Options"
-msgstr "电视节目选项"
+msgstr "节目选项"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Recording"
@@ -3513,7 +3513,7 @@ msgstr "首映"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "New"
-msgstr "新的"
+msgstr "新增"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3872,7 +3872,7 @@ msgstr "日程"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Series"
-msgstr "剧集"
+msgstr "节目"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No programs are listed right now."
@@ -3884,7 +3884,7 @@ msgstr "前一天"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
-msgstr "早期"
+msgstr "更早"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Later"
@@ -3938,7 +3938,7 @@ msgstr "没有预定任何录制活动。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No series are set to record."
-msgstr "没有设置录制的电视节目。"
+msgstr "没有设置录制的节目。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Scheduled to record"
@@ -3950,7 +3950,7 @@ msgstr "正在录制"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording this series"
-msgstr "录制本电视节目"
+msgstr "正在录制这个节目"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "This series is set to record, but this showing is not scheduled"
@@ -4089,7 +4089,7 @@ msgstr "清除"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "To Playlist"
-msgstr "添加到播放列表"
+msgstr "转到播放列表"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -4136,7 +4136,7 @@ msgstr "类型"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Time"
-msgstr "时长"
+msgstr "时间"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
@@ -4166,7 +4166,7 @@ msgstr "复制页面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
-msgstr "复制了该段落。"
+msgstr "已复制段落。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the page."
@@ -4255,7 +4255,7 @@ msgstr "没有结果。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 msgid "To Series"
-msgstr "到节目"
+msgstr "转到节目"
 
 # seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
@@ -4277,7 +4277,7 @@ msgstr "正在播放"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "最近新增于 {0}"
+msgstr "最近添加的 {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4305,11 +4305,11 @@ msgstr "预告片"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
-msgstr "已缓存"
+msgstr "已下载"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "TV Shows"
-msgstr "电视剧"
+msgstr "电视节目"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlists"
@@ -4317,19 +4317,19 @@ msgstr "播放列表"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
-msgstr "已缓存电影"
+msgstr "已下载的电影"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Videos"
-msgstr "已缓存视频"
+msgstr "已下载的视频"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Shows"
-msgstr "已缓存剧集"
+msgstr "已下载的节目"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Books"
-msgstr "下载书籍"
+msgstr "已下载的书籍"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
@@ -4468,7 +4468,7 @@ msgstr "正在移动下载内容……"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "A move is already in progress."
-msgstr "相关行动已在进行中。"
+msgstr "已有移动作业在进行中。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Nothing downloaded to browse offline."
@@ -4521,7 +4521,7 @@ msgstr "部分 %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
-msgstr "在“接下来播放”和“继续观看”部分使用剧集图片"
+msgstr "在“接下来”和“继续观看”模块中使用剧集图片"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
@@ -4810,7 +4810,7 @@ msgstr "立即重启"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "Restart banner"
 msgid "Later"
-msgstr "之后"
+msgstr "稍后"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
@@ -4881,16 +4881,16 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr "下一集未离线缓存。"
+msgstr "下一集尚未下载。"
 
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
 msgid "Season {0} - Episode {1}"
-msgstr "第 {0} 季第 {1} 集"
+msgstr "第 {0} 季 - 第 {1} 集"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Disabled"
-msgstr "关闭"
+msgstr "禁用"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Select SVP Profile"
@@ -4961,7 +4961,7 @@ msgstr "该硬盘空间不足，无法移动下载的文件。请释放一些空
 msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
-msgstr "迁移缓存文件失败，文件保留原目录，下载目录未变更。"
+msgstr "移动下载内容失败。这些文件留在了原处，下载文件夹未发生更改。"
 
 #: jellyfin_mpv_shim/syncplay.py
 msgid "The specified SyncPlay group does not exist."
