@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-10-05 18:01+0000\n"
+"PO-Revision-Date: 2026-10-05 22:02+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -4501,13 +4501,13 @@ msgstr "这些设置存储在您的服务器上，并与 Jellyfin Web 共享。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Sections"
-msgstr "部分"
+msgstr "主屏幕版块"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
-msgstr "主屏幕按顺序显示的行。此应用无法绘制的部分将保留您网页客户端的设置。"
+msgstr "主屏幕显示的版块顺序。此应用无法显示的版块将保留您网页客户端的设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
@@ -4517,11 +4517,11 @@ msgstr "在 Jellyfin Web 中设置为 “%s”，但此应用不显示该设置�
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Section %d"
-msgstr "部分 %d"
+msgstr "主屏幕版块 %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
-msgstr "在“接下来”和“继续观看”模块中使用剧集图片"
+msgstr "在“接下来”和“继续观看”版块中使用剧集图片"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
