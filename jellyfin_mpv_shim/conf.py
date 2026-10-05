@@ -6,8 +6,11 @@ import json
 import os.path
 import sys
 import getpass
+import shutil
+import time
 import threading
 from typing import List, Optional
+from . import durable
 from .settings_base import SettingsBase, adv_bool, object_types
 from .language_config import LanguageRule, parse_language_config
 
@@ -1051,7 +1054,7 @@ class Settings(SettingsBase):
         # This should work now
         return open(path, mode, encoding=encoding), created
 
-    def load(self, path: str, create: bool = True):
+    def load(self, path: str, create: bool = True, _restored: bool = False):
         global config_path  # Don't want in model.
         fh, created = self.__get_file(path, "r", create)
         config_path = path
@@ -1079,6 +1082,9 @@ class Settings(SettingsBase):
             # `READ_ENCODING` was introduced it was read with the locale
             # codec and worked. Measured, both directions.
             log.error("Could not read settings from json: %s" % e)
+            fh.close()      # before the restore moves this file aside
+            if not _restored and self._restore_backup(path):
+                return self.load(path, create, _restored=True)
             self.__dict__["_unreadable"] = True
             return False
         finally:
@@ -1126,9 +1132,31 @@ class Settings(SettingsBase):
                     self.save()
             except Exception as e:
                 log.error("Error loading settings from json: %s" % e)
+                if not _restored and self._restore_backup(path):
+                    return self.load(path, create, _restored=True)
                 self.__dict__["_unreadable"] = True
                 return False
 
+        return True
+
+    def _restore_backup(self, path):
+        """Put ``conf.json.bak`` back over a config that will not load.
+
+        The backup exists only when a save had to write in place (see
+        `durable.replace_file`) and did not finish, or the user made one. It
+        is used only if it parses, and the unreadable file is kept beside it
+        rather than overwritten: it may be somebody's hand edit."""
+        bak = path + durable.BACKUP_SUFFIX
+        try:
+            with open(bak, encoding=self.READ_ENCODING) as fh:
+                json.loads(fh.read())
+            aside = "%s.unreadable-%d" % (path, int(time.time()))
+            os.replace(path, aside)
+            shutil.copyfile(bak, path)
+        except (OSError, ValueError):
+            return False
+        log.warning("conf.json would not load; restored it from %s. The "
+                    "unreadable copy is %s.", bak, aside)
         return True
 
     def save(self):
@@ -1158,12 +1186,11 @@ class Settings(SettingsBase):
         # interleave, and a crash mid-write leaves the old file intact
         # instead of a truncated one.
         with _save_lock:
-            tmp = config_path + ".tmp"
             try:
-                with open(tmp, "w", encoding=self.WRITE_ENCODING) as fh:
-                    json.dump(self.dict(), fh, indent=4, sort_keys=True)
-                    fh.flush()
-                os.replace(tmp, config_path)
+                durable.replace_file(
+                    config_path,
+                    json.dumps(self.dict(), indent=4, sort_keys=True),
+                    encoding=self.WRITE_ENCODING)
             except Exception as e:
                 log.error("Error saving settings to json: %s" % e)
                 return False

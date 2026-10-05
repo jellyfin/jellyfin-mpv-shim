@@ -538,10 +538,7 @@ class SavingIsAtomicTest(unittest.TestCase):
 
         store, path = self._store()
 
-        def boom(*_a, **_k):
-            raise OSError(errno.ENOSPC, "No space left on device")
-
-        with mock.patch("json.dump", side_effect=boom):
+        with _disk_full():
             store.set("series", "s2", "nnedi3")
 
         reopened = shader_overrides.ShaderOverrides(path)
@@ -554,10 +551,7 @@ class SavingIsAtomicTest(unittest.TestCase):
 
         store, path = self._store()
 
-        def boom(*_a, **_k):
-            raise OSError(errno.ENOSPC, "No space left on device")
-
-        with mock.patch("json.dump", side_effect=boom):
+        with _disk_full():
             store.set("series", "s2", "nnedi3")
         leftovers = [n for n in os.listdir(os.path.dirname(path))
                      if n != os.path.basename(path)]
@@ -571,10 +565,7 @@ class SavingIsAtomicTest(unittest.TestCase):
 
         store, _path = self._store()
 
-        def boom(*_a, **_k):
-            raise OSError(errno.ENOSPC, "No space left on device")
-
-        with mock.patch("json.dump", side_effect=boom):
+        with _disk_full():
             self.assertFalse(store.set("series", "s2", "nnedi3"))
 
     def test_an_ordinary_save_still_round_trips(self):
@@ -589,6 +580,39 @@ class SavingIsAtomicTest(unittest.TestCase):
         self.assertEqual(
             shader_overrides.ShaderOverrides(path).get("series", "s3"),
             shader_overrides.UNSET)
+
+
+@contextlib.contextmanager
+def _disk_full():
+    """Every file opened for writing fails its first write with ENOSPC --
+    after the open, so a writer that truncates the real file first is caught
+    with it empty, which is the failure these tests are about."""
+    import builtins
+    from unittest import mock
+    real_open = builtins.open
+
+    class Full:
+        def __init__(self, fh):
+            self.fh = fh
+
+        def write(self, *_a):
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+        def __getattr__(self, name):
+            return getattr(self.fh, name)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_a):
+            self.fh.close()
+
+    def full_open(file, mode="r", *a, **k):
+        fh = real_open(file, mode, *a, **k)
+        return Full(fh) if any(c in mode for c in "wa+") else fh
+
+    with mock.patch("builtins.open", full_open):
+        yield
 
 
 @contextlib.contextmanager
