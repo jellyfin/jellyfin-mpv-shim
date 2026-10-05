@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-10-05 17:57+0000\n"
+"PO-Revision-Date: 2026-10-05 18:01+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -766,7 +766,7 @@ msgstr "登录"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr "暂无离线缓存内容可供浏览。"
+msgstr "没有可供浏览的已下载内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Couldn't reach your saved server(s)."
@@ -3284,7 +3284,7 @@ msgstr "删除"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
-msgstr "删除下载缓存失败。"
+msgstr "无法移除该下载项。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -4827,7 +4827,7 @@ msgstr "关闭提示"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr "离线模式，仅展示本地缓存内容。"
+msgstr "离线 — 仅显示可用内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py jellyfin_mpv_shim/tray.py
 msgid "Configure Servers"
@@ -5167,15 +5167,15 @@ msgstr "默认"
 
 msgctxt "guide navigation"
 msgid "Later"
-msgstr "之后"
+msgstr "稍后"
 
 msgctxt "update banner"
 msgid "Later"
-msgstr "之后"
+msgstr "稍后"
 
 msgctxt "playback control"
 msgid "Repeat"
-msgstr "循环播放"
+msgstr "循环模式"
 
 msgctxt "guide badge"
 msgid "Repeat"
