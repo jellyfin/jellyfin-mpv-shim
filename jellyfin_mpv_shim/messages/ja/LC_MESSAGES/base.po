@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-10-05 01:46+0000\n"
+"PO-Revision-Date: 2026-10-05 17:57+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -1289,7 +1289,7 @@ msgstr "ダウンロード調整"
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls"
-msgstr "プレーヤー操作"
+msgstr "プレーヤーコントローラー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1424,7 +1424,7 @@ msgstr "カスタム OSC"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
-msgstr "プレーヤー操作なし"
+msgstr "プレーヤーコントローラーなし"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
@@ -1759,7 +1759,7 @@ msgstr "デスクトップタイトルバーを非表示"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
-msgstr "プレーヤー操作スタイル"
+msgstr "プレーヤーコントローラー スタイル"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Enable Trickplay Thumbnails"
@@ -1830,7 +1830,7 @@ msgstr "マンガ読書モード"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "キャスト対象モード ( ライブラリーブラウズなし )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
@@ -1842,98 +1842,92 @@ msgstr "全画面ライブラリーブラウザー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "ブラウズ中はプレーヤーのキー割り当てをブロック"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr "常に矢印キーをプレーヤーの操作用に割り当てる"
+msgstr "常に矢印キーをプレーヤーコントローラーに割り当てる"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "プレーヤーコントローラー有効化キー"
 
 # seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Select All"
 msgid "Select Key"
-msgstr "すべて選択"
+msgstr "キーを選択"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "プレーヤーコントローラーの後ろに影をつける"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "プレーヤーコントローラー非表示時"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "プレーヤーコントローラーを非表示にする時間 ( 秒 )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr ""
+msgstr "幅の狭いウィンドウ上ではプレーヤーコントローラーを縮小する"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "マウスの戻る・進むボタンでチャプターをスキップ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "音声出力モード"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr ""
+msgstr "音声出力デバイス"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "デバイスを独占して利用"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "動画再生プロファイル"
+msgstr "動画再生プロファイルを有効に"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "新しいグループ"
+msgstr "プロファイルグループ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr ""
+msgstr "最後に利用したプロファイルを記憶"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "シェーダー用グラフィック API"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
-msgstr ""
+msgstr "AC3 パススルー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS"
-msgstr ""
+msgstr "DTS パススルー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through E-AC3"
-msgstr ""
+msgstr "E-AC3 パススルー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
-msgstr ""
+msgstr "DTS-HD パススルー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through TrueHD"
-msgstr ""
+msgstr "TrueHD パススルー"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Re-encode Others to AC3"
-msgstr ""
+msgstr "AC3 以外は再エンコード"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1941,6 +1935,9 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"「最小化して起動」と「全画面表示」を組み合わせると、これは典型的なキャスト先"
+"設定となります。アプリは邪魔にならないように待機し、何かがキャストされると全"
+"画面で再生し、動画が終了するか Q キーを押すと再び待機状態に戻ります。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1950,6 +1947,12 @@ msgid ""
 "with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
 "log says so. Any button can be reassigned in your input.conf."
 msgstr ""
+"D パッドか左スティックで移動、右スティックでシーク、ショルダーボタンでページ"
+"送り、スタートボタンでメニューを表示します。コントローラーはフォーカスに依存"
+"しないため、別のウィンドウが前面にある場合でもこのアプリにアクセスできます。"
+"SDL2 ゲームパッドサポートを組み込んだ MPV が必要です。お使いの MPV にこの"
+"サポートがない場合、この設定は無視され、ログにその旨を表示します。input.conf "
+"で任意のボタンに割り当てを変更できます。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1966,6 +1969,9 @@ msgid ""
 "no video for them to act on. Turn it off to use your own MPV key bindings "
 "there."
 msgstr ""
+"操作の対象となる動画が存在しないライブラリー内では、MPV 独自のショートカット"
+"（画像調整、スクリーンショット、字幕や音声の切り替えなど）を無効にします。こ"
+"こで独自の MPV キー割り当てを使いたい場合は、設定をオフにしてください。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1973,6 +1979,10 @@ msgid ""
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
 msgstr ""
+"ライブラリーやプレーヤーコントローラー上で、ハイライト表示している項目を"
+"アクティブにします。MPV キー名 : これを変更すると、Enter キーの機能は MPV に"
+"戻ります。その後に、ゲームコントローラーの「確認」ボタンやスマートフォンの「"
+"Select」ボタンが続きます。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1980,6 +1990,9 @@ msgid ""
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
 msgstr ""
+"ダウンロードでディスクが頻繁になる場合を除き、この設定を空のままにしておいて"
+"ください。最初の 2 つを両方とも設定すると、シリーズの残りが少なくなった際に、"
+"エピソードを 1 つずつではなく、まとめて一括で取得するようになります。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1992,6 +2005,9 @@ msgid ""
 "window, and the right button does whatever your MPV config gives it. Double "
 "click is full screen either way."
 msgstr ""
+"「オフ」に設定すると、MPV 独自のマウス操作が有効になります。つまり、動画を"
+"ドラッグしてウィンドウを移動でき、右クリックは MPV の設定に従って動作します。"
+"いずれの場合もダブルクリックで全画面表示になります。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2002,6 +2018,13 @@ msgid ""
 "player's settings menu, which lasts until you return to the library. Needs "
 "MPV 0.38 or newer."
 msgstr ""
+"ファイルにインターレースと指定している動画のインターレース解除を行います。"
+"MPV そのものと同様、デフォルトはオフです。ファイルのこのフラグは信頼性が低く"
+"、プログレッシブ形式の動画にインターレース解除を適用すると、もともと鮮明だっ"
+"た映像がぼやけてしまいます。インターレース形式と明記していない動画に強制的に"
+"インターレース解除を行うには、プレーヤーの設定メニューにある「インターレース"
+"解除」をご利用ください。この設定はライブラリーに戻るまで有効です。MPV 0.38 以"
+"降が必要です。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2076,6 +2099,10 @@ msgid ""
 "you get MPV's own on-screen controls; use Player Controls Style under "
 "Interface for that."
 msgstr ""
+"「オフ」はコマンドラインモードを意味します : ウィンドウもシステムトレイも設定"
+"画面も表示しないため、元に戻すには conf.json を手動で編集するしかありません。"
+"これは MPV 独自の画面上のコントロールを使用する方法ではありません。「"
+"インターフェース」内の「プレーヤーコントローラー スタイル」をご利用ください。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2137,6 +2164,13 @@ msgid ""
 "library a solid background, so the script's idle screen cannot show through "
 "it."
 msgstr ""
+"デフォルトでは MPV のキー割り当てを使います。ENTER キーを押すと、キーボードで"
+"プレイヤーコントローラーを操作できます。「プレイヤーコントローラーなし」を選"
+"ぶと、再生機能のみの最小限の状態になり、ライブラリー、"
+"キーボードショートカット、メニューキーは引き続き機能します。ご自身による OSC "
+"スクリプトをインストールしている場合は「カスタム OSC」を選びます : MPV 独自の"
+"機能はオフになり、ライブラリーに不透明な背景が適用することでスクリプトの"
+"アイドル画面が透けて見えるのを防ぎます。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2232,6 +2266,8 @@ msgid ""
 "and its air times, and the \"Ends at\" labels on a detail page and the "
 "player controls."
 msgstr ""
+"時刻を「20:30」ではなく「8:30 PM」と表示――テレビ番組表とその放送時間、詳細"
+"ページおよびプレーヤーコントロールの「終了時刻」の表示。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2324,7 +2360,7 @@ msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
 msgstr ""
-"コミックのページを、ウィンドウにどのように表示するかを設定します。読者自らの"
+"マンガのページを、ウィンドウにどのように表示するかを設定します。読者自らの"
 "ボタン操作でも変更できます。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3814,7 +3850,7 @@ msgstr "サーバー設定"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This comic could not be opened."
-msgstr ""
+msgstr "このマンガを開けませんでした。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This page could not be read."
@@ -3827,7 +3863,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
-msgstr ""
+msgstr "マンガを取得中…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
