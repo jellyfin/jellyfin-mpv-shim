@@ -1801,6 +1801,49 @@ ok(slot_of("/chip") > slot_of("/strip2"),
    string.format("chip is slot %s, its row is slot %s",
                  tostring(slot_of("/chip")), tostring(slot_of("/strip2"))))
 
+-- ============================================== fractional image crops
+
+-- Independent flooring of the near/far edges can turn 271 source pixels
+-- into a 272-pixel overlay: floor(432.99999999999994 + 271) - floor(...).
+-- Test the commands sent to mpv for both file and same-process memory
+-- sources. A real memory overlay would copy past the allocation (#800).
+do
+    local near_edge = 432.99999999999994
+    for _, src in ipairs({ "/fractional-artwork", "&1048576" }) do
+        for _, axis in ipairs({ "x", "y" }) do
+            -- Move away and back so the bounds also hold after re-issues.
+            for _, position in ipairs({ near_edge, 433, near_edge }) do
+                scene({})
+                local node = { id = "fractional-artwork", t = "img", src = src,
+                               x = 16, y = 16, w = 271, h = 271,
+                               iw = 271, ih = 271 }
+                node[axis] = position
+                local before = #fake.log.commands
+                local adds = paint({ node })
+                eq(adds, 1, "fractional " .. axis .. " crop paints " .. src)
+                for i = before + 1, #fake.log.commands do
+                    local c = fake.log.commands[i]
+                    if c[1] == "overlay-add" then
+                        local offset = tonumber(c[6])
+                        if src:sub(1, 1) == "&" then
+                            offset = tonumber(c[5]:sub(2)) - tonumber(src:sub(2))
+                        end
+                        local width, height, stride = tonumber(c[8]),
+                            tonumber(c[9]), tonumber(c[10])
+                        local sy = math.floor(offset / stride)
+                        local sx = (offset - sy * stride) / 4
+                        ok(sx >= 0 and sy >= 0 and sx + width <= node.iw
+                           and sy + height <= node.ih,
+                           "fractional " .. axis .. " crop stays inside " .. src,
+                           string.format("crop (%d, %d) %dx%d, source %dx%d",
+                               sx, sy, width, height, node.iw, node.ih))
+                    end
+                end
+            end
+        end
+    end
+end
+
 -- ========================================================= disabled
 
 -- A disabled control is on screen and inert: no click, no spatial-nav
