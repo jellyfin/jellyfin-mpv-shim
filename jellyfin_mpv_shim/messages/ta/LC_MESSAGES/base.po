@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-08-18 18:37+0000\n"
-"Last-Translator: deepak r <deepak.r232629@gmail.com>\n"
+"PO-Revision-Date: 2026-10-05 17:57+0000\n"
+"Last-Translator: Oatavandi <oatavandi@gmail.com>\n"
 "Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ta/>\n"
 "Language: ta\n"
@@ -32,12 +32,12 @@ msgstr "பக்கம்%(page)d/%(total)d"
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "பக்கம் %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% படிக்க"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -76,14 +76,16 @@ msgstr "நடப்பு அமைத்தல் ..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Jellyfin-ஐத் திறந்து, உங்கள் பயனர் மெனுவிற்குச் சென்று -> விரைவு இணைப்பு (Quick "
+"Connect), இந்தக் குறியீட்டை உள்ளிடவும்:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "அனுமதிக்காகக் காத்திருக்கிறது..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "தற்போதுள்ள அனைத்து கணக்குகளையும் நீக்குதல்."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -95,19 +97,15 @@ msgstr "சேவையகத்தைச் சேர்ப்பது தோ�
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "கணக்கு ஏற்கனவே உள்ளது. உள்நுழைவு விவரங்கள் புதுப்பிக்கப்படுகின்றன."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "வெற்றிகரமாக சேவையகம் சேர்க்கப்பட்டது."
+msgstr "சேவையக நற்சான்றுகள் வெற்றிகரமாகப் புதுப்பிக்கப்பட்டன."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "சேவையகத்தைச் சேர்ப்பது தோல்வியுற்றது."
+msgstr "சேவையக நற்சான்றுகளைப் புதுப்பிப்பது தோல்வியடைந்தது."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -126,28 +124,20 @@ msgid "Add another server?"
 msgstr "மற்றொரு சேவையகத்தைச் சேர்க்கவா?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"சேவையகத்தைச் சேர்க்க முடியவில்லை.\n"
-"உங்கள் இணைப்பு தகவலை சரிபார்க்கவும்."
+msgstr "சேவையகத்துடன் இணைக்க முடியவில்லை."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "இந்த சர்வரில் குயிக் கனெக்ட் இயக்கப்படவில்லை."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "குயிக் கனெக்டைத் தொடங்க முடியவில்லை."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "தவிர்க்கப்பட்ட கிரெடிட்கள்"
+msgstr "கிரெடிட்ஸைத் தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -158,61 +148,44 @@ msgid "Seek to Skip Credits"
 msgstr "கிரெடிட்களைத் தவிர்க்க முயற்சிக்கவும்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "சிறப்பு"
+msgstr "விளம்பரத்தைத் தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "தவிர்க்கப்பட்ட கிரெடிட்கள்"
+msgstr "தவிர்க்கப்பட்ட விளம்பரங்கள்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "கிரெடிட்களைத் தவிர்க்க முயற்சிக்கவும்"
+msgstr "விளம்பரத்தைத் தவிர்க்க முயலுங்கள்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "தவிர்க்கப்பட்ட கிரெடிட்கள்"
+msgstr "முன்னோட்டத்தைத் தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "தவிர்க்கப்பட்ட கிரெடிட்கள்"
+msgstr "தவிர்க்கப்பட்ட முன்னோட்டம்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "கிரெடிட்களைத் தவிர்க்க முயற்சிக்கவும்"
+msgstr "முன்னோட்டத்தைத் தவிர்க்க முயலுங்கள்"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "சுருக்கத்தை தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "தவிர்க்கப்பட்ட கிரெடிட்கள்"
+msgstr "தவிர்க்கப்பட்ட சுருக்கம்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "கிரெடிட்களைத் தவிர்க்க முயற்சிக்கவும்"
+msgstr "சுருக்கத்தைத் தவிர்க்க முயலுங்கள்"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "முன்னோட்டம் தவிர்க்க பட்டது"
+msgstr "அறிமுகத்தைத் தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -318,8 +291,6 @@ msgstr "வீடியோ பின்னணி சுயவிவரத்த�
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
 msgstr "வெளியேறி, கவனிக்கப்படாததைக் குறிக்கவும்"
 
@@ -396,11 +367,11 @@ msgstr "ஒருபோதும்"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "கேள்"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "எப்பொழுதும்"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -435,10 +406,9 @@ msgid "Middle"
 msgstr "நடுத்தர"
 
 #: jellyfin_mpv_shim/menu.py
-#, fuzzy, python-brace-format
-#| msgid "Remote Transcode Quality: {0:0.1f} Mbps"
+#, python-brace-format
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "தொலைநிலை டிரான்ஸ்கோட் தரம்: {0: 0.1f} Mbps"
+msgstr "தொலைநிலை குறியீட்டுப் பரிமாற்றத் தரம்: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
@@ -509,22 +479,17 @@ msgid "Discord Rich Presence"
 msgstr "டிஸ்கார்ட் ரிச் பிரசன்ஸ்"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "முன்னோட்டம் தவிர்க்க பட்டது"
+msgstr "அறிமுகங்களைத் தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "தவிர்க்கப்பட்ட கிரெடிட்கள்"
+msgstr "கிரெடிட்ஸைத் தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "சிறப்பு"
+msgstr "விளம்பரங்களைத் தவிர்க்கவும்"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
