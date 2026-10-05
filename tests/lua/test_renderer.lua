@@ -278,6 +278,59 @@ type_text("Z")
 fake.key("mpvtk_k_ESC")
 ok(last_event("commit") == nil, "ESC reverts rather than committing")
 
+-- ============================================================ IME (#798)
+
+-- mpv >= 0.40 keeps the input method off its window unless input-ime is on,
+-- so a focused box turns it on and leaving puts back what was there. The
+-- user's own setting is the thing to put back, not a hardcoded "no".
+local function ime() return fake.log.props["input-ime"] end
+
+fake.log.props["input-ime"] = false            -- mpv 0.40+, the default
+scene({ textbox("i1", "", 0), textbox("i2", "", 1),
+        { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
+for round = 1, 3 do
+    click("i1")
+    eq(ime(), true, "round " .. round .. ": a focused box turns the IME on")
+    click("i2")                                -- box to box: still typing
+    eq(ime(), true, "round " .. round .. ": moving to another box keeps it on")
+    click("plain")
+    eq(ime(), false, "round " .. round .. ": leaving puts the user's off back")
+end
+
+click("i1")
+fake.send("mpvtk-active", "no")                -- off to playback
+eq(ime(), false, "going to playback with a box focused turns the IME off")
+fake.send("mpvtk-active", "yes")
+
+fake.log.props["input-ime"] = true             -- the user's own mpv.conf
+scene({ textbox("i1", "", 0),
+        { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
+fake.reset_events()
+click("i1")
+type_text("x")
+click("plain")
+ok(last_event("commit") ~= nil, "the box was really focused (it committed)")
+eq(ime(), true, "a user's own input-ime=yes survives leaving a box")
+
+-- A password: the IME's own window would show what is typed.
+fake.log.props["input-ime"] = false
+scene({ { id = "pw", t = "textbox", x = 0, y = 0, w = 200, h = 30,
+          size = 18, text = "", mask = true },
+        { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
+click("pw")
+eq(ime(), false, "a masked box leaves the IME off")
+click("plain")
+
+-- mpv < 0.40: no such property, so nothing may be written.
+fake.unavailable["input-ime"] = true
+fake.log.props["input-ime"] = nil
+scene({ textbox("old", "", 0),
+        { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
+click("old")
+click("plain")
+eq(ime(), nil, "an mpv without input-ime is never told to set it")
+fake.unavailable["input-ime"] = nil
+
 -- ========================================================= clipboard
 
 -- mpv's clipboard/text is not universal: the x11 backend only arrived in

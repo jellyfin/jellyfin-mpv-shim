@@ -156,8 +156,10 @@ not bugs to fix, but the shape of the box we're working inside.
    could ship a real width table for the chosen font (uosc does this).
 3. **Text input** enumerates printable ASCII as forced key bindings
    while a textbox is focused; Ctrl+V pastes via the `clipboard/text`
-   property (mpv ≥ 0.40). IME (CJK) input is not available — the
-   long-term path is mpv's `mp.input` / Wayland text-input integration.
+   property (mpv ≥ 0.40). IME (CJK) text arrives through `any_unicode`
+   on Windows and Wayland, with mpv ≥ 0.40: a focused, unmasked textbox
+   turns `input-ime` on and leaving puts back the previous value (#798).
+   X11 and macOS have no IME path in mpv.
 4. **Overlay budget** is 63 ids. Off-viewport images cost nothing;
    ~50 simultaneously visible posters is comfortable. The renderer
    warns and drops beyond the budget.

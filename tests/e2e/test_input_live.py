@@ -378,5 +378,45 @@ class TheBackButtonDuringMusicTest(_MusicMixin, _InputCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class TheImeFollowsTheTextBoxTest(unittest.TestCase):
+    """#798: mpv >= 0.40 keeps the input method off its window unless
+    `input-ime` is on, so CJK text could not be typed at all. A focused box
+    turns it on, a password box does not, and leaving puts back what was
+    there. On the login form of a fresh config, so no server is needed.
+    The real IME is a Windows/Wayland check by hand; this pins the switch."""
+
+    def setUp(self):
+        self.app = _app.App(backend=_pl._backend())
+        self.addCleanup(lambda: self.app.close())
+        self.app.start()
+        self.app.wait_for(lambda f: _app.shown(f, "login-server"),
+                          timeout=60, what="the login screen")
+
+    def ime_becomes(self, want, what):
+        if not _e2e.wait_for(lambda: self.app.prop("input-ime") is want,
+                             timeout=5):
+            self.fail("input-ime is %r, want %r: %s"
+                      % (self.app.prop("input-ime"), want, what))
+
+    def focus(self, box):
+        self.app.move_to(box)
+        self.app.wait_for(lambda f: f.get("focus") == box, timeout=5,
+                          what="%s taking the typing" % box)
+
+    def test_on_in_a_box_off_in_the_password_and_after(self):
+        for _ in range(3):
+            self.focus("login-server")
+            self.ime_becomes(True, "in the server box")
+            self.focus("login-pass")
+            self.ime_becomes(False, "in the password box")
+            self.focus("login-user")
+            self.ime_becomes(True, "in the username box")
+            self.app.move_to("login-connect")
+            self.app.wait_for(lambda f: f.get("focus") is None, timeout=5,
+                              what="the boxes to give up the typing")
+            self.ime_becomes(False, "after leaving the boxes")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
 if __name__ == "__main__":
     unittest.main()

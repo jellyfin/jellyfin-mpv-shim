@@ -314,7 +314,11 @@ function mp.set_property(name, value)
     M.log.props[name] = value
     return true
 end
-function mp.set_property_bool(name, value) M.log.props[name] = value end
+function mp.set_property_bool(name, value)
+    if M.unavailable[name] then return nil, "property unavailable" end
+    M.log.props[name] = value
+    return true
+end
 
 -- The comic reader's pan is set this way, sixty times a second, entirely in
 -- the renderer -- so it never reached mpv through any of the paths above and
@@ -350,7 +354,14 @@ function mp.get_property(name, def)
     return M.log.props[name] or def
 end
 function mp.get_property_number(name, def) return M.log.props[name] or def end
-function mp.get_property_bool(name, def) return M.log.props[name] or def end
+-- A stored false is an answer, not a miss: `props[name] or def` turned it
+-- into the default.
+function mp.get_property_bool(name, def)
+    if M.unavailable[name] then return def, "property unavailable" end
+    local v = M.log.props[name]
+    if v == nil then return def end
+    return v
+end
 
 function mp.observe_property(name, _kind, fn)
     prop_observers[name] = prop_observers[name] or {}

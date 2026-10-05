@@ -3090,10 +3090,22 @@ function tb_key_text(e)
     tb_insert(t)
 end
 
-local function bind_text_keys()
+local function bind_text_keys(ime)
     if text_keys_bound then return end
     obs_key('bind', 'text on')
     text_keys_bound = true
+    -- mpv >= 0.40 detaches the input method from its window unless
+    -- input-ime is on (Windows, Wayland), so CJK text never reached
+    -- any_unicode (#798). On only while a box is focused: an active IME
+    -- takes plain keys into its pre-edit, which would swallow every other
+    -- binding. Not for a masked box -- the IME's own window shows what is
+    -- typed. Older mpv has no such property; the read fails, nothing is set.
+    if ime and state.ime_saved == nil then
+        local was = mp.get_property_bool('input-ime')
+        if was ~= nil and mp.set_property_bool('input-ime', true) then
+            state.ime_saved = was
+        end
+    end
     text_key_names = {}
     local function bind(key, bname, fn)
         mp.add_forced_key_binding(key, bname, fn,
@@ -3151,6 +3163,10 @@ local function unbind_text_keys()
         mp.remove_key_binding(bname)
     end
     text_key_names = {}
+    if state.ime_saved ~= nil then
+        mp.set_property_bool('input-ime', state.ime_saved)
+        state.ime_saved = nil
+    end
 end
 
 function blur()
@@ -3179,7 +3195,7 @@ local function focus_textbox(node)
     state.focus = node.id
     tb_state(node)
     state.cursor_on = true
-    bind_text_keys()
+    bind_text_keys(not node.mask)
     state.blink_timer = mp.add_periodic_timer(0.55, function()
         state.cursor_on = not state.cursor_on
         request_render()
