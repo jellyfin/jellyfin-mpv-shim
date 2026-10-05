@@ -3100,10 +3100,18 @@ local function bind_text_keys(ime)
     -- takes plain keys into its pre-edit, which would swallow every other
     -- binding. Not for a masked box -- the IME's own window shows what is
     -- typed. Older mpv has no such property; the read fails, nothing is set.
+    -- An IME commit arrives as one key per character in a single burst, and
+    -- mpv silently drops key commands past input-key-fifo-size (default 7):
+    -- a 13-character commit reached the box as 9. Raised alongside.
     if ime and state.ime_saved == nil then
         local was = mp.get_property_bool('input-ime')
         if was ~= nil and mp.set_property_bool('input-ime', true) then
             state.ime_saved = was
+            local fifo = mp.get_property_number('input-key-fifo-size')
+            if fifo and fifo < 256
+                    and mp.set_property_number('input-key-fifo-size', 256) then
+                state.fifo_saved = fifo
+            end
         end
     end
     text_key_names = {}
@@ -3166,6 +3174,10 @@ local function unbind_text_keys()
     if state.ime_saved ~= nil then
         mp.set_property_bool('input-ime', state.ime_saved)
         state.ime_saved = nil
+    end
+    if state.fifo_saved ~= nil then
+        mp.set_property_number('input-key-fifo-size', state.fifo_saved)
+        state.fifo_saved = nil
     end
 end
 

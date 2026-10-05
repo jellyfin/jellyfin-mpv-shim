@@ -158,7 +158,8 @@ not bugs to fix, but the shape of the box we're working inside.
    while a textbox is focused; Ctrl+V pastes via the `clipboard/text`
    property (mpv ≥ 0.40). IME (CJK) text arrives through `any_unicode`
    on Windows and Wayland, with mpv ≥ 0.40: a focused, unmasked textbox
-   turns `input-ime` on and leaving puts back the previous value (#798).
+   turns `input-ime` on, and raises `input-key-fifo-size` so a long
+   commit is not cut short; leaving puts back both (#798).
    X11 and macOS have no IME path in mpv.
 4. **Overlay budget** is 63 ids. Off-viewport images cost nothing;
    ~50 simultaneously visible posters is comfortable. The renderer

@@ -285,21 +285,26 @@ ok(last_event("commit") == nil, "ESC reverts rather than committing")
 -- user's own setting is the thing to put back, not a hardcoded "no".
 local function ime() return fake.log.props["input-ime"] end
 
+local function fifo() return fake.log.props["input-key-fifo-size"] end
 fake.log.props["input-ime"] = false            -- mpv 0.40+, the default
+fake.log.props["input-key-fifo-size"] = 7      -- mpv's default
 scene({ textbox("i1", "", 0), textbox("i2", "", 1),
         { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
 for round = 1, 3 do
     click("i1")
     eq(ime(), true, "round " .. round .. ": a focused box turns the IME on")
+    eq(fifo(), 256, "round " .. round .. ": and makes room for a whole commit")
     click("i2")                                -- box to box: still typing
     eq(ime(), true, "round " .. round .. ": moving to another box keeps it on")
     click("plain")
     eq(ime(), false, "round " .. round .. ": leaving puts the user's off back")
+    eq(fifo(), 7, "round " .. round .. ": and the key queue's size")
 end
 
 click("i1")
 fake.send("mpvtk-active", "no")                -- off to playback
 eq(ime(), false, "going to playback with a box focused turns the IME off")
+eq(fifo(), 7, "going to playback puts the key queue back")
 fake.send("mpvtk-active", "yes")
 
 fake.log.props["input-ime"] = true             -- the user's own mpv.conf
@@ -319,6 +324,7 @@ scene({ { id = "pw", t = "textbox", x = 0, y = 0, w = 200, h = 30,
         { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
 click("pw")
 eq(ime(), false, "a masked box leaves the IME off")
+eq(fifo(), 7, "and the key queue alone")
 click("plain")
 
 -- mpv < 0.40: no such property, so nothing may be written.
@@ -329,6 +335,7 @@ scene({ textbox("old", "", 0),
 click("old")
 click("plain")
 eq(ime(), nil, "an mpv without input-ime is never told to set it")
+eq(fifo(), 7, "nor has its key queue changed")
 fake.unavailable["input-ime"] = nil
 
 -- ========================================================= clipboard
