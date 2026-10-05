@@ -323,12 +323,19 @@ It ended the same way C4 did — with an enumerating instrument, not more care:
 the best statement of the repo's defect shape anywhere in the tree
 (`tools/audit_owned_state.py:1-36`).
 
-**But it is declared for exactly two pieces of state** (`OWNED` at
-`tools/audit_owned_state.py:51-73`): `SyncManager._cancelled` and
+**But it is declared for exactly two pieces of state** (`OWNED` in
+`tools/audit_owned_state.py`): `SyncManager._cancelled` and
 `SyncManager._active_item`. The four entries `docs/RISK_MAP_2026-09.md` §7 calls
 *"the cheapest Tier-1 coverage available — a bookkeeping extension to a tool that
 exists"* — `_sync_path`, `ThumbnailStore._gone`, `mpv.TIMEOUT`,
 `_login["pass"]` — are **not declared**. CONFIRMED by grep.
+
+> **Corrected 2026-09-11.** No longer true, and this is the count rather than
+> the argument: `OWNED` now holds six entries, including all four named above.
+> `_active_item` is also gone as a name — the download claim is `_active`, a
+> dict keyed by worker generation, because one slot could not represent the
+> two live workers `relocate`'s refusal path creates. Grep for the old name
+> finds nothing.
 
 ### C6 — "app-initiated window changes must not write user-intent flags" — **OPEN (risk map R8), verified**
 

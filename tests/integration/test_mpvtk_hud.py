@@ -327,6 +327,45 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertIn("enter", self.ctl.calls)
         self.assertTrue(self.browser._browsing)
 
+    def test_the_preview_frame_is_drawn_at_the_scale_asked_for(self):
+        """`thumbnail_scale` against a real mpv, because the renderer decides
+        whether it may scale by reading overlay-add's argument names out of
+        `command-list` -- and the Lua suite's fake only models that shape.
+        A probe that misread the real one would never scale anything, and
+        pass every fake-backed test while doing it."""
+        tw, th, count = 64, 36, 10
+        raw = os.path.join(self.tmp, "raw_images_scaled.bin")
+        with open(raw, "wb") as fh:
+            fh.write(bytes((40, 160, 220, 255)) * (tw * th * count))
+        self.handle.command("script-message", "shim-trickplay-bif",
+                            str(count), "3000", str(tw), str(th), raw,
+                            "0", str(count), "2")
+        args = [a.get("name") for c in (self.handle.command_list or ())
+                if c.get("name") == "overlay-add"
+                for a in (c.get("args") or ())]
+        self.assertIn("stride", args, "could not read overlay-add's signature")
+
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="renderer never entered HUD-idle")
+        self._press_until("LEFT", lambda: self.browser.hud.shown,
+                          msg="summon failed")
+        self._press_until(
+            "LEFT", lambda: self.browser.hud.scrub is not None,
+            msg="adjust-mode scrub never reached the browser")
+        self._wait(lambda: (self._state().get("preview") or {}).get("frame")
+                   is not None,
+                   msg="trickplay preview never drew a frame")
+
+        state = self._state()
+        self.assertEqual(state.get("ov_scale"), "dw" in args,
+                         "the renderer's probe disagrees with this mpv's "
+                         "overlay-add signature")
+        if "dw" in args:
+            self.assertGreaterEqual(state["preview"]["w"], 2 * tw,
+                                    "the bubble did not grow around a 2x "
+                                    "frame")
+
     def test_scrub_commit_cancel_and_preview(self):
         # Fake trickplay data: 10 raw-BGRA frames, 3s apart (the format
         # the TrickPlay worker writes to raw_images.<seq>.bin), announced

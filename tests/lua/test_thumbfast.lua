@@ -240,6 +240,146 @@ fake.client_message("shim-trickplay-clear")
 eq(info().scale_factor, 1, "scale_factor dropped on the clear announcement")
 eq(info().disabled, true, "stayed enabled after a clear")
 
+-- ------------------------------------------------------- display scaling
+
+-- The frames are decoded at the server's preview width, a size in PHYSICAL
+-- pixels, so on a 2x display they come out half the size of everything the
+-- OSC drew around them. overlay-add scales on the GPU when handed a display
+-- size (dw/dh, mpv 0.38+), so the frame file stays the size it was. The
+-- message's last argument is `thumbnail_scale`, or "auto" for the display's.
+local OLD_MPV = os.getenv("JMS_TEST_NO_OVERLAY_SCALE") ~= nil
+
+--- The last overlay-add, raw: (overlay-add, id, x, y, file, offset, fmt,
+--- w, h, stride[, dw, dh]).
+local function overlay_cmd()
+    local found
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "overlay-add" then found = c end
+    end
+    return found
+end
+
+local function num(c, i)
+    return c and c[i] and tonumber(c[i])
+end
+
+local function scaled_window(scale)
+    fake.log.commands = {}
+    fake.client_message("shim-trickplay-bif", "20", "10000", tostring(W),
+                        tostring(H), "/tiles.bin", "40", "100", scale)
+end
+
+-- At 1x nothing changes: no display size is passed at all, so an mpv older
+-- than 0.38 -- which rejects the extra arguments -- still draws.
+scaled_window("auto")
+thumb(450, 10, 20)
+eq(overlay_cmd() and #overlay_cmd(), 10, "a 1x preview passed a display size")
+
+scaled_window("2")
+if OLD_MPV then
+    eq(info().width, W, "announced a width an old mpv cannot draw")
+    eq(info().scale_factor, 1, "announced a scale an old mpv cannot apply")
+else
+    eq(info().width, 2 * W, "thumbfast-info announced the source width")
+    eq(info().height, 2 * H, "thumbfast-info announced the source height")
+    eq(info().scale_factor, 2, "thumbfast-info did not carry the scale")
+end
+thumb(450, 10, 20)
+local cmd = overlay_cmd()
+eq(num(cmd, 8), W, "the frame was not read at its own size")
+eq(num(cmd, 6), 5 * FRAME, "scaling moved the frame's offset")
+if OLD_MPV then
+    eq(cmd and #cmd, 10, "passed a display size to an mpv that rejects one")
+else
+    eq(num(cmd, 11), 2 * W, "the frame was not drawn at 2x")
+    eq(num(cmd, 12), 2 * H, "the frame height was not drawn at 2x")
+end
+
+-- "auto" follows the display, and a display change re-announces the size
+-- (moving the window to another monitor changes it mid-video).
+scaled_window("auto")
+fake.log.commands = {}
+fake.observe("display-hidpi-scale", 2)
+eq(info() and info().width, OLD_MPV and W or 2 * W,
+   "a display-scale change did not re-announce the preview size")
+thumb(450, 10, 20)
+eq(num(overlay_cmd(), 11), (not OLD_MPV) and 2 * W or nil,
+   "auto did not follow display-hidpi-scale")
+fake.observe("display-hidpi-scale", 1)
+
+-- mpv's own OSC reserves a box and we centre the frame in it -- at the size
+-- it is DRAWN, or a 2x frame hangs off the bottom right of its box.
+scaled_window("2")
+fake.observe("user-data/osc/draw-preview",
+             { x = 100, y = 50, w = 200, h = 100, ["hover-sec"] = 450 })
+cmd = overlay_cmd()
+local dw, dh = OLD_MPV and W or 2 * W, OLD_MPV and H or 2 * H
+eq(num(cmd, 3), 100 + math.floor((200 - dw) / 2),
+   "the frame was centred at its source width, not the width drawn")
+eq(num(cmd, 4), 50 + math.floor((100 - dh) / 2),
+   "the frame was centred at its source height, not the height drawn")
+fake.observe("user-data/osc/draw-preview", nil)
+
+-- The chapter fallback carries the same argument, after its timestamps.
+fake.log.commands = {}
+fake.client_message("shim-trickplay-chapters", tostring(W), tostring(H),
+                    "/tiles.bin", "0,120,480", "2")
+eq(info().width, OLD_MPV and W or 2 * W, "the chapter fallback ignored the scale")
+
+-- ------------------------------------------------ shim-thumbfast-render
+
+-- An OSC that draws the frame itself asks the upstream way -- empty x and y,
+-- its script name fourth -- and is answered with OUR message, not upstream's
+-- `thumbfast-render`. Upstream's payload names a file holding one frame; ours
+-- holds a window of them, so an OSC following upstream's contract would draw
+-- the window's first frame for every position. The offset is the difference.
+
+--- The last shim-thumbfast-render payload sent to `script`.
+local function rendered(script)
+    local found
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "script-message-to" and c[2] == script
+                and c[3] == "shim-thumbfast-render" then
+            found = c[4]
+        end
+    end
+    return found
+end
+
+scaled_window("2")
+fake.log.commands = {}
+fake.client_message("thumb", "450", "", "", "someosc")
+local r = rendered("someosc")
+ok(r ~= nil, "an OSC that renders for itself was sent nothing")
+eq(overlay_cmd(), nil, "drew the frame for an OSC that renders for itself")
+eq(r and r.available, true, "the frame was announced as unavailable")
+eq(r and r.file, "/tiles.bin", "the payload does not name the frame file")
+eq(r and r.offset, 5 * FRAME, "the payload does not say where the frame is")
+eq(r and r.frame_width, W, "the payload does not give the source width")
+eq(r and r.frame_height, H, "the payload does not give the source height")
+eq(r and r.width, dw, "the payload does not give the width to draw")
+eq(r and r.height, dh, "the payload does not give the height to draw")
+eq(r and r.scale_factor, OLD_MPV and 1 or 2, "the payload's scale is wrong")
+
+-- Once per frame, like the positioned path's dedup.
+fake.log.commands = {}
+fake.client_message("thumb", "452", "", "", "someosc")
+eq(rendered("someosc"), nil, "re-sent a frame the OSC already has")
+
+-- Outside the window: the OSC is told to take its frame down, and the window
+-- is still asked for -- the OSC owns the drawing, not the fetching.
+fake.log.commands = {}
+fake.client_message("thumb", "60", "", "", "someosc")
+r = rendered("someosc")
+eq(r and r.available, false,
+   "left an OSC showing a frame from elsewhere in the film")
+eq(asks()[1], 60, "an OSC that renders for itself never gets its window")
+
+-- Upstream's empty coordinates with no script to answer: nothing to do.
+fake.log.commands = {}
+fake.client_message("thumb", "450", "", "")
+eq(overlay_cmd(), nil, "drew a frame with no position and nobody to tell")
+
 -- ------------------------------------------------------------ summary
 
 print(string.format("1..%d", n))

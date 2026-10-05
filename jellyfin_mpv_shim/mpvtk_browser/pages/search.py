@@ -17,7 +17,7 @@ import logging
 
 from ...books import AUDIOBOOK_TYPE, BOOK_TYPE
 from ...i18n import _
-from ...mpvtk.widgets import Text, VScroll
+from ...mpvtk.widgets import Column, Text, VScroll
 from .. import theme
 from ..components import chrome
 from .base import Page
@@ -168,7 +168,7 @@ class SearchPage(Page):
                 if people:
                     rows.append(tiles.tile_row(
                         _("People"), people[:ROW_MAX], "search-people",
-                        geom=art.geom, autofocus_first=claim()))
+                        geom=art.geom, autofocus_first=claim(), lazy=True))
                 continue
             if label is ARTISTS_ROW:
                 # The dedicated request first, then any MusicArtist items the
@@ -183,7 +183,7 @@ class SearchPage(Page):
                 if row:
                     rows.append(tiles.tile_row(
                         _("Artists"), row[:ROW_MAX], "search-Artists",
-                        geom=art.geom_square, autofocus_first=claim()))
+                        geom=art.geom_square, autofocus_first=claim(), lazy=True))
                 continue
             if label is SONGS_ROW:
                 rows.extend(self._songs_row(items, route, tiles))
@@ -198,7 +198,7 @@ class SearchPage(Page):
                 rows.append(tiles.tile_row(
                     label, group, "search-" + label, geom=row_geom,
                     image_type=row_itype, inherit=inherit,
-                    autofocus_first=claim()))
+                    autofocus_first=claim(), lazy=True))
         # Programs before Channels, which is the rest of web's order: what
         # is on now is a result, a channel is a place to go and look.
         live = data.get("live") or {}
@@ -210,22 +210,32 @@ class SearchPage(Page):
             rows.append(tiles.tile_row(
                 _("On TV"), live["programs"], "search-programs",
                 geom=tiles.caption_geom(live["programs"], art.geom_wide),
-                image_type="Thumb"))
+                image_type="Thumb", lazy=True))
         if live.get("channels"):
             rows.append(tiles.tile_row(_("Channels"), live["channels"],
                                        "search-channels",
-                                       geom=art.geom_square))
+                                       geom=art.geom_square, lazy=True))
         other = [it for it in items
                  if it.get("Type") not in used
                  and it.get("Type") != "Audio"][:ROW_MAX]
         if other:
-            rows.append(tiles.tile_row(_("Other"), other, "search-other"))
+            rows.append(tiles.tile_row(_("Other"), other, "search-other",
+                                       lazy=True))
         if not items and not people and not artists and not any(live.values()):
             rows.append(Text(_("No results found."), size="large",
                              color=theme.SUBTLE_FG))
-        return VScroll(chrome.padded_body(rows, gap=12, align="stretch"),
+        # padded_body, taken apart so the carousels can be windowed: a broad
+        # term fills eight rows of up to ROW_MAX, which is more artwork than
+        # the decoded cache holds (see TileRenderer.window_rows).
+        blocks = tiles.window_rows(
+            chrome.split_bleed(rows, chrome.CONTENT_PAD, 12, "stretch"),
+            "search", size, 12, pad=chrome.CONTENT_PAD)
+        return VScroll(Column(blocks, pad=(0, chrome.CONTENT_PAD), gap=12,
+                              align="stretch"),
                        id="search", flex=1,
-                       offset=self.parked_scroll("search"))
+                       offset=self.parked_scroll("search"),
+                       on_scroll=lambda off, mx: art.scroll.on_scroll(
+                           "search", off, mx))
 
     def _songs_row(self, items, route, tiles):
         """The Songs heading and its table, or an empty list.

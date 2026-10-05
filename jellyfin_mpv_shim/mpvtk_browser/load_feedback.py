@@ -118,7 +118,10 @@ class LoadFeedback:
         """
         info = dict(info or {})
         starting, self.starting = self.starting or {}, None
-        owns_window = starting.get("owns_window")
+        # The player can say: a stream that died mid-item has already handed
+        # the window to the video, so a full-screen error would have nothing
+        # to draw on -- it goes back to the page, with this as its status.
+        owns_window = info.get("owns_window", starting.get("owns_window"))
         if owns_window is None:
             owns_window = not self._is_browsing()
         if not owns_window:

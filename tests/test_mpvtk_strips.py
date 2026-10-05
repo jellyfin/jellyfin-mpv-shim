@@ -406,8 +406,10 @@ class TestCoverCrop(unittest.TestCase):
     letterboxed is the colour of the bands above and below it.
     """
 
-    def _paint(self, rounded=False, **tile):
+    def _paint(self, rounded=False, size=(400, 100), **tile):
         g = TileGeom().physical()
+        if size is None:
+            size = (g.tile_w, g.tile_h)
         img = Image.new("RGBA", (g.tile_w, g.strip_h), (0, 0, 0, 0))
         store = StripStore(cache_dir=None, mem_store=None)
         orig = theme.active
@@ -416,7 +418,7 @@ class TestCoverCrop(unittest.TestCase):
         try:
             store._paint_poster(
                 img, ImageDraw.Draw(img), 0,
-                Tile(key="k", title="T", poster=_poster(size=(400, 100)),
+                Tile(key="k", title="T", poster=_poster(size=size),
                      **tile),
                 g)
         finally:
@@ -447,6 +449,18 @@ class TestCoverCrop(unittest.TestCase):
         the corner pixels the silhouette leaves transparent."""
         img, _g = self._paint(rounded=True)
         self.assertEqual(img.getpixel((1, 1))[3], 0)
+
+    def test_a_rounded_card_clips_contained_art_that_fills_it(self):
+        """#777. Contained art whose aspect matches the tile fills it edge to
+        edge, so pasting it unclipped squares off the corners the silhouette
+        leaves transparent -- the outline is drawn round and the art pokes
+        out of it. Every Thumb and Backdrop tile is a contain tile."""
+        img, g = self._paint(rounded=True, size=None, contain=True)
+        for corner in [(1, 1), (g.tile_w - 2, 1), (1, g.tile_h - 2),
+                       (g.tile_w - 2, g.tile_h - 2)]:
+            self.assertEqual(img.getpixel(corner)[3], 0, corner)
+        self.assertEqual(img.getpixel((g.tile_w // 2, g.tile_h // 2))[:3],
+                         (120, 30, 30))
 
     def test_contain_still_draws_the_artwork_whole(self):
         """A wordmark standing in for missing artwork: cropping it takes the

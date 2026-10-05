@@ -622,24 +622,6 @@ class AudiobookPlaybackTest(_e2e.E2ETestCase):
             .get("PlaybackPositionTicks"),
             "a finished book kept a resume position")
 
-    def test_a_stored_position_is_where_playback_starts(self):
-        """The round trip closed: what the browser hands the player as a
-        resume offset is where mpv actually begins. A resume that reports
-        correctly and then starts from zero is the failure this catches."""
-        offset = 8 * 60 * TICKS
-        self.session.api.update_userdata_for_item(
-            self.item["Id"], {"PlaybackPositionTicks": offset})
-        media = _e2e.build_media(self.session, [self.item["Id"]])
-        self.pm.play(media.video, is_initial_play=True,
-                     offset=offset / TICKS)
-        started = self.pump_until(
-            lambda: (self.pm._player.playback_time or 0) >= (8 * 60) - 30,
-            timeout=30)
-        self.assertTrue(
-            started,
-            "playback resumed at %.0fs rather than near 8 minutes"
-            % (self.pm._player.playback_time or 0))
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -50,17 +50,38 @@ class Detection(unittest.TestCase):
     """
 
     def _asked(self, lang=None, platform="linux", env=None):
+        """Ask `configure()` what it would request, and **put the catalogue
+        back**.
+
+        The patch covers `gettext.translation`; it does not cover what
+        `configure()` does with the answer, which is to store it in the
+        module global every `_()` in the app reads. So the MagicMock stood in
+        as the app's translation for the rest of the process -- and in a
+        whole-suite run that is every module imported after this one, where
+        `_("Settings")` returns a mock and every assertion about a
+        user-facing string fails. Around 340 of them, on both platforms, in
+        modules with nothing to do with i18n.
+
+        Invisible per-module (each runs alone and passes) and invisible under
+        `tools/run_tests_parallel.py` (one process per module), which is the
+        shape `docs/testing.md` warns about: the leg that catches
+        cross-module interference is the whole-suite one, and this is what it
+        was catching.
+        """
         seen = {}
 
         def fake(domain, localedir, languages=None, fallback=False):
             seen["languages"] = languages
             return mock.MagicMock()
 
+        before = i18n.get_translation()
+        self.addCleanup(setattr, i18n, "translation", before)
         with mock.patch.object(i18n.settings, "lang", lang), \
                 mock.patch.object(i18n.sys, "platform", platform), \
                 mock.patch.object(i18n.gettext, "translation", fake), \
                 mock.patch.dict(os.environ, env or {}, clear=False):
             i18n.configure()
+        i18n.translation = before
         return seen["languages"]
 
     def test_an_explicit_language_wins(self):

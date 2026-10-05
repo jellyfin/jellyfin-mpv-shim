@@ -779,7 +779,16 @@ class TileRenderer:
         # bug this line was added for.
         if t == "Season":
             return iid in self._downloaded_seasons
-        return t == "Playlist" and iid in self._downloaded_playlists
+        if t != "Playlist":
+            return False
+        # The offline library spells a playlist's id with its server in it
+        # (two servers hand out the same one), and the badge set holds the
+        # catalog's plain ids. Split rather than compared raw, or every
+        # playlist tile in the offline library loses its tick -- while every
+        # other tile there keeps one.
+        from ..constants import split_offline_playlist_id
+
+        return split_offline_playlist_id(iid)[0] in self._downloaded_playlists
     #: Banner widths are rounded up to a multiple of this before they reach
     #: the artwork cache, because the cache keys on exact pixel dimensions and
     #: a continuous width asks for a new picture on every pixel of a drag
@@ -1213,6 +1222,7 @@ class TileRenderer:
             glyph=components.placeholder_glyph(item),
             watched=components.is_watched(item),
             badge=int(ud.get("UnplayedItemCount") or 0),
+            tag=components.virtual_episode_label(item) or "",
             progress=progress,
             downloaded=self.is_downloaded(item),
             kind=components.type_indicator_icon(item),
@@ -1276,7 +1286,8 @@ class TileRenderer:
 
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
                   on_click=None, parent_item=False,
-                  inherit=True, see_all=None, autofocus_first=False):
+                  inherit=True, see_all=None, autofocus_first=False,
+                  lazy=False):
         """A titled horizontal carousel, full width.
 
         The strip runs edge to edge and carries its own margins *inside* the
@@ -1289,8 +1300,33 @@ class TileRenderer:
 
         The returned block is marked :func:`chrome.bleed`, which is what lets
         a page put it in an otherwise padded column.
+
+        ``lazy`` returns a stand-in instead: the same heading and the same
+        scroll container around a blank of the strip's exact size, asking
+        for no artwork, which :meth:`window_rows` swaps for the real row
+        when it comes near the viewport.
         """
         geom = geom or self.art.geom
+        if lazy:
+            args = (title, items, row_id)
+            kw = dict(geom=geom, image_type=image_type, on_click=on_click,
+                      parent_item=parent_item, inherit=inherit,
+                      see_all=see_all, autofocus_first=autofocus_first)
+            n = len(items)
+            stand_in = self._tile_row(
+                title, items, row_id, geom, see_all,
+                Spacer(w=n * geom.tile_w + (n - 1) * geom.gap if n else 1,
+                       h=geom.strip_h))
+            stand_in._jms_realize = lambda: self.tile_row(*args, **kw)
+            return stand_in
+        return self._tile_row(
+            title, items, row_id, geom, see_all,
+            self.image_map(items, row_id, geom, image_type,
+                           on_click=on_click, parent_item=parent_item,
+                           inherit=inherit,
+                           autofocus_first=autofocus_first))
+
+    def _tile_row(self, title, items, row_id, geom, see_all, content):
         heading = self.section_heading(title, row_id, see_all)
         buttons = self.page_buttons(row_id, len(items), geom)
         if buttons is not None:
@@ -1315,17 +1351,42 @@ class TileRenderer:
         return chrome.bleed(Column(
             [
                 heading,
-                self.hscroll_row(
-                    self.image_map(items, row_id, geom, image_type,
-                                    on_click=on_click,
-                                    parent_item=parent_item,
-                                    inherit=inherit,
-                                    autofocus_first=autofocus_first),
-                    row_id, geom.strip_h + 2 * RING_PAD,
-                    len(items), geom),
+                self.hscroll_row(content, row_id,
+                                 geom.strip_h + 2 * RING_PAD,
+                                 len(items), geom),
             ],
             gap=TITLE_GAP,
         ))
+    def window_rows(self, blocks, scroll_id, size, gap, pad=0):
+        """``blocks`` with every lazy :meth:`tile_row` that is within a
+        screen of the viewport made real -- :meth:`row_window`'s rule, for a
+        stack of carousels rather than a grid.
+
+        Without it a screen of carousels asks for every poster on it at
+        every build, and past the decoded-image budget (a home screen with
+        a dozen libraries on a HiDPI display) each build evicts the art the
+        last one fetched: rows flash between placeholders and posters.
+        ``blocks`` is the scroll's direct children; the page must also
+        repaint on scroll (``ScrollState.on_scroll``), or rows that scroll
+        into the window are never made real.
+        """
+        from ..mpvtk.layout import measure
+
+        vh = max(240.0, float(size[1]))
+        top = self.scroll.offset(scroll_id)
+        lo, hi = top - vh, top + 2 * vh
+        out, y = [], float(pad)
+        for b in blocks:
+            if b is None:
+                continue
+            h = measure(b)[1]
+            realize = getattr(b, "_jms_realize", None)
+            if realize is not None and y + h >= lo and y <= hi:
+                b = realize()
+            out.append(b)
+            y += h + gap
+        return out
+
     def header_offset(self, header):
         """Exact content-y of the first tile row that follows ``header`` in a
         ``Column(pad=CONTENT_PAD, gap=GRID_GAP)``: the top pad, each header

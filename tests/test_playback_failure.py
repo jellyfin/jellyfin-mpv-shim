@@ -127,6 +127,78 @@ class EndFileInfoTest(unittest.TestCase):
                                 "load failure")
 
 
+class StreamFailureLineTest(unittest.TestCase):
+    """Which mpv log lines mean the stream itself failed partway (#783,
+    item 9). Every line here is verbatim from mpv master (curl) and 0.40.0
+    (ffmpeg's http), measured 2026-09-28 against a local server that cut,
+    refused or hung a direct stream and an HLS playlist -- and against files
+    that simply end short of their metadata, and a subtitle that fails to
+    load, which must NOT count."""
+
+    FAILURES = (
+        # master, a direct stream cut mid-body
+        ("warn", "curl", "Transferred a partial file, retrying (#1) from "
+         "2031616"),
+        ("warn", "curl", "Server returned nothing (no headers, no data), "
+         "retrying (#2) from 2031616"),
+        ("error", "curl", "transfer failed: Server returned nothing (no "
+         "headers, no data)"),
+        # 0.40, a direct stream cut mid-body, and one that hung
+        ("error", "ffmpeg", "http: Stream ends prematurely at 2031616, "
+         "should be 5056040"),
+        ("warn", "ffmpeg", "http: Will reconnect at 2031616 in 0 second(s), "
+         "error=Input/output error."),
+        ("warn", "ffmpeg", "http: Will reconnect at 2031616 in 0 second(s), "
+         "error=Connection timed out."),
+        # both, HLS segments that fail (500, refused or hung)
+        ("warn", "ffmpeg/demuxer", "hls: Failed to open segment 2 of "
+         "playlist 0"),
+    )
+
+    NOT_FAILURES = (
+        # files genuinely shorter than their metadata
+        ("warn", "ffmpeg/demuxer", "mp3: Estimating duration from bitrate, "
+         "this may be inaccurate"),
+        ("warn", "mkv", "mkv metadata beyond end of file - incomplete file?"),
+        ("error", "ffmpeg/video", "h264: corrupted macroblock 15 9 "
+         "(total_coeff=-1)"),
+        ("error", "ffmpeg/video", "h264: error while decoding MB 15 9"),
+        # an external subtitle that fails to load (master, then 0.40): the
+        # same failure words as a stream, but at OPEN, never mid-transfer
+        ("error", "curl", "HTTP error 500"),
+        ("error", "curl", "error: Server returned nothing (no headers, no "
+         "data)"),
+        ("error", "stream", "Failed to open http://127.0.0.1:40405/Videos/x/"
+         "Subtitles/1/Stream.srt."),
+        ("error", "cplayer", "Can not open external file http://127.0.0.1:"
+         "40405/Videos/x/Subtitles/1/Stream.srt."),
+        ("warn", "ffmpeg", "http: HTTP error 404 Not Found"),
+    )
+
+    def test_a_stream_failing_partway_counts(self):
+        from jellyfin_mpv_shim.player import is_stream_failure
+        for level, prefix, text in self.FAILURES:
+            self.assertTrue(is_stream_failure(prefix, text + "\n"),
+                            "%s: %s" % (prefix, text))
+
+    def test_everything_else_does_not(self):
+        from jellyfin_mpv_shim.player import is_stream_failure
+        for level, prefix, text in self.NOT_FAILURES:
+            self.assertFalse(is_stream_failure(prefix, text + "\n"),
+                             "%s: %s" % (prefix, text))
+
+    def test_the_log_handler_records_it_until_the_next_file(self):
+        from jellyfin_mpv_shim import player
+        player.clear_mpv_errors()
+        for level, prefix, text in self.NOT_FAILURES:
+            player.mpv_log_handler(level, prefix, text)
+        self.assertFalse(player.stream_failed())
+        player.mpv_log_handler(*self.FAILURES[-1])
+        self.assertTrue(player.stream_failed())
+        player.clear_mpv_errors()
+        self.assertFalse(player.stream_failed())
+
+
 class DolbyVisionMigrationTest(unittest.TestCase):
     """mpv plays Dolby Vision natively now, so the old force-transcode
     default has to be retired on existing installs too — every key is written

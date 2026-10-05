@@ -916,11 +916,18 @@ local function draw_image(node, ex, ey, clip, idx)
     -- Crop the source so only the part inside the clip is shown.
     -- CRITICAL: never let the crop exceed the source pixel size (iw/ih)
     -- — mpv mmaps the file and reading past EOF is a SIGBUS crash.
+    --
+    -- `dw`/`dh` draw the bitmap at another size, which overlay-add scales;
+    -- only the scrub preview asks. Clipping still happens in DISPLAY pixels,
+    -- so each scaled piece's source rectangle is divided back down and
+    -- clamped there -- the same rule, one step removed.
     clip = clip or { x1 = 0, y1 = 0, x2 = state.w, y2 = state.h }
+    local dw, dh = node.dw or node.iw, node.dh or node.ih
+    local scaled = dw ~= node.iw or dh ~= node.ih
     local x1 = math.max(ex, clip.x1)
     local y1 = math.max(ey, clip.y1)
-    local x2 = math.min(ex + math.min(node.w, node.iw), clip.x2)
-    local y2 = math.min(ey + math.min(node.h, node.ih), clip.y2)
+    local x2 = math.min(ex + math.min(node.w, dw), clip.x2)
+    local y2 = math.min(ey + math.min(node.h, dh), clip.y2)
     if x2 - x1 < 1 or y2 - y1 < 1 then return end
     local pieces = { { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } }
     for _, occ in ipairs(occluders) do
@@ -946,9 +953,17 @@ local function draw_image(node, ex, ey, clip, idx)
     for _, p in ipairs(pieces) do
         local px1, py1 = math.floor(p.x1), math.floor(p.y1)
         local px2, py2 = math.floor(p.x2), math.floor(p.y2)
-        if px2 - px1 >= 1 and py2 - py1 >= 1 then
-            local sx = px1 - math.floor(ex)
-            local sy = py1 - math.floor(ey)
+        local sx = px1 - math.floor(ex)
+        local sy = py1 - math.floor(ey)
+        local sw, sh = px2 - px1, py2 - py1
+        if scaled and sw >= 1 and sh >= 1 then
+            local sx2 = math.min(node.iw, math.ceil((sx + sw) * node.iw / dw))
+            local sy2 = math.min(node.ih, math.ceil((sy + sh) * node.ih / dh))
+            sx = math.floor(sx * node.iw / dw)
+            sy = math.floor(sy * node.ih / dh)
+            sw, sh = sx2 - sx, sy2 - sy
+        end
+        if sw >= 1 and sh >= 1 then
             if #overlay_list >= MAX_OVERLAYS then
                 msg.warn('overlay budget exceeded; image dropped: ' ..
                     node.id)
@@ -970,16 +985,22 @@ local function draw_image(node, ex, ey, clip, idx)
                     tonumber(src:sub(2)) + offset)
                 offset = 0
             end
+            local args = {
+                tostring(px1), tostring(py1), src,
+                tostring(offset), 'bgra',
+                tostring(sw), tostring(sh),
+                tostring(stride),
+            }
+            if scaled then
+                -- Only when scaled: an mpv without dw/dh rejects them.
+                args[9] = tostring(px2 - px1)
+                args[10] = tostring(py2 - py1)
+            end
             overlay_list[#overlay_list + 1] = {
                 key = node.id .. '#' .. pidx,
                 v = node.v,
                 x1 = px1, y1 = py1, x2 = px2, y2 = py2,
-                args = {
-                    tostring(px1), tostring(py1), src,
-                    tostring(offset), 'bgra',
-                    tostring(px2 - px1), tostring(py2 - py1),
-                    tostring(stride),
-                },
+                args = args,
             }
         end
     end
@@ -2103,6 +2124,80 @@ local function draw_scrollbar(ass, node)
     }
 end
 
+-- Test-only observer (tests/e2e/_app.py), inert unless JMS_TEST_OBSERVE is
+-- set. After each finished frame it publishes what that frame drew, with
+-- each node's on-screen rect and whether its viewport clips it, to
+-- user-data/mpvtk/observe, plus a ring of per-frame summaries so a test
+-- can tell "never blanked" from "blanked between two reads". Read-only:
+-- it runs after the frame is flushed and never requests one. It proves what
+-- was SUBMITTED; that the VO showed it is the pixel check's job. Hung off
+-- `state` because this file is at Lua's 200-local ceiling.
+if os.getenv('JMS_TEST_OBSERVE') then
+    state.obs_rev = 0
+    state.obs_hist = {}
+    state.observe = function()
+        state.obs_rev = state.obs_rev + 1
+        local nodes, shown = {}, 0
+        for _, node in ipairs(state.nodes or {}) do
+            if node.id or node.text then
+                local ex, ey = eff(node)
+                -- A menu has a position and no size: present is visible.
+                local vis = (node.w == nil or node.h == nil) or visible(node)
+                if vis then shown = shown + 1 end
+                nodes[#nodes + 1] = {
+                    id = node.id, t = node.t, text = node.text,
+                    x = ex, y = ey, w = node.w, h = node.h, vis = vis,
+                    mod = node.mod, fill = node.fill,
+                    items = node.items, icons = node.icons,
+                }
+            end
+        end
+        -- A text field's contents live in state.tb, not in the scene. A
+        -- masked field reports its length only.
+        local fields = {}
+        for id, tb in pairs(state.tb or {}) do
+            local n = state.byid[id]
+            fields[id] = (n and n.mask) and string.rep('*', #tb.text)
+                or tb.text
+        end
+        local occ = {}
+        for _, o in ipairs(occluders or {}) do
+            occ[#occ + 1] = { x1 = o.x1, y1 = o.y1, x2 = o.x2, y2 = o.y2 }
+        end
+        local hist = state.obs_hist
+        -- nav and the page's first id, so a press that landed somewhere
+        -- unexpected can be traced frame by frame after the fact.
+        local top
+        for _, node in ipairs(state.nodes or {}) do
+            local id = node.id
+            if id and not id:match('^nav%-') and not id:match('^win%-')
+                    and not id:match('^banner%-') and not id:match('^r%.') then
+                top = id
+                break
+            end
+        end
+        local freq = state.focus_req
+        hist[#hist + 1] = { rev = state.obs_rev, shown = shown,
+                            nav = state.nav, top = top,
+                            freq = freq and (freq.id or '<af>') or nil }
+        if #hist > 512 then table.remove(hist, 1) end
+        pcall(mp.set_property_native, 'user-data/mpvtk/observe', {
+            rev = state.obs_rev, w = state.w, h = state.h,
+            nav = state.nav, focus = state.focus, hover = state.hover_id,
+            dd_open = state.dd_open, menu_open = active_menu() ~= nil,
+            modal_open = modal_active(), active = state.active,
+            phud_mode = state.phud.mode, phud_shown = state.phud.shown,
+            occluders = occ, nodes = nodes, fields = fields,
+            -- An open dropdown's keyboard cursor, and each dropdown's
+            -- selection (the cursor starts there when nothing moved it).
+            nav_pidx = state.nav_pidx, dropdowns = state.dd,
+            clicks = state.obs_clicks, navs = state.obs_navs,
+            keys = state.obs_keys,
+        })
+        pcall(mp.set_property_native, 'user-data/mpvtk/observe_hist', hist)
+    end
+end
+
 render = function()
     -- The wheel section follows what is on screen, so it is decided where
     -- the screen is. Above the early return: a blank scene is still an
@@ -2505,6 +2600,30 @@ render = function()
                 end
             end
         end
+        -- The frame is PHYSICAL pixels and everything around it follows the
+        -- UI scale, so a 2x display drew it half the size of its own bubble.
+        -- `tp.scale` is thumbnail_scale; nil ("auto") is that UI scale. Only
+        -- where overlay-add takes a display size (mpv 0.38+), probed once:
+        -- an older one rejects the whole command, and a frame at its own
+        -- size beats none. docs/artwork-pipeline.md section 11.2.
+        if fw > 0 then
+            local k = tp.scale or state.scale or 1
+            if k ~= 1 and state.ov_scale == nil then
+                state.ov_scale = false
+                for _, c in ipairs(mp.get_property_native('command-list')
+                                   or {}) do
+                    if c.name == 'overlay-add' then
+                        for _, a in ipairs(c.args or {}) do
+                            if a.name == 'dw' then state.ov_scale = true end
+                        end
+                    end
+                end
+            end
+            if k ~= 1 and state.ov_scale then
+                fw = math.floor(fw * k + 0.5)
+                fh = math.floor(fh * k + 0.5)
+            end
+        end
         local cap
         for _, c in ipairs(state.chlist or {}) do
             if (c.time or 0) <= pv_secs and c.title and c.title ~= '' then
@@ -2549,10 +2668,11 @@ render = function()
         if fh > 0 then
             local ix = math.floor(px + (bw - fw) / 2)
             if base then
-                -- Native size: overlay-add does not scale, and the worker
-                -- already decoded these at thumbnail_preferred_size.
+                -- The source is the frame as decoded; fw x fh is the size
+                -- the scaling above settled on, which may be larger.
                 draw_image({ id = 'hud-preview', src = tp.file, base = base,
-                             iw = fw, ih = fh, w = fw, h = fh }, ix, ty)
+                             iw = tp.iw, ih = tp.ih, w = fw, h = fh,
+                             dw = fw, dh = fh }, ix, ty)
             else
                 -- The window this position falls in is still being
                 -- fetched. Something has to occupy the reserved box, or
@@ -2605,6 +2725,12 @@ render = function()
     osd.z = state.osd_z
     osd:update()
     flush_overlays()
+    if state.observe then
+        -- Test-only, and never allowed to cost the frame: an error here
+        -- once blanked every screen with a menu open, in every e2e run.
+        local ok, err = pcall(state.observe)
+        if not ok then mp.msg.error('test observer: ' .. tostring(err)) end
+    end
 end
 
 -- ------------------------------------------------------------ hit tests
@@ -2926,7 +3052,12 @@ local function tb_key(name)
     elseif name == 'PASTE' then
         local clip = clip_get()
         if clip then
-            tb_insert(clip:gsub('[\r\n]', ' '))
+            -- A copied line ends in a newline (`pass show x | xsel -b`), and
+            -- as a trailing space it fails a login invisibly. Trim the ends;
+            -- a break inside is one space. Spaces are left alone -- a
+            -- password may start or end with one.
+            clip = clip:gsub('^[\r\n]+', ''):gsub('[\r\n]+$', '')
+            tb_insert((clip:gsub('[\r\n]+', ' ')))
         else
             clip_notify('paste')
         end
@@ -2935,11 +3066,24 @@ end
 
 local text_key_names = {}
 
+-- Test observer only: the keys the text paths received, and every time
+-- the bindings they arrive through came or went (the lost-keystroke chase,
+-- register 2026-09-27).
+function obs_key(what, detail)
+    if not state.observe then return end
+    local c = state.obs_keys or {}
+    c[#c + 1] = { w = what, d = detail, t = mp.get_time() }
+    if #c > 96 then table.remove(c, 1) end
+    state.obs_keys = c
+end
+
 -- The any_unicode handler, hoisted out of the binding so the debug hook
 -- (mpvtk-debug cmd=text) drives the same code a real keypress does. They
 -- were separate, which made every "type into a box" test pass against a
 -- renderer that had stopped delivering keystrokes entirely.
 function tb_key_text(e)
+    obs_key('text', tostring(e and e.key_text) .. '/' .. tostring(e and e.event)
+            .. (state.focus and '' or '/nofocus'))
     if not e or e.event == 'up' then return end
     local t = e.key_text
     if not t or t == '' or t:byte(1) < 0x20 then return end
@@ -2948,6 +3092,7 @@ end
 
 local function bind_text_keys()
     if text_keys_bound then return end
+    obs_key('bind', 'text on')
     text_keys_bound = true
     text_key_names = {}
     local function bind(key, bname, fn)
@@ -3000,6 +3145,7 @@ end
 
 local function unbind_text_keys()
     if not text_keys_bound then return end
+    obs_key('bind', 'text off')
     text_keys_bound = false
     for _, bname in ipairs(text_key_names) do
         mp.remove_key_binding(bname)
@@ -3392,6 +3538,13 @@ end
 -- Click payload carries the modifier state of the press (shift/ctrl
 -- range and additive selection in tables). Omitted when unset.
 local function send_click(node)
+    if state.observe then
+        -- Test observer only: which code path clicked what.
+        local c = state.obs_clicks or {}
+        c[#c + 1] = { id = node.id, line = debug.getinfo(2, 'l').currentline }
+        if #c > 8 then table.remove(c, 1) end
+        state.obs_clicks = c
+    end
     local m = state.mods or {}
     send({
         t = 'click', id = node.id,
@@ -3499,6 +3652,7 @@ local function on_mouse_down()
         if idx ~= nil and node then
             local d = dd_state(node)
             d.was = node.sel or 0      -- opens the gesture; see dd_state
+            d.ack = node.ack
             d.sel = idx
             send({ t = 'select', id = node.id, index = idx,
                    value = node.items[idx + 1] })
@@ -4166,6 +4320,15 @@ end
 
 local function nav_set(node)
     state.nav = node.id
+    if state.observe then
+        -- Test observer only: which code path moved focus where.
+        local c = state.obs_navs or {}
+        c[#c + 1] = { id = node.id, line = debug.getinfo(2, 'l').currentline,
+                      up = debug.getinfo(3, 'l') and debug.getinfo(3, 'l').currentline,
+                      rev = state.obs_rev }
+        if #c > 12 then table.remove(c, 1) end
+        state.obs_navs = c
+    end
     -- always-adjust sliders (the HUD seek bar) are live the moment
     -- focus lands: LEFT/RIGHT scrub, ENTER commits, no arming step
     state.nav_adjust = (node.t == 'slider' and node.aadj) or nil
@@ -4523,6 +4686,7 @@ local function nav_activate()
         if node and idx ~= nil then
             local d = dd_state(node)
             d.was = node.sel or 0      -- opens the gesture; see dd_state
+            d.ack = node.ack
             d.sel = idx
             send({ t = 'select', id = node.id, index = idx,
                    value = node.items[idx + 1] })
@@ -4899,6 +5063,7 @@ end
 -- These hang off `keyclaim` rather than being file-scope functions because
 -- this chunk is AT LuaJIT's 200-local ceiling; see tests/test_renderer_lua.py.
 function keyclaim.block_take(e)
+    obs_key('block', tostring(e and e.key_text) .. '/' .. tostring(e and e.event))
     if not e or e.event == 'up' then return end
     local t = e.key_text
     if not t or t == '' or t:byte(1) < 0x20 then return end
@@ -4940,12 +5105,14 @@ function keyclaim.block_bind()
     end
     mp.add_forced_key_binding('any_unicode', 'mpvtk_block',
         keyclaim.block_take, { repeatable = true, complex = true })
+    obs_key('bind', 'block on')
     state.kb_block = true
 end
 
 function keyclaim.block_unbind()
     if not state.kb_block then return end
     mp.remove_key_binding('mpvtk_block')
+    obs_key('bind', 'block off')
     state.kb_block = false
 end
 
@@ -5056,6 +5223,14 @@ mp.set_key_bindings({
     { 'mbtn_back', function() end,
       function() mp.commandv('keypress', 'ESC') end },
     { 'mbtn_forward', function() end, function() send({ t = 'forward' }) end },
+    -- A multimedia keyboard's browser keys are the same pair, but NOT in the
+    -- same shape: the action is on the plain handler, which fires on a bare
+    -- press as well as on key-down. Windows delivers these keys as
+    -- WM_APPCOMMAND, fed as a bare press with no key-down (w32_common.c
+    -- handle_appcommand), so the mouse buttons' down-only shape never fires
+    -- there. Pinned by tests/e2e/test_input_routing.py.
+    { 'go_back', function() mp.commandv('keypress', 'ESC') end },
+    { 'go_forward', function() send({ t = 'forward' }) end },
 }, 'mpvtk_thumb', 'force')
 mp.set_key_bindings({
     { 'wheel_up', function(e) on_wheel(-1, 'y', e) end },
@@ -5357,7 +5532,16 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
         local moved = known and
             (math.abs(pos.x - state.phud.mx) +
              math.abs(pos.y - state.phud.my)) > 2
-        state.phud.mx, state.phud.my = pos.x, pos.y
+        if not known then
+            -- Only while unknown, so the anchor stays the point the pointer
+            -- was at when the HUD went idle and `moved` is distance
+            -- TRAVELLED. Written on every event it was a per-event delta
+            -- instead, and Windows 11 feeds mouse motion a pixel at a time
+            -- (#767) -- so the controls could not be summoned with the mouse
+            -- at all, however far it went. The anchor's lifetime was already
+            -- right: phud_hide and the engage both put it back to -1.
+            state.phud.mx, state.phud.my = pos.x, pos.y
+        end
         if moved and confirmed then
             -- Pointer movement summons the full HUD, skippable segment
             -- or not: the scene draws its own Skip button, so there is
@@ -5556,11 +5740,12 @@ local function reconcile()
                 -- something DIFFERENT from what it was showing when the
                 -- click happened -- whether that is agreement or a refusal
                 -- that lands on some third value, both are answers.
-                -- Comparing against the value the user picked instead would
-                -- strand the control on their choice forever if the app
-                -- ever answered by keeping the original.
+                -- A refusal that KEEPS the original value looks exactly like
+                -- a stale repaint, so the app says it with `ack`, a value it
+                -- changes when it answers "no" (GUIDE section 2).
                 if d == nil or d.was == nil
-                        or (node.sel or 0) ~= d.was then
+                        or (node.sel or 0) ~= d.was
+                        or node.ack ~= d.ack then
                     state.dd[node.id] = nil
                 end
             end
@@ -6604,12 +6789,17 @@ end)
 -- video's; subtracting `first` reaches the file. Outside
 -- [first, first+count) there is nothing to draw and Python is asked for
 -- that part of the video (the scrub-preview block in render()).
+--
+-- `scale`, last on both, is thumbnail_scale -- or "auto", kept as nil so the
+-- scrub-preview block falls back to the UI scale.
 mp.register_script_message('shim-trickplay-bif',
-    function(count, mult, w, h, path, first, total)
+    function(count, mult, w, h, path, first, total, scale)
+        scale = tonumber(scale)
         state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
                      count = tonumber(count), mult = tonumber(mult),
                      first = tonumber(first) or 0,
-                     total = tonumber(total) or tonumber(count) }
+                     total = tonumber(total) or tonumber(count),
+                     scale = scale and scale > 0 and scale or nil }
         state.tp_asked = nil
         request_render()
     end)
@@ -6617,13 +6807,14 @@ mp.register_script_message('shim-trickplay-bif',
 -- The fallback when the server has no BIF data: one frame per chapter,
 -- indexed by the chapter start times (seconds) rather than by a cadence.
 mp.register_script_message('shim-trickplay-chapters',
-    function(w, h, path, times)
+    function(w, h, path, times, scale)
         local t = {}
         for s in tostring(times or ''):gmatch('[^,]+') do
             t[#t + 1] = tonumber(s)
         end
+        scale = tonumber(scale)
         state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
-                     times = t }
+                     times = t, scale = scale and scale > 0 and scale or nil }
         request_render()
     end)
 
@@ -6880,6 +7071,10 @@ mp.register_script_message('mpvtk-debug', function(json)
             -- when it is not up. It is not a scene node, so this is the
             -- only way anything outside the renderer can see it.
             preview = state.pv_rect,
+            -- whether overlay-add takes a display size (nil until a scaled
+            -- preview first asked), for the test that checks the probe
+            -- against a real mpv's command-list
+            ov_scale = state.ov_scale,
             -- is the HUD taking the arrow keys (keyboard-driven), or
             -- only the pointer (hud_grab_keys off, mouse summon)?
             phud_kbd = state.phud.kbd or false,

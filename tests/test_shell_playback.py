@@ -1771,8 +1771,15 @@ class TestServerSwitchLeavesSyncPlay(unittest.TestCase):
         self.ctl = FakeController()
         self.left = []
         self.ctl.sync_leave = lambda srv: self.left.append(srv)
-        self.b = MpvtkBrowser(app=None, source=FakeSource(),
-                              controller=self.ctl)
+        source = FakeSource()
+        # Both servers CONNECTED, which is what these tests are about.
+        # `FakeSource` holds one while `FakeController.list_servers` names
+        # two -- a real and meaningful state (a saved server that is down),
+        # and since the switcher started offering those, picking one means
+        # "reconnect it" and never reaches the SyncPlay handover at all.
+        source.servers = lambda: [{"uuid": "srv1", "name": "Home"},
+                                  {"uuid": "srv2", "name": "Remote"}]
+        self.b = MpvtkBrowser(app=None, source=source, controller=self.ctl)
         self.b._pool = _SyncPool()
         self.b.server = "srv1"
 
@@ -2129,3 +2136,53 @@ class TestPlaybackInfoPanel(unittest.TestCase):
         flat = "".join(self._texts(nodes)).replace(" ", "")
         self.assertIn(path, flat)
         self.assertNotIn("…", flat)
+
+
+class AStaleVideoPlaystateTest(unittest.TestCase):
+    """A snapshot of a video that has since stopped does not take the window.
+
+    The 1 s ticker's snapshot could land after that video's stop had put the
+    library back, and the browser yielded to it: the library came back blank
+    after HUD Back, about one in four (S3 e2e, test_input_live). The browser
+    asks the player what it holds before the yield and again after.
+    """
+
+    VIDEO = {"stopped": False, "is_audio": False, "id": "v1",
+             "position": 5.0, "duration": 600.0}
+
+    def _browser(self, answers):
+        """``answers``: what the player says it holds, one per question."""
+        ctl = FakeController()
+        seq = list(answers)
+        ctl.playing_item_id = lambda: seq.pop(0) if len(seq) > 1 else seq[0]
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._browsing = True          # the stop has already put it back
+        return b
+
+    def test_a_snapshot_after_the_stop_is_dropped(self):
+        b = self._browser([None])
+        for _ in range(3):          # and the ticks after it
+            b.on_playstate(dict(self.VIDEO))
+            self.assertTrue(b._browsing, "yielded to a video that is gone")
+        # Not yielded and then healed: never handed over at all.
+        self.assertEqual(0, b.controller.left)
+
+    def test_a_stop_between_the_check_and_the_yield_is_healed(self):
+        b = self._browser(["v1", None])
+        b.on_playstate(dict(self.VIDEO))
+        self.assertTrue(b._browsing, "the stop overtook the yield")
+        self.assertIsNone(b.hud.state)
+
+    def test_an_advance_during_the_yield_is_not_a_stop(self):
+        """The player moved on to the next item while the window was being
+        handed over. That is still playback: re-entering browse put the
+        library (and keepaspect off) over the new item until its own
+        playstate yielded again."""
+        b = self._browser(["v1", "v2"])
+        b.on_playstate(dict(self.VIDEO))
+        self.assertFalse(b._browsing, "re-entered browse over the next item")
+
+    def test_a_live_video_still_takes_the_window(self):
+        b = self._browser(["v1"])
+        b.on_playstate(dict(self.VIDEO))
+        self.assertFalse(b._browsing)

@@ -101,6 +101,42 @@ class EditingMixin(GatewayCore):
         """
         self._edit(server_uuid, lambda jf: jf.delete_item(item_id))
 
+    def refresh_item(self, server_uuid, item_id):
+        """Ask the server to re-read this item's metadata. RAISES on failure.
+
+        A raw call, because the apiclient has no helper for
+        `POST /Items/{id}/Refresh`.
+
+        **A full refresh that replaces nothing**, which is the middle of the
+        three strengths jellyfin-web's refresh dialog offers: look for
+        metadata and artwork that are missing or have changed, and keep what
+        is already there. The strongest option discards everything the server
+        holds, hand-edited fields included, and that is not something to put
+        one press away on a context menu with no dialog in between.
+
+        **Refreshing a series or a season reaches the episodes under it, and
+        no parameter asks for that.** That is the case somebody reaches for
+        this in -- one episode whose metadata never landed -- so it is worth
+        saying where it comes from: `ProviderManager.RefreshItem` refreshes
+        the item and then, for anything that is a `Folder`, calls
+        `Folder.ValidateChildren`, whose `recursive` defaults to true. A
+        Series and a Season are Folders. Measured against the server source
+        at 12.0 and 10.11.0.
+
+        This used to send `Recursive: True` and say that was the mechanism.
+        It is not a parameter of the endpoint on either major, and Jellyfin
+        answers an unrecognised name exactly as it answers its absence, so
+        the parameter was inert and the explanation was wrong while the
+        behaviour it described was right.
+        """
+        self._edit(server_uuid, lambda jf: jf.items(
+            "/%s/Refresh" % item_id, "POST", params={
+                "MetadataRefreshMode": "FullRefresh",
+                "ImageRefreshMode": "FullRefresh",
+                "ReplaceAllMetadata": False,
+                "ReplaceAllImages": False,
+            }))
+
     def playlist_update(self, server_uuid, playlist_id, name=None,
                         is_public=None):
         self._edit(server_uuid,

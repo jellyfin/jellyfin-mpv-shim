@@ -126,7 +126,7 @@ def _stub_advance(pm):
 
 class FinishedCallbackTest(unittest.TestCase):
     def _player(self, **video_kw):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._video = FakeVideo(**video_kw)
         return pm
 
@@ -192,6 +192,106 @@ class FinishedCallbackTest(unittest.TestCase):
         self.assertEqual(video.played, [])
         self.assertEqual(calls["play"], [])
 
+    def test_a_stream_that_failed_to_its_end_in_a_queue_is_not_a_finish(self):
+        """#783: an HLS stream whose segments all fail runs to the end of its
+        playlist, and with a next item queued mpv fires eof-reached -- which
+        _finished_at_eof takes alone as a finish. Far from the end on a
+        streaming client it is an interruption: no watched mark, no advance
+        (Izzie, 2026-09-28)."""
+        pm = self._player(has_next=True, duration=100)
+        pm._reached_eof = True
+        pm._last_playback_position = 12
+        pm._video.client = object()         # streamed, not a local file
+        player_module.clear_mpv_errors()
+        # What mpv 0.40 logs when every remaining HLS segment fails.
+        player_module.mpv_log_handler(
+            "warn", "ffmpeg/demuxer", "hls: Failed to open segment 2 of "
+            "playlist 0\n")
+        calls = _stub_advance(pm)
+        video = pm._video
+        with mock.patch.object(player_module.settings, "force_set_played", True), \
+                mock.patch.object(player_module.settings, "auto_play", True):
+            pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(video.played, [], "a failed stream marked watched")
+        self.assertEqual(calls["play"], [], "a failed stream advanced")
+
+    def test_a_short_end_with_no_stream_failure_is_a_finish(self):
+        """Item 9 (Izzie, 2026-09-28): the #783 check stops only a stream
+        mpv saw fail. A file genuinely shorter than the server's runtime --
+        a VBR MP3 with no length header, a recording cut short -- ends
+        cleanly at its real end, far from the metadata's, with no network
+        failure logged: that is a finish, marked watched, and the queue
+        advances. What those files do log must not count either."""
+        nxt = FakeVideo(item_id="next")
+        pm = self._player(has_next=True, next_video=nxt, duration=512)
+        pm._reached_eof = True
+        pm._last_playback_position = 120
+        pm._video.client = object()
+        player_module.clear_mpv_errors()
+        for level, prefix, text in (
+                ("warn", "ffmpeg/demuxer",
+                 "mp3: Estimating duration from bitrate, this may be "
+                 "inaccurate"),
+                ("warn", "mkv", "mkv metadata beyond end of file - "
+                 "incomplete file?"),
+                ("error", "ffmpeg/video",
+                 "h264: corrupted macroblock 15 9 (total_coeff=-1)")):
+            player_module.mpv_log_handler(level, prefix, text)
+        calls = _stub_advance(pm)
+        video = pm._video
+        with mock.patch.object(player_module.settings, "force_set_played", True), \
+                mock.patch.object(player_module.settings, "auto_play", True):
+            pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(video.played, [True], "a genuine end read as a failure")
+        self.assertEqual(calls["play"], [nxt], "the queue did not advance")
+
+    def test_a_previous_files_stream_failure_does_not_carry_over(self):
+        """The record belongs to one file: clear_mpv_errors at load start
+        (`_play_media`) drops it, so the next item's clean short end is a
+        finish."""
+        pm = self._player(has_next=False, duration=512)
+        pm._reached_eof = True
+        pm._last_playback_position = 120
+        pm._video.client = object()
+        player_module.mpv_log_handler(
+            "error", "curl", "transfer failed: Server returned nothing "
+            "(no headers, no data)")
+        player_module.clear_mpv_errors()
+        _stub_advance(pm)
+        video = pm._video
+        with mock.patch.object(player_module.settings, "force_set_played", True):
+            pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(video.played, [True])
+
+    def test_a_seek_into_the_last_seconds_is_still_a_finish(self):
+        """The #783 check must not misread a skip to the credits: a seek into
+        the last seconds that reaches EOF before the next 5 s progress tick
+        left the last known position at its pre-seek value -- no advance,
+        no watched mark. mpv's own clock (it keeps the file open at EOF in a
+        queue) is the fresher reading."""
+        nxt = FakeVideo(item_id="next")
+        pm = self._player(has_next=True, next_video=nxt, duration=100)
+        pm._reached_eof = True
+        pm._last_playback_position = 12      # the last tick, before the seek
+        pm._player.playback_time = 99        # where mpv actually is
+        pm._video.client = object()
+        calls = _stub_advance(pm)
+        video = pm._video
+        with mock.patch.object(player_module.settings, "force_set_played", True), \
+                mock.patch.object(player_module.settings, "auto_play", True):
+            pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(video.played, [True], "a finish read as a failure")
+        self.assertEqual(calls["play"], [nxt], "the queue did not advance")
+
+    def test_a_finished_seek_records_where_it_landed(self):
+        """So the check above has something fresher than the last tick when
+        the file is not held open (the last item of a queue)."""
+        pm = self._player(duration=100)
+        pm._last_playback_position = 12
+        pm._player.playback_time = 97
+        pm._on_seeking("seeking", False)
+        self.assertEqual(pm._last_playback_position, 97)
+
     def test_eof_at_end_is_marked_watched(self):
         # Positive control for the above: a genuine EOF is recorded watched.
         pm = self._player(has_next=False, duration=100)
@@ -242,7 +342,7 @@ class UpdateDrainTest(unittest.TestCase):
         # INVARIANT (action-thread survival): update() pumps the task queue and
         # a single failing task must not abort the drain or kill the pump —
         # otherwise every later stop/next/menu action is silently dropped.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         ran = []
 
         def ok(tag):
@@ -261,7 +361,7 @@ class UpdateDrainTest(unittest.TestCase):
     def test_mpv_disconnect_error_in_task_is_handled_not_raised(self):
         # A task hitting a dead mpv raises a _mpv_errors member; update() must
         # route it to _handle_mpv_disconnect, not let it escape the drain.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         handled = []
         pm._handle_mpv_disconnect = lambda: handled.append(True)
 
@@ -278,7 +378,7 @@ class ShutdownTeardownTest(unittest.TestCase):
         # The mpv "shutdown" event only flips a flag + queues _handle_mpv_shutdown
         # onto the action thread; the queued task does the _video swap (under
         # _lock, serialized against stop/play) and the offline stop report.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._video = FakeVideo(item_id="v", client=None)
         reports = []
         pm._report_stopped_offline = lambda video: reports.append(video)
@@ -302,7 +402,7 @@ class ShutdownTeardownTest(unittest.TestCase):
     def test_shutdown_task_drains_even_when_mpv_already_dead(self):
         # INVARIANT: the shutdown teardown must run even after _mpv_alive is
         # False — update() drains the queue before it ever touches the player.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = False
         pm._video = FakeVideo(item_id="v", client=None)
         pm._report_stopped_offline = lambda video: None
@@ -336,7 +436,7 @@ class TeardownDoesNotHoldTheWindowTest(unittest.TestCase):
             self.terminated = True
 
     def _player(self, video):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._mpv_alive = True
         # Something is playing: stop() early-returns on an aborted player,
         # which is the FakeMPV's idle default.
@@ -399,7 +499,7 @@ class BackendMatrixTest(unittest.TestCase):
         # (ShutdownError on libmpv, TimeoutError on jsonipc), not only the shared
         # BrokenPipeError — a guard that caught one but not the other was an
         # audit-era, backend-specific bug.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         handled = []
         pm._handle_mpv_disconnect = lambda: handled.append(True)
         err = h.backend_disconnect_error(player_module)
@@ -445,7 +545,7 @@ class CloseCrashHangTest(unittest.TestCase):
         # draining later tasks, null the video, and report the stop at the last
         # known position — never at full duration, never marked watched.
         video, client = self._mid_file_video()
-        pm = h.build_player(player_module, video=video)
+        pm = h.build_player(player_module, video=video, test=self)
         pm.last_seek = 12.0        # mid-file
         pm.start_time = 1.0
         ran_after = []
@@ -474,7 +574,7 @@ class CloseCrashHangTest(unittest.TestCase):
         # (ShutdownError on libmpv, TimeoutError on jsonipc) — the #458 crash
         # class was backend-specific, so both must be caught mid-drain.
         video, client = self._mid_file_video()
-        pm = h.build_player(player_module, video=video)
+        pm = h.build_player(player_module, video=video, test=self)
         pm.last_seek = 5.0
         pm.start_time = 1.0
         err = h.backend_disconnect_error(player_module)
@@ -499,7 +599,7 @@ class CloseCrashHangTest(unittest.TestCase):
         # _mpv_errors must catch it, the worker survives, the video is torn
         # down, and it is reported at its mid-file position, not marked watched.
         video, client = self._mid_file_video()
-        pm = h.build_player(player_module, video=video)
+        pm = h.build_player(player_module, video=video, test=self)
         pm._player = RaisingMPV(raise_prop="playback_abort",
                                 raise_exc=BrokenPipeError())
         pm.should_send_timeline = True
@@ -527,7 +627,7 @@ class ExternalBrokenPipeTest(unittest.TestCase):
     def test_broken_pipe_in_send_timeline_keeps_worker_running(self):
         client = RecordingClient()
         video = FakeVideo(item_id="v", duration=100, client=client)
-        pm = h.build_player(player_module, video=video)
+        pm = h.build_player(player_module, video=video, test=self)
         pm._player = RaisingMPV(raise_prop="playback_abort",
                                 raise_exc=BrokenPipeError())
         pm.should_send_timeline = True
@@ -551,7 +651,7 @@ class ResumeAtEofTest(unittest.TestCase):
     external-only, so running this on both backends is the parity check."""
 
     def _player(self, **video_kw):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._video = FakeVideo(**video_kw)
         return pm
 
@@ -621,7 +721,7 @@ class WatchedSkipOrderTest(unittest.TestCase):
 
     def test_stop_report_lands_before_set_played(self):
         nxt = FakeVideo(item_id="next")
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         video = FakeVideo(has_next=True, next_video=nxt)
         pm._video = video
 
@@ -640,7 +740,7 @@ class WatchedSkipOrderTest(unittest.TestCase):
         self.assertIn("play", order, "did not advance to the next episode")
 
     def test_no_next_episode_still_marks_watched(self):
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         video = FakeVideo(has_next=False)
         pm._video = video
         pm.play = lambda *a, **k: None
@@ -654,7 +754,7 @@ class WatchedSkipOrderTest(unittest.TestCase):
         # The user's explicit mark must survive an advance failure (e.g. the
         # next item's playback-info request raising): set_played runs in a
         # finally, after whatever part of the stop report got out.
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         video = FakeVideo(has_next=True, next_video=FakeVideo(item_id="next"))
         pm._video = video
 
@@ -678,7 +778,7 @@ class EofPollRescueTest(unittest.TestCase):
 
     def _player(self, **video_kw):
         import time as _time
-        pm = h.build_player(player_module)
+        pm = h.build_player(player_module, test=self)
         pm._video = FakeVideo(**video_kw)
         pm.should_send_timeline = True
         pm.start_time = _time.time() - 30  # long past the just-advanced guard

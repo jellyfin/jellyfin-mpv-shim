@@ -67,7 +67,7 @@ HEADERS = (
     ("series", {"kind": "series", "server": "srv1", "item_id": "sr1",
                 "title": "Show"}, "sa-nextup"),
     ("season", {"kind": "season", "server": "srv1", "item_id": "se1",
-                "series_id": "sr1", "title": "Season 1"}, "se-nextup"),
+                "series_id": "sr1", "title": "Season 1"}, "se-play"),
 )
 
 

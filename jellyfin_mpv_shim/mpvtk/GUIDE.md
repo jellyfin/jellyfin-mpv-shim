@@ -114,6 +114,14 @@ from the draw, so the frame after a click shows the pre-click value —
 not a race, every time. The dropdown was the last of the three to get the
 guard; `tests/lua/test_renderer.lua` pins all of it.
 
+**A refusal is the one answer that rule cannot see.** An app that says "no"
+to a pick keeps the value the pick began on, which is exactly what a stale
+repaint carries, so the refused choice stayed drawn. A `Dropdown` therefore
+takes `ack=`: change it (a counter is enough) when answering a pick with
+"no", and the pending pick ends with the scene's value. Only needed with
+`force`, and only where a pick can be refused — the server switcher's
+reconnect is the case it exists for.
+
 Containers: `HScroll`/`VScroll` (optional scrollbar; `on_scroll` for
 windowed/infinite content — fires leading-edge-throttled every 150ms
 during scrolling).
@@ -123,6 +131,14 @@ pipeline as the Tk UI and the OSC via the shared `svgpath` module;
 24×24 unit canvas with corner anchors, scaled crisp via `\fscx`;
 compose with Text in a Row for labelled buttons). `Dropdown` and
 `Menu` take per-item `icons=` name lists.
+
+**An `icons=` list indents every row in the open list, whether or not that
+row's entry is set** — the gutter is a column, not a per-item decoration. So
+a list that marks only the exceptional entries charges the width to all of
+them and gives their labels an ellipsis in return. Mark every item, or none.
+(The closed control is the other way: it indents only for the *selected*
+item's icon, and its natural width budgets for that, so a picker with icons
+does not shorten its own label to make room.)
 
 Floating: `Menu` (context menu at a point; `on_select`/`on_dismiss`),
 `Dialog` (centered modal, grabs all input, ESC/click-away →
@@ -244,6 +260,12 @@ rather than addressed to a node: history belongs to the app, not to
 whatever the pointer happens to be over. An app that registers no
 `on_forward` ignores it.
 
+A multimedia keyboard's browser keys (`GO_BACK`/`GO_FORWARD`) are the
+same pair in the same section, with one difference in shape: their
+action is on the plain handler, not the down half. Windows delivers
+them as `WM_APPCOMMAND`, which mpv feeds as a bare press with no
+key-down, so a down-only binding would never fire there.
+
 **The wheel is scoped the same way, and one layer finer.** The full UI
 holds it — every browse screen scrolls — but a summoned playback HUD
 holds it only while a notch would actually be *spent*: an open dropdown
@@ -275,7 +297,7 @@ scroll container id), `top` (floating layer), `mod` (modal layer).
 | img | src (path or `&addr`), iw, ih, v (cache-bust) |
 | scroll | axis, cw/ch (content), bar, watch |
 | textbox | text, ph, size, mask, force |
-| dropdown | items, sel, size, force |
+| dropdown | items, sel, size, force, ack |
 | slider | min, max, value, force |
 | busy | — |
 | menu | items, size, ih (floating; x/y absolute) |
@@ -326,7 +348,7 @@ handlers registered during layout:
 | click | id, shift?, ctrl? | press+release on same target (`rpt` nodes: on press, refiring while held) |
 | dbl | id | double-click on a node with on_dbl (after its two clicks) |
 | nav | active | keyboard/remote navigation engaged / mouse took over (`MpvtkApp.on_nav`) |
-| forward | — | the mouse's forward button, while the UI owns the pointer (`MpvtkApp.on_forward`) |
+| forward | — | the mouse's forward button or the keyboard's `GO_FORWARD`, while the UI owns the pointer (`MpvtkApp.on_forward`) |
 | key | key | a key claimed via `mpvtk-keys`, when nothing on screen outranks the claim (`MpvtkApp.on_key`) |
 | gpseek | dir | a game controller's seek gesture, "up"/"down"/"left"/"right" (`MpvtkApp.on_gamepad_seek`) |
 | gpnav | a | a game controller button whose meaning differs between the library and a playing video, as a remote-control action name (`MpvtkApp.on_gamepad_nav`) |
@@ -375,6 +397,9 @@ the fallback outvote the renderer — see `MpvtkApp.scroll_offsets`.
   `write_bgra` produce premultiplied BGRA.
 - **Never let a crop exceed the source pixels.** Layout refuses to
   stretch images; the renderer clamps crops to iw/ih. Keep it that way.
+  The one bitmap the renderer does scale is the scrub preview's frame,
+  which it draws itself with overlay-add's `dw`/`dh`: `draw_image` maps
+  each clipped piece back to source pixels and clamps *there*.
   The failure mode is version-dependent, and the clamp is required on
   all of them: on the **`&<address>` memory path (libmpv, every mpv
   version)** overlay-add `memcpy_pic`s from the pointer with no bounds
@@ -1062,6 +1087,16 @@ one guaranteed to miss.
 candidate as much as a bare one. It is `_resolutions`' second yield, so the walk
 is only reached once a name has failed at every size — 2656 files in 3 ms, once
 per process, and never on a host that has no such directory.
+
+**NixOS is the same problem without a sandbox (#786).** Its fonts live in
+`/nix/store` and only fontconfig's configuration lists them, so every
+candidate failed and the titles fell to Pillow's default face, at 10px unless
+it is given a size. `_resolutions` therefore has a third yield: the same
+basename in fontconfig's own file list. After every script's candidates come
+fontconfig's *matches* (`sans-serif:lang=ja` and so on), appended rather than
+preferred, since fontconfig finds files well and chooses them badly (its
+Japanese pick on Debian is a Chinese face). The query runs in a child process
+so that no libfontconfig can crash the app: `mpvtk/fontconfig.py`.
 
 Two things worth knowing before touching it:
 

@@ -1,10 +1,14 @@
 """The season screen: a season picker, the shared actions, an episode grid."""
 
+import logging
+
 from ...i18n import _
 from ...mpvtk.widgets import Column, Dropdown, Row, Text, VScroll
 from ..components import chrome, controls, detail as detail_components
 from ..tile_renderer import GRID_GAP
 from .base import Page
+
+log = logging.getLogger("mpvtk_browser.pages.season")
 
 
 def _grouped(buttons, avail):
@@ -43,10 +47,21 @@ class SeasonPage(Page):
         srv = route.get("server") or self.ctx.server
 
         def work():
+            series_id = route.get("series_id")
+            next_up = None
+            if series_id:
+                # Only decides the play button's label and scope, so a
+                # failed lookup costs "Play" instead of "Next Up", not the
+                # page.
+                try:
+                    next_up = source.get_next_up(srv, series_id)
+                except Exception:
+                    log.debug("next up lookup failed", exc_info=True)
             return {
                 "episodes": source.get_episodes(
-                    srv, route.get("series_id"), route["item_id"]),
-                "seasons": source.get_seasons(srv, route.get("series_id")),
+                    srv, series_id, route["item_id"]),
+                "seasons": source.get_seasons(srv, series_id),
+                "next_up": next_up,
             }
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
@@ -152,13 +167,29 @@ class SeasonPage(Page):
                               or route.get("bar_title") or "")})))
         acts = []
         if route.get("series_id"):
-            # Tk had Play Next Up here too. Landing on a season and being able
-            # to carry on is the point of the screen; without it you had to go
-            # up to the series page to resume.
+            # Next Up only when the show's next episode is in THIS season;
+            # otherwise the season plays from its start. The series' Next Up
+            # can be in any season, and from a season's page that played
+            # some other season's episode [iw, 2026-10-04]. Membership is
+            # asked of the listed episodes rather than of SeasonId, which an
+            # offline season may not have.
+            next_up = data.get("next_up") or {}
+            if next_up.get("Id") and any(
+                    e.get("Id") == next_up["Id"] for e in episodes):
+                acts.append(controls.action_btn(
+                    "play_arrow", _("Next Up"), "se-nextup",
+                    lambda: actions.play_next_up(route["series_id"], server),
+                    primary=True))
+            else:
+                acts.append(controls.action_btn(
+                    "play_arrow", _("Play"), "se-play",
+                    lambda: actions.play_season(
+                        route["series_id"], route["item_id"], server),
+                    primary=True))
             acts.append(controls.action_btn(
-                "play_arrow", _("Next Up"), "se-nextup",
-                lambda: actions.play_next_up(route["series_id"], server),
-                primary=True))
+                "shuffle", _("Shuffle"), "se-shuffle",
+                lambda: actions.shuffle_season(
+                    route["series_id"], route["item_id"], server)))
         acts += detail_components.common_actions(
             actions, tiles,
             season_item or {"Id": route["item_id"], "Type": "Season"},
@@ -168,8 +199,10 @@ class SeasonPage(Page):
         # bands above the grid already and the links would be a third, and a
         # page whose header is taller than its first row of episodes has
         # stopped being an episode list. Detail and series put them under
-        # the synopsis, which is where web has them -- there is no synopsis
-        # here.
+        # their synopsis, which is where web has them; this page draws one
+        # now too (below), and the links stay here anyway -- a fourth band
+        # is the thing being avoided, not the absence of a paragraph to sit
+        # under.
         row_buttons += detail_components.provider_link_buttons(
             season_item, self.open_link,
             # The same fallback `common_actions` takes above: the season's
@@ -187,6 +220,29 @@ class SeasonPage(Page):
             header.append(chrome.wrap_row(
                 title_row, size[0] - 2 * gpad, gap=12, align="center"))
         header.append(Row(acts, gap=8, align="center"))
+        # The season's own synopsis, which this page has never drawn -- and
+        # the data has been on the wire the whole time: `get_seasons` asks for
+        # `info()`, and the apiclient's `info()` includes `Overview`. So this
+        # is a rendering omission and not a query change. jellyfin-web shows
+        # it too (`itemDetails/index.js` adds `Overview` to its Fields when
+        # the type is Season).
+        #
+        # Wrapped against `gpad` rather than CONTENT_PAD, and through
+        # `body_width` rather than the pad alone: this page centres its grid,
+        # so with `grid_fill: center` the column is up to ~94px narrower per
+        # side at a 1200px window, and the scrollbar takes 10 more. Wrapping
+        # to the window instead runs the tail of every line under the
+        # scrollbar, and which words land there then changes with the window
+        # size.
+        #
+        # Inside `header`, before head_h is measured: that number is what
+        # tells the virtualizer which rows are near the viewport, and a
+        # header that grew while the number stayed put leaves the rows you
+        # are looking at un-composited.
+        if season_item.get("Overview"):
+            header.append(chrome.paragraph(
+                season_item["Overview"], 18,
+                chrome.body_width(size[0], gpad)))
         # Measured, not the flat 100 this used to pass: head_h is what tells
         # the virtualizer which rows are near the viewport, and a header
         # that grew by 400px of artwork while the number stayed at 100

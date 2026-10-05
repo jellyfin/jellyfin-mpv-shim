@@ -17,7 +17,10 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "python-mpv>=1.0.8",
-    "jellyfin-apiclient-python>=1.18.0",
+    # >=1.19.0 for `discovery` (servers on the login screen). The import is
+    # still guarded: a build that pins its own wheel (the Flathub manifest)
+    # can be older than this line says.
+    "jellyfin-apiclient-python>=1.19.0",
     # >=1.4.0 for MPV(discard_output=...); see mpv_options.build_mpv_options.
     "python-mpv-jsonipc>=1.4.0",
     "requests",

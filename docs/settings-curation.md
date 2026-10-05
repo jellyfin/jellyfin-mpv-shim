@@ -39,7 +39,7 @@ Two conventions:
   (`TRAY_DEPENDENT` → `start_minimized`). Leaving a hidden setting acting at
   every startup with no way to see or undo it is the failure being avoided.
   The sets are `TRAY_DEPENDENT`, `BACKGROUND_DEPENDENT`, `AUDIO_MODE_ONLY`,
-  `HUD_ONLY` and `TRICKPLAY_DEPENDENT`; each is seeded into `sections()`'s
+  `HUD_ONLY`, `TRICKPLAY_DEPENDENT` and `LANGUAGE_PRESET_DEPENDENT`; each is seeded into `sections()`'s
   `curated` set, and **that seeding is the part to get wrong**. `hidden` is
   computed as `curated - shown`, so a key nobody seeded is never in `hidden`
   and the filter never reaches it: the row goes on being drawn and nothing

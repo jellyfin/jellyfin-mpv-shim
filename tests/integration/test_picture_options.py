@@ -51,7 +51,7 @@ def make_video():
 
 class _Base(unittest.TestCase):
     def setUp(self):
-        self.pm = h.build_player(player_module)
+        self.pm = h.build_player(player_module, test=self)
         self.pm.action_trigger = threading.Event()
         self.pm.timeline_trigger = threading.Event()
 

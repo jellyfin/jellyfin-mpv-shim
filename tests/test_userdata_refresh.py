@@ -266,5 +266,180 @@ class RepeatedEventsTest(unittest.TestCase):
         self.assertEqual(len(loads), 1)
 
 
+class NothingIsLostTest(unittest.TestCase):
+    """The race measured on a detail page (2026-09-28): a refresh read the
+    server just before the stop report landed, and the stop's own event --
+    arriving while that refresh ran -- was never run, leaving Resume on the
+    pre-stop position."""
+
+    def test_an_event_during_the_tick_gets_its_own_re_read(self):
+        b, loads = _browser("detail")
+        b.USERDATA_DEBOUNCE = 0.01
+        real = b._refresh_current
+        calls = []
+
+        def refresh(kinds, server=None):
+            calls.append(server)
+            if len(calls) == 1:
+                # The stop's event lands after the tick took its pending
+                # set, while this re-read is still running.
+                b.refresh_userdata("srv1")
+            b.route.pop("_refreshing", None)
+            return real(kinds, server)
+        b._refresh_current = refresh
+        b.refresh_userdata("srv1")
+        for _ in range(3):              # the thread may be replaced once
+            thread = b._userdata_thread
+            if thread is not None:
+                thread.join(timeout=2)
+        self.assertEqual(len(calls), 2,
+                         "the event that arrived mid-refresh was lost")
+
+    def test_a_refresh_that_raises_does_not_end_refreshing(self):
+        """The tick's slot is released on one path only, so a raise out of
+        the re-read used to leave it held: every later event returned at
+        the `is not None` check and the page never refreshed again."""
+        b, loads = _browser("detail")
+        b.USERDATA_DEBOUNCE = 0.01
+        real = b._refresh_current
+        calls = []
+
+        def refresh(kinds, server=None):
+            calls.append(server)
+            b.route.pop("_refreshing", None)
+            if len(calls) == 1:
+                raise RuntimeError("a route lookup blew up")
+            return real(kinds, server)
+        b._refresh_current = refresh
+        for round_no in range(1, 4):
+            with self.subTest(round=round_no):
+                b.refresh_userdata("srv1")
+                thread = b._userdata_thread
+                if thread is not None:
+                    thread.join(timeout=2)
+                self.assertEqual(len(calls), round_no,
+                                 "round %d was never re-read" % round_no)
+
+    def test_a_refresh_asked_for_mid_load_is_kept_for_after_it(self):
+        b, loads = _browser("detail")
+        b.route["_loading"] = True
+        b.refresh_userdata(now=True)
+        self.assertEqual(loads, [], "doubled a load in flight")
+        self.assertIsNotNone(b.route.get("_refresh_again"),
+                             "dropped instead of queued behind the load")
+
+
+class ABackgroundRefreshRaisesNoBannerTest(unittest.TestCase):
+    """Item 18 (Izzie, 2026-09-28: "Background never raises"). The "server
+    isn't answering" banner rose on ONE failed background refresh -- a
+    watched-state event's re-read, or the Live TV poll -- over a page that
+    was showing fine, and stayed until some later load landed. Only a load
+    the person asked for raises it; any load that lands still clears it."""
+
+    def _detail(self, answers):
+        """A detail page whose loads answer from ``answers`` in turn: an
+        exception is raised, anything else is the data."""
+        b, _loads = _browser("detail")
+        b.route["_data"] = {"item": {"Id": "sh1"}}
+        route = b.route
+
+        def load(route, epoch=None):
+            def work():
+                answer = answers.pop(0)
+                if isinstance(answer, Exception):
+                    raise answer
+                return answer
+            b._route_async(route, work,
+                           lambda d: route.__setitem__("_data", d), b._epoch)
+
+        b._load_route = load
+        return b, route
+
+    def test_a_failed_background_refresh_raises_nothing(self):
+        import requests
+        blip = requests.exceptions.ConnectionError("refused")
+        b, _route = self._detail([blip, blip, blip])
+        for n in range(3):
+            self.assertTrue(b._refresh_current(USERDATA_KINDS),
+                            "the premise: pass %d dispatched a refresh" % n)
+            self.assertFalse(b._unreachable,
+                             "pass %d: a background refresh raised the "
+                             "banner over a page that was fine" % n)
+
+    def test_a_load_the_person_asked_for_still_raises_it(self):
+        import requests
+        blip = requests.exceptions.ConnectionError("refused")
+        b, route = self._detail([blip, {"item": {"Id": "sh1"}}])
+        b._load_route(route)                # Retry, a navigation: asked for
+        self.assertTrue(b._unreachable)
+        self.assertTrue(b._refresh_current(USERDATA_KINDS))
+        self.assertFalse(b._unreachable,
+                         "a load that landed did not clear the banner")
+
+
+class PatchedOnStopTest(unittest.TestCase):
+
+    def _detail(self, ticks=0):
+        b, _loads = _browser("detail")
+        b.route["_data"] = {"item": {"Id": "sh1", "UserData": {
+            "PlaybackPositionTicks": ticks}}}
+        return b
+
+    def ticks(self, b):
+        return b.route["_data"]["item"]["UserData"]["PlaybackPositionTicks"]
+
+    def test_the_reported_position_is_what_resume_reads(self):
+        b = self._detail(ticks=60 * 10**7)
+        b.on_stopped_at({"id": "sh1", "server": "srv1",
+                         "ticks": 244 * 10**7, "finished": False})
+        self.assertEqual(self.ticks(b), 244 * 10**7)
+
+    def test_another_item_or_server_is_left_alone(self):
+        b = self._detail(ticks=5)
+        b.on_stopped_at({"id": "other", "server": "srv1", "ticks": 9,
+                         "finished": False})
+        b.on_stopped_at({"id": "sh1", "server": "srv2", "ticks": 9,
+                         "finished": False})
+        self.assertEqual(self.ticks(b), 5)
+
+    def load(self, b, ticks):
+        """A re-read landing through the real `_route_async` with the
+        server's answer ``ticks``."""
+        route = b.route
+        b._route_async(route, lambda: {"item": {"Id": "sh1", "UserData": {
+            "PlaybackPositionTicks": ticks}}},
+            lambda d: route.__setitem__("_data", d), b._epoch)
+
+    def test_a_read_from_before_the_server_had_the_stop_is_re_patched(self):
+        """The measured failure: coming back re-reads at once, before the
+        queued stop report reaches the server, and that read said 61 s."""
+        b = self._detail(ticks=0)
+        b.on_stopped_at({"id": "sh1", "server": "srv1",
+                         "ticks": 244 * 10**7, "finished": False})
+        self.load(b, 61 * 10**7)
+        self.assertEqual(self.ticks(b), 244 * 10**7,
+                         "a read made before the stop landed won")
+
+    def test_after_delivery_the_server_is_believed_again(self):
+        """The patch is a bridge, not a second authority: once the report is
+        through, a re-read says what the server says (here, a later mark)."""
+        b = self._detail(ticks=0)
+        b.on_stopped_at({"id": "sh1", "server": "srv1",
+                         "ticks": 244 * 10**7, "finished": False})
+        b.on_stopped_at({"id": "sh1", "server": "srv1",
+                         "ticks": 244 * 10**7, "finished": False,
+                         "delivered": True})
+        self.load(b, 300 * 10**7)
+        self.assertEqual(self.ticks(b), 300 * 10**7,
+                         "the patch overrode the server after delivery")
+
+    def test_finished_means_played_and_no_position(self):
+        b = self._detail(ticks=5)
+        b.on_stopped_at({"id": "sh1", "server": "srv1", "ticks": 9,
+                         "finished": True})
+        ud = b.route["_data"]["item"]["UserData"]
+        self.assertEqual((ud["Played"], ud["PlaybackPositionTicks"]), (True, 0))
+
+
 if __name__ == "__main__":
     unittest.main()
