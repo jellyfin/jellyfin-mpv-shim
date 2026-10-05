@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-07 17:35-0400\n"
-"PO-Revision-Date: 2026-09-29 10:05+0000\n"
+"PO-Revision-Date: 2026-10-05 17:57+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -1712,7 +1712,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "12-Hour Clock"
-msgstr ""
+msgstr "12 valandų laikrodžio sistema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
@@ -3242,7 +3242,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "HD programs"
-msgstr ""
+msgstr "HD programos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Live broadcasts"
@@ -3316,11 +3316,11 @@ msgstr "Bandykite dar kartą naudodami Transkodavimą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Repeat all"
-msgstr ""
+msgstr "Kartoti visus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Repeat one"
-msgstr ""
+msgstr "Kartoti vieną"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Repeat off"
@@ -3777,7 +3777,7 @@ msgstr "%d takelių"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Album artists"
-msgstr ""
+msgstr "Albumo atlikėjai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4425,7 +4425,7 @@ msgstr "Albumas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Play from beginning"
-msgstr ""
+msgstr "Paleisti nuo pradžių"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Play next"
@@ -4469,17 +4469,17 @@ msgstr ""
 #, python-brace-format
 msgctxt "12-hour clock"
 msgid "{time} {period}"
-msgstr ""
+msgstr "{time} {period}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "AM"
-msgstr ""
+msgstr "AM"
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "PM"
-msgstr ""
+msgstr "PM"
 
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4521,11 +4521,11 @@ msgstr "Paieška…"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Restart to apply: %s"
-msgstr ""
+msgstr "Paleiskite iš naujo, kad pritaikytumėte: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Restart Now"
-msgstr ""
+msgstr "Paleisti iš naujo dabar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "Restart banner"
