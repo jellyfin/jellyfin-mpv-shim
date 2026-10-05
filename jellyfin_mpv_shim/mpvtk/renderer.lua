@@ -963,6 +963,10 @@ local function draw_image(node, ex, ey, clip, idx)
             sy = math.floor(sy * node.ih / dh)
             sw, sh = sx2 - sx, sy2 - sy
         end
+        -- Fractional scroll positions can round the far edge one pixel
+        -- beyond the source. Bound the integer crop before mpv copies it.
+        sw = math.min(sw, node.iw - sx)
+        sh = math.min(sh, node.ih - sy)
         if sw >= 1 and sh >= 1 then
             if #overlay_list >= MAX_OVERLAYS then
                 msg.warn('overlay budget exceeded; image dropped: ' ..
