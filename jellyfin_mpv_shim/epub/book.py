@@ -27,9 +27,19 @@ log = logging.getLogger("epub.book")
 #: before it and the one after" — the working set of any page turn.
 SECTION_CACHE = 3
 
-#: Decoded illustrations to keep. Bounded by count rather than bytes; a
-#: page holds a handful and the LANCZOS-resized copies are what get drawn.
+#: Decoded illustrations to keep: at most this many, and at most
+#: IMAGE_CACHE_BYTES of them. These are the ORIGINALS (paint resizes from
+#: them on every draw), up to 40 M px each, so a count alone let an art book's
+#: plates hold 1.7 GB -- 24 camera-sized decodes at ~72 MB.
 IMAGE_CACHE = 24
+IMAGE_CACHE_BYTES = 256 * 1024 * 1024
+
+
+def _decoded_bytes(picture):
+    """Roughly what a decoded PIL image holds in memory."""
+    if picture is None:
+        return 0
+    return picture.width * picture.height * len(picture.getbands())
 
 
 class Chapter:
@@ -209,7 +219,9 @@ class EpubDocument:
 
     def _load_image(self, src):
         if src in self._images:
-            return self._images[src]
+            # Re-inserted, so the trim below drops the least recently DRAWN.
+            picture = self._images[src] = self._images.pop(src)
+            return picture
         picture = None
         try:
             picture = paint.decode_image(self._image_bytes(src))
@@ -217,6 +229,12 @@ class EpubDocument:
             log.debug("image %s unreadable", src, exc_info=True)
         self._images[src] = picture
         self._trim(self._images, IMAGE_CACHE, src)
+        total = sum(_decoded_bytes(p) for p in self._images.values())
+        for key in list(self._images):
+            if total <= IMAGE_CACHE_BYTES:
+                break
+            if key != src:      # the one being drawn stays, however big
+                total -= _decoded_bytes(self._images.pop(key))
         return picture
 
     # -- the locations index ----------------------------------------------
