@@ -120,6 +120,14 @@ class TestRendererLua(unittest.TestCase):
                       env=self._session_env(DISPLAY=":0",
                                             JMS_TEST_OBSERVE="1")))
 
+    def test_every_image_overlay_stays_inside_its_image(self):
+        """A seeded sweep of scene images at fractional positions, behind
+        scrolls, layers and occluders, and scaled: every overlay-add must
+        address bytes inside iw*ih*4. #800 was a 432.99999999999994 edge the
+        integer-positioned tests above never produce; this fails on the
+        renderer before #801."""
+        self._assert_suite_passed(self._run("test_image_bounds.lua"))
+
     def test_the_thumbfast_suite_passes(self):
         """`thumbfast.lua` is the other consumer of the trickplay frame
         file — the compatibility layer every thumbfast-style lua OSC talks
