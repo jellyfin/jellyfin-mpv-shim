@@ -192,6 +192,10 @@ PER_BACKEND = [
     # timestamp that made "previous" an absolute seek to the END of the
     # file. Only a real container has a boundary mpv chose.
     "tests.e2e.test_chapters",
+    # Trickplay against a real server's tiles, read off the relay: each tile
+    # once per window while the pointer scrubs. Needs stdjflib's
+    # `--trickplay "Test Media"`; skips without it.
+    "tests.e2e.test_trickplay_live",
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",
     # Music, played for real. The one content type the suite never played:
