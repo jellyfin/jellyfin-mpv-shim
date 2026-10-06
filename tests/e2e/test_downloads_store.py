@@ -363,11 +363,14 @@ class AMusicPlaylistDownloadsAsOneTest(unittest.TestCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+@_e2e.heavy
 @_e2e.require_server
 class AutoDownloadAndTheReaperTest(unittest.TestCase):
-    """Row 64 under the REAL timers -- a long leg (~20 minutes): the settle
-    (60 s), the userdata sweep floor (300 s) and the reap hold (900 s from
-    launch) are constants, not settings. A show put into Next Up downloads
+    """Row 64 on the shipped app's timers, run short: the settle and the reap
+    hold are constants, not settings, so the app is launched with
+    JMS_TEST_SYNC_TIMERS (sync/manager.py). The hold's own arithmetic at
+    its real 900 s is unit-tested (test_reap_after_sweep); what this adds is
+    the whole path end to end. A show put into Next Up downloads
     its next episodes by itself; one of them watched on the server is
     reaped (watched grace 0 h), the next is kept; and only auto-downloads
     are ever reaped. c0cfac0b: not while no sweep has landed this session,
@@ -381,6 +384,10 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
             "auto_download_keep_watched_hours": 0,
             "auto_download_delete_watched": True,
             "auto_download_interval_mins": 1}
+    #: Seconds. The hold must outlast the app's start by a clear margin: it
+    #: is measured from inside the app, self.launched from out here.
+    SETTLE, HOLD = 5, 90
+    ENV = {"JMS_TEST_SYNC_TIMERS": "settle=%d,hold=%d" % (SETTLE, HOLD)}
 
     def setUp(self):
         self.session = _e2e.Session()
@@ -405,7 +412,8 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
         host, _, port = upstream.partition(":")
         self.relay = _relay.Relay((host, int(port or 80)))
         self.addCleanup(self.relay.close)
-        self.app = _app.App(backend=_backend(), conf=dict(self.CONF))
+        self.app = _app.App(backend=_backend(), conf=dict(self.CONF),
+                            env=dict(self.ENV))
         self.addCleanup(lambda: self.app.close())
         self.catalog = _flows.Catalog(self.app.config_dir)
         self.launched = time.monotonic()
@@ -455,11 +463,11 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
             "the premise: the catalog never learned E02 was watched")
         # c0cfac0b: no reap while no sweep has LANDED this session, however
         # watched the catalog says the row is -- and the hold is BOUNDED:
-        # REAP_SWEEP_HOLD (900 s) from the first pass that found a sweep
+        # REAP_SWEEP_HOLD (HOLD here) from the first pass that found a sweep
         # owed, then the pass reaps anyway, so a server that takes the
         # connection and never answers cannot switch retention off.
         seen = len(self.relay.requests)
-        while time.monotonic() < self.launched + 840:
+        while time.monotonic() < self.launched + self.HOLD - 30:
             self.assertTrue(self.row(e2), "reaped before any sweep landed, "
                             "%.0f s into the session"
                             % (time.monotonic() - self.launched))

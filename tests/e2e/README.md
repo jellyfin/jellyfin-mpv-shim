@@ -20,6 +20,19 @@ JMS_E2E_SERVER=... python3 tests/e2e/run_e2e.py --backend libmpv
 JMS_E2E_SERVER=... python3 -m unittest tests.e2e.test_playback_advance -v
 ```
 
+**Heavy tests run only when asked.** A class marked `@_e2e.heavy` costs
+minutes of real timers for one property, so a default run skips it and the
+summary names it. `--heavy` runs it, and release mode (`--manifest`) always
+does. The shipped app's sync timers can be shortened for a launch with
+`JMS_TEST_SYNC_TIMERS="settle=5,hold=90"` (`sync/manager.py`), which is how
+the reaper test drives a 900 s hold in 90; the real values' arithmetic is
+unit-tested. `_flows.relaunch` carries a test's environment to the next
+launch, so an App started with `env=` keeps it across a restart.
+
+`--durations FILE` keeps every test's timings and the harness's step tally
+(keys sent, time in `move_to`, `login`, ...); `tools/e2e_durations.py FILE`
+says where a run's time went.
+
 **Before a run, clear playlist litter.** Jellyfin sometimes leaves a
 deleted playlist's folder on disk and the next library scan brings it back,
 so `jms-e2e-*` playlists pile up, push a test's new playlist off the first

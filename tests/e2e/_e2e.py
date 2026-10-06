@@ -182,6 +182,18 @@ def require_server_and_mpv(obj):
     return require_server(h.require_real_mpv(obj))
 
 
+#: Set by run_e2e.py for --heavy and for every release-mode (--manifest) run.
+HEAVY_ENV = "JMS_E2E_HEAVY"
+
+
+def heavy(obj):
+    """Release-gate only: minutes of real timers for one property. A default
+    run skips it and the runner's summary names it."""
+    return unittest.skipUnless(
+        os.environ.get(HEAVY_ENV) == "1",
+        "heavy: runs with run_e2e.py --heavy or --manifest")(obj)
+
+
 # --------------------------------------------------------------------------
 # Settings + the player module
 # --------------------------------------------------------------------------

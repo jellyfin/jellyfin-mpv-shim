@@ -383,6 +383,9 @@ def main():
     parser.add_argument("--step", action="store_true",
                         help="watch mode, advancing one action per Enter")
     parser.add_argument("--list", action="store_true")
+    parser.add_argument("--heavy", action="store_true",
+                        help="also run the release-gate-only tests "
+                             "(_e2e.heavy); --manifest implies it")
     parser.add_argument("--durations", metavar="FILE",
                         help="append every test's record, with its leg and "
                              "timings, to FILE (JSON lines) for "
@@ -438,6 +441,8 @@ def main():
         os.environ["JMS_E2E_WATCH"] = str(args.watch or 1.0)
         if args.step:
             os.environ["JMS_E2E_STEP"] = "1"
+    if args.heavy or args.manifest or args.update_manifest:
+        os.environ["JMS_E2E_HEAVY"] = "1"
     use_xvfb = not args.no_xvfb and shutil.which("xvfb-run") is not None
     backends = [args.backend] if args.backend else list(BACKENDS)
     modules = args.module or MODULES

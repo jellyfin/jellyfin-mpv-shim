@@ -157,6 +157,33 @@ USERDATA_SWEEP_SETTLE = 60
 #: failure. docs/offline-sync.md section 4.
 REAP_SWEEP_HOLD = 900
 
+#: Test-only, like JMS_TEST_OBSERVE: ``JMS_TEST_SYNC_TIMERS="settle=5,hold=90"``
+#: runs the two waits above short, so the e2e suite can drive them end to end
+#: without sitting out the real ones. Read once, at import.
+_TEST_TIMER_NAMES = {"settle": "USERDATA_SWEEP_SETTLE", "hold": "REAP_SWEEP_HOLD"}
+
+
+def _test_timers(spec):
+    out = {}
+    for part in filter(None, (spec or "").split(",")):
+        key, _, value = part.partition("=")
+        name = _TEST_TIMER_NAMES.get(key.strip())
+        try:
+            secs = int(value)
+        except ValueError:
+            secs = -1
+        if name is None or secs < 0:
+            log.warning("Ignoring %r in JMS_TEST_SYNC_TIMERS.", part)
+            continue
+        out[name] = secs
+    return out
+
+
+_overrides = _test_timers(os.environ.get("JMS_TEST_SYNC_TIMERS"))
+if _overrides:
+    log.warning("Test sync timers in effect: %r", _overrides)
+    globals().update(_overrides)
+
 #: Ids per request. They travel in the query string, which servers and
 #: proxies cap (the apiclient's own note on get_items says so), and a
 #: catalog of a few hundred downloads would otherwise be one 414.
