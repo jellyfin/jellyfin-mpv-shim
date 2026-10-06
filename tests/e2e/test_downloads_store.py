@@ -388,8 +388,7 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
     #: is measured from inside the app, self.launched from out here. And
     #: hold > floor, as in the app (see the first-phase assertion).
     SETTLE, FLOOR, HOLD = 5, 30, 90
-    ENV = {"JMS_TEST_SYNC_TIMERS": "settle=%d,floor=%d,hold=%d"
-           % (SETTLE, FLOOR, HOLD)}
+    ENV = _e2e.sync_timers(settle=SETTLE, floor=FLOOR, hold=HOLD)
 
     def setUp(self):
         self.session = _e2e.Session()

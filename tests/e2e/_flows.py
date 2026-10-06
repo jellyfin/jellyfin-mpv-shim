@@ -274,9 +274,10 @@ def users(config_dir):
 
 
 @_app.timed('relaunch')
-def relaunch(app, relay=None, cut=False, timeout=90):
+def relaunch(app, relay=None, cut=False, timeout=90, env=None):
     """Quit cleanly, optionally cut the network, and start the app again on
-    the same config directory. Returns the new App."""
+    the same config directory. Returns the new App, launched with the old
+    one's environment unless ``env`` replaces it."""
     rc = app.quit()
     if rc != 0:
         raise AssertionError("the app exited with %s before the relaunch"
@@ -285,6 +286,6 @@ def relaunch(app, relay=None, cut=False, timeout=90):
         relay.cut()
         assert relay.probe_refused(), "the cut is not in effect"
     again = _app.App(backend=app.backend, config_dir=app.config_dir,
-                     env=app._extra_env)
+                     env=app._extra_env if env is None else env)
     again.start(timeout=timeout)
     return again

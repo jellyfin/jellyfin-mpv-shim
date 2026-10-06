@@ -54,6 +54,9 @@ class _OfflineCase(unittest.TestCase):
     """Download the film online as qa-user, then relaunch with the network
     cut. Leaves ``self.app`` on the offline Home with the film listed."""
 
+    #: The app's environment, both launches (_e2e.sync_timers).
+    ENV = {}
+
     def setUp(self):
         self.session = _e2e.Session()
         films = [i for i in self.session.find_all(item_type="Movie")
@@ -68,7 +71,7 @@ class _OfflineCase(unittest.TestCase):
         host, _, port = upstream.partition(":")
         self.relay = _relay.Relay((host, int(port or 80)))
         self.addCleanup(self.relay.close)
-        self.app = _app.App(backend=_backend())
+        self.app = _app.App(backend=_backend(), env=dict(self.ENV))
         self.addCleanup(lambda: self.app.close())
         self.catalog = _flows.Catalog(self.app.config_dir)
 
@@ -515,6 +518,9 @@ class _TwoProfilesCase(unittest.TestCase):
     """The default profile (Alice, qa-user) downloads the film; Bob is added
     and signed in as qa-admin; the app relaunches offline with Bob active."""
 
+    #: The app's environment, both launches (_e2e.sync_timers).
+    ENV = {}
+
     def setUp(self):
         self.session = _e2e.Session()
         self.admin = _e2e.Session("qa-admin")
@@ -532,7 +538,7 @@ class _TwoProfilesCase(unittest.TestCase):
         host, _, port = upstream.partition(":")
         self.relay = _relay.Relay((host, int(port or 80)))
         self.addCleanup(self.relay.close)
-        self.app = _app.App(backend=_backend())
+        self.app = _app.App(backend=_backend(), env=dict(self.ENV))
         self.addCleanup(lambda: self.app.close())
         self.catalog = _flows.Catalog(self.app.config_dir)
 
@@ -636,6 +642,10 @@ class ReconnectDeliversAsEachPersonTest(_TwoProfilesCase):
     queued mark must still be queued and qa-admin's server state unchanged
     (a drain through Alice's login would be B4's shape: one person's
     viewing filed as another's). Codex round 1, finding 8."""
+
+    # Both deliveries wait on the replay cadence, which Retry does not
+    # trigger; short, it changes when they go, not whose they are.
+    ENV = _e2e.sync_timers(replay=5)
 
     def _server_played(self, session):
         return bool((session.user_data(self.film) or {}).get("Played"))
@@ -768,15 +778,18 @@ class UnwatchOnlineReachesTheCopyTest(unittest.TestCase):
     def test_another_clients_unwatch_arrives_with_the_sweep(self):
         """F47 (ratified): an unwatch made in ANOTHER client is not applied
         from the websocket's announcement; it reaches the copy at the next
-        sweep. A sweep runs at launch (after the 60 s settle), so the step
-        that triggers it is a relaunch -- online, nothing cut."""
+        sweep. A sweep runs at launch (after the settle), so the step
+        that triggers it is a relaunch -- online, nothing cut. The settle is
+        short on that relaunch only: for the whole class, a sweep could
+        answer the push test's window and pass it without a push."""
         self.session._request("/UserPlayedItems/%s" % self.film, "DELETE")
         self.assertFalse(self._server_played())
         time.sleep(3)
         self.assertEqual(1, self._copy_played(),
                          "the copy retreated before a sweep: the websocket "
                          "path is advance-only by ruling (F47)")
-        self.app = _flows.relaunch(self.app)
+        self.app = _flows.relaunch(self.app,
+                                   env=_e2e.sync_timers(settle=5))
         self.assertTrue(_e2e.wait_for(lambda: self._copy_played() == 0,
                                       timeout=180),
                         "the sweep after relaunch did not bring the other "
@@ -806,6 +819,10 @@ class ASweepHoldsAQueuedUnwatchTest(_OfflineCase):
     unwatch is on its way to change exactly that. The relay fails every
     attempt at the delivery, so the unwatch stays queued while the sweep
     runs. Mutation-checked: without the hold (sync/db.py) the copy re-ticks."""
+
+    # After Retry the delivery waits on the replay cadence and the sweep on
+    # the settle (counted from the offline launch); neither is the subject.
+    ENV = _e2e.sync_timers(settle=5, replay=5)
 
     def test_the_local_unwatch_stands_until_it_is_sent(self):
         self.session._request("/UserPlayedItems/%s" % self.film, "POST")
@@ -859,6 +876,8 @@ class ConflictsAtReconnectTest(_OfflineCase):
     client's doing -- then reconnects with the relay restored and Retry,
     and reads the server as the only judge."""
 
+    # The drain after Retry waits on the replay cadence, not the subject.
+    ENV = _e2e.sync_timers(replay=5)
     TICKS = 10_000_000
 
     def _server(self):

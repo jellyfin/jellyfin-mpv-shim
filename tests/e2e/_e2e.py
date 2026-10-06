@@ -182,6 +182,14 @@ def require_server_and_mpv(obj):
     return require_server(h.require_real_mpv(obj))
 
 
+def sync_timers(**secs):
+    """An App ``env`` that runs the app's sync timers short:
+    ``sync_timers(settle=5, replay=5)``. Names and why: sync/manager.py
+    JMS_TEST_SYNC_TIMERS."""
+    return {"JMS_TEST_SYNC_TIMERS": ",".join(
+        "%s=%d" % kv for kv in sorted(secs.items()))}
+
+
 #: Set by run_e2e.py for --heavy and for every release-mode (--manifest) run.
 HEAVY_ENV = "JMS_E2E_HEAVY"
 

@@ -164,7 +164,8 @@ REAP_SWEEP_HOLD = 900
 #: a hold shorter than the floor expires before the sweep it waits for.
 _TEST_TIMER_NAMES = {"settle": "USERDATA_SWEEP_SETTLE",
                      "floor": "USERDATA_SWEEP_FLOOR",
-                     "hold": "REAP_SWEEP_HOLD"}
+                     "hold": "REAP_SWEEP_HOLD",
+                     "replay": "PLAYSTATE_INTERVAL"}
 
 
 def _test_timers(spec):
