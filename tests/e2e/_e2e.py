@@ -194,6 +194,16 @@ def sync_timers(**secs):
 HEAVY_ENV = "JMS_E2E_HEAVY"
 
 
+#: Set by run_e2e.py for --gate and every --manifest run: the release gate.
+GATE_ENV = "JMS_E2E_GATE"
+
+
+def gate():
+    """The release gate: every test signs in and launches cold. The light
+    tier reuses a class's sign-in instead (Izzie, 2026-10-06)."""
+    return os.environ.get(GATE_ENV) == "1"
+
+
 def heavy(obj):
     """Release-gate only: minutes of real timers for one property. A default
     run skips it and the runner's summary names it."""

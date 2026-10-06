@@ -274,6 +274,28 @@ PER_BACKEND = [
 
 MODULES = CONTRACT + PER_BACKEND
 
+# Light run: these run on LIGHT_BACKEND only; --gate runs them on both. The
+# rule is the module's SUBJECT -- the store, the catalog, a screen's own
+# state -- not whether it happens to start an mpv: every shipped-app test
+# does. A module that plays, routes input, or quits by a backend's own path
+# stays in the matrix. Izzie, 2026-10-06.
+ONE_BACKEND = [
+    # The download folder's files, by content hash.
+    "tests.e2e.test_store_safety",
+    # Resume by Range, catalog/users.json restore, the store move.
+    "tests.e2e.test_downloads_store",
+    # The offline-sync rulings across screen, catalog and server. Borderline:
+    # PlayOfflineTest plays the local copy; the gate keeps both for it.
+    "tests.e2e.test_offline_ui",
+    # PINs and profile switching.
+    "tests.e2e.test_profiles_live",
+    # conf.json, ticks, search, the Logs tab.
+    "tests.e2e.test_settings_live",
+    # Sort persistence across a relaunch.
+    "tests.e2e.test_browse_routes",
+]
+LIGHT_BACKEND = "libmpv"
+
 BACKENDS = ("libmpv", "jsonipc")
 
 SINK_NAME = "jms-e2e-sink"
@@ -390,6 +412,10 @@ def main():
     parser.add_argument("--step", action="store_true",
                         help="watch mode, advancing one action per Enter")
     parser.add_argument("--list", action="store_true")
+    parser.add_argument("--gate", action="store_true",
+                        help="release gate: heavy tests, every module on "
+                             "both backends, and a fresh sign-in and launch "
+                             "per test (no reuse); --manifest implies it")
     parser.add_argument("--heavy", action="store_true",
                         help="also run the release-gate-only tests "
                              "(_e2e.heavy); --manifest implies it")
@@ -448,8 +474,15 @@ def main():
         os.environ["JMS_E2E_WATCH"] = str(args.watch or 1.0)
         if args.step:
             os.environ["JMS_E2E_STEP"] = "1"
-    if args.heavy or args.manifest or args.update_manifest:
+    gate = args.gate or args.manifest or args.update_manifest
+    if gate:
+        os.environ["JMS_E2E_GATE"] = "1"
+    else:
+        os.environ.pop("JMS_E2E_GATE", None)
+    if args.heavy or gate:
         os.environ["JMS_E2E_HEAVY"] = "1"
+    print("tier:   %s" % ("gate" if gate else
+                          "light (--gate for the release gate)"))
     use_xvfb = not args.no_xvfb and shutil.which("xvfb-run") is not None
     backends = [args.backend] if args.backend else list(BACKENDS)
     modules = args.module or MODULES
@@ -461,8 +494,13 @@ def main():
         results.append((module, "contract", ok, records))
         keep_durations(args.durations, module, "contract", records)
 
+    light_skips = []
     for backend in backends:
         for module in [m for m in modules if m not in CONTRACT]:
+            if (not gate and not args.backend and module in ONE_BACKEND
+                    and backend != LIGHT_BACKEND):
+                light_skips.append("%s [%s]" % (module, backend))
+                continue
             ok, records = run_leg(module, backend, use_xvfb, args.verbose)
             results.append((module, backend, ok, records))
             keep_durations(args.durations, module, backend, records)
@@ -480,6 +518,11 @@ def main():
             for module, backend, _ok, records in results}
     for line in _manifest.skip_lines(legs):
         print(line)
+    if light_skips:
+        print("light tier: %d leg(s) not run (ONE_BACKEND; --gate runs "
+              "them):" % len(light_skips))
+        for leg in light_skips:
+            print("  " + leg)
     print("=" * 60)
     print("%d/%d legs passed" % (len(results) - len(failed), len(results)))
     path = _manifest.manifest_path("e2e")

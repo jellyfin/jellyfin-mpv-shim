@@ -20,6 +20,14 @@ JMS_E2E_SERVER=... python3 tests/e2e/run_e2e.py --backend libmpv
 JMS_E2E_SERVER=... python3 -m unittest tests.e2e.test_playback_advance -v
 ```
 
+**Two tiers: light (the default) and the gate (`--gate`).** The light run
+is for running often: the modules in `run_e2e.py:ONE_BACKEND` run on libmpv
+only, and `_PlaybackCase` classes sign in once per class and launch each
+test on a copy of that config. The gate is the release run: heavy tests,
+every module on both backends, a fresh sign-in and launch per test.
+`--manifest` implies `--gate`. A class whose subject is the sign-in itself
+sets `FRESH_LOGIN = True` and signs in every test in both tiers.
+
 **Heavy tests run only when asked.** A class marked `@_e2e.heavy` costs
 minutes of real timers for one property, so a default run skips it and the
 summary names it. `--heavy` runs it, and release mode (`--manifest`) always

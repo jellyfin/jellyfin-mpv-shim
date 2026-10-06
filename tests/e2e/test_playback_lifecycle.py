@@ -44,10 +44,53 @@ def _backend():
 @_e2e.require_server
 class _PlaybackCase(unittest.TestCase):
     CONF = {}
+    #: Sign in through the form in every test even in the light tier, for a
+    #: class whose subject is what signing in does or leaves behind.
+    FRESH_LOGIN = False
+
+    @classmethod
+    def _reuses_login(cls):
+        """Light tier: sign in once per class and launch each test on a copy
+        of that config, already signed in. Not in the gate, not for
+        FRESH_LOGIN, and not where before_login sets up something the app
+        must find AT sign-in."""
+        return (not _e2e.gate() and not cls.FRESH_LOGIN
+                and cls.before_login is _PlaybackCase.before_login)
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if not cls._reuses_login():
+            return
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        # The saved login names this relay's address, so it outlives the
+        # template and is reset per test.
+        cls.relay = _relay.Relay((host, int(port or 80)))
+        cls.addClassCleanup(cls.relay.close)
+        app = _app.App(backend=_backend(), conf=dict(cls.CONF),
+                       files=dict(getattr(cls, "FILES", {})))
+        cls.addClassCleanup(app.close)
+        app.start()
+        _flows.login(app, cls.relay)
+        rc = app.quit()
+        if rc != 0:
+            raise AssertionError("the sign-in launch exited with %s" % rc)
+        cls.template = app.config_dir
 
     def setUp(self):
         self.session = _e2e.Session()
         self.before_login()
+        if self._reuses_login():
+            self.relay.reset()
+            self.app = _app.App.copy_of(
+                self.template, backend=_backend(), conf=dict(self.CONF),
+                files=dict(getattr(self, "FILES", {})))
+            self.addCleanup(lambda: self.app.close())
+            self.app.start()
+            self.app.wait_for(lambda f: _app.shown(f, "row-libs"),
+                              timeout=60, what="Home, already signed in")
+            return
         upstream = _e2e.SERVER.split("//", 1)[1]
         host, _, port = upstream.partition(":")
         self.relay = _relay.Relay((host, int(port or 80)))

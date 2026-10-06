@@ -69,6 +69,8 @@ class FirstRunAndRelaunchTest(_LifecycleCase):
     """Row 48. setUp's login IS first run: a fresh config dir, the form,
     typed by keys, then Home."""
 
+    FRESH_LOGIN = True
+
     def test_a_relaunch_goes_straight_home(self):
         self.assertTrue(_app.shown(self.app.frame(), "row-libs"))
         self.assertEqual(0, self.app.quit(timeout=30))
@@ -205,6 +207,10 @@ class ThePasswordDoesNotOutliveTheSignInTest(_LifecycleCase):
     itself has no path to the screen -- every entry resets the form first,
     and a mutant dropping it passes here -- so it is pinned in
     tests/test_login_form_reset.py.)"""
+
+    # The form this reads is the one the sign-in in THIS process used; a
+    # launch already signed in never typed a password, so it would pass.
+    FRESH_LOGIN = True
 
     def test_add_server_opens_with_no_password(self):
         _flows.open_settings_tab(self.app, "servers")
