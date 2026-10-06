@@ -724,8 +724,19 @@ where neither can send `shim-trickplay-need` again — `renderer.lua` takes the
 `img_is_bif`. So one dropped tile mid-film meant chapter stills for the rest of
 the item, with Python still perfectly able to serve windows nothing would ever
 ask for. The fallback belongs to "this item has no trickplay at all", which is
-a different branch. A window that fails leaves the published one live and is
-retried by scrubbing.
+a different branch. A window that fails leaves the published one live.
+
+**Retried by scrubbing only when the failure was the network.** A tile that is
+the wrong size or does not decode (`bifdecode.BadTile`) comes back the same every
+time, and the renderer asks once per frame index outside the window, so retrying
+it downloaded the whole window again for every pointer movement across the bad
+region. Such a window is recorded (`TrickPlay._bad`, consulted by `_covers`) and
+logged once with the tile's actual and expected size; `docs/jellyfin-api-notes.md`
+("Trickplay: the server trusts tiles it did not make") has what produces one.
+
+`trickplay_fast_mode` loads the whole video in one file only while every frame
+starts within 2 GiB: overlay-add's `offset` is a 32-bit int in mpv and is
+refused above that, so a longer video at a large preview width is windowed.
 
 This is why `media.Video.get_hls_tile_images` raising rather than truncating is
 the right shape: an online tile failure aborts the window instead of publishing

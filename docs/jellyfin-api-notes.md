@@ -796,3 +796,34 @@ because the apiclient has no `max_height`.
 
 **The server caches per exact pixel size**, which is why every distinct width is a full
 price fetch and why the client quantises its requests. See `docs/artwork-pipeline.md`.
+
+## Trickplay: the server trusts tiles it did not make
+
+Read in the server source (12.0 `6c073e19dd`; tags `v10.9.0`–`v10.11.9` checked),
+and the generated half measured on the 12.0 QA server:
+
+- **The generator always makes uniform, padded mosaics.**
+  `SkiaEncoder.CreateTrickplayTile` allocates `imgWidth*tileWidth ×
+  imgHeight*tileHeight` and throws on any frame whose size differs from the first,
+  so a partial last tile is padded to the full grid (a 66-thumbnail item at 10×10
+  serves one 3200×2400 tile, exactly the manifest's size).
+- **Tiles already on disk are imported as they are.** When a tile directory exists
+  and the database has no row for that width — a `<file>.trickplay` folder saved
+  with the media and kept across a re-rip at the same name, a reset database, a
+  re-added library — `TrickplayManager` sets `Height` to the **largest**
+  `ceil(tile height / TileHeight)` over the tiles (10.10 onwards), or 12.0's
+  scan-time discovery takes it from the **first** tile alone, and checks no tile
+  against it. A directory holding two generations gets a manifest some tiles do not
+  match, and those are *smaller* than the manifest says. That is the most likely
+  source of a "Tile size mismatch" report; it is not confirmed against a reporter's
+  server. jellyfin-web positions frames by the manifest's offsets and never checks a
+  tile's size, which would explain "it works in the web client" (misplaced frames
+  rather than a failure) — inferred, not observed.
+- **The same import sets `ThumbnailCount` to the number of tile files**, not of
+  thumbnails, so an imported two-hour film advertises about eight previews. Upstream's
+  to fix.
+
+The shim refuses a tile that does not match (`bifdecode.BadTile`), records the
+window so scrubbing does not re-fetch it, and logs the sizes once, including
+whether the tile still divides into the grid — the signature of the
+two-generation case (`docs/artwork-pipeline.md` §11.5).

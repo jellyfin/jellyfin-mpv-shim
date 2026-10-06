@@ -834,15 +834,23 @@ class Video(object):
                 return intro.start <= time, intro
         return False, None
 
+    def _imaged_chapters(self):
+        """``(server index, chapter)`` for chapters that have an image. A
+        chapter whose extraction failed has none, and the previews' times and
+        frames must both skip it -- one list feeds both -- or every frame
+        after it is drawn under the next chapter's time. The index stays the
+        server's: it is the chapter's position, not the image's."""
+        return [(i, c) for i, c in enumerate(self.item.get("Chapters") or [])
+                if c.get("ImageTag")]
+
     def get_chapters(self):
         return [
             {"start": item["StartPositionTicks"] / 10000000, "name": item["Name"]}
-            for item in self.item.get("Chapters", [])
-            if item.get("ImageTag")
+            for _i, item in self._imaged_chapters()
         ]
 
     def get_chapter_images(self, max_width=400, quality=90):
-        for i, item in enumerate(self.item.get("Chapters", [])):
+        for i, item in self._imaged_chapters():
             data = BytesIO()
             self.client.jellyfin.get_chapter_image(
                 data,
