@@ -172,7 +172,7 @@ Green on both backends. See `tests/e2e/README.md` to run it.
 | `test_scroll_recovery` | playback | — | wheel-scrolling 1000 items in a real window; blank-tile recovery |
 | `test_track_selection` | playback | — | Jellyfin stream index → mpv track id, both ways, and back to the server |
 | `test_photos` | playback | — | a still is held, an album is a slideshow; the browser's endless display duration |
-| `test_window_resize` | playback | — | the window changes size under the UI, including too small to use |
+| `test_window_live` (was `test_window_resize`) | playback | — | the window changes size under the UI, including too small to use |
 
 The contract tier never imports `player.py`, so it runs **once** and without a
 display — the whole of it is under two seconds. Only the playback tier pays

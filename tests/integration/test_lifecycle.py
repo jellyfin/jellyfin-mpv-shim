@@ -187,7 +187,7 @@ class TimelineThreadLifecycleTest(unittest.TestCase):
 
 class PlayerTerminateTest(unittest.TestCase):
     def test_terminate_stops_and_tears_down(self):
-        pm = h.build_player(player)
+        pm = h.build_player(player, test=self)
         calls = {"stop": 0}
         # Isolate terminate()'s own contract: it must call stop(), stop trickplay,
         # and (only on external mpv) terminate the player process.
@@ -282,7 +282,7 @@ class EndOfQueueTest(unittest.TestCase):
     """
 
     def _player(self):
-        pm = h.build_player(player)
+        pm = h.build_player(player, test=self)
         pm._mpv_alive = True
         pm.should_send_timeline = True
         pm.send_timeline_stopped = lambda *a, **k: None

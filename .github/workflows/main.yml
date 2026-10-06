@@ -51,12 +51,17 @@ jobs:
         tag: '20260828'
         fileName: 'mpv-dev-x86_64-v3*.7z'
     - name: Install dependencies
+      timeout-minutes: 15
       run: |
         7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install .[all] pywin32
-        winget install --id JRSoftware.InnoSetup -e -s winget || true || true
+        # Only when missing: the runner image ships Inno Setup, and letting
+        # winget UPGRADE it hung this step until cancelled (2026-09-26).
+        if [[ ! -e "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]]; then
+          winget install --id JRSoftware.InnoSetup -e -s winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements || true
+        fi
         ./gen_pkg.sh --skip-build
       shell: bash
     - name: Build the Vulkan loader
@@ -140,12 +145,17 @@ jobs:
         tag: '20260828'
         fileName: 'mpv-dev-x86_64-[0-9]*-git-*.7z'
     - name: Install dependencies
+      timeout-minutes: 15
       run: |
         7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
         mv libmpv-2.dll mpv-2.dll
         pip install wheel
         pip install .[all] pywin32
-        winget install --id JRSoftware.InnoSetup -e -s winget || true
+        # Only when missing: the runner image ships Inno Setup, and letting
+        # winget UPGRADE it hung this step until cancelled (2026-09-26).
+        if [[ ! -e "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]]; then
+          winget install --id JRSoftware.InnoSetup -e -s winget --silent --disable-interactivity --accept-package-agreements --accept-source-agreements || true
+        fi
         ./gen_pkg.sh --skip-build
       shell: bash
     - name: Build the Vulkan loader
@@ -237,6 +247,7 @@ jobs:
         tag: '20260828'
         fileName: 'mpv-dev-aarch64-*.7z'
     - name: Install dependencies
+      timeout-minutes: 15
       run: |
         7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
         mv libmpv-2.dll mpv-2.dll

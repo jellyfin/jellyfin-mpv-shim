@@ -79,6 +79,43 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="3.1.0" date="2026-10-04">
+      <description>
+        <p>
+          Revamps offline sync, namely progress sync. UI language can now be overridden in settings.
+          Many other small bugs found after the v3.0.0 release are also now fixed.
+        </p>
+        <p>Changes:</p>
+        <ul>
+          <li>Improve server connection retry UI and allow re-logging in.</li>
+          <li>Improve offline progress sync reliability and multi-user support</li>
+          <li>The UI auto-refreshes in more places when state changes.</li>
+          <li>Fixed video resume sometimes breaking playback position (#761, #765)</li>
+          <li>Fixed issue where HDR gets disabled (#771)</li>
+          <li>Fixed video playing while it is still loading (#785)</li>
+          <li>Opening the application while playing now just raises the window</li>
+          <li>Fixed intermittent blank library page on film ending</li>
+          <li>Library sort is now remembered between visits</li>
+          <li>Metadata refresh option added (#764)</li>
+          <li>Missing episodes are now marked and don't get play attempts</li>
+          <li>Added shuffle and description to season pages</li>
+          <li>Prevented homepage flickering for HiDPI/many library users</li>
+          <li>Added server discovery (#755)</li>
+          <li>Allow viewing/playing downloads while online</li>
+          <li>Fixed newlines being pasted into login forms</li>
+          <li>Casting a photo album is now supported, although some servers sometimes send nothing</li>
+          <li>Empty syncplay queues don't crash the player anymore</li>
+          <li>Syncplay now uses the online source if your downloaded copy is stale</li>
+          <li>Improved UI summoning reliability (#767)</li>
+          <li>Added multimedia back/forward key support</li>
+          <li>Added keybind kb_nav_back to go back and keep fullscreen (#762)</li>
+          <li>Trickplay is now DPI-aware</li>
+          <li>Clarified language-config settings (#766)</li>
+          <li>Enabled flatpak screen wakelock support (#772)</li>
+          <li>Added fontconfig support for distros like NixOS that put their fonts in non-standard places (#786)</li>
+        </ul>
+      </description>
+    </release>
     <release version="3.0.0" date="2026-09-07">
       <description>
         <p>

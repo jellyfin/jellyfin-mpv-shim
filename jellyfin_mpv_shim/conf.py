@@ -301,12 +301,14 @@ class Settings(SettingsBase):
     # RAM for DECODED artwork, which is the expensive form: a 4K backdrop is
     # 33 MB decoded against ~400 KB on the wire.
     #
-    # Deliberately modest, because this cache sits behind another one. What
-    # decoded images are *for* is compositing tile strips, and the strips are
-    # themselves cached -- so a decoded poster is only wanted while a row is
-    # being built, and scrolling back over a row that is still cached never
-    # asks for one. That makes this a working set, not a library: a screenful
-    # of posters is ~7 MB, and the big single items are backdrops.
+    # Deliberately modest: decoded images exist to composite tile strips, so
+    # this is a working set, not a library -- a screenful of posters is ~7 MB
+    # at 1x and four times that at 2x, and the big single items are
+    # backdrops. It is NOT skipped for a row whose strip is cached: a strip
+    # is keyed on which of its posters are decoded, so a row redraws from the
+    # images every build. What the screen is using is never evicted, and
+    # only rows near the viewport are built (TileRenderer.window_rows), so
+    # a page larger than this does not thrash it.
     #
     # It is not a stand-in for the artwork cache on disk either. That one
     # holds the server's compressed bytes and the OS page-caches them for
@@ -400,16 +402,35 @@ class Settings(SettingsBase):
     # lookahead window, keep_days reclaims a show that was abandoned midway.
     # keep_days = 0 means never expire on age alone.
     auto_download_delete_watched: bool = True
+    # How long a watched auto-download is kept anyway, in hours. 0 is the
+    # old behaviour (gone on the first pass after it is finished). It buys
+    # back the two cases deleting immediately gets wrong: somebody else in
+    # the house has not seen it yet, and "play it again" a few hours later
+    # otherwise means re-downloading the whole episode. Hours rather than
+    # days because the useful values span both -- 12 and 168 are the same
+    # setting -- and only hours can say the first.
+    #
+    # Retention only. The size cap still evicts a watched item inside its
+    # window, or a full budget would stop auto-download for the length of
+    # the window; see docs/offline-sync.md section 4. That is also true at
+    # *exactly* the cap, which is where a capped store settles, and
+    # `auto.reap` is where it is spelt.
+    #
+    # A day rather than nothing, because the reaper no longer asks the server
+    # whether a row is watched: it reads what the last sweep wrote, and with
+    # no server to sweep from there is nothing else holding a file back.
+    # Free to change because the setting has never shipped -- it
+    # was added inside this same branch.
+    auto_download_keep_watched_hours: int = 24
     auto_download_keep_days: int = 30
     auto_download_interval_mins: int = 60
-    # Which servers the scheduler may pull from, as a comma-separated list of
-    # server uuids. Empty means NONE, not all: a logged-in server may be a
-    # friend's, and pointing unattended downloads at someone else's hardware
-    # is a rude thing to do by default. Switching auto-download on seeds this
-    # with the server you were looking at when you did it, which is the one
-    # you meant; every other server — and every other local user, whose
-    # servers have different uuids — stays off until ticked in the Servers
-    # tab.
+    # LEGACY, and read exactly once: `users.UserManager` adopts this list at
+    # load and clears it (`_adopt_legacy_auto_download`). The allow-list is
+    # per profile and keyed on the **account** now, in users.json -- R14, and
+    # the reason is that one server answering at two addresses is two login
+    # uuids and one account, so a uuid list silently stopped applying
+    # whenever the other address won the connect race. Do not add a reader:
+    # on any install that has launched once this is already None.
     auto_download_servers: Optional[str] = None
     media_key_seek: bool = False
     # The mouse's back/forward buttons jump a chapter during playback.
@@ -460,6 +481,11 @@ class Settings(SettingsBase):
     kb_unwatched: Optional[str] = "u"
     kb_menu: Optional[str] = "c"
     kb_menu_esc: Optional[str] = "esc"
+    # "Go back" with nothing else attached to it. Unbound by default on
+    # purpose: ESC keeps doing both jobs -- back, and then leaving fullscreen
+    # -- because a lot of users expect ESC to leave fullscreen, so this is for
+    # somebody who wants the two separated rather than a change for everyone.
+    kb_nav_back: Optional[str] = None
     kb_menu_ok: Optional[str] = "enter"
     kb_menu_left: Optional[str] = "left"
     kb_menu_right: Optional[str] = "right"
@@ -779,6 +805,12 @@ class Settings(SettingsBase):
     #: input.conf bindings there.
     browse_block_keys: bool = True
     thumbnail_preferred_size: int = 320
+    #: How much to enlarge trickplay frames as they are drawn. None follows
+    #: the display -- the UI scale in the in-window HUD, display-hidpi-scale
+    #: in thumbfast.lua -- because the server's frames are a PHYSICAL size.
+    #: Enlarged by overlay-add on the GPU rather than decoded bigger:
+    #: docs/artwork-pipeline.md section 11.2.
+    thumbnail_scale: Optional[float] = None
     #: Load every trickplay preview frame at once instead of a window
     #: around where you are seeking.
     #:

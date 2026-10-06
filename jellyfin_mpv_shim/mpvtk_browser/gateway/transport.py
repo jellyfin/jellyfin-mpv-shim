@@ -59,6 +59,14 @@ class TransportMixin(GatewayCore):
         from ...player import playerManager
         playerManager.push_playstate()
 
+    def playing_item_id(self):
+        """The id of the item the player holds right now, or None. A plain
+        read, never the player lock: the browser asks it from inside
+        on_playstate, which a playback start can be holding up."""
+        from ...player import playerManager
+        video = playerManager.get_video()
+        return getattr(video, "item_id", None) if video is not None else None
+
     def toggle_pause(self):
         self._act(lambda pm: pm.toggle_pause())
 

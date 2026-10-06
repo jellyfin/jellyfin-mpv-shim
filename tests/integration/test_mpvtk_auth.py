@@ -246,6 +246,24 @@ class TestTheUserSwitcher(MpvtkAuthBase):
         self.assertIsNone(pin)
 
 
+    def test_a_dict_from_before_the_switch_is_read_again(self):
+        """Every switcher hands in a user dict from the scene it drew, and a
+        switch changes `active` before that scene is redrawn. Changing your
+        mind in that gap -- back to the previous profile -- read the old
+        dict's `active: True` and did nothing (e2e test_profiles_live's
+        switch spam)."""
+        self.browser.navigate({"kind": "home", "server": "srv1"})
+        self._wait_rendered("nav-user")
+        drawn = [dict(u) for u in TWO_USERS]      # the scene's copy
+        # The switch to u2 landed. Copies: the fake holds TWO_USERS' own
+        # dicts, and flipping them in place leaks into the next test.
+        self.ctl.users = [dict(u, active=u["id"] == "u2") for u in TWO_USERS]
+        self.browser._switch_user(drawn[0])       # u1, drawn as active
+        self._wait(lambda: self.ctl.switch_attempts,
+                   "going back to the previous profile did nothing")
+        self.assertEqual(self.ctl.switch_attempts[-1], ("u1", None))
+
+
 class TestSwitchingToALockedUser(MpvtkAuthBase):
     CONTROLLER_KW = {"users": LOCKED_OTHER}
 

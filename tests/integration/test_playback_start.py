@@ -64,8 +64,8 @@ def make_video(**kw):
     return video
 
 
-def build(**player_kw):
-    pm = h.build_player(player_module, **player_kw)
+def build(test, **player_kw):
+    pm = h.build_player(player_module, test=test, **player_kw)
     pm.action_trigger = threading.Event()
     pm.timeline_trigger = threading.Event()
     return pm
@@ -81,7 +81,7 @@ def start_media(test, video=None, prepare=None, **settings_kw):
     Module-level rather than a method because both the ordering claims and
     the trickplay arm are about what one start did.
     """
-    pm = build()
+    pm = build(test=test)
     if prepare is not None:
         prepare(pm)
     timer = threading.Timer(
@@ -105,7 +105,7 @@ class LoadOutcomeTest(unittest.TestCase):
     behind for the user: the video, the retry, and the error notice."""
 
     def setUp(self):
-        self.pm = build()
+        self.pm = build(test=self)
         self.notices = []
         # The one collaborator that has to be watched rather than inferred:
         # a timeout and a refusal both stop playback and both stash a retry,
@@ -299,6 +299,68 @@ class StartOrderTest(unittest.TestCase):
         self._start().journal.order("mpv.play", "mpv.observe:duration",
                                     "mpv.prop:duration", "mpv.unobserve:duration")
 
+    def test_the_file_is_held_paused_until_the_start_is_finished(self):
+        """#785: mpv plays from file-loaded, so a start that did not hold it
+        paused ran the film under the loading screen for as long as the rest
+        of the start took -- subtitle fetches, the resume seek."""
+        pm = self._start()
+        pm.journal.order("mpv.set:pause=True", "mpv.play",
+                         "mpv.prop:duration", "mpv.set:force_media_title",
+                         "mpv.set:pause=False")
+        loaded = len(pm.journal.since("mpv.prop:duration").entries())
+        after_play = pm.journal.since("mpv.play").entries()
+        during = after_play[:len(after_play) - loaded]
+        self.assertNotIn("mpv.set:pause=False", during,
+                         "the hold was released before the file loaded")
+        self.assertFalse(pm._player.pause, "the start ended still paused")
+
+    def test_a_song_is_not_held(self):
+        """Video only: audio has no loading screen to hide, and holding a
+        track is a delay a listener hears. It still ends unpaused."""
+        song = make_video(item_id="song")
+        song.item = {"MediaType": "Audio", "Type": "Audio"}
+        pm = self._start(song)
+        pm.journal.since("mpv.prop:duration")      # the start did load
+        pm.journal.never("mpv.set:pause=True")
+        self.assertFalse(pm._player.pause)
+
+    def test_no_playstate_is_reported_until_the_start_has_finished(self):
+        """#785's hold made a mid-start snapshot say "paused": the
+        now-playing bar appeared on it, and a SPACE pressed then was deferred
+        behind the start's lock and toggled the released file back to paused
+        (test_input_live's SpaceAndMuteAfterMusicTest, jsonipc). Three starts
+        on one player, because a flag a start leaves set is the next start's
+        bug."""
+        pm = build(test=self)
+        states = []
+        pm.on_playstate = states.append
+        # The timeline wake after update_subtitle_visuals is the real
+        # mid-start push; stood in for here, where no timeline thread runs.
+        real = pm.update_subtitle_visuals
+        pm.update_subtitle_visuals = lambda: (real(), pm.push_playstate())
+        for n in range(3):
+            del states[:]
+            pm._start_in_progress = True          # what play() sets
+            # A new file's own duration: the fake keeps the last one, and
+            # firing an unchanged value is not the change the load waits on.
+            timer = threading.Timer(
+                0.05, lambda d=100.0 + n: pm._player.fire_property(
+                    "duration", d))
+            timer.daemon = True
+            timer.start()
+            self.addCleanup(timer.cancel)
+            with mock.patch.object(player_module.settings,
+                                   "playback_timeout", 2):
+                pm._play_media(make_video(item_id="v%d" % n),
+                               "http://example.invalid/%d.mkv" % n,
+                               is_initial_play=True)
+            playing = [s for s in states if not s.get("stopped")]
+            self.assertTrue(playing, "start %d reported nothing" % n)
+            self.assertEqual([s["paused"] for s in playing],
+                             [False] * len(playing),
+                             "start %d reported itself paused: %r"
+                             % (n, playing))
+
     def test_the_title_is_set_only_once_the_file_has_loaded(self):
         """`force_media_title` is written after the duration arrives. Set it
         before and a load that times out leaves the failed item's name on a
@@ -350,7 +412,7 @@ class TrickplayPumpTest(unittest.TestCase):
         pm.trickplay = _RecordingTrickplay()
 
     def _armed(self, core_idle=True, paused=False, position=0.0):
-        pm = build()
+        pm = build(test=self)
         pm.trickplay = _RecordingTrickplay()
         pm._trickplay_pending = True
         pm._player.core_idle = core_idle
@@ -429,7 +491,7 @@ class LoadObserverLeakTest(unittest.TestCase):
     """
 
     def test_repeated_starts_do_not_accumulate_property_observers(self):
-        pm = build()
+        pm = build(test=self)
         counts = []
         for index in range(4):
             timer = threading.Timer(
@@ -526,7 +588,7 @@ class WindowGeometryTest(unittest.TestCase):
     """
 
     def setUp(self):
-        self.pm = build()
+        self.pm = build(test=self)
         self.player = self.pm._player
 
     def test_the_geometry_is_rearmed_at_the_live_window_size(self):
@@ -589,7 +651,7 @@ class PlaystateSnapshotTest(unittest.TestCase):
     """
 
     def setUp(self):
-        self.pm = build()
+        self.pm = build(test=self)
         self.player = self.pm._player
         self.states = []
         self.pm.on_playstate = self.states.append
@@ -636,6 +698,48 @@ class PlaystateSnapshotTest(unittest.TestCase):
             self.pm.push_playstate()
             seen.append([c["title"] for c in self.states[-1]["chapters"]])
         self.assertEqual(seen, [["A"], [], ["C"]])
+
+
+class FullscreenIntentTest(unittest.TestCase):
+    """`fullscreen_disable` is the *user's* "I left fullscreen" and is read at
+    the next playback start. Only a toggle the user made may write it.
+
+    `set_fullscreen(False)` from the update notice (`UpdateChecker.open`) is
+    the app leaving fullscreen for its own reasons -- so the browser can show
+    the release page -- and used to record it as the user's intent: the next
+    film then played windowed with `fullscreen` on. The persisted-setting
+    test in test_mpv_lifecycle could not see this; it checks the setting,
+    not the flag."""
+
+    def _start_after(self, leave_fullscreen):
+        def prepare(pm):
+            pm._player.fs = True
+            leave_fullscreen(pm)
+            self.assertFalse(pm._player.fs, "the setup did not leave fullscreen")
+        return start_media(self, prepare=prepare, fullscreen=True)
+
+    def test_the_update_notice_does_not_cancel_auto_fullscreen(self):
+        from jellyfin_mpv_shim.update_check import UpdateChecker
+
+        def update_notice(pm):
+            with mock.patch("webbrowser.open"):
+                UpdateChecker(pm).open()
+
+        pm = self._start_after(update_notice)
+        self.assertTrue(pm._player.fs,
+                        "the next film started windowed after the update "
+                        "notice left fullscreen")
+
+    def test_a_user_leaving_fullscreen_still_keeps_the_next_film_windowed(self):
+        """The other half, so the fix cannot be "never record it"."""
+        def user_toggle(pm):
+            with mock.patch.object(player_module.settings, "save"):
+                pm.toggle_fullscreen()
+
+        pm = self._start_after(user_toggle)
+        self.assertFalse(pm._player.fs,
+                         "a user's own exit from fullscreen was forgotten "
+                         "by the next start")
 
 
 if __name__ == "__main__":

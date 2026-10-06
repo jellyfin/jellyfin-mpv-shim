@@ -231,6 +231,35 @@ class TestTheStopCommand(ProtocolCase):
         self.assertNotIn("Leave", api.kinds())
 
 
+class TestAStopOlderThanTheQueue(ProtocolCase):
+    """Measured on the Windows VM (2026-09-28): a group Stop, parked until
+    time sync was ready, was applied after the group's NEW playlist had
+    started, and stopped it. A Stop emitted before the play queue now
+    playing is about the content that queue replaced; one emitted after it
+    is still a Stop."""
+
+    def _stop_against_a_queue(self, queue_offset_s):
+        from datetime import timedelta
+        from jellyfin_mpv_shim.syncplay import _parse_precise_time
+        group, sp, api = self.group_and_client()
+        stops = [dict(payload) for kind, targets, payload
+                 in group.request("Stop", "other-session")
+                 if kind == "command" and "session-under-test" in targets]
+        self.assertTrue(stops, "the premise: the group sent no Stop")
+        emitted = _parse_precise_time(stops[0]["EmittedAt"])
+        update = emitted + timedelta(seconds=queue_offset_s)
+        sp.last_playqueue = {
+            "LastUpdate": update.strftime("%Y-%m-%dT%H:%M:%S.%f") + "0Z"}
+        sp.process_command(stops[0])
+        return sp.playerManager.stopped
+
+    def test_a_stop_from_before_the_new_queue_leaves_it_playing(self):
+        self.assertEqual([], self._stop_against_a_queue(+2))
+
+    def test_a_stop_after_the_queue_still_stops(self):
+        self.assertTrue(self._stop_against_a_queue(-2))
+
+
 class TestBufferingIsReported(unittest.TestCase):
     """The server has a Buffer request so the group pauses for a stalled
     member. The client only ever calls it from mpv's ``seeking`` property --
@@ -483,6 +512,46 @@ class TestHaltingIsNotLeaving(ProtocolCase):
         self.assertEqual(len(started), 1)
         self.assertFalse(group.sessions["session-under-test"].ignore_wait,
                          "we are watching again and the group was not told")
+
+    def _empty(self):
+        """What the server sent a member in the real-app e2e
+        (test_reconnect_remote, 2026-09-27): a NewPlaylist with nothing in
+        it, which `_start_queue` and `replace_queue` both indexed into."""
+        return {"Playlist": [], "PlayingItemIndex": -1,
+                "StartPositionTicks": 0, "Reason": "NewPlaylist"}
+
+    def test_an_empty_playlist_starts_nothing_on_an_idle_member(self):
+        group, sp, api = self.group_and_client()
+        sp.playerManager.get_video = lambda: None
+        sp.upd_queue(self._empty())          # the real _start_queue raised
+        self.assertFalse(hasattr(sp.playerManager, "video"),
+                         "an empty playlist started playback")
+
+    def test_an_empty_playlist_leaves_a_playing_member_alone(self):
+        """web's startPlayback returns on isPlaylistEmpty(): nothing is
+        replaced, and nothing is stopped."""
+        group, sp, api = self.group_and_client()
+        replaced = []
+
+        class Playing(FakeQueue):
+            def replace_queue(self, sp_items, seq):
+                replaced.append((sp_items, seq))
+
+        video = FakeVideo()
+        video.parent = Playing()
+        sp.playerManager.get_video = lambda: video
+        sp.upd_queue(self._empty())
+        self.assertEqual(replaced, [], "the queue was replaced by nothing")
+        self.assertEqual(sp.playerManager.stopped, [])
+
+    def test_an_empty_playlist_still_pulls_a_halted_member_back_in(self):
+        """web follows the group first, then finds nothing to start."""
+        group, sp, api = self.group_and_client()
+        sp.halt_group_playback()
+        started = self._record_starts(sp)
+        sp.upd_queue(self._empty())
+        self.assertTrue(sp.is_enabled())
+        self.assertEqual(started, [])
 
     def test_resume_starts_where_the_group_is_now(self):
         group, sp, api = self.group_and_client(

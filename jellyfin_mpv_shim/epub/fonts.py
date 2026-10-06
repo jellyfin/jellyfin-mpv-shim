@@ -161,9 +161,12 @@ def face(kind, size, bold=False, italic=False, script="latin", text=None):
                 if font is not None:
                     break
     if font is None:
-        from PIL import ImageFont
+        # pilfont's Latin chain, which asks fontconfig when nothing here
+        # loads -- a NixOS host has none of these families at these paths
+        # (#786) -- and ends at a correctly sized default.
+        from ..mpvtk import pilfont
 
-        font = ImageFont.load_default()
+        font = pilfont.font("latin", size, bold)
     if cacheable:
         _font_cache[key] = font
     return font

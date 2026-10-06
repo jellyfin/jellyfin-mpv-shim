@@ -799,6 +799,7 @@ class TestLocked(unittest.TestCase):
         With no saved server that is the login form."""
         self.ctl.connect_and_rebuild = lambda: None
         self.ctl.known_servers = lambda: []
+        self.ctl.list_servers = lambda: []
         self.b.show_locked()
         _n, handlers = build_scene(self.b)
         handlers["lock-pin"]["change"]("1234")
@@ -812,8 +813,10 @@ class TestLocked(unittest.TestCase):
         the login form told them to sign in again and lost the offline
         library — the same case the connecting screen was built for."""
         self.ctl.connect_and_rebuild = lambda: None
-        self.ctl.known_servers = lambda: [{"address": "http://srv",
-                                           "name": "Home"}]
+        # THIS profile's saved login (list_servers), not an address any
+        # profile has used (known_servers) -- Izzie, 2026-09-28.
+        self.ctl.list_servers = lambda: [{"uuid": "s1", "name": "Home",
+                                          "connected": False}]
         self.b.show_locked()
         _n, handlers = build_scene(self.b)
         handlers["lock-pin"]["change"]("1234")
@@ -906,6 +909,72 @@ class TestServersPanel(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         icons = [n for n in nodes if n["t"] == "icon"]
         self.assertTrue(icons)
+
+    def test_auto_download_reaches_the_store_and_redraws(self):
+        """This checkbox is the only way to configure the feature, so a press
+        has to reach the store -- and the row has to be asked to redraw,
+        because mpvtk colours a Checkbox from `checked` and never moves one
+        optimistically (docs/browser-shell.md; the standing footgun in
+        CLAUDE.md)."""
+        redraws = []
+        self.b.invalidate = lambda *a, **k: redraws.append(1)
+        before, _h = build_scene(self.b)
+        self.b._toggle_auto_server("srv1")
+        self.assertEqual(self.ctl.auto_download, {"srv1": True})
+        self.assertTrue(redraws, "the tick cannot move without a repaint")
+        after, _h = build_scene(self.b)
+        self.assertNotEqual(before, after, "the row drew the same either way")
+
+    def test_unticking_turns_that_row_off(self):
+        self.ctl.auto_download = {"srv1": True}
+        self.b._toggle_auto_server("srv1")
+        self.assertFalse(self.ctl.auto_download_on("srv1"))
+
+    def test_each_row_reads_its_own_state(self):
+        """The page used to hold one parsed set for the whole list; it asks
+        per row now, and a row answering for its neighbour would draw the
+        wrong server ticked."""
+        self.ctl.auto_download = {"srv2": True}
+        self.assertFalse(self.b._auto_dl_on({"uuid": "srv1"}))
+        self.assertTrue(self.b._auto_dl_on({"uuid": "srv2"}))
+
+
+class TestAutoDownloadSeed(unittest.TestCase):
+    """Empty means no server, so switching the feature on has to claim the
+    server on screen or it comes on and fetches nothing."""
+
+    def _browser(self):
+        ctl = DownloadsController()
+        cfg = FakeConfig()
+        cfg.schema["auto_download_enable"] = "bool"
+        cfg.values["auto_download_enable"] = False
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl,
+                         config=cfg)
+        b._pool = _SyncPool()
+        b.server = "srv2"
+        return b, ctl
+
+    def test_switching_it_on_claims_the_server_on_screen(self):
+        b, ctl = self._browser()
+        b._set_setting("auto_download_enable", True)
+        self.assertEqual(ctl.auto_download, {"srv2": True})
+
+    def test_a_server_already_ticked_is_left_alone(self):
+        b, ctl = self._browser()
+        ctl.auto_download = {"srv1": True}
+        b._set_setting("auto_download_enable", True)
+        self.assertEqual(ctl.auto_download, {"srv1": True},
+                         "seeding overwrote a configured allow-list")
+
+    def test_switching_it_off_ticks_nothing(self):
+        b, ctl = self._browser()
+        b._set_setting("auto_download_enable", False)
+        self.assertEqual(ctl.auto_download, {})
+
+    def test_the_note_names_what_is_configured_not_what_is_on_screen(self):
+        b, ctl = self._browser()
+        ctl.auto_download = {"srv1": True}
+        self.assertEqual(b._auto_dl_scope_name(), "Home")
 
 class TestAddServer(unittest.TestCase):
     def setUp(self):
@@ -1262,13 +1331,16 @@ class TestOfflineGates(unittest.TestCase):
         btn = b._download_btn({"Id": "m1", "Type": "Movie"}, "srv1", "d")
         self.assertIn("d-undownload", ids(layout(btn, 1280, 720)[0]))
 
-    def test_offline_hides_the_user_switcher(self):
-        """Switching user reconnects, which cannot work with no server."""
+    def test_offline_shows_the_user_switcher(self):
+        """Offline, the active profile decides whose watched state is shown,
+        so switching is how a second person sees their own (D3 case 6; it
+        was hidden offline, B2). End to end:
+        tests/e2e/test_offline_ui.TwoProfilesOfflineTest."""
         b = self._browser(True)
         b.controller.list_users = lambda: [
             {"id": "u1", "name": "A", "active": True},
             {"id": "u2", "name": "B", "active": False}]
-        self.assertNotIn("nav-user", ids(build_scene(b)[0]))
+        self.assertIn("nav-user", ids(build_scene(b)[0]))
 
     def test_online_shows_it(self):
         b = self._browser(False)

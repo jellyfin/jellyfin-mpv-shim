@@ -14,6 +14,7 @@ if __name__ == "__main__":
 import unittest
 import threading
 import time
+from jellyfin_mpv_shim.sync.db import ANY_SERVER
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
@@ -168,14 +169,33 @@ class TestDownloadsGrouping(unittest.TestCase):
             def list_playlists(self_inner):
                 return list(playlists)
 
-            def playlist_item_rows(self_inner, pid):
+            def playlist_item_rows(self_inner, pid, *, server_id):
+                # Keyword-only and defaultless, as the real store is: the
+                # identity is (playlist_id, server_id) now, and a stand-in
+                # that let the scope be omitted would pass while production
+                # asked the wrong server's playlist.
                 return [r for r in rows if r.get("_pl") == pid]
 
             def playlist_ownership(self_inner):
-                return dict(owned or {})
+                # (playlist_id, server_id) values, like the real one.
+                return {iid: (pid if isinstance(pid, tuple) else (pid, None))
+                        for iid, pid in (owned or {}).items()}
+
+            def all_userdata(self_inner):
+                """Per-actor watched state, which the gateway reads once and
+                stamps onto every row as `played`. Modelled rather than
+                omitted: without it the whole listing raises and comes back
+                empty, which reads as a grouping bug."""
+                return {}
 
         class FakeSync:
             db = FakeDB()
+
+            @staticmethod
+            def waiting_for(row):
+                """D2's "nobody present can fetch this as its person": whose
+                sign-in it waits for, or None. `_waiting` says so here."""
+                return row.get("_waiting")
 
         import jellyfin_mpv_shim.sync.manager as mgr
         real, mgr.syncManager = mgr.syncManager, FakeSync()
@@ -191,6 +211,27 @@ class TestDownloadsGrouping(unittest.TestCase):
         ])
         groups = ctl.list_downloads()
         self.assertEqual(groups[0]["size"], 1024 * 1024)
+
+    def test_a_row_waiting_for_a_sign_in_names_the_profile(self):
+        ctl = self._controller([
+            {"item_id": "m1", "name": "Mine", "status": "pending",
+             "requested_server_id": "s1", "requested_user_id": "u-bob",
+             "_waiting": "Bob", "downloaded_bytes": 0, "size_bytes": 1},
+            {"item_id": "m2", "name": "Theirs", "status": "pending",
+             "requested_server_id": "s1", "requested_user_id": "u-gone",
+             "_waiting": "", "downloaded_bytes": 0, "size_bytes": 1},
+            {"item_id": "m3", "name": "Just queued", "status": "pending",
+             "downloaded_bytes": 0, "size_bytes": 1},
+        ])
+        rows = {c["id"]: c for g in ctl.list_downloads()
+                for c in g["children"]}
+        self.assertEqual("Bob", rows["m1"].get("waiting_for"))
+        self.assertEqual("", rows["m2"].get("waiting_for"))
+        self.assertIsNone(rows["m3"].get("waiting_for"))
+        from jellyfin_mpv_shim.mpvtk_browser.downloads import status_text
+        self.assertEqual("Waiting for Bob to sign in…",
+                         status_text(rows["m1"]))
+        self.assertEqual("Queued", status_text(rows["m3"]))
 
     def test_falls_back_to_expected_size_before_download_starts(self):
         ctl = self._controller([
@@ -376,14 +417,32 @@ class TestOrphanedDownloadOwnership(unittest.TestCase):
             def list_playlists(self_inner):
                 return list(playlists)
 
-            def playlist_item_rows(self_inner, pid):
+            def playlist_item_rows(self_inner, pid, *, server_id):
+                # Keyword-only and defaultless, as the real store is: the
+                # identity is (playlist_id, server_id) now, and a stand-in
+                # that let the scope be omitted would pass while production
+                # asked the wrong server's playlist.
                 return [r for r in rows if r.get("_pl") == pid]
 
             def playlist_ownership(self_inner):
-                return dict(owned or {})
+                # (playlist_id, server_id) values, like the real one.
+                return {iid: (pid if isinstance(pid, tuple) else (pid, None))
+                        for iid, pid in (owned or {}).items()}
+
+            def all_userdata(self_inner):
+                # As in TestDownloadsGrouping above: the gateway reads this
+                # once per listing. A fake without it makes the listing
+                # come back empty, which looks like an ownership bug.
+                return {}
 
         class FakeSync:
             db = FakeDB()
+
+            @staticmethod
+            def waiting_for(row):
+                """D2's "nobody present can fetch this as its person": whose
+                sign-in it waits for, or None. `_waiting` says so here."""
+                return row.get("_waiting")
 
         import jellyfin_mpv_shim.sync.manager as mgr
         real, mgr.syncManager = mgr.syncManager, FakeSync()
@@ -717,6 +776,112 @@ class TestEmptyDownloadFolderAsksFirst(unittest.TestCase):
         self.assertEqual(moved, ["/somewhere/else"])
         self.assertIsNone(b._dialog, "prompted for an ordinary move")
 
+class _SyncPathConfig(FakeConfig):
+    """A config that offers the download-folder row, which the base stand-in
+    does not: the field is the one Tier-1 destructive text box in the app and
+    nothing below can be tested without it on screen."""
+
+    def __init__(self, path="/old/downloads"):
+        super().__init__()
+        self.values["sync_path"] = path
+        self.schema["sync_path"] = "str"
+        self.moved = []
+        self.relocate_downloads = lambda p, progress=None: (
+            self.moved.append(p) or (True, "moved"))
+
+    def sections(self, tab=None):
+        if tab in ("browse", "playback"):
+            return []
+        return [("Downloads", ["sync_path"])] + super().sections(tab)
+
+
+class TestTheMoveButtonUsesThePathOnScreen(unittest.TestCase):
+    """The Move button reads a dict the field's `on_change` writes, in
+    preference to the stored setting -- deliberately, because an emptied field
+    is a real request ("go back to the default folder") and `get("path") or
+    val` cannot tell that from "not edited".
+
+    Nothing used to clear that dict. The renderer drops a textbox's text when
+    the node leaves the scene, so a field revisited later draws the **stored**
+    value again while the dict still held whatever had been typed at it
+    earlier in the session -- and Move relocated the whole store to a path
+    that was nowhere on screen. `docs/do-not-fix.md` F42.
+    """
+
+    def _browser(self, path="/old/downloads"):
+        cfg = _SyncPathConfig(path)
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController(), config=cfg)
+        b._pool = _SyncPool()
+        b._open_settings()
+        return b, cfg
+
+    def _settle(self, b):
+        t = b._long_thread
+        if t is not None:
+            t.join(5)
+
+    def _leave_and_return(self, b):
+        b.nav_stack = [{"kind": "home", "server": "srv1"}]
+        build_scene(b)
+        b._open_settings()
+        build_scene(b)
+
+    def test_a_path_typed_and_abandoned_is_not_what_move_uses(self):
+        b, cfg = self._browser()
+        _n, h = build_scene(b)
+        h["set-sync_path"]["change"]("/typed/then/walked/away/from")
+        self._leave_and_return(b)
+        _n2, h2 = build_scene(b)
+        h2["set-sync-move"]["click"]()
+        self._settle(b)
+        self.assertEqual(cfg.moved, ["/old/downloads"],
+                         "Move used a path the field was not showing")
+
+    def test_a_path_typed_in_this_visit_is_still_what_move_uses(self):
+        """The other direction, and the reason the dict exists at all. A fix
+        that cleared too eagerly would make the button move the store to
+        wherever it already was, every time."""
+        b, cfg = self._browser()
+        _n, h = build_scene(b)
+        h["set-sync_path"]["change"]("/new/place")
+        _n2, h2 = build_scene(b)
+        h2["set-sync-move"]["click"]()
+        self._settle(b)
+        self.assertEqual(cfg.moved, ["/new/place"])
+
+    def test_an_emptied_field_still_means_the_default_folder(self):
+        """The case `get("path") or val` could not express, which is why the
+        dict is consulted by presence rather than truthiness. It has to
+        survive the drop, so it is asserted here rather than left to the
+        expression's shape."""
+        b, cfg = self._browser()
+        _n, h = build_scene(b)
+        h["set-sync_path"]["change"]("")
+        _n2, h2 = build_scene(b)
+        h2["set-sync-move"]["click"]()
+        # Emptying is destructive enough to confirm first; the dialog is the
+        # answer, not the move.
+        self.assertIsNotNone(b._dialog, "no confirmation for the default")
+        self.assertEqual(cfg.moved, [])
+
+    def test_yielding_to_playback_also_drops_it(self):
+        """The field leaves the scene without any navigation at all when the
+        browser yields to video, and the renderer prunes it there too."""
+        b, cfg = self._browser()
+        _n, h = build_scene(b)
+        h["set-sync_path"]["change"]("/typed/before/a/film")
+        b._browsing = False
+        build_scene(b)
+        build_scene(b)
+        b._browsing = True
+        _n2, h2 = build_scene(b)
+        h2["set-sync-move"]["click"]()
+        self._settle(b)
+        self.assertEqual(cfg.moved, ["/old/downloads"],
+                         "a path typed before playback survived it")
+
+
 class TestPlaylistPageDownloadButton(unittest.TestCase):
     def test_it_swaps_to_remove_when_downloaded(self):
         b = MpvtkBrowser(app=None, source=FakeSource(),
@@ -728,6 +893,28 @@ class TestPlaylistPageDownloadButton(unittest.TestCase):
         nodes, _h = build_scene(b)
         self.assertIn("pl-undownload", ids(nodes),
                       "playlist page still hardcodes Download")
+
+    def test_remove_download_names_the_playlists_server(self):
+        """The catalog keys a playlist on (id, server) and matches a None
+        server only against the unscoped row, never "any". The page built
+        its item with no ServerId, so online the delete matched nothing and
+        the download stayed [iw, 2026-10-04]. The server is the members',
+        as the download recorded it."""
+        ctl = DownloadsController()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.tiles._downloaded = {"P"}
+        route = {"kind": "playlist", "server": "srv1", "item_id": "P",
+                 "title": "Mix"}
+        b.nav_stack = [route]
+        b._load_route(route)
+        _n, h = build_scene(b)
+        h["pl-undownload"]["click"]()
+        _n, h = build_scene(b)
+        h["dlg-ok"]["click"]()
+        self.assertEqual(ctl.deleted_playlist_server, ["SRVID"])
+        self.assertEqual([d[3] for d in ctl.deleted], ["P"])
 
 class TestDownloadStateAndPush(unittest.TestCase):
     """A playlist's id is never a downloads row, and nothing refreshed the
@@ -782,7 +969,8 @@ class TestDownloadStateAndPush(unittest.TestCase):
         self.assertEqual(got, {"series_id": "sh1", "season_id": "sea1"})
 
     def test_the_push_hook_refreshes_the_badges(self):
-        self.ctl.downloaded_ids = lambda: ({"m1"}, set(), {"sea1"}, {"P"})
+        self.ctl.downloaded_ids = lambda server_uuid=None: (
+            {"m1"}, set(), {"sea1"}, {"P"})
         self.b.on_downloads_changed()
         self.assertEqual(self.b.tiles._downloaded, {"m1"})
         self.assertEqual(self.b.tiles._downloaded_seasons, {"sea1"})
@@ -793,28 +981,94 @@ class TestDownloadStateAndPush(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
 
         class FakeDB:
-            def list_playlists(self):
+            def list_playlists(self, server_id=ANY_SERVER):
                 return [{"playlist_id": "P"}]
 
         class FakeSync:
             db = FakeDB()
 
             @staticmethod
-            def downloaded_item_ids():
+            def content_id_for(server_uuid):
+                # ANY_SERVER, not None: this test browses with no server in
+                # hand, which is the unscoped ask said out loud. `None` now
+                # means a login that resolves to nothing and matches no row,
+                # so a fake answering it would make this test's subject
+                # unreachable while still reporting a pass.
+                return ANY_SERVER
+
+            # No defaults, as the real facade has none since the four
+            # permissive ones were deleted: a default here would let a caller
+            # that forgot the scope pass against the double and fail in
+            # production.
+            @staticmethod
+            def downloaded_item_ids(server_uuid):
                 return {"m1"}
 
             @staticmethod
-            def downloaded_series_ids():
+            def downloaded_series_ids(server_uuid):
                 return {"sh1"}
 
             @staticmethod
-            def downloaded_season_ids():
+            def downloaded_season_ids(server_uuid):
                 return {"sea1"}
 
         real, mgr.syncManager = mgr.syncManager, FakeSync()
         self.addCleanup(lambda: setattr(mgr, "syncManager", real))
         got = PlayerGateway().downloaded_ids()
         self.assertEqual(got, ({"m1"}, {"sh1"}, {"sea1"}, {"P"}))
+
+    def test_the_playlist_badge_is_scoped_like_the_other_three(self):
+        """A playlist held from server A must not tick a tile on server B.
+
+        The other three sets have been content-scoped since the item-id work;
+        the playlist set was read unscoped from `list_playlists()` and joined
+        to them, so one unscoped member made the whole answer unscoped. Item
+        ids collide across servers, and so do playlist ids.
+        """
+        import jellyfin_mpv_shim.sync.manager as mgr
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
+
+        class FakeDB:
+            def __init__(self):
+                self.asked = []
+
+            def list_playlists(self, server_id=ANY_SERVER):
+                self.asked.append(server_id)
+                # "P" belongs to server A only. `ANY_SERVER` rather than None
+                # for the unscoped ask -- None means a login resolving to no
+                # server and answers for nothing.
+                return ([{"playlist_id": "P"}]
+                        if server_id in (ANY_SERVER, "A") else [])
+
+        db = FakeDB()
+
+        class FakeSync:
+            @staticmethod
+            def content_id_for(server_uuid):
+                return {"uuidA": "A", "uuidB": "B"}.get(server_uuid)
+
+            # No defaults, mirroring the real facade -- see the fake above.
+            @staticmethod
+            def downloaded_item_ids(server_uuid):
+                return set()
+
+            @staticmethod
+            def downloaded_series_ids(server_uuid):
+                return set()
+
+            @staticmethod
+            def downloaded_season_ids(server_uuid):
+                return set()
+
+        FakeSync.db = db
+        real, mgr.syncManager = mgr.syncManager, FakeSync()
+        self.addCleanup(lambda: setattr(mgr, "syncManager", real))
+
+        self.assertEqual(PlayerGateway().downloaded_ids("uuidA")[3], {"P"})
+        self.assertEqual(PlayerGateway().downloaded_ids("uuidB")[3], set())
+        # Asked as the CONTENT key, not the login -- two logins on one server
+        # must get one answer.
+        self.assertEqual(db.asked, ["A", "B"])
 
 
 if __name__ == "__main__":

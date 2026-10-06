@@ -889,6 +889,10 @@ class Dropdown(Element):
         icons=None,  # optional per-item Material icon names (None ok)
         on_select=None,
         force=False,
+        # With force: change it to answer a pick with "no". A refusal keeps
+        # the value the pick began on, which force alone cannot tell from a
+        # stale repaint (GUIDE section 2).
+        ack=None,
         trigger_icon=None,
         icon_size=None,
         # Draw the icon trigger as a filled, rounded BUTTON rather than the
@@ -933,6 +937,7 @@ class Dropdown(Element):
         self.icons = icons
         self.on_select = on_select
         self.force = force
+        self.ack = ack
         self.trigger_icon = trigger_icon
         self.icon_size = icon_size
         self.trigger_chip = trigger_chip

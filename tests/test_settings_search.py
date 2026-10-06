@@ -54,6 +54,13 @@ class VocabularyTest(unittest.TestCase):
         # looking for the player-controls half of this setting has actually
         # seen on screen.
         ("ends at",                      "clock_12h"),
+        # The fact nobody can guess from the dropdown: every "subbed" preset
+        # assumes the original audio is Japanese. Somebody whose original
+        # audio is not Japanese has no other way to find that out.
+        ("japanese",                     "language_preference"),
+        # What the language list actually reaches. The name says "filter" and
+        # people look for it by what they want filtered.
+        ("menus",                        "lang_filter"),
     ]
 
     #: Words the label already carries. Kept as cases anyway because they
@@ -145,6 +152,35 @@ class VocabularyTest(unittest.TestCase):
         self.assertIn("network_buffer", found("buffer"))
         self.assertIn("network_buffer", found("buffering"))
         self.assertIn("buffering", (config.NOTES["network_buffer"] or "").lower())
+
+
+class TheLanguageControlsExplainThemselvesTest(unittest.TestCase):
+    """Three adjacent settings with generated labels and, until now, no note
+    between them.
+
+    `lang_filter` is the one that cost somebody an evening: both switches
+    below it default to off, so editing the language list does nothing at all
+    and there is no way to tell that from a setting that is ignored. And the
+    name overpromises -- what it filters is the two track *menus*, not what
+    gets picked automatically.
+    """
+
+    def test_the_language_list_says_it_needs_a_switch(self):
+        note = config.NOTES.get("lang_filter", "")
+
+        self.assertTrue(note, "lang_filter still has no note")
+        self.assertIn("below", note,
+                      "the note does not point at the two switches that make "
+                      "the list do anything")
+
+    def test_the_preset_note_states_the_japanese_assumption(self):
+        note = config.NOTES.get("language_preference", "")
+
+        self.assertTrue(note, "language_preference still has no note")
+        self.assertIn("Japanese", note,
+                      "the note does not say which original audio the subbed "
+                      "presets assume, which is the one thing about them a "
+                      "user cannot discover")
 
 
 class MatchingTest(unittest.TestCase):

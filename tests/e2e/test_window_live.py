@@ -1,0 +1,194 @@
+"""Slice S6, row 30: the library window changes size under the real app.
+
+This replaces test_window_resize.py (a separately spawned mpv and browser,
+one of the harness substitutions the e2e audit named; retired 2026-09-28,
+Izzie). Its strip-count "the library did not blank" check has no
+counterpart here. Here: the shipped app,
+focus put by keys, the size changed with mpv's `geometry` (xvfb has no
+window manager to ask).
+
+- the grid reflows to the new width and its tiles keep their shape;
+- the focused tile keeps focus, and is still on screen;
+- a window too small to use does not crash the app, and the library works
+  again at a usable size.
+"""
+
+import json
+import os
+import sys
+import unittest
+from collections import Counter
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _app  # noqa: E402
+import _e2e  # noqa: E402
+import _flows  # noqa: E402
+from test_browse_routes import _BrowseCase  # noqa: E402
+from test_input_live import _InputCase  # noqa: E402
+from test_settings_live import ticked  # noqa: E402
+
+
+def grid_tiles(frame):
+    """The library grid's item tiles on screen: grid-<row>-<item id>."""
+    return [n for n in frame.get("nodes", [])
+            if (n.get("id") or "").startswith("grid-")
+            and len(n["id"].rsplit("-", 1)[-1]) == 32
+            and n.get("vis") and n.get("w")]
+
+
+def per_row(frame):
+    tiles = grid_tiles(frame)
+    return max(Counter(round(n["y"]) for n in tiles).values()) if tiles else 0
+
+
+class _WindowCase(_BrowseCase):
+
+    def resize(self, w, h):
+        self.app.mpv.command("set", "geometry", "%dx%d" % (w, h))
+        return self.app.wait_for(lambda f: (f.get("w"), f.get("h")) == (w, h),
+                                 timeout=15, what="a %dx%d frame" % (w, h))
+
+    def into_grid(self):
+        """The Movies grid, with keyboard focus on one of its tiles."""
+        self.open_library(self.library("Movies"))
+        self.app.wait_for(lambda f: len(grid_tiles(f)) > 1, timeout=30,
+                          what="the grid's tiles")
+
+        def on_a_tile(f):
+            return any(n["id"] == f.get("nav") for n in grid_tiles(f))
+        # Step, waiting for focus to move each time: what lies between the
+        # toolbar and the first tile varies -- sorted by name the library
+        # has a letter bar there -- and press_until presses again only when
+        # a press did nothing, so it stopped on the first stop in between.
+        f = self.app.frame()
+        for _ in range(8):
+            if on_a_tile(f):
+                return f
+            was = f.get("nav")
+            self.app.key("DOWN")
+            f = self.app.wait_for(lambda f: f.get("nav") != was, timeout=5,
+                                  what="focus to move down from %s" % was)
+        self.fail("DOWN never reached a tile (focus on %r)" % f.get("nav"))
+
+
+class TheGridReflowsTest(_WindowCase):
+
+    def test_wider_means_more_per_row_and_the_same_shape(self):
+        self.resize(1280, 720)
+        self.into_grid()
+        narrow = self.app.frame()
+        wide = self.resize(1900, 720)
+        self.app.wait_for(lambda f: per_row(f) > per_row(narrow),
+                          timeout=15, what="more tiles a row at 1900 wide "
+                          "(%d at 1280)" % per_row(narrow))
+        wide = self.app.frame()
+
+        def shape(f):
+            t = grid_tiles(f)[0]
+            return t["w"] / float(t["h"])
+        self.assertAlmostEqual(shape(narrow), shape(wide), delta=0.03,
+                               msg="the tiles changed shape across a resize")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class FocusSurvivesAResizeTest(_WindowCase):
+
+    def test_the_focused_tile_keeps_focus(self):
+        self.resize(1280, 720)
+        focused = self.into_grid()["nav"]
+        self.assertTrue(focused and focused.startswith("grid-"), focused)
+        where = set()
+        for w, h in ((1500, 940), (900, 600), (1280, 720)):
+            f = self.resize(w, h)
+            f = self.app.wait_for(lambda f: _app.shown(f, focused),
+                                  timeout=15,
+                                  what="%s on screen at %dx%d"
+                                  % (focused, w, h))
+            self.assertEqual(focused, f.get("nav"),
+                             "focus moved at %dx%d" % (w, h))
+            node = _app.node(f, focused)
+            where.add((round(node["x"]), round(node["y"])))
+        # Control: the tile really moved, or keeping focus proves nothing.
+        self.assertGreater(len(where), 1, "the layout never changed")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class ATooSmallWindowDoesNotCrashItTest(_WindowCase):
+
+    def test_tiny_then_usable_again(self):
+        self.resize(1280, 720)
+        self.into_grid()
+        self.resize(200, 120)
+        self.assertTrue(self.app.alive(), "a tiny window killed the app")
+        self.resize(1280, 720)
+        f = self.app.wait_for(lambda f: grid_tiles(f), timeout=15,
+                              what="the grid back at a usable size")
+        was = f.get("nav")
+        f = self.app.press_until("RIGHT", lambda f: f.get("nav") != was,
+                                 what="focus moving after the tiny window")
+        self.assertTrue(f.get("nav"), "the keyboard lands nowhere")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+class FullscreenIsTwoPreferencesTest(_WindowCase):
+    """Row 28: the library and playback keep separate fullscreen
+    preferences (player_window.set_fullscreen). The library's applies live
+    from Settings both ways (#729); the HUD's toggle writes playback's
+    only; and back in the library its own preference returns. xvfb has no
+    window manager, so this reads mpv's `fullscreen`, not what a WM drew.
+
+    Not asserted: a film started from a FULLSCREEN library stays
+    fullscreen with playback's preference off -- playback start only ever
+    turns fullscreen on (browse_yield, _play_media). Whether that is the
+    intent is a question in the register, not a finding."""
+
+    def conf(self):
+        with open(os.path.join(self.app.config_dir, "conf.json"),
+                  encoding="utf-8") as fh:
+            return json.load(fh)
+
+    def fs(self, want, what):
+        self.assertTrue(_e2e.wait_for(
+            lambda: self.app.prop("fullscreen") is want, timeout=10),
+            "%s: fullscreen is %r" % (what, self.app.prop("fullscreen")))
+
+    def test_the_library_and_playback_each_keep_their_own(self):
+        _flows.open_settings_tab(self.app, "general")
+        self.app.wait_for(lambda f: _app.node(f, "set-browser_fullscreen"),
+                          timeout=15, what="the Browser Fullscreen setting")
+        self.app.move_to("set-browser_fullscreen", key="DOWN")
+        for want in (True, False):
+            self.app.key("ENTER")
+            self.fs(want, "Browser Fullscreen ticked %s" % want)
+            self.assertIs(want, self.conf().get("browser_fullscreen"))
+            # Playback's box is DRAWN as what happens (ticked) while the
+            # library's is on, and keeps its own stored value (Izzie,
+            # 2026-09-28).
+            self.app.wait_for(
+                lambda f: ticked(f, "set-fullscreen") is want, timeout=10,
+                what="Playback Fullscreen drawn %s" % want)
+            self.assertFalse(self.conf().get("fullscreen"),
+                             "drawing it ticked wrote the preference")
+
+        _InputCase.open_film(self)
+        self.play()
+        self.assertTrue(_e2e.wait_for(lambda: (self.time_pos() or 0) > 1,
+                                      timeout=30), "the film never played")
+        self.fs(False, "a film, with both preferences off")
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "hud-fs"),
+                             what="the HUD", retry_after=3)
+        self.app.move_to("hud-fs")
+        self.app.key("ENTER")
+        self.fs(True, "the HUD's fullscreen button")
+        self.assertIs(True, self.conf().get("fullscreen"),
+                      "the HUD's toggle did not write playback's")
+        self.assertIs(False, self.conf().get("browser_fullscreen"),
+                      "the HUD's toggle wrote the library's")
+
+        _InputCase.leave_by_hud_back(self)
+        self.fs(False, "back in the library, whose preference is off")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
+if __name__ == "__main__":
+    unittest.main()

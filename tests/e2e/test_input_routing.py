@@ -270,6 +270,42 @@ class InputRoutingTest(unittest.TestCase):
             "mouse Back did not dismiss the menu — the mpvtk_thumb section "
             "is not enabled in browse")
 
+    def test_keyboard_back_and_forward_keys_after_a_round_trip(self):
+        """A multimedia keyboard's browser Back/Forward keys, in both of the
+        shapes mpv delivers them.
+
+        X11 and Wayland feed a key-down and a key-up; Windows turns the key
+        into WM_APPCOMMAND, which mpv feeds as a bare press with no down at
+        all (`w32_common.c:handle_appcommand`). `keypress` is that press, so
+        a binding copied from the mouse buttons' down-only shape passes the
+        second half of each check here and fails the first.
+        """
+        self._leave_and_return_to_browse()
+        self._focus_a_content_tile()
+
+        for send, shape in ((self._keypress, "a bare press"),
+                            (self._click_key, "key-down and key-up")):
+            self._keypress("MENU")
+            self._wait(lambda: self._state().get("menu_open"),
+                       "the MENU key did not open the tile menu")
+            send("GO_BACK")
+            self._wait(lambda: not self._state().get("menu_open"),
+                       "the keyboard's Back key, delivered as %s, did not "
+                       "dismiss the menu" % shape)
+
+        forwards = []
+        self.app.on_forward = lambda: forwards.append(1)
+        for n, (send, shape) in enumerate(
+                ((self._keypress, "a bare press"),
+                 (self._click_key, "key-down and key-up")), start=1):
+            send("GO_FORWARD")
+            self._wait(lambda: len(forwards) >= n,
+                       "the keyboard's Forward key, delivered as %s, sent no "
+                       "forward event" % shape)
+        time.sleep(0.3)
+        self.assertEqual(len(forwards), 2,
+                         "a key-down and its key-up sent forward twice")
+
     def test_the_hud_does_not_leave_browse_holding_the_arrows(self):
         """The other direction, and the reason `ui_resume` takes `no_nav`:
         during plain playback the arrows are mpv's seek keys, so the UI must

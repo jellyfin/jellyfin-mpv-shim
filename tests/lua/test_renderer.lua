@@ -278,6 +278,66 @@ type_text("Z")
 fake.key("mpvtk_k_ESC")
 ok(last_event("commit") == nil, "ESC reverts rather than committing")
 
+-- ============================================================ IME (#798)
+
+-- mpv >= 0.40 keeps the input method off its window unless input-ime is on,
+-- so a focused box turns it on and leaving puts back what was there. The
+-- user's own setting is the thing to put back, not a hardcoded "no".
+local function ime() return fake.log.props["input-ime"] end
+
+local function fifo() return fake.log.props["input-key-fifo-size"] end
+fake.log.props["input-ime"] = false            -- mpv 0.40+, the default
+fake.log.props["input-key-fifo-size"] = 7      -- mpv's default
+scene({ textbox("i1", "", 0), textbox("i2", "", 1),
+        { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
+for round = 1, 3 do
+    click("i1")
+    eq(ime(), true, "round " .. round .. ": a focused box turns the IME on")
+    eq(fifo(), 256, "round " .. round .. ": and makes room for a whole commit")
+    click("i2")                                -- box to box: still typing
+    eq(ime(), true, "round " .. round .. ": moving to another box keeps it on")
+    click("plain")
+    eq(ime(), false, "round " .. round .. ": leaving puts the user's off back")
+    eq(fifo(), 7, "round " .. round .. ": and the key queue's size")
+end
+
+click("i1")
+fake.send("mpvtk-active", "no")                -- off to playback
+eq(ime(), false, "going to playback with a box focused turns the IME off")
+eq(fifo(), 7, "going to playback puts the key queue back")
+fake.send("mpvtk-active", "yes")
+
+fake.log.props["input-ime"] = true             -- the user's own mpv.conf
+scene({ textbox("i1", "", 0),
+        { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
+fake.reset_events()
+click("i1")
+type_text("x")
+click("plain")
+ok(last_event("commit") ~= nil, "the box was really focused (it committed)")
+eq(ime(), true, "a user's own input-ime=yes survives leaving a box")
+
+-- A password: the IME's own window would show what is typed.
+fake.log.props["input-ime"] = false
+scene({ { id = "pw", t = "textbox", x = 0, y = 0, w = 200, h = 30,
+          size = 18, text = "", mask = true },
+        { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
+click("pw")
+eq(ime(), false, "a masked box leaves the IME off")
+eq(fifo(), 7, "and the key queue alone")
+click("plain")
+
+-- mpv < 0.40: no such property, so nothing may be written.
+fake.unavailable["input-ime"] = true
+fake.log.props["input-ime"] = nil
+scene({ textbox("old", "", 0),
+        { id = "plain", t = "box", x = 0, y = 200, w = 50, h = 30 } })
+click("old")
+click("plain")
+eq(ime(), nil, "an mpv without input-ime is never told to set it")
+eq(fifo(), 7, "nor has its key queue changed")
+fake.unavailable["input-ime"] = nil
+
 -- ========================================================= clipboard
 
 -- mpv's clipboard/text is not universal: the x11 backend only arrived in
@@ -367,6 +427,39 @@ fake.key("mpvtk_k_ctrl_v")
 local ch = last_event("change")
 ok(ch ~= nil and ch.value == "pasted", "ctrl+v falls back to a helper",
    ch and ch.value or "no change event")
+
+-- A copied line ends in a newline -- `get_my_password | xsel -b` -- and a
+-- password field that keeps it (as a space, which is what a line break
+-- inside the text becomes) fails the login for a reason nobody can see.
+-- Line breaks at either end go; one inside still reads as a space.
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = "hunter2\r\n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl", "") })
+click("clipnl")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, "hunter2", "a pasted line loses its trailing newline")
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = "\nfirst\r\nsecond\n\n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl2", "") })
+click("clipnl2")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, "first second",
+   "an inner line break is one space, the ends are trimmed")
+fake.subprocess = function(t)
+    if t.args[1] == WANT_GET then return { status = 0, stdout = " pass \n" } end
+    return { status = -1, stdout = "" }
+end
+scene({ textbox("clipnl3", "") })
+click("clipnl3")
+fake.key("mpvtk_k_ctrl_v")
+ch = last_event("change")
+eq(ch and ch.value, " pass ", "spaces are the user's and are kept")
 
 -- Nothing at all: the user gets told which package to install, rather
 -- than a text field that silently ignores ctrl+v.
@@ -732,6 +825,35 @@ for _, e in ipairs(fake.log.events) do
     if type(e) == "table" and e.t == "forward" then fwd = fwd + 1 end
 end
 eq(fwd, 1, "the mouse forward button sends one forward event")
+
+-- A multimedia keyboard's browser Back/Forward keys mean the same thing.
+fake.log.commands = {}
+fake.key("go_back")
+sent_esc = false
+for _, c in ipairs(fake.log.commands) do
+    if type(c) == "table" and c[1] == "keypress" and c[2] == "ESC" then
+        sent_esc = true
+    end
+end
+ok(sent_esc, "the keyboard's Back key presses ESC")
+
+fake.reset_events()
+fake.key("go_forward")
+fwd = 0
+for _, e in ipairs(fake.log.events) do
+    if type(e) == "table" and e.t == "forward" then fwd = fwd + 1 end
+end
+eq(fwd, 1, "the keyboard's Forward key sends one forward event")
+
+-- ...but NOT in the shape the mouse buttons use. Their action sits on the
+-- down half because a mouse button's plain handler fires on release; a key's
+-- fires on a bare press as well as on key-down, and Windows delivers these
+-- keys as WM_APPCOMMAND, which mpv feeds as a bare press with no down at all
+-- (w32_common.c handle_appcommand). A down-only handler is dead there.
+eq(fake.log.keybinds_up["go_back"], nil,
+   "the keyboard's Back acts only on key-down, which Windows never sends")
+eq(fake.log.keybinds_up["go_forward"], nil,
+   "the keyboard's Forward acts only on key-down, which Windows never sends")
 
 -- ========================================== client-side title bar
 
@@ -1679,6 +1801,49 @@ ok(slot_of("/chip") > slot_of("/strip2"),
    string.format("chip is slot %s, its row is slot %s",
                  tostring(slot_of("/chip")), tostring(slot_of("/strip2"))))
 
+-- ============================================== fractional image crops
+
+-- Independent flooring of the near/far edges can turn 271 source pixels
+-- into a 272-pixel overlay: floor(432.99999999999994 + 271) - floor(...).
+-- Test the commands sent to mpv for both file and same-process memory
+-- sources. A real memory overlay would copy past the allocation (#800).
+do
+    local near_edge = 432.99999999999994
+    for _, src in ipairs({ "/fractional-artwork", "&1048576" }) do
+        for _, axis in ipairs({ "x", "y" }) do
+            -- Move away and back so the bounds also hold after re-issues.
+            for _, position in ipairs({ near_edge, 433, near_edge }) do
+                scene({})
+                local node = { id = "fractional-artwork", t = "img", src = src,
+                               x = 16, y = 16, w = 271, h = 271,
+                               iw = 271, ih = 271 }
+                node[axis] = position
+                local before = #fake.log.commands
+                local adds = paint({ node })
+                eq(adds, 1, "fractional " .. axis .. " crop paints " .. src)
+                for i = before + 1, #fake.log.commands do
+                    local c = fake.log.commands[i]
+                    if c[1] == "overlay-add" then
+                        local offset = tonumber(c[6])
+                        if src:sub(1, 1) == "&" then
+                            offset = tonumber(c[5]:sub(2)) - tonumber(src:sub(2))
+                        end
+                        local width, height, stride = tonumber(c[8]),
+                            tonumber(c[9]), tonumber(c[10])
+                        local sy = math.floor(offset / stride)
+                        local sx = (offset - sy * stride) / 4
+                        ok(sx >= 0 and sy >= 0 and sx + width <= node.iw
+                           and sy + height <= node.ih,
+                           "fractional " .. axis .. " crop stays inside " .. src,
+                           string.format("crop (%d, %d) %dx%d, source %dx%d",
+                               sx, sy, width, height, node.iw, node.ih))
+                    end
+                end
+            end
+        end
+    end
+end
+
 -- ========================================================= disabled
 
 -- A disabled control is on screen and inert: no click, no spatial-nav
@@ -1758,6 +1923,11 @@ ok(fake.log.sections["mpvtk_thumb"] ~= nil,
 ok((fake.log.sections["mpvtk_thumb"] or {})["mbtn_back"]
    and (fake.log.sections["mpvtk_thumb"] or {})["mbtn_forward"],
    "the thumb buttons are not in mpvtk_thumb")
+-- The keyboard's pair rides the same section, for the same reason: over a
+-- film they are the user's to bind.
+ok((fake.log.sections["mpvtk_thumb"] or {})["go_back"]
+   and (fake.log.sections["mpvtk_thumb"] or {})["go_forward"],
+   "the keyboard's Back/Forward keys are not in mpvtk_thumb")
 ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_back"],
    "mbtn_back is still in the group the HUD keeps enabled")
 ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_forward"],
@@ -2081,6 +2251,40 @@ ok((last_event("debug_state") or {}).phud_shown == true,
 fake.send("mpvtk-hud", "no")
 fake.send("mpvtk-active", "yes")
 
+-- #767, and the failure it cost: the threshold is 2px of distance TRAVELLED
+-- from where the pointer was when the HUD went idle, not 2px between two
+-- consecutive notifications. Windows 11 reports motion a pixel at a time, and
+-- against the per-event version this crawl covers 300px without ever
+-- summoning -- which is a mouse that cannot raise the controls at all.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- anchors
+for step = 1, 300 do
+    fake.observe("mouse-pos", { x = 300 + step, y = 300, hover = true })
+end
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "a 300px crawl in 1px steps never summoned the playback HUD")
+
+-- The contrast, so this cannot pass for a renderer that summons on anything:
+-- the same handler, one event, and a pointer that has not moved at all.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- anchors
+fake.reset_events()
+fake.observe("mouse-pos", { x = 300, y = 300, hover = true })   -- no movement
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown ~= true,
+   "a pointer that never moved summoned the playback HUD")
+fake.observe("mouse-pos", { x = 400, y = 300, hover = true })   -- one 100px jump
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "a single 100px move did not summon the playback HUD")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
 local function hud_engage(opts)
     fake.send("mpvtk-hud", "no")
     fake.send("mpvtk-hud", "yes", fake.token(opts or {}))
@@ -2363,6 +2567,92 @@ ok(win_ov ~= nil, "a frame inside the window was not drawn")
 eq(win_ov and tonumber(win_ov[6]), (45 - 40) * 32 * 18 * 4,
    "the overlay offset was not rebased onto the window")
 eq(trickplay_request(), nil, "asked for a window it already had")
+
+-- The frames are decoded at the server's preview width, a PHYSICAL size, so
+-- at 2x the frame is half the size of the bubble drawn around it. The last
+-- argument is `thumbnail_scale` ("auto" follows the UI scale), and mpv 0.38+
+-- scales an overlay on the GPU when handed a display size (dw/dh) -- so the
+-- file, and mpv's copy of the frame, stay the size they were.
+-- `test_renderer_lua.py` runs this file again as an mpv without dw/dh.
+local OLD_OVERLAY = os.getenv("JMS_TEST_NO_OVERLAY_SCALE") ~= nil
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100", "2")
+fake.log.commands = {}
+hud_pointer(907, 672)                   -- still 7:30, frame 45
+pv_paint()
+local sc = preview_overlay()
+ok(sc ~= nil, "a scaled frame was not drawn")
+eq(sc and tonumber(sc[6]), (45 - 40) * 32 * 18 * 4,
+   "scaling moved the frame's offset")
+eq(sc and tonumber(sc[8]), 32, "the frame was not read at its own width")
+eq(sc and tonumber(sc[9]), 18, "the frame was not read at its own height")
+if OLD_OVERLAY then
+    eq(sc and #sc, 10, "passed a display size to an mpv that rejects one")
+    ok(preview().w < 64 + 16, "the bubble grew for a frame drawn at 1x")
+else
+    eq(sc and tonumber(sc[11]), 64, "the frame was not drawn at 2x")
+    eq(sc and tonumber(sc[12]), 36, "the frame height was not drawn at 2x")
+    ok(preview().w >= 64 + 16, "the bubble did not grow around the 2x frame")
+end
+
+-- Partly covered. A floating layer occludes images, so the frame is cut into
+-- pieces in DISPLAY pixels, and each piece's source rectangle is that piece
+-- divided back down. This is the one place a scaled frame can read outside
+-- itself -- past the end of the file on mpv's file path, and a SIGSEGV on
+-- the `&address` memory path (jellyfin_mpv_shim/mpvtk/GUIDE.md section 5) --
+-- so check every
+-- piece against the frame's own 32x18, not only that something was drawn.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "hud-seek", t = "slider", x = 100, y = 660, w = 1080,
+          h = 26, min = 0, max = 600, value = 0, pv = true },
+        -- Down to the bar and no further: the pointer on the bar has to
+        -- stay on the bar, and the frame above it has to be covered across
+        -- its whole height, or a strip below the layer is (correctly)
+        -- drawn full width.
+        { id = "toast", t = "layer", kind = "float",
+          x = 0, y = 0, w = 907, h = 638 } })
+fake.log.commands = {}
+hud_pointer(907, 671)
+pv_paint()
+local frame_base = (45 - 40) * 32 * 18 * 4
+local pieces = 0
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "overlay-add" and c[5] == "/tiles.bin" then
+        pieces = pieces + 1
+        local rel = tonumber(c[6]) - frame_base
+        local w, h, stride = tonumber(c[8]), tonumber(c[9]), tonumber(c[10])
+        local sy, sx = math.floor(rel / stride), (rel % stride) / 4
+        ok(rel >= 0 and sx + w <= 32 and sy + h <= 18,
+           "a piece of the scaled frame reads outside the frame",
+           string.format("src %d,%d %dx%d", sx, sy, w, h))
+        ok(tonumber(c[3]) >= 907 + 2,
+           "a piece of the frame was drawn under the layer covering it",
+           "x=" .. tostring(c[3]))
+        if not OLD_OVERLAY then
+            ok(c[11] and math.abs(tonumber(c[11]) - 2 * w) <= 2,
+               "a covered piece was not scaled with the rest of the frame",
+               string.format("w=%s dw=%s", tostring(w), tostring(c[11])))
+        end
+    end
+end
+ok(pieces >= 1, "the uncovered part of the frame was not drawn at all")
+seek_scene()
+
+-- "auto" is the UI scale: the bubble's padding and type follow it already,
+-- so a frame that did not would shrink inside its own box.
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100", "auto")
+fake.send("mpvtk-scale", fake.token({ s = 2 }))
+fake.log.commands = {}
+hud_pointer(908, 672)
+pv_paint()
+sc = preview_overlay()
+ok(sc ~= nil, "no frame drawn at a 2x UI scale")
+eq(sc and sc[11] and tonumber(sc[11]), (not OLD_OVERLAY) and 64 or nil,
+   "auto did not follow the UI scale")
+fake.send("mpvtk-scale", fake.token({ s = 1 }))
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100")
 
 -- The chapter-image fallback indexes by chapter start instead of a cadence.
 fake.send("shim-trickplay-chapters", "32", "18", "/tiles.bin", "0,120,480")
@@ -3693,6 +3983,31 @@ fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 1 }))
 eq(dd_sel("fdd"), 1, "sanity: the click moved it")
 forced_dd(2)
 eq(dd_sel("fdd"), 2, "a third answer did not end the gesture")
+
+-- A REFUSAL that keeps the original value is an answer too, but it looks
+-- exactly like a stale repaint (same `sel` as when the pick began). So the
+-- app says it with `ack`: a value it changes when it answers "no". A push
+-- with the old value and the SAME ack is still a stale repaint; a new ack
+-- ends the gesture and the scene's value wins. The server switcher's failed
+-- reconnect is the case: without it the refused server stayed drawn as
+-- chosen over the offline library.
+local function acked_dd(sel, ack)
+    scene({ { id = "adh", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+              size = 18, items = { "Home", "Offline" },
+              sel = sel, force = true, ack = ack } })
+end
+acked_dd(1, 0)
+eq(dd_sel("adh"), 1, "sanity: the scene's value")
+for round = 1, 3 do                     -- a refusal must work every time
+    click("adh")
+    fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 0 }))
+    eq(dd_sel("adh"), 0, "sanity: the pick moved it")
+    acked_dd(1, round - 1)              -- a repaint before the answer
+    eq(dd_sel("adh"), 0, "a repaint with the same ack reverted the pick")
+    acked_dd(1, round)                  -- the app says no
+    eq(dd_sel("adh"), 1, "a refusal (same value, new ack) left the "
+                         .. "refused choice drawn")
+end
 
 -- Without force the renderer keeps its own selection, which is the
 -- behaviour every unforced dropdown relies on.

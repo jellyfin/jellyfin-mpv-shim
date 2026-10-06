@@ -87,6 +87,27 @@ class UserInterface:
         except Exception:
             log.debug("could not raise the player window", exc_info=True)
 
+    def on_second_launch(self):
+        """The app was launched again (SingleInstance). Over a playing
+        video that means "show me the app", and the video IS the app then:
+        raise the window and leave the film alone [iw, 2026-09-27] --
+        entering browse brought the library up for a moment and the film's
+        next playstate took the window straight back. Otherwise, activate.
+        """
+        from ..player import playerManager
+
+        try:
+            watching = (playerManager.get_video() is not None
+                        and not playerManager._library_showing())
+        except Exception:
+            watching = False
+        if not watching:
+            return self.activate()
+        try:
+            playerManager.raise_window()
+        except Exception:
+            log.debug("could not raise the player window", exc_info=True)
+
     def _open_settings(self, tab):
         if self._browser is None:
             return
@@ -307,6 +328,7 @@ class UserInterface:
         self._browser = browser
         playerManager.mpvtk_active = True
         playerManager.on_playstate = browser.on_playstate
+        playerManager.on_stopped_at = browser.on_stopped_at
         # Loading screen + failure/retry UI. Without these a failed start was
         # a blank window for the whole playback_timeout and then nothing.
         playerManager.on_load_start = browser.load.on_load_start
@@ -332,6 +354,10 @@ class UserInterface:
         # A server that was down at startup must appear once it answers,
         # rather than staying invisible until a manual retry or restart.
         clientManager.on_server_connected = self._on_server_connected
+        # And one that drops: the switcher reads connection state as it
+        # draws, so a redraw is all it takes. Unsubscribed, the entry kept
+        # reading as connected until something else repainted.
+        clientManager.on_servers_changed = browser.invalidate
         # Refresh download badges the moment the catalog changes, rather
         # than only when Settings -> Downloads is opened. The push hook has
         # always existed; the browser just never subscribed.
@@ -592,6 +618,11 @@ class UserInterface:
         arbitrary moments mid-session. Resetting to Home threw the user out
         of whatever they were reading every time a flaky server bounced."""
         if self._browser is None:
+            return
+        if getattr(self._browser, "offline_chosen", False):
+            # The person dropped to offline; a server bouncing back is not
+            # them asking to leave it. Picking the server is.
+            self._browser.invalidate()
             return
         try:
             source = PlayerGateway().rebuild_source()

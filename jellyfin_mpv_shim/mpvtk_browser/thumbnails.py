@@ -111,19 +111,34 @@ class MemoryCache:
     Sizing is approximate (``sizer(value)``); least-recently-used entries are
     evicted until the total is back under budget. No UI dependency, so the
     eviction policy is unit-testable without a display.
+
+    **An image the screen is using is never evicted to make room**, once
+    :meth:`on_scene_pushed` has been heard from: "using" is read by this
+    build or the one on screen, stamped by generation as StripStore does it.
+    Without that, a screen whose art outgrew the budget evicted what the
+    previous build drew with, and every repaint put a row back to
+    placeholders while its images were fetched again -- the home screen
+    flicker with many libraries. The budget is exceeded instead, by what is
+    on screen; ``TileRenderer.window_rows`` is what keeps that bounded.
     """
+
+    #: This build and the scene on screen. See StripStore.PROTECT_GENERATIONS.
+    PROTECT_GENERATIONS = 1
 
     def __init__(self, max_bytes, sizer):
         self._max_bytes = max_bytes
         self._sizer = sizer
-        self._items = OrderedDict()   # key -> (value, nbytes)
+        self._items = OrderedDict()   # key -> [value, nbytes, generation]
         self._bytes = 0
+        self._gen = 0
+        self._marked = False
 
     def get(self, key):
         item = self._items.get(key)
         if item is None:
             return None
         self._items.move_to_end(key)
+        item[2] = self._gen
         return item[0]
 
     def put(self, key, value):
@@ -131,13 +146,24 @@ class MemoryCache:
         if old is not None:
             self._bytes -= old[1]
         nbytes = self._sizer(value)
-        self._items[key] = (value, nbytes)
+        self._items[key] = [value, nbytes, self._gen]
         self._bytes += nbytes
         # Keep at least the just-inserted entry so a single oversized image
         # isn't evicted the moment it lands (its caller still wants it).
         while self._bytes > self._max_bytes and len(self._items) > 1:
-            _k, (_v, nb) = self._items.popitem(last=False)
+            head = next(iter(self._items.values()))
+            if (self._marked
+                    and head[2] >= self._gen - self.PROTECT_GENERATIONS):
+                # Ordered by last touch, so everything behind it is in use
+                # too.
+                break
+            _k, (_v, nb, _g) = self._items.popitem(last=False)
             self._bytes -= nb
+
+    def on_scene_pushed(self):
+        """A scene reached the renderer; advances what counts as in use."""
+        self._gen += 1
+        self._marked = True
 
     def trim(self, max_bytes):
         """Drop least-recently-used entries until the total is within
@@ -145,7 +171,7 @@ class MemoryCache:
         entirely -- it is called when the caller knows the entries have
         stopped being interesting, not when one more has to fit."""
         while self._bytes > max_bytes and self._items:
-            _k, (_v, nb) = self._items.popitem(last=False)
+            _k, (_v, nb, _g) = self._items.popitem(last=False)
             self._bytes -= nb
 
     def __len__(self):
@@ -316,6 +342,11 @@ class ThumbnailStore:
 
     def get_cached(self, key):
         return self._mem.get(key)
+
+    def on_scene_pushed(self):
+        """See MemoryCache.on_scene_pushed. Loop thread, like every other
+        access to the decoded cache."""
+        self._mem.on_scene_pushed()
 
     def is_gone(self, key):
         """True once the server has said this image doesn't exist, so the

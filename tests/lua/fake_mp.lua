@@ -258,6 +258,21 @@ local clipboard_fetched = false
 --- which does not.
 M.commands_available = { "update-clipboard" }
 
+--- Argument names, for a probe that reads a command's SIGNATURE rather than
+--- whether it exists. overlay-add is in every mpv; what varies is whether it
+--- takes a display size (`dw`/`dh`, 0.38+, 4754bd54c7), and
+--- JMS_TEST_NO_OVERLAY_SCALE models one older than that. An env var and not a
+--- field a test flips, for the reason reset_clipboard gives: the probe is
+--- cached for the life of the script.
+M.command_args = {
+    ["overlay-add"] = { "id", "x", "y", "file", "offset", "fmt", "w", "h",
+                        "stride", "dw", "dh" },
+}
+if os.getenv("JMS_TEST_NO_OVERLAY_SCALE") then
+    M.command_args["overlay-add"] = { "id", "x", "y", "file", "offset", "fmt",
+                                      "w", "h", "stride" }
+end
+
 function M.reset_clipboard()
     M.clipboard_needs_update = false
     clipboard_fetched = false
@@ -299,17 +314,34 @@ function mp.set_property(name, value)
     M.log.props[name] = value
     return true
 end
-function mp.set_property_bool(name, value) M.log.props[name] = value end
+function mp.set_property_bool(name, value)
+    if M.unavailable[name] then return nil, "property unavailable" end
+    M.log.props[name] = value
+    return true
+end
 
 -- The comic reader's pan is set this way, sixty times a second, entirely in
 -- the renderer -- so it never reached mpv through any of the paths above and
 -- had no fake at all until the end-of-page interlock needed testing.
-function mp.set_property_number(name, value) M.log.props[name] = value end
+function mp.set_property_number(name, value)
+    if M.unavailable[name] then return nil, "property unavailable" end
+    M.log.props[name] = value
+    return true
+end
 function mp.get_property_native(name, def)
     if name == "command-list" then
-        local out = {}
+        -- Shaped like mpv's (command.c mp_property_commands): each entry is
+        -- {name, args}, and each arg is a map carrying its own `name`.
+        local function entry(n)
+            local args = {}
+            for _, a in ipairs(M.command_args[n] or {}) do
+                args[#args + 1] = { name = a }
+            end
+            return { name = n, args = args }
+        end
+        local out = { entry("overlay-add") }
         for _, n in ipairs(M.commands_available or {}) do
-            out[#out + 1] = { name = n }
+            out[#out + 1] = entry(n)
         end
         return out
     end
@@ -326,7 +358,14 @@ function mp.get_property(name, def)
     return M.log.props[name] or def
 end
 function mp.get_property_number(name, def) return M.log.props[name] or def end
-function mp.get_property_bool(name, def) return M.log.props[name] or def end
+-- A stored false is an answer, not a miss: `props[name] or def` turned it
+-- into the default.
+function mp.get_property_bool(name, def)
+    if M.unavailable[name] then return def, "property unavailable" end
+    local v = M.log.props[name]
+    if v == nil then return def end
+    return v
+end
 
 function mp.observe_property(name, _kind, fn)
     prop_observers[name] = prop_observers[name] or {}

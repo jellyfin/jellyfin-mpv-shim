@@ -17,6 +17,7 @@ does everything with state or a thread behind it — ``set_status``,
 registered in the browser's daemon table by attribute name.
 """
 
+import logging
 import time
 
 from ..i18n import _, _p
@@ -37,6 +38,9 @@ from ..mpvtk.widgets import (
     TextBox,
 )
 from . import theme
+from .components import server_icon
+
+log = logging.getLogger("mpvtk_browser.chrome")
 
 
 def toast_node(b, w, h):
@@ -103,11 +107,59 @@ def chrome(b, w):
 
 
 def chrome_lists(b):
-    try:
-        servers = b.source.servers()
-    except Exception:
+    """The switcher's two lists, read once per frame (see ``chrome``).
+
+    Servers come from the **credential list** rather than from the source
+    while there is a live source to come back to. A server that did not answer
+    is not in the source, so it used to vanish from the switcher entirely: the
+    machine looked like it had one server, and there was nowhere to press to
+    get the other one back. Listing it greyed, with the reconnect behind
+    selecting it, is what makes that recoverable without going to Settings.
+
+    Offline too (D3 case 3, ruled 2026-09-26): picking a server there is how
+    you come back, and it reconnects or says why. The offline source's own
+    list is not a fallback then -- the Offline entry stands for it.
+    """
+    servers = None
+    if b.controller is not None:
+        try:
+            servers = b.controller.switcher_servers()
+        except Exception:
+            log.debug("switcher_servers failed", exc_info=True)
+            servers = None
+    if not servers and b._offline:
         servers = []
+    elif not servers:
+        try:
+            servers = b.source.servers()
+        except Exception:
+            servers = []
     return servers, b._users()
+
+
+def _has_downloads(b):
+    """Whether the Offline entry is offered. Asked of the gateway, which
+    keeps it cheap enough for every frame (a catalog count)."""
+    ask = getattr(b.controller, "has_downloads", None)
+    if ask is None:
+        return False
+    try:
+        return bool(ask())
+    except Exception:
+        log.debug("has_downloads failed", exc_info=True)
+        return False
+
+
+def _server_label(sv):
+    """A switcher entry's text. Offline ones say so in words as well as by
+    their icon: the icon is the half that survives a narrow bar, since the
+    label ellipsizes from the end and takes "(offline)" with it, but the icon
+    is a glyph nobody has to have learned and the word is what makes it one
+    the first time."""
+    name = sv.get("name") or "?"
+    if sv.get("connected", True):
+        return name
+    return _("%s (needs reconnect)") % name
 
 
 #: The three buttons a title bar has, in the order every desktop puts them.
@@ -275,28 +327,78 @@ def chrome_bar(b, compact, probe=False, servers=None,
     right = []
     if servers is None:
         servers = chrome_lists(b)[0]
-    if len(servers) > 1:
-        cur = next((i for i, s in enumerate(servers)
-                    if s["uuid"] == b.server), 0)
+    labels = [_server_label(s) for s in servers]
+    icons = [server_icon(s) for s in servers]
+    # The Offline entry (D3 cases 2 and 4): the downloads as one more place
+    # to browse, offered only when there is something downloaded.
+    offline_at = None
+    if b._offline or _has_downloads(b):
+        offline_at = len(labels)
+        labels.append(_p("server switcher entry", "Offline"))
+        icons.append("folder")
+    if len(labels) > 1:
+        if b._offline and offline_at is not None:
+            cur = offline_at
+        else:
+            cur = next((i for i, s in enumerate(servers)
+                        if s["uuid"] == b.server), 0)
+
+        def chosen(i, _v):
+            if i == offline_at:
+                b.go_offline()
+            else:
+                b._switch_server(servers[i]["uuid"])
+
         # sized to its content within bounds (so long names count in
         # the fit probe); overlong labels ellipsize renderer-side
         right.append(Dropdown(
-            "nav-server", [s["name"] for s in servers],
+            "nav-server", labels,
             selected=cur, min_w=110, tip=_("Server"),
-            max_w=150 if compact else 260,
-            on_select=lambda i, v: b._switch_server(servers[i]["uuid"])))
+            # The scene's choice wins: the selection also moves without a pick
+            # (falling back to the downloads, a background reconnect), and a
+            # refused pick is answered through `ack` (GUIDE section 2).
+            force=True, ack=b._server_pick_ack,
+            max_w=170 if compact else 300,
+            # The open list is not the closed box. The box has a top bar to
+            # share with Search and the nav buttons; the list has the whole
+            # window, and it is where the choice is actually made -- so a
+            # name that has to ellipsize on the bar can still be read in
+            # full at the moment it matters. A ceiling, not a width: a list
+            # of short names stays the size of the control.
+            popup_w=460,
+            # A server that did not answer is listed (see chrome_lists) and
+            # the entry is the door back to it: picking one tries to
+            # reconnect and says what happened. Said in the label as well as
+            # by the glyph, because the list is where the choice is made and
+            # a row that looks available and then refuses is worse than one
+            # that says so first.
+            icons=icons,
+            on_select=chosen))
     if users is None:
         users = b._users()
-    # Not while offline: switching user reconnects, which cannot work
-    # with no server, and Tk gated it for that reason.
-    if len(users) > 1 and not b._offline:
+    # Offline too (D3 case 6, ruled 2026-09-26). Offline, whose watched
+    # state is shown IS the active profile (docs/offline-sync.md section 1),
+    # so the switcher is how a second person sees their own ticks; the
+    # switch falls back to the offline library when nothing answers
+    # (gateway users.switch_user). It was hidden offline on the Tk-era
+    # reasoning that switching reconnects, which predates per-person state
+    # (B2).
+    if len(users) > 1:
         cur = next((i for i, u in enumerate(users)
                     if u.get("active")), 0)
         right.append(Dropdown(
             "nav-user",
             [u.get("name", "?") for u in users],
             selected=cur, min_w=100, tip=_("User"),
-            max_w=130 if compact else 200, force=True,
+            # Wider than it was. A dropdown is sized to its content within
+            # these bounds, and the bounds were set against short names --
+            # but the *default* user is literally called "(default)", and the
+            # box also carries a leading icon and a chevron, so the two names
+            # every install has out of the box ("(default)", and anything as
+            # long as "testuser") both ellipsized. A picker that cannot show
+            # its own entries is asking the user to guess.
+            max_w=190 if compact else 280, force=True,
+            popup_w=380,     # see the server picker above
             icons=["lock" if u.get("locked") else "person" for u in users],
             on_select=lambda i, v: b._switch_user(users[i])))
     right += [
@@ -476,7 +578,19 @@ def banner(b):
                    tip=_("Do not mention this version again"),
                    on_click=b._ignore_update),
         ], pad=10, gap=10, align="center", h=48, bg=theme.ACCENT_SOFT)
-    if b._offline:
+    if b._unreachable and not b._offline:
+        row = [Text(_("The server isn't answering."), size="normal"),
+               Spacer(),
+               Button(_("Retry"), id="banner-unreachable-retry",
+                      on_click=b.retry_unreachable)]
+        if _has_downloads(b):
+            row.append(Button(_("Go Offline"), id="banner-unreachable-offline",
+                              on_click=b.go_offline))
+        return Row(row, pad=10, gap=10, align="center", h=48,
+                   bg=theme.mix(theme.WARN_AMBER, theme.WINDOW_BG, 0.72))
+    # Not when Offline was picked: then it is the server being browsed, and
+    # a banner calling it a fallback would be wrong (Izzie, 2026-09-26).
+    if b._offline and not b._offline_chosen:
         return Row([
             Text(_("Offline — showing what's available."), size="normal"),
             Spacer(),

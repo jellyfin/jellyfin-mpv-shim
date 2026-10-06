@@ -17,13 +17,16 @@ from .labels import (
     has_no_subtitles,
     heading_for,
     human_size,
+    is_local_server,
     is_watched,
     placeholder_glyph,
     section_offsets,
+    server_icon,
     tile_lines,
     track_artists,
     track_duration,
     type_indicator_icon,
+    virtual_episode_label,
 )
 from .banner import compose_banner, poster_box, wrap_pil
 
@@ -36,9 +39,11 @@ __all__ = [
     "has_no_subtitles",
     "heading_for",
     "human_size",
+    "is_local_server",
     "is_watched",
     "placeholder_glyph",
     "section_offsets",
+    "server_icon",
     "tile_lines",
     "track_artists",
     "track_duration",

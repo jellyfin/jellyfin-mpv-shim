@@ -330,7 +330,7 @@ class HomePage(Page):
             rows.append(art.tiles.tile_row(title, items, row_id, geom=geom,
                                            image_type=itype,
                                            parent_item=pitem, inherit=inh,
-                                           see_all=see_all))
+                                           see_all=see_all, lazy=True))
         if not rows:
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
                              Text(_("Nothing to show yet."), size="large",
@@ -353,11 +353,17 @@ class HomePage(Page):
         # every frame. Section heights differ (poster vs landscape rows), so
         # the breakpoints are the explicit content-y of each section top,
         # not a uniform pitch.
+        rows = art.tiles.window_rows(rows, "home", size, 20,
+                                     pad=chrome.CONTENT_PAD)
         return VScroll(Column(rows, pad=(0, chrome.CONTENT_PAD), gap=20),
                        id="home", flex=1,
                        offset=self.parked_scroll("home"),
                        snaps=components.section_offsets(
-                           rows, 20, pad=chrome.CONTENT_PAD))
+                           rows, 20, pad=chrome.CONTENT_PAD),
+                       # What brings the rows window_rows left as stand-ins
+                       # in as they approach.
+                       on_scroll=lambda off, mx: art.scroll.on_scroll(
+                           "home", off, mx))
 
     def _live_tv_buttons(self):
         """The Live TV section's nav row: one button per Live TV tab.

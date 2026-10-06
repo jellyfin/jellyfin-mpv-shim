@@ -1,10 +1,16 @@
-"""Item-derived strings and small layout maths.
+"""Item- and server-derived strings, and small layout maths.
 
 Moved verbatim from ``TilesMixin`` — these never used ``self``, so being
 methods only made them look coupled. Each carries the comment explaining the
 bug it encodes; those are the reason to keep the logic rather than "simplify"
 it later.
 """
+
+import datetime
+import ipaddress
+import urllib.parse
+
+from ...i18n import _
 
 
 #: Types whose caption is a LISTING -- "which channel, and when" rather
@@ -218,6 +224,43 @@ TYPE_INDICATOR_ICONS = {
 }
 
 
+def virtual_episode_label(item):
+    """"Missing", "Unaired", or None for an episode that has a file.
+
+    **jellyfin-web's rule, in one place.** `indicators.js` marks an `Episode`
+    whose `LocationType` is `Virtual` -- one the server listed out of the
+    series metadata with nothing behind it -- and which of the two words it
+    gets depends only on whether the air date is still in the future.
+
+    Neither is hidden, because seeing the gaps is the point: the server has
+    already applied the user's own `DisplayMissingEpisodes`
+    (`TvShowsController.cs`, both supported majors), so an item only reaches
+    here because somebody asked to see it. What web's card does NOT give one
+    is a play button, and that is the other half of this predicate's job --
+    `tiles._tile_playable` and the detail page's own buttons ask it too, and
+    a rule applied at one of its sites is the recurring defect shape here.
+
+    An undated virtual episode is "Missing": a future date is the only
+    evidence that it is coming rather than absent.
+    """
+    if item.get("Type") != "Episode":
+        return None
+    if item.get("LocationType") != "Virtual":
+        return None
+    from .. import live_tv
+
+    # Through live_tv.parse_time, not `fromisoformat`: these are UTC with
+    # seven fractional digits, and every shorter way of parsing one yields a
+    # plausible datetime out by the UTC offset rather than an error
+    # (docs/jellyfin-api-notes.md section 9.1). It returns a local aware
+    # datetime, so the comparison has to be aware as well.
+    premiere = live_tv.parse_time(item.get("PremiereDate"))
+    if premiere is not None and premiere > datetime.datetime.now(
+            datetime.timezone.utc):
+        return _("Unaired")
+    return _("Missing")
+
+
 def type_indicator_icon(item):
     """The corner type marker for a tile, or "" for types that get none."""
     return TYPE_INDICATOR_ICONS.get(item.get("Type"), "")
@@ -353,3 +396,75 @@ def human_size(n):
             return ("%d %s" % (n, unit) if unit == "B"
                     else "%.1f %s" % (n, unit))
         n /= 1024
+
+
+#: Hostname suffixes that only ever name something on this network. `.local`
+#: is mDNS/Bonjour, which is how a Jellyfin box on a home LAN most often
+#: announces itself; the rest are the conventional private zones a router or
+#: a homelab hands out. `.internal` is also Google Cloud's private zone,
+#: which is the right answer there too -- it is unreachable from outside.
+_LOCAL_SUFFIXES = (".local", ".lan", ".home", ".internal", ".localdomain")
+
+
+def is_local_server(address):
+    """Is this address on the user's own network rather than out on the
+    internet -- **going only by how it is spelled**?
+
+    The fallback, not the answer. `clients.server_is_local` resolves the
+    name when it connects and that verdict reaches here as the entry's
+    `local` key; this runs when nothing has connected, so there is nothing
+    to resolve from and no connection to describe.
+
+    Syntactic because it runs on the render path, where a name lookup is a
+    blocking call to decide an icon. It cannot see split-horizon DNS at all
+    -- a self-hoster's own domain resolves to a LAN address at home and a
+    public one away, and the spelling is identical -- which is exactly why
+    the resolved verdict outranks it.
+
+    A bare hostname with no dot counts as local: `http://mediaserver:8096`
+    is a name only a LAN resolver (mDNS, NetBIOS, the router's own DNS) can
+    answer, which is what makes it one.
+    """
+    if not address:
+        return False
+    try:
+        host = urllib.parse.urlsplit(str(address)).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    host = host.rstrip(".").lower()
+    try:
+        # Covers loopback, RFC1918, link-local and IPv6 ULA in one rule --
+        # and correctly says *remote* for 100.64/10, which is carrier-grade
+        # NAT as often as it is a private overlay.
+        return ipaddress.ip_address(host).is_private
+    except ValueError:
+        pass
+    return (host == "localhost" or "." not in host
+            or host.endswith(_LOCAL_SUFFIXES))
+
+
+def server_icon(server):
+    """The glyph for one server entry: where it is, or that it is not there.
+
+    Every server gets one, which is the point as much as the meaning is. A
+    dropdown indents every row as soon as any item carries an icon, so a
+    list that marked only the broken entries paid that width on all of them
+    and gave the names back an ellipsis in exchange for nothing.
+
+    ``connected`` absent means connected -- the login screen's list of
+    previously added servers is addresses, with no connection state to
+    report.
+
+    ``local`` is the resolved verdict from the connection itself, and it
+    wins whenever there is one: reading the URL cannot tell a domain that
+    points at a LAN address from one that does not, and for anybody running
+    their own domain at home that is every server they have.
+    """
+    if not server.get("connected", True):
+        return "cloud_off"
+    on_lan = server.get("local")
+    if on_lan is None:
+        on_lan = is_local_server(server.get("address"))
+    return "lan" if on_lan else "cloud"

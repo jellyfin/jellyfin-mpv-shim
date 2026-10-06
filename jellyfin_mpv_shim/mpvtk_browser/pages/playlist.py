@@ -38,8 +38,13 @@ class PlaylistPage(Page):
         # any(), like Tk: a playlist with any music in it reads better as a
         # track list than as a grid of mismatched artwork.
         audio = any(i.get("Type") == "Audio" for i in items)
+        # ServerId from the members, which is where the download took the
+        # playlist's scope from (`SyncManager.download`): without it the
+        # online Remove Download named the unscoped row and deleted nothing.
         pl_item = {"Id": pid, "Type": "Playlist",
-                   "Name": route.get("title", "")}
+                   "Name": route.get("title", ""),
+                   "ServerId": next((i.get("ServerId") for i in raw
+                                     if i.get("ServerId")), None)}
         header = Row([
             Text(route.get("title", ""), size="hero", bold=True),
             Spacer(),

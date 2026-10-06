@@ -108,6 +108,18 @@ class TestRendererLua(unittest.TestCase):
                       env=self._session_env(DISPLAY=":0",
                                             JMS_TEST_NO_CLIP_UPDATE="1")))
 
+    def test_the_renderer_suite_passes_with_the_test_observer_on(self):
+        """The e2e harness runs every app with JMS_TEST_OBSERVE, which
+        publishes each frame from inside render(). Its visibility check
+        assumed every node has a size; a menu has none, so it raised on
+        every frame with a menu open -- and in the real app that blanked the
+        whole screen, in every e2e run, for as long as the menu was up.
+        This suite opens menus, so it is the observer's test as well."""
+        self._assert_suite_passed(
+            self._run("test_renderer.lua",
+                      env=self._session_env(DISPLAY=":0",
+                                            JMS_TEST_OBSERVE="1")))
+
     def test_the_thumbfast_suite_passes(self):
         """`thumbfast.lua` is the other consumer of the trickplay frame
         file — the compatibility layer every thumbfast-style lua OSC talks
@@ -122,6 +134,22 @@ class TestRendererLua(unittest.TestCase):
         """
         self._assert_suite_passed(
             self._run("test_thumbfast.lua", target=THUMBFAST))
+
+    def test_the_suites_pass_without_overlay_scaling(self):
+        """An mpv older than 0.38, whose overlay-add takes no display size.
+
+        Both consumers probe `command-list` once and cache the answer, so one
+        process only ever sees one of the two; this is the other. The extra
+        arguments are rejected there rather than ignored, so a frame passed a
+        display size on such an mpv is not drawn at all.
+        """
+        env = dict(os.environ, JMS_TEST_NO_OVERLAY_SCALE="1")
+        self._assert_suite_passed(
+            self._run("test_thumbfast.lua", env=env, target=THUMBFAST))
+        self._assert_suite_passed(
+            self._run("test_renderer.lua",
+                      env=self._session_env(DISPLAY=":0",
+                                            JMS_TEST_NO_OVERLAY_SCALE="1")))
 
     def test_thumbfast_parses_under_this_interpreter(self):
         proc = subprocess.run(

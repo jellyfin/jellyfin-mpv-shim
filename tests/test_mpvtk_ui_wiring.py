@@ -38,6 +38,7 @@ import inspect
 import os
 import sys
 import threading
+import types
 import unittest
 
 sys.argv = [sys.argv[0]]      # importing player reaches args.get_args()
@@ -66,6 +67,13 @@ class FakePlayer:
     @staticmethod
     def get_mpv():
         return object()
+
+    #: What the player holds. The browser asks (playing_item_id) before it
+    #: acts on a playstate, and drops one for an item that is not here.
+    video = None
+
+    def get_video(self):
+        return self.video
 
     # enter_browse()/minimize() reach through PlayerGateway into these.
     # Recorded rather than no-op'd so the window handoff stays visible.
@@ -102,6 +110,7 @@ class FakeClients:
 
     def __init__(self):
         self.on_server_connected = None
+        self.on_servers_changed = None
         self.loaded = 0
 
     def load_credentials(self):
@@ -211,6 +220,7 @@ class WiringHarness(unittest.TestCase):
 # `browser` means "calling it must be observable on the browser object".
 PLAYER_CALLBACKS = [
     "on_playstate",
+    "on_stopped_at",
     "notify_update",
     "on_window_closed",
     "on_mpv_gone",
@@ -303,6 +313,22 @@ class TestEveryCallbackIsWired(WiringHarness):
         self.assertIsNotNone(self.clients.on_server_connected,
                              "a server that comes up late stays invisible")
 
+    def test_a_server_dropping_is_subscribed(self):
+        """Nothing subscribed, so a health check dropping a server never
+        redrew the browser: the switcher kept offering it as connected until
+        something else happened to repaint (scenario 11)."""
+        browser = self._login()
+        self.assertIsNotNone(self.clients.on_servers_changed)
+        calls = []
+
+        class _App:
+            def invalidate(self):
+                calls.append(1)
+
+        browser.app = _App()
+        self.clients.on_servers_changed()
+        self.assertEqual([1], calls, "a dropped server asks for no redraw")
+
     def test_download_changes_are_subscribed(self):
         self._login()
         self.assertIsNotNone(self.sync.on_change,
@@ -319,6 +345,7 @@ class TestTheCallbacksActuallyReachTheBrowser(WiringHarness):
 
     def test_playstate_reaches_the_now_playing_bar(self):
         browser = self._login()
+        self.player.video = types.SimpleNamespace(item_id="t1")
         self.player.on_playstate({"stopped": False, "is_audio": True,
                                   "id": "t1", "title": "Song",
                                   "position": 1, "duration": 10})
@@ -773,8 +800,8 @@ class TestLoginActions(AuthHarness):
 
     def test_re_authenticating_an_existing_server_keeps_the_place(self):
         """The half a "just pick the last one in the list" fix would break.
-        A login can re-authenticate a server already present -- `force_unique`
-        deliberately reuses its uuid -- and there nothing was added, so the
+        The login form can re-authenticate a server already present, which
+        keeps its uuid (`replacing_uuid`) -- so nothing was added, and the
         remembered choice must still win."""
         from tests._shell_harness import FakeSource
 

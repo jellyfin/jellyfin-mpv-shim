@@ -52,12 +52,8 @@ def _server_uuid_of(video):
     """The uuid of the server a playing item came from, or None."""
     try:
         from .clients import clientManager
-        client = getattr(video, "client", None)
-        if client is None:
-            return None
-        for uuid, candidate in clientManager.clients.items():
-            if candidate is client:
-                return uuid
+
+        return clientManager.uuid_for_client(getattr(video, "client", None))
     except Exception:
         log.debug("could not resolve the playing item's server",
                   exc_info=True)
@@ -79,6 +75,10 @@ def _discord_on():
 
 class ReportingMixin:
     """Session reporting and now-playing publication for ``PlayerManager``."""
+
+    #: Set by the UI (see PlayerManager.__init__); a class default so the
+    #: mixin reports a stop without one.
+    on_stopped_at = None
 
     if TYPE_CHECKING:
         # Owned by PlayerManager, not by this mixin. Listed so the coupling
@@ -119,21 +119,24 @@ class ReportingMixin:
                 aborted = self._player.playback_abort
             except _mpv_errors:
                 aborted = True
-            if not stopped and video is None and self._start_in_progress:
-                # **A start in flight is not a stop.** `_video` is assigned
-                # only once the open succeeds and `playback_abort` stays true
-                # until it does, so for the whole of a load every incidental
-                # push here reported "stopped" -- and the browser reads that
-                # as "playback ended", drops its loading screen and returns to
-                # the library, over the start the user is waiting for.
+            if not stopped and self._start_in_progress:
+                # **Nothing is reported until the start has finished.** Two
+                # ways a mid-start snapshot lies, both shipped:
                 #
-                # There is always at least one: `_play_media` writes the
-                # persisted per-type volume before mpv is handed the file, and
-                # the volume observer pushes. A skippable-segment transition
-                # and the now-playing ticker do it too.
+                # - Before `_video` is assigned the player looks stopped, and
+                #   the browser read that as "playback ended" and dropped its
+                #   loading screen over the start. The volume write before the
+                #   file is handed over always pushes; so do the ticker and
+                #   skippable-segment transitions.
+                # - After it, the file is held paused until `_play_media`
+                #   releases it (#785), so a snapshot says "paused". The
+                #   now-playing bar appeared on it, and a SPACE pressed then
+                #   was deferred behind the start's lock and toggled the
+                #   released file back to paused.
                 #
-                # An explicit stopped=True still reports: that is the stop
-                # path, which is exactly how a cancelled or failed start ends.
+                # `_play_media` clears the flag just before the release, whose
+                # set_paused is the first push. An explicit stopped=True still
+                # reports: that is how a cancelled or failed start ends.
                 return
             if stopped or video is None or aborted:
                 cb({"stopped": True})
@@ -481,9 +484,12 @@ class ReportingMixin:
                 return
             from .sync.manager import syncManager
 
+            # The login that is playing, so the progress is filed under the
+            # person watching rather than under whoever downloaded the copy.
             syncManager.mirror_playstate(
                 getattr(video, "item_id", None), position_ticks,
-                played=True if finished else None)
+                played=True if finished else None,
+                server_uuid=_server_uuid_of(video))
         except Exception:
             log.warning("Could not record playback progress locally.",
                         exc_info=True)
@@ -510,10 +516,14 @@ class ReportingMixin:
             "session_playing")
 
     @synchronous("_tl_lock")
-    def send_timeline_stopped(self, finished=False, options=None, client=None):
+    def send_timeline_stopped(self, finished=False, options=None, client=None,
+                              stopped=None):
+        """``stopped`` is the video an explicit stop has already cleared from
+        `_video`: only the UI announcement uses it (`_announce_stop`)."""
         self.should_send_timeline = False
 
         video = self._video
+        announced = video if stopped is None else stopped
         if options is None:
             options = self.get_timeline_options(finished, video=video)
 
@@ -536,13 +546,32 @@ class ReportingMixin:
         # thread), the stop report has been or will be sent by whoever tore it
         # down; a client of None means offline playback (no server session).
         # Either way, still run the local cleanup below.
+        if announced is not None and options is not None:
+            # Now (the page can say Resume at once), and again once the
+            # report has reached the server -- behind it on the same FIFO --
+            # because a re-read before that reads the pre-stop position.
+            # Offline there is no server to wait for.
+            self._announce_stop(announced, options.get("PositionTicks"),
+                                finished, delivered=client is None)
         if options is not None and client is not None:
             # Queued, not called here: this runs on the advance path, and the
             # round trip used to sit between the last sample of one track and
             # the first of the next. Ordering against the following
             # session_playing is what the shared worker guarantees.
-            self._reporter.submit(
-                lambda: client.jellyfin.session_stop(options), "session_stop")
+            ticks = options.get("PositionTicks")
+
+            def stop_then_announce():
+                # One job: "delivered" only once the server returned. The
+                # worker swallows a failed report, so a separate job queued
+                # behind it announced a stop the server never received, and
+                # the page then believed a re-read holding the older
+                # position. Undelivered, the page keeps its own.
+                client.jellyfin.session_stop(options)
+                if announced is not None:
+                    self._announce_stop(announced, ticks, finished,
+                                        delivered=True)
+
+            self._reporter.submit(stop_then_announce, "session_stop")
 
         if _discord_on():
             try:
@@ -550,6 +579,21 @@ class ReportingMixin:
                 clear_presence()
             except Exception:
                 log.error("Could not clear Discord Rich Presence.", exc_info=True)
+
+    def _announce_stop(self, video, ticks, finished, delivered):
+        """Tell the UI where this stop left the item. Never raises, and the
+        callback must not block or call back in: this can run under the
+        player's lock (docs/browser-shell.md on the thread contract)."""
+        cb = self.on_stopped_at
+        if cb is None:
+            return
+        try:
+            from .clients import clientManager
+            cb({"id": video.item_id, "ticks": ticks, "finished": finished,
+                "delivered": delivered,
+                "server": clientManager.uuid_for_client(video.client)})
+        except Exception:
+            log.debug("could not announce a stop to the UI", exc_info=True)
 
     def queue_played_mark(self, video, watched: bool = True):
         """Send an explicit watched/unwatched mark, BEHIND whatever is queued.

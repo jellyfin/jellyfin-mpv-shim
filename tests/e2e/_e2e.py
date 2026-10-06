@@ -44,6 +44,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), "integration"))
 import _harness as h  # noqa: E402
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _accounts  # noqa: E402
+
 SERVER = (os.environ.get("JMS_E2E_SERVER") or "").rstrip("/")
 BACKEND = h.BACKEND
 
@@ -67,9 +70,27 @@ os.environ["XDG_CONFIG_HOME"] = _CONFIG_DIR
 os.environ["APPDATA"] = _CONFIG_DIR
 h.prime_args(_CONFIG_DIR)
 
-# stdjflib's fixed accounts. Password is the same for all of them except
-# qa-nopassword, whose whole point is not having one.
-PASSWORD = "stdjflib"
+# There is deliberately no `PASSWORD` constant any more. `qa-admin`'s is
+# random per server state: an admin can install plugins, which is code
+# execution on the host, and Jellyfin answers any origin and checks no Host
+# header, so a known one made a QA server a way into this machine.
+# `_accounts.password_for` is the one place that answers, and it needs the
+# server as well as the account.
+
+
+class _Derive:
+    """Default for ``password``: work it out from the account and the server.
+
+    A sentinel rather than a value, because a default argument is evaluated
+    once at import and the answer now depends on **which** server is being
+    asked -- the filter matrix holds sessions to two at once.
+    """
+
+    def __repr__(self):
+        return "<derived from the account and the server>"
+
+
+DERIVE = _Derive()
 
 # The server uuid a LibrarySource built by `Session.library_source` answers to.
 SOURCE_UUID = "e2e"
@@ -86,7 +107,26 @@ def public_users():
         return [u.get("Name") for u in json.loads(resp.read())]
 
 
-def login_refused(account, password=PASSWORD, device_id=None):
+def public_version(address=None):
+    """The `Version` a server reports to an unauthenticated client, or "".
+
+    Unauthenticated on purpose: its caller is a guard on *which server this
+    is*, which must be answerable before anyone decides how to log in. Empty
+    rather than raising, so an unreachable server stays the skip it already
+    is everywhere else here.
+    """
+    target = (address or SERVER).rstrip("/")
+    if not target:
+        return ""
+    try:
+        with urllib.request.urlopen(
+                target + "/System/Info/Public", timeout=10) as resp:
+            return (json.loads(resp.read()) or {}).get("Version") or ""
+    except (urllib.error.URLError, OSError, ValueError):
+        return ""
+
+
+def login_refused(account, password=DERIVE, device_id=None):
     """True when the server refuses this login.
 
     Returns rather than raises so a test can say what it means. `Session`
@@ -368,7 +408,7 @@ class Session:
     Between them that is every way the app reaches a server.
     """
 
-    def __init__(self, account="qa-user", password=PASSWORD, device_id=None,
+    def __init__(self, account="qa-user", password=DERIVE, device_id=None,
                  websocket=False, address=None):
         from jellyfin_apiclient_python import JellyfinClient
         from jellyfin_mpv_shim.constants import (
@@ -398,6 +438,12 @@ class Session:
         # and the differences between them (the language pickers exist on
         # one and not the other) are the reason it is worth doing.
         self.address = (address or SERVER).rstrip("/")
+        # After `self.address`, never before: which server is being asked is
+        # half the answer now, and the two the matrix holds at once are on
+        # different ports with different admin passwords.
+        derived = password is DERIVE
+        if derived:
+            password = _accounts.password_for(account, self.address)
 
         client = JellyfinClient(allow_multiple_clients=True)
         client.config.data["app.default"] = True
@@ -409,7 +455,10 @@ class Session:
         result = client.auth.login(self.address, account, password or "")
         if "AccessToken" not in result:
             raise AssertionError(
-                "login failed for %s: %r" % (account, result))
+                "login failed for %s: %r (password from %s)"
+                % (account, result,
+                   _accounts.source_of(account, self.address) if derived
+                   else "the caller"))
         self.token = result["AccessToken"]
         self.user_id = result["User"]["Id"]
 
@@ -562,6 +611,59 @@ class Session:
         info = self._request("/System/Info/Public") or {}
         return info.get("Version") or "?"
 
+    def server_id(self):
+        """This server's Jellyfin ``ServerId``, as a client sees it.
+
+        Asked of the server rather than baked in: a container is reprovisioned
+        and the id changes with it, which is the same rule the lookup helpers
+        below follow for item ids.
+        """
+        info = self._request("/System/Info/Public") or {}
+        return info.get("Id")
+
+    def register_source_login(self, test):
+        """Make `SOURCE_UUID` a **saved login** in the user registry.
+
+        `library_source` hands the browser a credential of its own, which is
+        not the same thing: the download catalog scopes content by `ServerId`,
+        and the browser holds a login *uuid*, so every scoped read goes
+        through `userManager` to translate one into the other
+        (`SyncManager.content_id_for`). A harness that skips this has a
+        browser on a server the registry has never heard of — a state
+        production cannot be in, because the uuid the browser holds came out
+        of that registry in the first place.
+
+        Reached for by any leg whose screen asks the catalog a scoped
+        question. Left out, the catalog answers "nothing is downloaded" and
+        the screen builds its placeholder, which builds perfectly and proves
+        nothing -- exactly what two legs asserted against when
+        `book_download_state` gained its scope (CX7).
+
+        Returns the ServerId.
+        """
+        from unittest import mock
+
+        from jellyfin_mpv_shim.users import userManager
+
+        # **Loaded first, then patched.** `load()` is lazy -- several call
+        # sites reach it on first use -- and it *replaces* `users`, so a patch
+        # installed before the first load is silently thrown away by it. The
+        # symptom is precise and was measured: the first test in a class fails
+        # and every later one passes, because by then `_loaded` is set and
+        # `load()` is a no-op.
+        userManager.load()
+        server_id = self.server_id()
+        patch = mock.patch.object(userManager, "users", [{
+            "id": "local-e2e", "credentials": [
+                {"uuid": SOURCE_UUID, "Id": server_id,
+                 "UserId": self.user_id, "address": self.address}]}])
+        patch.start()
+        test.addCleanup(patch.stop)
+        active = mock.patch.object(userManager, "active_id", "local-e2e")
+        active.start()
+        test.addCleanup(active.stop)
+        return server_id
+
     def library_source(self):
         """A real `LibrarySource` over this session's credentials.
 
@@ -643,12 +745,79 @@ class Session:
         Registered with `addCleanup` by the tests that dirty it. Playstate is
         the one piece of server state these tests mutate that another test can
         actually see.
+
+        **The effect is verified, not the call, and a failure is loud.** This
+        swallowed every exception, which is the same shape
+        `test_music_playlist` already spells out for its playlist delete: a
+        cleanup that cannot work is worse than no cleanup, because it reads as
+        one. The cost is paid somewhere else -- an item left marked watched
+        makes `test_playback_advance` assert that "the episode we advanced INTO
+        was marked watched", which is indistinguishable from the bug that
+        assertion exists to catch, and the state is invisible from the failure.
+        Diagnosing one occurrence of exactly that cost four full suite runs.
+
+        Verified by reading it back rather than by trusting the request,
+        because the request answering 200 is not the flag being clear.
         """
+        failed = []
         for item_id in item_ids:
             try:
                 self.api.item_played(item_id, False)
+            except Exception as exc:
+                failed.append("%s: request raised (%s)" % (item_id, exc))
+                continue
+            if self._reads_as_cleared(item_id):
+                continue
+            # Re-sent once before giving up, because "still set" has two
+            # causes and only one of them is "the clear was lost". A report
+            # the player was still sending can land *after* the clear -- and
+            # on a clip shorter than the server's MinResumeDurationSeconds
+            # (300) a report marks the item **Played** rather than storing a
+            # position, so a 20-second music track re-marks itself on stop.
+            #
+            # A report is in flight here by construction: `addCleanup` is
+            # LIFO, so a test's own `reset_played` runs BEFORE
+            # `E2ETestCase._safe_stop`, and the stop that follows reports one
+            # last time. Stopping the player first was tried and reverted --
+            # its negative control passed without it, because the server
+            # settles either way within this bound.
+            #
+            # Measured on `test_music_playback`: the item does end up clear,
+            # a moment later, which is why this is bounded rather than loud
+            # on the first read.
+            try:
+                self.api.item_played(item_id, False)
+            except Exception as exc:
+                failed.append("%s: re-send raised (%s)" % (item_id, exc))
+                continue
+            if not self._reads_as_cleared(item_id):
+                failed.append("%s: still marked Played after two resets"
+                              % item_id)
+        if failed:
+            raise AssertionError(
+                "could not clear watched state on the server: %s. Left set, it "
+                "is read by other modules as a real playback result -- see "
+                "test_playback_advance's assertion 4 -- so this is loud rather "
+                "than silent." % "; ".join(failed))
+
+    def _reads_as_cleared(self, item_id, timeout=3.0):
+        """Does the server report this item unwatched, within `timeout`?
+
+        A read, not a request: the clear answering 200 is not the flag being
+        clear. Answers True on a read that raises -- cannot tell is not the
+        same as dirty, and inventing a failure out of a flaky read is how a
+        cleanup starts failing for reasons that are not about the state.
+        """
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                if not (self.user_data(item_id) or {}).get("Played"):
+                    return True
             except Exception:
-                pass
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.2)
 
     def my_session(self):
         """This device's entry in the server's session list, if it has one.
@@ -786,8 +955,15 @@ class E2ETestCase(unittest.TestCase):
         self.session = Session(self.account)
         self.addCleanup(self.session.stop)
         # Never leave a player running into the next test: a live session keeps
-        # reporting and the next test's assertions read its progress.
+        # reporting and the next test's assertions read its progress. Kept as
+        # a cleanup as well as the tearDown below, because a setUp that raises
+        # part way runs cleanups and not tearDown.
         self.addCleanup(self._safe_stop)
+        # Every case, nothing opting in: this suite drives a REAL mpv, so a
+        # property write it refuses is the version skew between the shim and
+        # the mpv on this box -- which is the one thing a fake cannot be asked
+        # about. See _harness.watch_refused_writes.
+        h.watch_refused_writes(self, self.pm)
 
     def _safe_stop(self):
         try:

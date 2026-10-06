@@ -134,16 +134,34 @@ LIVE_KINDS = {"livetv", "channel", "program"}
 #: server-computed `UnplayedItemCount` on the PARENT and so cannot be
 #: patched from here (#722).
 #:
-#: `grid`, `favorites` and `detail` are candidates and are deliberately not
-#: in yet: each needs its refresh-versus-page-in interleaving checked first,
-#: which is what `_refresh_current`'s `_refreshing` marker is for.
-USERDATA_KINDS = {"home", "series", "season"}
+#: A film's, an audiobook's and a book's own page for Play vs Resume: a stop
+#: announces UserDataChanged, and without this the page you land back on
+#: said Play until reopened. Their loads are one-shot (no paging), so the
+#: refresh cannot race a page-in (Izzie, 2026-09-28).
+#:
+#: `grid` and `favorites` are candidates and are deliberately not in yet:
+#: each pages, so its refresh-versus-page-in interleaving needs checking
+#: first, which is what `_refresh_current`'s `_refreshing` marker is for.
+USERDATA_KINDS = {"home", "series", "season", "detail", "audiobook", "book"}
+
+#: `_held_item`'s "could not ask", distinct from None ("holds nothing").
+_UNKNOWN = object()
 
 #: How often a Live TV route re-reads itself. jellyfin-web's own staleness
 #: guard is five minutes, but it re-renders on every tab change and this
 #: screen is often left sitting on the Guide — a two-minute floor keeps "on
 #: now" meaning now without making the guide fetch a background job.
 LIVE_POLL_SECS = 120
+
+
+def _is_unreachable(exc):
+    """Whether a failed fetch means the server did not answer -- refused,
+    timed out, unreachable -- rather than that it answered with an error."""
+    if getattr(exc, "status", None) in ("ServerUnreachable", "ReadTimeout"):
+        return True
+    import requests
+    return isinstance(exc, (requests.exceptions.ConnectionError,
+                            requests.exceptions.Timeout))
 
 
 class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
@@ -267,6 +285,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._log_thread = None
         # Debounce slot for UserDataChanged — see refresh_userdata.
         self._userdata_thread = None
+        # Guards _userdata_servers and the decision to start or end the tick
+        # together; see refresh_userdata for the event it used to lose.
+        self._userdata_lock = threading.Lock()
         # Long job (currently only the download-folder move) — see _run_long.
         self._long_thread = None
         # Global download progress for the status bar, and its poller.
@@ -282,6 +303,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Banners: update-available notice + offline indicator.
         self._update = None       # {"version", "url"} or None
         self._offline = False
+        # Offline because the person picked it, not because nothing answered.
+        # A background reconnect must not undo that (ui._on_server_connected):
+        # dropping to offline is what you do while a server keeps bouncing.
+        self._offline_chosen = False
+        # A fetch the person asked for failed because the server did not
+        # answer (not because it answered with an error). Raises the retry /
+        # offline banner; the next load that lands clears it.
+        self._unreachable = False
+        # Set, on the dispatching thread only, while `_refresh_current`
+        # dispatches: what tells `_route_async` a load nobody asked for.
+        self._refresh_dispatch = threading.local()
+        # Bumped when a pick in the server switcher is refused: the mpvtk
+        # Dropdown `ack`, without which the refused entry stays drawn as
+        # chosen (a refusal keeps the value the pick began on).
+        self._server_pick_ack = 0
         # Settings changed in this session that need a restart before they
         # do anything (config.RESTART_REQUIRED). Keys, not labels, so the
         # banner can translate them at draw time -- and a set, so changing
@@ -324,6 +360,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # here via on_change so Connect can read all three fields at once).
         self._login = {"server": "", "user": "", "pass": ""}
         self._login_error = None
+        #: Servers that answered a discovery broadcast, for the login form.
+        #: Declared here rather than only on the login path, because
+        #: `_render_login` reads it and a repaint can arrive before any
+        #: navigation has (docs/browser-shell.md).
+        self._discovered = []
         # Live text of the chrome search box (the renderer owns the widget; we
         # mirror it so the search *button* can read it).
         self._search_box = {"term": ""}
@@ -336,6 +377,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._pin = {"pin": ""}
         self._pin_error = None
         self._locked = False
+        self._switch_gen = 0         # see AuthMixin._do_switch_user
+        #: The profile on screen when the switch in flight began, or None
+        #: when none is: Add Server is refused meanwhile, and an add that
+        #: lands anyway is filed under it (Izzie, 2026-09-28).
+        self._switch_from = None
         # The four tile shapes, from the theme and the Cover Size setting.
         # A fixed ``geom`` (the integration harness passes one) pins the
         # poster shape and opts out of later re-derivation.
@@ -444,7 +490,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._spinner_timer = None
         # Re-read loop for the Live TV routes; see _poll_live_tv.
         self._livetv_poll = None
-        # live text of the download-folder field
+        # Live text of the download-folder field, dropped the moment that
+        # field stops being drawn. See _drop_abandoned_sync_path.
         self._sync_path = {}
         self.status = ""
         self._size = None         # last window size seen by build()
@@ -610,9 +657,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if self._menu is not None or self._dialog is not None:
             return False
         if route.get("_loading") or route.get("_refreshing"):
+            # Not dropped: the load in flight may have read the server before
+            # whatever asked for this, so it runs once that load settles.
+            # One, however many ask meanwhile; and unfiltered if they asked
+            # for different servers.
+            again = route.get("_refresh_again")
+            if again is not None and again[1] != server:
+                server = None
+            route["_refresh_again"] = (kinds, server)
             return False
         route["_refreshing"] = True
-        self._load_route(route)
+        self._refresh_dispatch.active = True
+        try:
+            self._load_route(route)
+        finally:
+            self._refresh_dispatch.active = False
         return True
 
     def refresh_live_tv(self, _client=None):
@@ -661,13 +720,29 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             return
 
         def tick():
-            # _start_daemon keeps one thread per slot, so a burst of events
-            # schedules exactly one re-read: the first arrival starts the
-            # wait and the rest land while the slot is taken.
-            self._shutdown_evt.wait(self.USERDATA_DEBOUNCE)
-            pending, self._userdata_servers = self._userdata_servers, set()
-            self._refresh_current(USERDATA_KINDS,
-                                  self._userdata_target(pending))
+            # One thread per burst: the first arrival starts the wait and the
+            # rest land in `_userdata_servers` meanwhile. It loops until a
+            # wait ends with nothing pending, and that emptiness is decided
+            # under the same lock an arrival takes -- `_start_daemon`'s slot
+            # was released only AFTER the body returned, so an event landing
+            # between the take and the release joined a burst already read
+            # and was never run: the stop's own event, measured, leaving a
+            # detail page on the pre-stop position.
+            while True:
+                self._shutdown_evt.wait(self.USERDATA_DEBOUNCE)
+                with self._userdata_lock:
+                    pending, self._userdata_servers = \
+                        self._userdata_servers, set()
+                    if not pending or self._shutdown_evt.is_set():
+                        self._userdata_thread = None
+                        return
+                # Caught and looped, not try/finally: releasing the slot
+                # outside the lock is the lost-event race above.
+                try:
+                    self._refresh_current(USERDATA_KINDS,
+                                          self._userdata_target(pending))
+                except Exception:
+                    log.error("userdata refresh failed", exc_info=True)
 
         # Cheap pre-check so a burst that cannot apply does not take the
         # slot for three seconds; `tick` asks again for real, because the
@@ -678,8 +753,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # the slot. The refresh is server-FILTERED since #722, so a captured
         # first arrival could coalesce away the event for the page actually
         # on screen and then filter itself out -- leaving it stale.
-        self._userdata_servers.add(server)
-        self._start_daemon("_userdata_thread", "mpvtk-userdata", tick)
+        with self._userdata_lock:
+            self._userdata_servers.add(server)
+            if self._userdata_thread is not None:
+                return
+            self._userdata_thread = threading.Thread(
+                target=tick, name="mpvtk-userdata", daemon=True)
+            self._userdata_thread.start()
 
     def _userdata_target(self, pending):
         """Which server to hand `_refresh_current` for a coalesced burst.
@@ -1111,6 +1191,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         """
         if self.strips is not None:
             self.strips.on_scene_pushed()
+        if self.thumbs is not None:
+            self.thumbs.on_scene_pushed()
 
     def _bump_epoch(self):
         """Invalidate every in-flight async result. Returns the new epoch."""
@@ -1401,6 +1483,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # be holding the route that is the screen again.
         load_id = self._next_load_id()
         route[self.LOAD_ID_KEY] = load_id
+        # Read at dispatch, not in `failed`: `_refreshing` is on the route
+        # dict, so a Retry made while a refresh is in flight would read as
+        # background too.
+        background = getattr(getattr(self, "_refresh_dispatch", None),
+                             "active", False)
+        # A load is believed over a stop patch only if it started after the
+        # server had the stop report (see on_stopped_at).
+        patch = route.get("_stop_patch")
+        believed = patch if patch is not None and patch["delivered"] else None
 
         def landed(data):
             # The success half of the same guard. `run_async` gates on_done by
@@ -1412,7 +1503,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # reappearing in Continue Watching is this half.
             if route.get(self.LOAD_ID_KEY) != load_id:
                 return
+            if self._unreachable and not self._offline:
+                self._unreachable = False
+                self.invalidate()
             on_done(data)
+            if route.get("_stop_patch") is not None \
+                    and route.get("_stop_patch") is not believed:
+                self._apply_stop_patch(route)
 
         def failed(exc):
             # Paging guards must not survive the failure or the view stops
@@ -1434,6 +1531,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # come back, and it must be holding the error and a Retry rather
             # than spinning.
             route["_error"] = _("Failed to load. Check the connection.")
+            # Never for a background refresh (Izzie, 2026-09-28, item 18):
+            # one blip raised it over a page that was showing fine.
+            if (route is self.route and not self._offline
+                    and not background and _is_unreachable(exc)):
+                self._unreachable = True
+                self.invalidate()
             # The fallback is not a rollback: set_source throws the nav stack
             # away and drops the user on the offline home. Only do that while
             # this route is still the screen —
@@ -1441,7 +1544,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # arrive tens of seconds after the user has moved on, and yanking
             # them out of Settings mid-edit is worse than the error they
             # never saw.
-            if route is self.route:
+            #
+            # And only for a load the person asked for, from a server that
+            # did not answer (Izzie, 2026-09-28): a background refresh of
+            # Home that blipped, or a live server's HTTP error, threw a
+            # working Home screen onto the offline library.
+            if (route is self.route and not background
+                    and _is_unreachable(exc)):
                 self._offline_fallback(route)
 
         def settled():
@@ -1450,6 +1559,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # which runs neither callback. A marker left set would stop the
             # screen refreshing for the rest of its life.
             route.pop("_refreshing", None)
+            again = route.pop("_refresh_again", None)
+            if again is not None and route is self.route:
+                self._refresh_current(*again)
         self.run_async(work, landed, ep, on_error=failed, always=settled)
 
     # Paging moved to pagination.Paginator (step 6c prep 3). These stay as
@@ -1468,7 +1580,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         h = size[1]
         if route.get("kind") not in CHROME_FREE:
             h -= self.CHROME_H
-            if self._update or self._offline:
+            # Asked of banner() itself: mirroring its conditions here is
+            # how this drifted when the unreachable and chosen-offline
+            # states arrived.
+            if window_chrome.banner(self) is not None:
                 h -= self.BANNER_H
             if self._dl_status and self._dl_status.get("pending"):
                 h -= self.DLBAR_H
@@ -1794,6 +1909,29 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         except Exception:
             log.warning("page close failed", exc_info=True)
 
+    def _drop_abandoned_sync_path(self):
+        """Forget a download-folder path typed into a field that is no longer
+        on screen.
+
+        The renderer drops a textbox's text when its node leaves the scene, so
+        a field revisited later draws the **stored** setting again -- while
+        this dict went on holding whatever was typed at it, for the life of
+        the browser. The Move button reads the dict in preference to the value
+        the field is showing (deliberately: an emptied field is a real request
+        for the default folder, which `get("path") or val` cannot express), so
+        the two together moved the store to a path nobody could see. This is
+        the app's one Tier-1 destructive text field; `docs/do-not-fix.md` F42
+        is the report.
+
+        Mirroring the renderer's own prune rather than clearing on a
+        navigation is what makes it complete: a tab change, a search that
+        filters the row out, a yield to playback and leaving Settings
+        altogether are four different events and one fact, which is that the
+        row was not drawn. The row stamps itself when it is.
+        """
+        if not self._sync_path.pop("drawn", False):
+            self._sync_path.pop("path", None)
+
     def _claim_page_keys(self, route):
         """Push this route's key claim to the renderer (see
         ``MpvtkApp.claim_keys``).
@@ -1992,6 +2130,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # ep is read here, on the loop thread, and handed down: a loader
         # that read it later would be racing the navigation it guards.
         ep = self._epoch if epoch is None else epoch
+        # Offline, every load re-reads the catalog: see mark_stale.
+        mark_stale = getattr(self.source, "mark_stale", None)
+        if mark_stale is not None:
+            mark_stale()
         page = self._page_for(route)
         if page is not None:
             page.load(ep)
@@ -2499,6 +2641,56 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def minimized(self):
         return self._minimized
 
+    def on_stopped_at(self, stop):
+        """The position a stop reported, for the page showing that item.
+
+        A detail or audiobook page left open says Resume from its own copy
+        of the item. Re-reading it is not enough on its own: coming back to
+        the library re-reads at once, BEFORE the stop report has reached the
+        server (it is queued), and that read said the pre-stop position --
+        measured, Resume at 61 s for a stop at 244 s. So the page is patched
+        from what the app reported, and the patch is re-applied to any load
+        that started before the server had the report (`_route_async`). The
+        player calls this twice: at the stop, and with ``delivered`` once the
+        report is through, which is when a re-read can be believed.
+
+        Called by the player, possibly under its lock: patch and repaint,
+        nothing that blocks or calls back into it.
+        """
+        route = self.route
+        if (not stop or stop.get("ticks") is None
+                or route.get("kind") not in ("detail", "audiobook")
+                or route.get("item_id") != stop.get("id")
+                or (stop.get("server") is not None
+                    and (route.get("server") or self.server)
+                    != stop.get("server"))):
+            return
+        patch = route.get("_stop_patch")
+        if stop.get("delivered") and patch is not None \
+                and not patch["delivered"]:
+            patch["delivered"] = True
+            self.refresh_userdata(now=True)
+            return
+        route["_stop_patch"] = {"ticks": stop["ticks"],
+                                "finished": bool(stop.get("finished")),
+                                "delivered": bool(stop.get("delivered"))}
+        self._apply_stop_patch(route)
+
+    def _apply_stop_patch(self, route):
+        patch = route.get("_stop_patch")
+        data = route.get("_data")
+        item = ((data or {}).get("item") if route.get("kind") == "detail"
+                else data)
+        if patch is None or not isinstance(item, dict):
+            return
+        ud = dict(item.get("UserData") or {})
+        if patch["finished"]:
+            ud["Played"], ud["PlaybackPositionTicks"] = True, 0
+        else:
+            ud["PlaybackPositionTicks"] = int(patch["ticks"])
+        item["UserData"] = ud
+        self.invalidate()
+
     def on_playstate(self, state):
         """Registered as playerManager.on_playstate. Drives browse/playback
         state and the now-playing bar. Audio keeps the browser visible (bar +
@@ -2508,6 +2700,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # "stopped" state does NOT clear the error screen — stop() is exactly
         # what a failed load does on its way out, and clearing here would
         # erase the error before its first frame.
+        if state and not state.get("stopped") and not self._still_playing(state):
+            return      # built before a stop that has already reported in
         if not (state or {}).get("stopped"):
             self.load.clear()
         self._sync_queue_highlight(state)
@@ -2577,6 +2771,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.hud.state = state   # feeds the playback HUD bar
             if self._browsing:
                 self._yield()         # video: yield the window + the OSC
+                if self._held_item() is None:
+                    # The stop landed between the check above and the
+                    # yield, and its enter_browse ran first. Not "a
+                    # different item": an advance mid-yield is still
+                    # playback.
+                    self.hud.state = None
+                    self.enter_browse()
+                    return
             else:
                 self.invalidate()     # HUD/bar repaint (clock, pause icon)
             if not self._browsing and self.hud.available():
@@ -2592,6 +2794,31 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                     self.app.set_hud_skip(state.get("skip_label") or "")
                 except Exception:
                     log.debug("hud sync failed", exc_info=True)
+
+    def _still_playing(self, state):
+        """Whether the player still holds the item ``state`` describes.
+
+        Playstates arrive from several threads unordered: the 1 s ticker's
+        snapshot of a video could land after that video's stop had put the
+        library back, and yielding to it left the library blank after HUD
+        Back. The player clears the item before it reports a stop, so asking
+        before the yield and again after leaves the last word with the truth.
+        Not a lock across on_playstate: that deadlocks a playback start
+        (on_browse_leave -> enable_osc waits on the player's _lock).
+        """
+        held = self._held_item()
+        return held is _UNKNOWN or held == state.get("id")
+
+    def _held_item(self):
+        """The player's item id, None when it holds nothing, or `_UNKNOWN`
+        when there is nothing to ask (tests, embedders) or asking failed."""
+        ask = getattr(self.controller, "playing_item_id", None)
+        if ask is None:
+            return _UNKNOWN
+        try:
+            return ask()
+        except Exception:
+            return _UNKNOWN
 
     def _sync_queue_highlight(self, state):
         """Keep the queue view's "now playing" row on the right track.
@@ -2741,6 +2968,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # assigned here directly, which left set_offline with no production
         # caller at all — a public method only the tests reached.
         self.set_offline(isinstance(source, OfflineLibrarySource))
+        if not self._offline:
+            self._offline_chosen = False
+        self._unreachable = False
         # NOT `self._locked = False`. Connections are deliberately not
         # deferred until unlock -- the gate is about what is on screen, not
         # about the network -- so a server coming up while the PIN is
@@ -2818,7 +3048,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 # The unpack stays inside the guard: a controller that cannot
                 # answer (no sync db, or a stub) returns None, and that must
                 # leave the badges alone rather than raise on a pool thread.
-                self.tiles.set_downloaded(*self.controller.downloaded_ids())
+                self.tiles.set_downloaded(
+                    *self.controller.downloaded_ids(self.server))
             except Exception:
                 # Guarded, NOT returned from. This used to bail out of the
                 # whole function, so a badge read that failed silently
@@ -2873,6 +3104,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 and self.load.spinner_due()):
             return self.load.loading_scene(size)
         if not self._browsing:
+            self._drop_abandoned_sync_path()
             if self.hud.shown:
                 # Summoned playback HUD over the video (see hud.py; the
                 # renderer owns the summon/auto-hide lifecycle).
@@ -2894,6 +3126,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # drew, and unconditional so that leaving the page drops the claim.
         self._claim_page_keys(route)
         self._retire_page(route)
+        self._drop_abandoned_sync_path()
         children = []
         if route["kind"] not in CHROME_FREE:
             children.append(window_chrome.chrome(self, w))
@@ -3077,21 +3310,100 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _switch_server(self, uuid):
         if uuid == self.server:
             return
-        # A SyncPlay group belongs to the server it was joined on, and this
-        # UI only ever talks to the selected one — so leaving the server
-        # means leaving the group, or it stays joined with no way to reach
-        # it from here.
+        # The switcher lists servers that are not connected (see
+        # window_chrome.chrome_lists), so picking one is as often "get this
+        # one back" as it is "show me that one". Navigating to a server the
+        # source does not hold would draw an empty library with no
+        # explanation, so the reconnect happens first and the failure says
+        # what to press -- which is the whole reason the entry is offered.
         old = self.server
-        if old and self.controller is not None:
-            try:
-                if self.controller.sync_active():
-                    self._client_call(lambda c: c.sync_leave(old))
-            except Exception:
-                log.debug("syncplay leave on server switch failed",
-                          exc_info=True)
+        if not self._server_is_browsable(uuid):
+            # The reconnect may fail, and leaving the group for a switch that
+            # did not happen would be worse than the thing being avoided --
+            # so the handover is on the success path, with the old server
+            # captured here because `set_source` will have moved `self.server`
+            # by the time it runs.
+            def arrived():
+                self._leave_syncplay_on(old)
+                self._remember_server(uuid)
+
+            self.reconnect_server(uuid, on_success=arrived,
+                                  on_refused=self.refuse_server_pick)
+            return
+        self._leave_syncplay_on(old)
         self.server = uuid
         self._remember_server(uuid)
         self.navigate({"kind": "home", "server": uuid}, reset=True)
+
+    def refuse_server_pick(self):
+        self._server_pick_ack += 1
+        self.invalidate()
+
+    def retry_unreachable(self):
+        """The unreachable banner's Retry: ask again for what failed. If the
+        server still does not answer, the failure raises the banner again."""
+        self._unreachable = False
+        self._retry_route(self.route)
+        self.invalidate()
+
+    @property
+    def offline_chosen(self):
+        return self._offline_chosen
+
+    def go_offline(self):
+        """The server switcher's Offline entry (D3 case 2): browse the
+        downloads, with every server left as it is. Stays until a server is
+        picked -- see ``_offline_chosen``."""
+        if self._offline or self.controller is None:
+            return
+        old = self.server
+
+        def done(source):
+            if source is None:
+                self.set_status(_("Nothing is downloaded to browse offline."))
+                self.refuse_server_pick()
+                return
+            self._leave_syncplay_on(old)
+            self.set_source(source)
+            self._offline_chosen = True
+
+        self.run_async(self.controller.offline_source, done, self._epoch)
+
+    def _leave_syncplay_on(self, uuid):
+        """Leave the SyncPlay group held on ``uuid``, if there is one.
+
+        A group belongs to the server it was joined on, and this UI only ever
+        talks to the selected one — so leaving that server means leaving the
+        group, or it stays joined with no way to reach it from here.
+
+        One function because there are now two ways off a server: the direct
+        switch, and the reconnect that picking an offline entry performs. The
+        second arrived without this and left the group standing, which is the
+        multi-site shape this repo keeps producing.
+        """
+        if not uuid or self.controller is None:
+            return
+        try:
+            if self.controller.sync_active():
+                self._client_call(lambda c: c.sync_leave(uuid))
+        except Exception:
+            log.debug("syncplay leave on server switch failed", exc_info=True)
+
+    def _server_is_browsable(self, uuid):
+        """Does the live source hold this server?
+
+        The source, not the credential list: a saved server is browsable
+        exactly when the source has a connection for it, and that is the
+        thing every route load is about to ask. Fails **open** -- a source
+        that will not answer gets the old behaviour rather than a reconnect
+        the user did not ask for.
+        """
+        try:
+            return any(s.get("uuid") == uuid
+                       for s in (self.source.servers() or []))
+        except Exception:
+            log.debug("could not list the source's servers", exc_info=True)
+            return True
 
     def _open_queue(self):
         self.navigate({"kind": "queue", "server": self.server,

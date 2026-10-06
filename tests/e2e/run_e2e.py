@@ -18,12 +18,23 @@ A 10.11 container alongside a 12.0 source build is two commands —
 
     ./stdjflib.py serve ~/Desktop/std-jf-lib --live-tv            # 12.0
     ./stdjflib.py container ~/Desktop/std-jf-lib --port 8097 \
+        --image docker.io/jellyfin/jellyfin:10.11.11 \
         --keep-running --server-name "stdjflib QA 10.11"          # 10.11
 
-and the differences are not hypothetical: `Filters=IsUnplayed,IsPlayed`
-is **HTTP 400 on 12.0 and an empty result on 10.11**, and the audio
-language picker has options on 12.0 and none on 10.11. Unset, that leg
-skips and everything else is unchanged.
+**`--image` is load-bearing, not decoration.** `jellyfin/jellyfin:latest` is
+12.0 now, so without it the container is 12.0 *calling itself* "stdjflib QA
+10.11" — and the ALT leg spent some unknown time comparing 12.0 with itself
+and passing. `test_filter_matrix` refuses two servers reporting the same
+major.minor for that reason; the server name proves nothing.
+
+The differences the leg exists for are not hypothetical:
+`Filters=IsUnplayed,IsPlayed` is **HTTP 400 on 12.0 and an empty result on
+10.11**, and the audio language picker has options on 12.0 and none on 10.11.
+Unset, that leg skips and everything else is unchanged.
+
+Servers bind to 127.0.0.1 only. Add `--listen 192.168.122.1` to `serve` or
+`container` for a run from the Windows VM, which also needs
+`JMS_E2E_ADMIN_PASSWORD` — see `tests/e2e/README.md`.
 
 Every module runs once per mpv backend, in a fresh interpreter with
 `JMS_TEST_BACKEND` set — player.py picks its backend at import time and wires
@@ -45,9 +56,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
+import urllib.request
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+from tests import _manifest  # noqa: E402
 
 # Contract tier: never imports player.py, so the mpv backend is irrelevant and
 # these run ONCE and without a display. Seconds, not minutes.
@@ -81,6 +97,39 @@ CONTRACT = [
     # suite can only assume, because it builds the DTO it then reads.
     "tests.e2e.test_music_playlist",
     "tests.e2e.test_items_endpoint",
+    # The server dates a watched mark (LastPlayedDate), which the
+    # deliberate-unwatch replay rule (D1) depends on. Both majors.
+    "tests.e2e.test_userdata_contract",
+    # Signing back in, and the uuid that must survive it -- the identity the
+    # download catalog and the auto-download allow-list are written in, so a
+    # fresh one orphans every download from that server. Also the refusal of
+    # a wrong address BEFORE the password goes out, which needs two real
+    # servers with two ServerIds and cannot be asked of a fake at all.
+    "tests.e2e.test_login_lifecycle",
+    # Gaps in a season, against the four virtual episodes injected into the
+    # QA library's BaseItems. The listing must SHOW them (web's behaviour)
+    # and the play queue must not -- and a filter Jellyfin does not recognise
+    # answers exactly as sending nothing does, so a dropped IsMissing is
+    # invisible from this side until an unplayable episode is queued.
+    "tests.e2e.test_missing_episodes_live",
+    # The sort is a CROSS-CLIENT write: it lands in the DisplayPreferences
+    # CustomPrefs document under jellyfin-web's own key names, and a wrong
+    # key is not a crash -- the shim reads back what it wrote and web reads
+    # back what it wrote, diverging silently. The fake stores whatever key it
+    # is handed, so only a server can say.
+    "tests.e2e.test_sort_persistence_live",
+    # The refresh request, replayed against both majors from the method that
+    # builds it. Everything this feature rested on was read rather than
+    # measured and one reading was wrong (`Recursive` is not a parameter);
+    # the unit test asserts our own outgoing dict and structurally cannot
+    # see that. Also pins the non-admin refusal that §7's fail-open relies on.
+    "tests.e2e.test_refresh_metadata",
+    # Discovery against a server that really answers the UDP broadcast. The
+    # unit suite draws the login screen from dicts this repo wrote, so the
+    # exchange it is named after -- broadcast, reply, parse -- was assumed by
+    # both sides. Skips unless the QA server was started `--autodiscovery`,
+    # and unless the installed apiclient has the module (1.19.0+).
+    "tests.e2e.test_server_discovery_live",
     # The server-truth backing for batch 4 -- CanDelete absent unless
     # asked, TranscodeReasons in the TranscodingUrl, StartItemId
     # inclusive, the shader library-scope lookup. It was added to
@@ -107,6 +156,13 @@ CONTRACT = [
     # cannot disagree with, because a fake is written from the same reading
     # of the API the code is.
     "tests.e2e.test_books",
+    # A downloaded *video* -- the case the whole feature is about, and the
+    # one no other module covered. The bytes off the real endpoint, the
+    # local copy standing in for a stream while the server is still
+    # reachable (which needs a live client, so the unit tests structurally
+    # cannot ask it), two real accounts not leaking watched state into each
+    # other, and a delete that takes the files with the row.
+    "tests.e2e.test_download_lifecycle",
     # The audiobook resume rule, which is a different rule from the video
     # one and is stated in MINUTES -- so a book under ten minutes can hold
     # no position at all. Pinned because reading it wrong looks exactly
@@ -165,7 +221,6 @@ PER_BACKEND = [
     # registry test can see it and so `--shots` has somewhere to live.
     "tests.e2e.test_composite_shots",
     "tests.e2e.test_scroll_recovery",
-    "tests.e2e.test_window_resize",
     # Client-side decorations: the controls have to reach the real
     # composited scene when MPV says the window has no title bar. Per
     # backend because the property read and the repaint that follows
@@ -186,6 +241,30 @@ PER_BACKEND = [
     # is mpv's own properties (`path`, `keepaspect`), and the two backends
     # disagree about property types often enough to be worth both legs.
     "tests.e2e.test_comic_reader",
+    # The shipped app as a subprocess, driven only by keys over IPC, with
+    # the network through a relay the test owns (tests/e2e/_app.py). The
+    # base every rebuilt e2e test moves onto; see the release-gate plan.
+    "tests.e2e.test_app_smoke",
+    # Slice S1: offline sync at the keyboard of the real app, with the
+    # network cut by a relay. Asserts the offline-sync rulings on screen,
+    # in the catalog and at the server.
+    "tests.e2e.test_offline_ui",
+    # G5 over the download folder: a delete keeps the person's files, a move
+    # carries them byte-identical, a kill mid-copy loses none.
+    "tests.e2e.test_store_safety",
+    # Row 63: browsing and playing the downloads with the network cut.
+    "tests.e2e.test_offline_library",
+    # Slice S2: the playback lifecycle at the keyboard of the real app.
+    "tests.e2e.test_playback_lifecycle",
+    "tests.e2e.test_input_live",
+    "tests.e2e.test_type_seams_live",
+    "tests.e2e.test_reconnect_remote",
+    "tests.e2e.test_downloads_store",
+    "tests.e2e.test_app_lifecycle",
+    "tests.e2e.test_settings_live",
+    "tests.e2e.test_window_live",
+    "tests.e2e.test_profiles_live",
+    "tests.e2e.test_browse_routes",
 ]
 
 MODULES = CONTRACT + PER_BACKEND
@@ -243,14 +322,38 @@ def run_leg(module, backend, use_xvfb, verbosity):
     env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
-    cmd = [sys.executable, "-m", "unittest", module]
+    # tests._outcomes is `-m unittest` plus a per-test record, which is what
+    # the skip counts and the manifest check read (tests/_manifest.py).
+    fd, outcomes = tempfile.mkstemp(prefix="jms-e2e-outcomes-",
+                                    suffix=".jsonl")
+    os.close(fd)
+    env["JMS_TEST_OUTCOMES"] = outcomes
+    cmd = [sys.executable, "-m", "tests._outcomes", module]
     if verbosity > 1:
         cmd.append("-v")
     if use_xvfb:
         cmd = ["xvfb-run", "-a"] + cmd
     print("\n=== %s [%s] ===" % (module, backend or "contract"), flush=True)
     proc = subprocess.run(cmd, cwd=REPO_ROOT, env=env)
-    return proc.returncode == 0
+    records = _manifest.read_outcomes(outcomes)
+    try:
+        os.unlink(outcomes)
+    except OSError:
+        pass
+    return proc.returncode == 0, records
+
+
+def server_answers(address, timeout=10):
+    """Whether a Jellyfin server answers its public info endpoint.
+
+    A server that is configured and down used to skip every leg, and the
+    summary then read "N/N legs passed". Asked once, before any leg runs."""
+    url = address.rstrip("/") + "/System/Info/Public"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
 
 
 def main():
@@ -261,8 +364,24 @@ def main():
                         help="run only this module (repeatable)")
     parser.add_argument("--no-xvfb", action="store_true",
                         help="show the real mpv windows")
+    parser.add_argument("--watch", nargs="?", const=1.0, type=float,
+                        metavar="SECONDS",
+                        help="watch mode: the real window (no Xvfb), every "
+                             "input action narrated and paced by SECONDS "
+                             "(default 1); narration also in "
+                             "$TMPDIR/e2e-watch.txt for `tail -f`")
+    parser.add_argument("--step", action="store_true",
+                        help="watch mode, advancing one action per Enter")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("-v", "--verbose", action="count", default=1)
+    parser.add_argument("--manifest", action="store_true",
+                        help="release mode: fail unless every leg ran exactly "
+                             "what tests/manifests/e2e-<platform>.tsv expects; "
+                             "also requires JMS_E2E_SERVER")
+    parser.add_argument("--update-manifest", action="store_true",
+                        help="rewrite that manifest from this run (refused if "
+                             "any leg failed); review the diff, and replace "
+                             "each UNAPPROVED skip reason by hand")
     args = parser.parse_args()
 
     if args.list:
@@ -276,8 +395,20 @@ def main():
               "Start one with:  ./stdjflib.py serve ~/Desktop/std-jf-lib "
               "--live-tv\nthen re-run with "
               "JMS_E2E_SERVER=http://127.0.0.1:8096", file=sys.stderr)
+        if args.manifest or args.update_manifest:
+            print("--manifest needs a server: without one every test skips.",
+                  file=sys.stderr)
+            return 2
     else:
         print("server: %s" % server)
+        for name in ("JMS_E2E_SERVER", "JMS_E2E_SERVER_ALT"):
+            address = os.environ.get(name)
+            if address and not server_answers(address):
+                print("%s=%s does not answer. Every test against it would "
+                      "skip and the run would read as passed; start the "
+                      "server, or unset the variable." % (name, address),
+                      file=sys.stderr)
+                return 2
 
     device, unload_sink = make_dummy_sink()
     if device:
@@ -288,6 +419,11 @@ def main():
         print("audio:  no null sink available; mpv's own null device",
               file=sys.stderr)
 
+    if args.watch or args.step:
+        args.no_xvfb = True
+        os.environ["JMS_E2E_WATCH"] = str(args.watch or 1.0)
+        if args.step:
+            os.environ["JMS_E2E_STEP"] = "1"
     use_xvfb = not args.no_xvfb and shutil.which("xvfb-run") is not None
     backends = [args.backend] if args.backend else list(BACKENDS)
     modules = args.module or MODULES
@@ -295,22 +431,45 @@ def main():
     results = []
     # Contract modules once, with no display: they never import player.py.
     for module in [m for m in modules if m in CONTRACT]:
-        ok = run_leg(module, None, False, args.verbose)
-        results.append((module, "contract", ok))
+        ok, records = run_leg(module, None, False, args.verbose)
+        results.append((module, "contract", ok, records))
 
     for backend in backends:
         for module in [m for m in modules if m not in CONTRACT]:
-            ok = run_leg(module, backend, use_xvfb, args.verbose)
-            results.append((module, backend, ok))
+            ok, records = run_leg(module, backend, use_xvfb, args.verbose)
+            results.append((module, backend, ok, records))
 
     print("\n" + "=" * 60)
-    for module, backend, ok in results:
-        print("%-8s %-45s %s" % (backend, module, "PASS" if ok else "FAIL"))
+    for module, backend, ok, records in results:
+        skipped = sum(1 for r in records if r["outcome"] == "skip")
+        print("%-8s %-45s %s%s" % (
+            backend, module, "PASS" if ok else "FAIL",
+            "  [%d run, %d skipped]" % (len(records) - skipped, skipped)))
     if unload_sink:
         unload_sink()
     failed = [r for r in results if not r[2]]
+    legs = {"%s [%s]" % (module, backend): records
+            for module, backend, _ok, records in results}
+    for line in _manifest.skip_lines(legs):
+        print(line)
     print("=" * 60)
     print("%d/%d legs passed" % (len(results) - len(failed), len(results)))
+    path = _manifest.manifest_path("e2e")
+    if args.update_manifest:
+        if failed:
+            print("not updating the manifest from a red run")
+            return 1
+        _manifest.write(path, _manifest.update(_manifest.load(path), legs))
+        print("Wrote %s -- review the diff; replace every UNAPPROVED reason."
+              % path)
+    if args.manifest:
+        problems = _manifest.check(_manifest.load(path), legs)
+        for p in problems:
+            print("  MANIFEST: %s" % p)
+        if problems:
+            print("%d manifest problem(s) against %s." % (len(problems), path))
+            return 1
+        print("Manifest: every leg ran what %s expects." % path)
     return 1 if failed else 0
 
 

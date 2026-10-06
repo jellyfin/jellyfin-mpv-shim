@@ -167,6 +167,30 @@ class TestOutputStreamsWhileTheLegRuns(unittest.TestCase):
                         "-u must reach python, not unittest")
 
 
+class TestEveryModuleIsInANamedLeg(unittest.TestCase):
+    """A module found only by the whole-suite leg fails there, where a
+    failure reads as cross-module interference rather than as its own --
+    three did, until 2026-09-26. Exactly one named leg, so nothing runs
+    twice by accident either."""
+
+    def test_each_test_module_is_in_exactly_one_named_leg(self):
+        import glob
+
+        here = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "integration")
+        modules = sorted(
+            "tests.integration." + os.path.basename(p)[:-3]
+            for p in glob.glob(os.path.join(here, "test_*.py")))
+        self.assertTrue(modules, "found no integration modules to check")
+        named = (runner.AGNOSTIC + runner.DISPLAY_ONCE
+                 + runner.PER_BACKEND_FAKE + runner.PER_BACKEND_REAL)
+        for module in modules:
+            with self.subTest(module=module):
+                self.assertEqual(1, named.count(module),
+                                 "%s is in %d named legs"
+                                 % (module, named.count(module)))
+
+
 class TestStrictIsWired(unittest.TestCase):
     def test_the_flag_exists(self):
         """--strict is what CI should use; a typo'd flag name would make
@@ -250,7 +274,7 @@ class TestALegThatLeaksAProcessStillEnds(unittest.TestCase):
             subprocess.Popen = orig_popen
 
         self.assertNotIn("error", result, repr(result.get("error")))
-        _label, rc, (ran, _skipped) = result["value"]
+        _label, rc, (ran, _skipped), _records = result["value"]
         self.assertEqual(rc, 0)
         # The leg's real output was still captured, not lost to the shortcut.
         self.assertEqual(ran, 1)
