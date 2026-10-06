@@ -306,10 +306,14 @@ class AStreamThatDiesMidwayTest(_PlaybackCase):
     whole within seconds from a local server)."""
 
     NAME = LONG_NAME
-    #: Where the stream is cut, and the read rate that keeps mpv fetching
-    #: past it. At 150 kB/s a 10-minute 44 MB film is about 60 s ahead.
-    CUT_AT = 20
-    RATE = 150_000
+    #: Skipped to by one UP (+60 s) and cut just past: the stop has to land
+    #: beyond 5 % of the film or the server keeps no resume point, and
+    #: playing there in real time cost 20 s a leg.
+    CUT_AT = 62
+    #: Read rate: above the film's ~71 kB/s so mpv is still fetching at the
+    #: cut, and close to it so the lead it builds -- and the test then waits
+    #: out after the cut -- stays a few seconds. At 150 kB/s it was ~25 s.
+    RATE = 100_000
     #: The request paths that carry the media -- a direct stream or HLS.
     MEDIA = r"/(Videos|videos)/[0-9a-fA-F-]+/(stream|hls1|main|master)"
     #: With the network cache on, mpv's readahead is bounded only by bytes
@@ -324,6 +328,7 @@ class AStreamThatDiesMidwayTest(_PlaybackCase):
         _flows.open_by_search(self.app, self.NAME, film)
         self.relay.throttle(self.RATE)
         self.play()
+        self.seek_to(self.CUT_AT - 2)
         self.assertTrue(_e2e.wait_for(
             lambda: (self.time_pos() or 0) > self.CUT_AT, timeout=90),
             "the film never got going")
