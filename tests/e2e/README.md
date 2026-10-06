@@ -41,6 +41,22 @@ launch, so an App started with `env=` keeps it across a restart.
 (keys sent, time in `move_to`, `login`, ...); `tools/e2e_durations.py FILE`
 says where a run's time went.
 
+Where the light tier's time went, measured 2026-10-06 on a 16-core Linux box
+against the full both-backend run (a shape to compare against, not a
+benchmark): **70.6 → 50.9 min wall**.
+
+| Change | Saved |
+|---|---|
+| ONE_BACKEND: six store/catalog/screen modules on libmpv only | 712 s |
+| Stream-dies-midway cut after one UP at 100 kB/s; play-to-end stops at `duration - 6` | ~240 s |
+| `test_connection_loss` skips the apiclient's 1 s retry sleeps | 119 s |
+| Drop-and-reconnect classes poll health every 4 s, not 10 | ~50 s |
+| `_PlaybackCase` signs in once per process | ~60 s |
+
+On Linux the harness's own steps are a minority of a run; most of it is real
+playback and waits that assert an absence. Launch-to-Home is ~1 s and quit
+from Home ~0.3 s here.
+
 **Before a run, clear playlist litter.** Jellyfin sometimes leaves a
 deleted playlist's folder on disk and the next library scan brings it back,
 so `jms-e2e-*` playlists pile up, push a test's new playlist off the first
