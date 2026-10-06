@@ -1289,7 +1289,7 @@ class ABounceDoesNotPullYouOutTest(_OfflineEntryCase):
     passed with the guard removed. Carve-out: health_check_interval seeded
     short, as in scenario 8."""
 
-    CONF = {"health_check_interval": 10}
+    CONF = {"health_check_interval": 4}
 
     def server_label(self):
         return next((e for e in self.entries() if e != self.OFFLINE_ENTRY),
@@ -1332,7 +1332,7 @@ class AMidPageDropTest(_OfflineEntryCase):
     also ruled. Carve-out: health_check_interval seeded short, as in
     scenario 8."""
 
-    CONF = {"health_check_interval": 10}
+    CONF = {"health_check_interval": 4}
 
     def test_nothing_switches_and_the_entry_says_so(self):
         _flows.open_by_search(self.app, FILM_QUERY, self.film)

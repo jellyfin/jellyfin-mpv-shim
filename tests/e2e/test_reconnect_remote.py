@@ -114,7 +114,7 @@ class RemoteControlComesBackTest(_RemoteCase):
     lands -- no restart. health_check_interval seeded short (as S1's
     scenario 8); the log is the witness that the drop really happened."""
 
-    CONF = {"health_check_interval": 10}
+    CONF = {"health_check_interval": 4}
 
     def log(self):
         try:
@@ -153,7 +153,7 @@ class _SignedOutCase(_RemoteCase):
     """The server stops accepting the saved login (the admin removes the
     app's device, which revokes its token) and the health check notices."""
 
-    CONF = {"health_check_interval": 10}
+    CONF = {"health_check_interval": 4}
 
     def credentials(self):
         with open(os.path.join(self.app.config_dir, "users.json"),
@@ -261,7 +261,7 @@ class TwoServersOneStalledTest(_RemoteCase):
     refusal) and the second stays responsive: every key moves focus inside
     a second, and a library opens."""
 
-    CONF = {"health_check_interval": 10}
+    CONF = {"health_check_interval": 4}
 
     def search_round_trip(self, term, timeout=30):
         """A fresh search: its results can only come from the server (an
