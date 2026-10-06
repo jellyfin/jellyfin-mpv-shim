@@ -466,7 +466,9 @@ class ThumbnailStore:
             # truncated body) is transient and must stay retryable.
             resp = getattr(e, "response", None)
             status = getattr(resp, "status_code", None)
-            if status is not None and 400 <= status < 500:
+            # Too many pixels is permanent too: retrying re-downloads it.
+            if isinstance(e, imageutil.TooLarge) or (
+                    status is not None and 400 <= status < 500):
                 with self._lock:
                     self._gone.add(key)
         self._results.put((key, image))
@@ -477,8 +479,12 @@ class ThumbnailStore:
                 log.debug("Thumbnail notify failed", exc_info=True)
 
     def _load_image(self, key, url, box, cover=False):
+        cached = fetched = path = None
         if url.startswith("http://") or url.startswith("https://"):
-            data = self._load_remote(key, url)
+            path = os.path.join(self.cache_dir, key + ".img")
+            data = cached = self._read_cached(path)
+            if data is None:
+                data = fetched = self._fetch(url)
         else:
             # Local file (offline artwork) — read directly, no network cache.
             with open(url, "rb") as fh:
@@ -487,7 +493,21 @@ class ThumbnailStore:
         # Bounded, upright, sRGB (imageutil.decode). ``box`` lets a JPEG
         # decode at a fraction of its size: draft() keeps both sides at
         # least the box's, so a cover crop still has the pixels it needs.
-        image: Image.Image = imageutil.decode(data, box=box)
+        try:
+            image: Image.Image = imageutil.decode(data, box=box)
+        except Exception:
+            if cached is not None:
+                # It will never decode. Drop it so the retry fetches, instead
+                # of every launch reading the same login page back for ever.
+                self._drop_cached(path)
+            raise
+        # Persisted only once it has decoded: a 200 that is not an image (a
+        # lapsed forward-auth proxy's login page, an empty body) used to be
+        # kept, and with the tag unchanged its key never changes either.
+        if cached is not None:
+            self._touch_cached(path)
+        elif fetched is not None:
+            self._persist(path, fetched)
         # RGB unconditionally used to be the rule here, and convert() does not
         # composite — it simply drops the alpha channel and keeps whatever RGB
         # was underneath, which for a transparent PNG is black. Channel logos
@@ -552,31 +572,42 @@ class ThumbnailStore:
             headers["Authorization"] = header
         return headers
 
-    def _load_remote(self, key, url):
-        path = os.path.join(self.cache_dir, key + ".img")
-        if os.path.exists(path):
-            data = None
-            try:
-                with open(path, "rb") as fh:
-                    data = fh.read()
-            except OSError:
-                pass
-            if data is not None:
-                # AFTER the read, in its own try. The touch is what makes the
-                # age bound mean "unused for a month" rather than "fetched a
-                # month ago", but sharing a try with the read meant a cache
-                # dir that would not take a utime (read-only, wrong owner)
-                # re-downloaded and re-wrote every image on every request.
-                try:
-                    os.utime(path, None)
-                except OSError:
-                    pass
-                return data
+    def _read_cached(self, path):
+        """The cached bytes at ``path``, or None to fetch."""
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, "rb") as fh:
+                return fh.read()
+        except OSError:
+            return None
 
+    def _touch_cached(self, path):
+        # After a successful decode, and in its own try. The touch is what
+        # makes the age bound mean "unused for a month" rather than "fetched
+        # a month ago" -- touching a body that does not decode kept a bad
+        # entry young for as long as its screen was visited. Sharing a try
+        # with the read meant a cache dir that would not take a utime
+        # (read-only, wrong owner) re-downloaded every image on every request.
+        try:
+            os.utime(path, None)
+        except OSError:
+            pass
+
+    def _drop_cached(self, path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+    def _fetch(self, url):
         resp = self._session.get(url, timeout=(5, 20), verify=self.verify_ssl,
                                  headers=self._headers_for(url))
         resp.raise_for_status()
-        data = resp.content
+        return resp.content
+
+    def _persist(self, path, data):
+        """Write ``data`` to the cache -- only ever after it has decoded."""
         # Unique per writer. Two writers for one key is reachable inside a
         # single process -- cancel() drops a pending entry while its worker
         # is still in here and a re-request submits a second one -- and
@@ -601,7 +632,6 @@ class ThumbnailStore:
             # a file another reader has open -- also skipped the accounting,
             # so the prune trigger stalled for the rest of the session.
             self._note_written(len(data))
-        return data
 
     def _note_written(self, nbytes):
         """Count bytes towards the next prune, and prune when they add up.

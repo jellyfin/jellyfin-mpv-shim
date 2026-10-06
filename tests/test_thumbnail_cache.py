@@ -283,7 +283,7 @@ class DiskCacheBoundTest(unittest.TestCase):
                          "the reaper took entries that were still in use")
 
     def test_a_read_keeps_an_entry_alive(self):
-        # _load_remote touches on a hit, which is what makes the age bound
+        # A hit that decodes is touched (_touch_cached), which is what makes the age bound
         # "unused for a month" rather than "fetched a month ago".
         import os
         import time
@@ -296,6 +296,93 @@ class DiskCacheBoundTest(unittest.TestCase):
         os.utime(path, None)                     # ...and then it is read
         store._prune_disk()
         self.assertTrue(os.path.exists(path))
+
+
+class OnlyImagesAreCachedTest(unittest.TestCase):
+    """A 200 that is not an image -- a lapsed forward-auth proxy's login page,
+    a captive portal, an empty body -- was written to <key>.img, re-read and
+    re-touched on every visit, and never deleted. The tag does not change, so
+    neither does the key: the tile stayed blank across restarts until the
+    cache was deleted by hand."""
+
+    LOGIN = b"<html><body>Authelia: please sign in</body></html>"
+    URL = "https://jf.example/Items/item/Images/Primary?tag=tag"
+
+    def setUp(self):
+        import io
+        import shutil
+        import tempfile
+        from PIL import Image
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        buf = io.BytesIO()
+        Image.new("RGB", (60, 90), (10, 120, 200)).save(buf, "JPEG")
+        self.jpeg = buf.getvalue()
+
+    def store(self, body):
+        """A fresh store over the same cache dir, as a relaunch is."""
+        from jellyfin_mpv_shim.mpvtk_browser import thumbnails
+        s = thumbnails.ThumbnailStore(self.dir, workers=1)
+        self.addCleanup(s.shutdown)
+        s._startup_prune.result()
+        self.gets = getattr(self, "gets", 0)
+
+        class Resp:
+            content = body
+
+            def raise_for_status(self):
+                pass
+
+        def get(*_a, **_k):
+            self.gets += 1
+            return Resp()
+        s._session.get = get
+        return s
+
+    def work(self, s):
+        from jellyfin_mpv_shim.mpvtk_browser import thumbnails
+        key = thumbnails.make_key("item", "Primary", "tag", 200)
+        s._pending[key] = [lambda im: None]
+        s._work(key, self.URL, (200, 300))
+        return key, s._results.get_nowait()[1]
+
+    def test_a_non_image_body_is_never_written(self):
+        s = self.store(self.LOGIN)
+        for _ in range(3):
+            key, image = self.work(s)
+            self.assertIsNone(image)
+        self.assertFalse(os.path.exists(os.path.join(self.dir, key + ".img")))
+        self.assertEqual(self.gets, 3, "a failed body must stay retryable")
+
+    def test_a_poisoned_entry_heals_across_relaunches(self):
+        """Seeded the way the old code left it; the server is fixed since."""
+        from jellyfin_mpv_shim.mpvtk_browser import thumbnails
+        key = thumbnails.make_key("item", "Primary", "tag", 200)
+        path = os.path.join(self.dir, key + ".img")
+        with open(path, "wb") as fh:
+            fh.write(self.LOGIN)
+        images = []
+        for _ in range(3):                      # three launches
+            s = self.store(self.jpeg)
+            images.append(self.work(s)[1])
+            s.shutdown()
+        self.assertIsNotNone(images[-1], "the tile never healed")
+        self.assertEqual(self.gets, 1,
+                         "read the bad entry back, or fetched the good one "
+                         "on every launch: %d fetches" % self.gets)
+        with open(path, "rb") as fh:
+            self.assertEqual(fh.read(), self.jpeg)
+
+    def test_too_many_pixels_is_not_retried(self):
+        """Refused before decoding, and _gone: a retry would re-download it."""
+        import io
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("L", (12000, 10000)).save(buf, "PNG")
+        s = self.store(buf.getvalue())
+        key, image = self.work(s)
+        self.assertIsNone(image)
+        self.assertTrue(s.is_gone(key))
 
 
 class DiskCacheLocationTest(unittest.TestCase):
