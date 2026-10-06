@@ -4,10 +4,10 @@ Every step here is something done at the keyboard of the app `_app.App`
 launched: nothing reaches into the process. What a step *checks* is only
 what the person would see, plus the catalog read from disk read-only.
 
-The keyboard routes were found by driving the app, not assumed:
-TAB walks focus and lands in text fields; search is three TABs from Home;
-a result opens with ENTER onto Play; Download is reached by TAB and asks
-for confirmation (`dl-ok`).
+The keyboard routes were found by driving the app, not assumed: arrows
+move focus spatially, TAB lands in text fields ready to type (App.move_to
+uses both); a result opens with ENTER onto Play; Download asks for
+confirmation (`dl-ok`).
 """
 
 import json

@@ -666,9 +666,11 @@ class App:
         renderer's spatial nav (mpvtk GUIDE.md section 2). Returns the
         frame with nav on ``target``, or None to fall back to TAB:
 
-        * a text field, as target or focused: a focused field owns the
-          arrows, and arrows reaching one only ring it, where TAB lands in
-          it ready to type -- what type_into needs;
+        * a text box (node type ``textbox``), as target or focused: a
+          focused one owns the arrows, and arrows reaching one only ring it,
+          where TAB lands in it ready to type -- what type_into needs;
+        * the playback HUD: while something plays the arrows seek and set
+          the volume, so a steer moved the film and the HUD went away;
         * no rect for either end (nothing focused yet, a sizeless menu);
         * a press that moves nothing, or a node visited twice (a wrap or a
           row that does not overlap the way its rects say)."""
@@ -678,10 +680,11 @@ class App:
             nav = f.get("nav")
             if nav == target:
                 return f
-            if f.get("focus") or target in fields(f) or nav in seen:
+            cur, tgt = node(f, nav), node(f, target)
+            if (f.get("focus") or f.get("phud_mode") or f.get("phud_shown")
+                    or (tgt or {}).get("t") == "textbox" or nav in seen):
                 return None
             seen.add(nav)
-            cur, tgt = node(f, nav), node(f, target)
             if not cur or not tgt or any(
                     n.get(k) is None for n in (cur, tgt)
                     for k in ("x", "y", "w", "h")):
