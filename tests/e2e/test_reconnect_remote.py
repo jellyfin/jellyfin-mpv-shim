@@ -154,6 +154,9 @@ class _SignedOutCase(_RemoteCase):
     app's device, which revokes its token) and the health check notices."""
 
     CONF = {"health_check_interval": 4}
+    # Revoking the device would revoke the light tier's shared sign-in for
+    # every later test in the leg: it has the same device id.
+    FRESH_LOGIN = True
 
     def credentials(self):
         with open(os.path.join(self.app.config_dir, "users.json"),
