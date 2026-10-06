@@ -254,6 +254,15 @@ class MpvtkApp:
     #: attach) still have them.
     strict_builds = False
 
+    #: ``scene_check(nodes) -> [problem, ...]``, run before every push while
+    #: JMS_CHECK_SCENES is set (both test runners set it). The browser points
+    #: it at StripStore.dead_srcs: on libmpv an image src is a raw address
+    #: mpv copies from the moment the scene lands, so a freed one is a crash
+    #: on Windows and garbage on Linux -- never a missing picture a test
+    #: could see. Class-level for the reason given above.
+    scene_check = None
+    check_scenes = False
+
     #: The artwork-repaint throttle's state, class-level for the same reason:
     #: the run loop reads both on its very first pass, so an instance that
     #: skipped __init__ would raise before it ever drew anything.
@@ -338,6 +347,7 @@ class MpvtkApp:
         self.on_clipboard_error = None
         # Only the env-driven one is re-read here; see the class body.
         self.strict_builds = bool(os.environ.get("JMS_STRICT_BUILDS"))
+        self.check_scenes = bool(os.environ.get("JMS_CHECK_SCENES"))
         self._metrics = None
         self._dirty = False
         # A repaint asked for by artwork arriving, which is worth drawing but
@@ -675,6 +685,11 @@ class MpvtkApp:
         # renderer pins the ASS PlayRes to them, and overlay bitmaps
         # composite in real pixels regardless.
         scaling.scale_scene(nodes)
+        if self.check_scenes and self.scene_check is not None:
+            dead = self.scene_check(nodes)
+            if dead:
+                raise AssertionError(
+                    "scene names freed or mis-sized bitmaps: %s" % dead[:5])
         self._handlers = handlers
         self._nodes = nodes
         scene = {"v": 1, "w": self.size[0], "h": self.size[1], "nodes": nodes}

@@ -706,6 +706,46 @@ class TestPosition(ReaderHarness):
         self.assertEqual(item["UserData"]["PlaybackPositionTicks"], ticks)
 
 
+class TestAFreedPageIsNeverDrawn(ReaderHarness):
+    """The reader parks its page bitmap on the route dict, which outlives the
+    store's hold on the buffer: the back/forward stacks keep the dict, and an
+    mpv restart clears the store. Drawing the parked entry after that handed
+    mpv a freed address (a crash on Windows, garbage on Linux)."""
+
+    @staticmethod
+    def srcs(nodes):
+        return {n.get("src") for n in nodes if n["t"] in ("img", "imgmap")}
+
+    def drawn_page(self, b):
+        """The page's src once it is up: the first frame composites it."""
+        for _ in range(3):
+            first = self.srcs(build_scene(b)[0])
+            if first:
+                return first
+        self.fail("no page bitmap was drawn to begin with")
+
+    def test_a_cleared_store_gets_a_new_page_not_the_old_address(self):
+        b = self.open_reader()
+        first = self.drawn_page(b)
+        b.strips.clear()        # what on_mpv_terminated does
+        for _ in range(3):
+            drawn = self.srcs(build_scene(b)[0])
+            self.assertFalse(drawn & first,
+                             "drew the page whose buffer was freed")
+        self.assertTrue(drawn, "never composited the page again")
+
+    def test_an_evicted_page_is_composited_again(self):
+        b = self.open_reader()
+        first = self.drawn_page(b)
+        b.strips._trim_to(0)    # the small-RAM trim, with nothing protected
+        b.strips._gen += b.strips.PROTECT_GENERATIONS + 1
+        b.strips._trim_to(0)
+        for _ in range(3):
+            drawn = self.srcs(build_scene(b)[0])
+            self.assertFalse(drawn & first, "drew the evicted page")
+        self.assertTrue(drawn, "never composited the page again")
+
+
 class TestHeadless(ReaderHarness):
     def test_a_cast_target_cannot_reach_the_reader(self):
         """``headless`` means the library is unreachable from this machine,

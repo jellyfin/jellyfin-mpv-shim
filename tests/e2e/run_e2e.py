@@ -320,6 +320,9 @@ def run_leg(module, backend, use_xvfb, verbosity):
     # it was testing. Children cannot reconfigure themselves here (they are
     # plain `python -m unittest`), so it goes in the environment.
     env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
+    # See tests/integration/run_integration.py: a scene naming a freed bitmap
+    # raises in the app instead of handing mpv a dead address.
+    env["JMS_CHECK_SCENES"] = "1"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
     # tests._outcomes is `-m unittest` plus a per-test record, which is what

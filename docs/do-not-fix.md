@@ -37,7 +37,8 @@ thumbnails, the sync downloader, cast art, external links); `db.py`'s three
 genuine partial patch, not a whole-document RMW); `trickplay.py` (re-checks the
 video after every blocking step; `_covers` records the *asked* span);
 `tile_renderer._request_image` (backoff, max attempts, 4xx negative cache);
-`pages/reader.py`; every `_start_daemon` poller; `headless`; `update_check.py`;
+`pages/reader.py`'s threading (its parked page bitmap was *not* clean: it drew
+freed buffers, see browser-shell.md §6 "Held bitmaps"); every `_start_daemon` poller; `headless`; `update_check.py`;
 the pointer/hover path across suspend/resume; the HUD across mpv's console on
 both backends.
 

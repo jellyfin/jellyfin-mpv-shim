@@ -252,8 +252,12 @@ class CastMixin:
         # while being the ONLY thing on screen -- and it is the largest
         # single buffer the app makes (a full-window BGRA: ~8 MiB at 1080p,
         # ~33 MiB at 4K), so it is also the first thing a trim reaches for.
-        if self.strips is not None:
-            self.strips.keep(entry)
+        if self.strips is not None and not self.strips.keep(entry):
+            # Evicted or cleared under us: its buffer is gone. Composite
+            # again and show the plain field until that lands.
+            self._cast_entry = None
+            self._recomposite_cast()
+            return Column([], w=size[0], h=size[1])
         # The entry's OWN size, not the requested one. _recomposite_cast is
         # async, so during a resize this entry is still the previous size's
         # bitmap; declaring the new box against the old bitmap fails
