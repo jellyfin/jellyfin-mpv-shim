@@ -198,6 +198,10 @@ class TheLastItemIsMarkedWatchedTest(_PlaybackCase):
         self.assertFalse(self.server(film).get("Played"),
                          "watched before it ended")
         self.seek_to(580)
+        # Then to a few seconds short of mpv's own end, by RIGHT (+5 s):
+        # the film runs past 600 s, and playing out the rest in real time
+        # was ~18 s a leg. Short of it, so EOF is still reached by playing.
+        self.seek_to(self.app.prop("duration") - 6, key="RIGHT")
         self.assertTrue(
             _e2e.wait_for(lambda: self.server(film).get("Played"),
                           timeout=120),
