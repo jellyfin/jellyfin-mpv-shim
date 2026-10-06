@@ -35,12 +35,23 @@ def main():
     for r in recs:
         legs.setdefault((r["module"], r["backend"]), []).append(r)
 
-    tests, per_leg = [], []
+    # A contract module runs once per server (JMS_E2E_SERVER_ALT), and the
+    # records do not say which: a test id seen again starts the next run.
+    # Spanning both made the wait between them look like setup.
+    runs = collections.OrderedDict()
     for (module, backend), rs in legs.items():
-        rs = [r for r in rs if r.get("t0") and r.get("t1")]
-        if not rs:
-            continue
-        rs.sort(key=lambda r: r["t0"])
+        rs = sorted((r for r in rs if r.get("t0") and r.get("t1")),
+                    key=lambda r: r["t0"])
+        n, seen = 1, set()
+        for r in rs:
+            if r["id"] in seen:
+                n, seen = n + 1, set()
+            seen.add(r["id"])
+            label = backend if n == 1 else "%s#%d" % (backend, n)
+            runs.setdefault((module, label), []).append(r)
+
+    tests, per_leg = [], []
+    for (module, backend), rs in runs.items():
         busy = sum(r["t1"] - r["t0"] for r in rs)
         span = rs[-1]["t1"] - rs[0]["t0"]
         per_leg.append((span, busy, module, backend, len(rs)))
