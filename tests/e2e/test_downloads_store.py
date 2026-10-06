@@ -145,6 +145,114 @@ class AKilledDownloadResumesTest(_DownloadCase):
 
 
 @_e2e.require_server
+class APlaylistPageRemovesItsDownloadTest(unittest.TestCase):
+    """The playlist page's own Download and Remove Download, online.
+
+    Remove did nothing online: the page built its item with no ServerId,
+    and since 9e100261 the catalog keys a playlist on (id, server), where
+    a None server matches only the unscoped row [iw, 2026-10-04]. Its unit
+    test agrees with its fake by construction, so this is the test that
+    can tell: the server's own ServerId, the catalog's own rows, the
+    page's own buttons."""
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        self.songs = []
+        for a in self.session.find_all(library="Music",
+                                       item_type="MusicAlbum"):
+            got = self.session.find_all(item_type="Audio",
+                                        parent_id=a["Id"])
+            if len(got) >= 2:
+                self.songs = [s["Id"] for s in got[:2]]
+                break
+        self.assertEqual(2, len(self.songs), "no album with two tracks")
+        # Before sign-in: Home's library row is read then (S2's note).
+        self.playlist = self.session._request("/Playlists", method="POST",
+                                              body={
+            "Name": "jms-e2e-pl-remove", "Ids": self.songs,
+            "UserId": self.session.user_id, "MediaType": "Audio"})["Id"]
+        self.addCleanup(self.session._request, "/Items/%s" % self.playlist,
+                        "DELETE")
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend())
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relay)
+
+    def playlist_rows(self):
+        return self.catalog._query(
+            "SELECT server_id FROM playlists WHERE playlist_id = ?",
+            (self.playlist,))
+
+    def open_page(self):
+        """Home -> the Playlists shelf -> this playlist's page."""
+        views = self.session._request("/Users/%s/Views"
+                                      % self.session.user_id)["Items"]
+        shelf = next(v["Id"] for v in views
+                     if v.get("CollectionType") == "playlists")
+        self.app.press_until("ESC", lambda f: _app.shown(f, "row-libs"),
+                             what="Home")
+        f = self.app.frame()
+        first = next(n["id"] for n in f["nodes"]
+                     if (n.get("id") or "").startswith("row-libs-"))
+        self.app.move_to(first)
+        self.app.move_to("row-libs-" + shelf, key="RIGHT")
+        tile = "grid-0-" + self.playlist
+        self.app.press_until("ENTER", lambda f: _app.shown(f, tile),
+                             what="the Playlists shelf")
+        self.app.move_to(tile)
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "pl-play"),
+                             what="the playlist's page")
+
+    def test_remove_download_on_the_page_removes_it(self):
+        self.open_page()
+        self.app.move_to("pl-download")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "dl-ok"), timeout=15,
+                          what="the download dialog")
+        self.app.move_to("dl-ok")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(
+            lambda: all((self.catalog.download(s) or {}).get("status")
+                        == "complete" for s in self.songs), timeout=120),
+            "the playlist's songs did not all download")
+        # The premise: one row, scoped to the server the page is on.
+        self.assertEqual([{"server_id": self.session.server_id()}],
+                         self.playlist_rows())
+
+        self.open_page()
+        self.app.wait_for(lambda f: _app.shown(f, "pl-undownload"),
+                          timeout=30, what="Remove Download on the page")
+        self.app.move_to("pl-undownload")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "dlg-ok"), timeout=15,
+                          what="the Delete Download confirmation")
+        self.app.move_to("dlg-ok")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(lambda: not self.playlist_rows(),
+                                      timeout=60),
+                        "Remove Download left the playlist in the catalog: "
+                        "%r" % self.playlist_rows())
+        self.assertTrue(_e2e.wait_for(
+            lambda: all(self.catalog.download(s) is None
+                        for s in self.songs), timeout=60),
+            "Remove Download left the playlist's songs in the catalog")
+        store = os.path.join(self.app.config_dir, "offline", "server")
+        self.assertEqual([], [s for s in self.songs
+                              if os.path.exists(os.path.join(store, s))],
+                         "song files left on disk")
+
+        self.open_page()
+        f = self.app.wait_for(lambda f: _app.shown(f, "pl-download"),
+                              timeout=30, what="Download offered again")
+        self.assertFalse(_app.shown(f, "pl-undownload"))
+
+
+@_e2e.require_server
 class AMusicPlaylistDownloadsAsOneTest(unittest.TestCase):
     """Row 67 (INV N15): a playlist of songs, downloaded from its tile's
     menu with the MENU key -- the ten-foot way -- lands as one unit: its
