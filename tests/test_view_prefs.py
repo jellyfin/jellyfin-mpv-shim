@@ -105,6 +105,81 @@ class ResolveSortTest(unittest.TestCase):
                           "sortorder": (None, None)}, got)
 
 
+class ResolveFiltersTest(unittest.TestCase):
+    """The filters are OURS, not web's: no jellyfin-web client stores a
+    filter setting on the server. The legacy menu writes a scatter of
+    per-setting `-filter-*` keys, the one JSON-blob `-filter` key is
+    localStorage-only, and the modern app keeps its whole view settings
+    per browser. So the key here is spelled as ours and nothing else
+    reads it -- which is also why its value is our own filter dict rather
+    than the server's query fields.
+    """
+
+    def test_an_untouched_library_stores_nothing(self):
+        got = view_prefs.resolve_filters({}, "lib1", "movies")
+
+        self.assertEqual({"filters": (None, None)}, got)
+
+    def test_the_stored_blob_is_read_whole(self):
+        prefs = {"items-lib1-mpvshim-filters": '{"genre": "Action"}'}
+
+        got = view_prefs.resolve_filters(prefs, "lib1", "movies")
+
+        self.assertEqual({"genre": "Action"}, got["filters"][0])
+        self.assertEqual("items-lib1-mpvshim-filters", got["filters"][1])
+
+    def test_a_typed_key_wins_over_the_bare_one(self):
+        """The same precedence every other setting here has -- the candidates
+        come from `keys_for`, so a save lands where the read looked."""
+        prefs = {"items-lib1-mpvshim-filters": '{"year": 2020}',
+                 "items-lib1-Movie-mpvshim-filters": '{"year": 2021}'}
+
+        got = view_prefs.resolve_filters(prefs, "lib1", "movies")
+
+        self.assertEqual(2021, got["filters"][0]["year"])
+        self.assertEqual("items-lib1-Movie-mpvshim-filters",
+                         got["filters"][1])
+
+    def test_junk_is_ignored_rather_than_applied(self):
+        prefs = {"items-lib1-mpvshim-filters": "not json at all"}
+
+        got = view_prefs.resolve_filters(prefs, "lib1", "movies")
+
+        self.assertEqual({"filters": (None, None)}, got)
+
+    def test_a_corrupt_typed_key_does_not_shadow_the_bare_one(self):
+        """`resolve_image_type`'s rule: a value this reader does not
+        recognise is skipped and the next candidate tried. Breaking on
+        junk instead would strand a user's filters behind one bad key
+        forever -- every read answering "nothing stored" while the good
+        copy sits one candidate down the list."""
+        prefs = {"items-lib1-Movie-mpvshim-filters": "not json at all",
+                 "items-lib1-mpvshim-filters": '{"genre": "Action"}'}
+
+        got = view_prefs.resolve_filters(prefs, "lib1", "movies")
+
+        self.assertEqual({"genre": "Action"}, got["filters"][0])
+        self.assertEqual("items-lib1-mpvshim-filters", got["filters"][1])
+
+    def test_a_non_object_reads_as_nothing(self):
+        """A JSON array or string is a value some other writer left under a
+        colliding key; applying it as filters would be guessing."""
+        prefs = {"items-lib1-mpvshim-filters": '["genre"]'}
+
+        got = view_prefs.resolve_filters(prefs, "lib1", "movies")
+
+        self.assertEqual({"filters": (None, None)}, got)
+
+    def test_no_parent_means_nothing_stored(self):
+        """A person page or a search result has no key family, so it keeps
+        today's behaviour. Web does not persist those either."""
+        got = view_prefs.resolve_filters(
+            {"items-lib1-mpvshim-filters": '{"genre": "Action"}'},
+            None, "movies")
+
+        self.assertEqual({"filters": (None, None)}, got)
+
+
 class ResolveTest(unittest.TestCase):
     def test_an_untouched_library_is_auto(self):
         value, key = view_prefs.resolve_image_type({}, "PID", "movies")
