@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-05 17:57+0000\n"
+"PO-Revision-Date: 2026-10-06 14:05+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -863,10 +863,8 @@ msgstr "再生を開始できませんでした。"
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "Nothing is downloaded to browse offline."
-msgstr "ブラウザでのダウンロードはありません。"
+msgstr "オフラインで閲覧するため、何もダウンロードしません。"
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -963,8 +961,6 @@ msgstr "新しい PIN"
 #. second time, to check it was typed correctly. A verb. Split from the
 #. yes/no dialog's title of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Confirm"
 msgctxt "form label"
 msgid "Confirm"
 msgstr "確認"
@@ -1024,10 +1020,8 @@ msgstr "PIN を保存できませんでした。"
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "サインイン"
+msgstr "再サインイン"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1044,6 +1038,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"保存していた %s へのログイン情報は、すでに使用できなくなりました。再ログイン"
+"すれば、ダウンロード履歴や設定を引き継ぎます。"
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1127,10 +1123,8 @@ msgstr "接続"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "サーバー設定"
+msgstr "ネットワーク上のサーバー"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
@@ -1164,6 +1158,8 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"そのアドレスは別のサーバーです。そこにサインインするには、新しいサーバーとし"
+"て追加してください。"
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1173,10 +1169,8 @@ msgstr "接続中…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "接続できませんでした。詳細を確認してください。"
+msgstr "サインインできませんでした。詳細を確認してください。"
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1296,14 +1290,14 @@ msgstr "Web"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "未放送"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "欠落"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2475,7 +2469,7 @@ msgstr "カスタム ( 設定でセット )"
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "更新を知らせる"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
@@ -2604,7 +2598,7 @@ msgstr "視聴したら自動ダウンロードしたものを削除"
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "視聴済みのダウンロードを維持する時間 ( 0 = すぐに削除 )"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
@@ -2952,6 +2946,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"このリスト自体は何も機能しません。下にある 2 つのスイッチのいずれかをオンにし"
+"てください。これは、音声および字幕メニューで表示するトラックを変更するもので"
+"あり、自動的に選択するトラックを変更するものではありません。自動選択を行うの"
+"は、上にあるプリセットです。「und」は「タグなし (undefined)」を意味するため、"
+"これを削除すると、タグのないトラックも非表示になります。"
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -2967,6 +2966,12 @@ msgid ""
 "assume the original audio is Japanese; if yours is not, choose Custom and "
 "write the rules yourself."
 msgstr ""
+"「字幕」は、オリジナルの音声を維持しつつ、あなたの言語の完全な字幕を追加しま"
+"す。「吹き替え」はあなたの言語の音声を優先し、手話や歌の字幕も表示しますが、"
+"吹き替えがない場合は「字幕」に切り替えます。「番組のみ」の組み合わせでは、映"
+"画はサーバーが選択した設定のままになります。字幕プリセットは、オリジナルの音"
+"声が日本語であることを前提としています。あなたの音声が日本語でなければ、「"
+"カスタム」を選択し、ルールを自分で設定してください。"
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
@@ -2976,6 +2981,9 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"この割合 (%) は、このアプリのその言語への翻訳が、現状どの程度まで進んでいるか"
+"を示しています。残りの部分は英語のままです。翻訳は translate.jellyfin.org で"
+"提供しています。"
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
@@ -2985,6 +2993,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"「自動」を選択すると、Flatpak 内ではこの機能がオフになります。Flatpak 内では"
+"、デスクトップ環境がすでに更新情報を通知し、「flatpak update」コマンドで更新"
+"をインストールするためです。それ以外では、この機能はオンのままになります。"
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3049,6 +3060,9 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"視聴し終えた後の猶予期間 : この期間中はダウンロードしたコンテンツを保存したま"
+"まにするため、もう一度視聴したり、家族が追いかけて視聴したりすることができま"
+"す。ただし、ストレージ容量が不足した場合は、期間が満了する前に削除します。"
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
@@ -3131,6 +3145,11 @@ msgid ""
 "is the reference curve, and Clip is what to try if highlights look grey "
 "rather than bright."
 msgstr ""
+"HDR 映像を SDR ディスプレーにどのように表示するか。HDR 映像を HDR 対応"
+"ディスプレイにそのまま出力する場合、トーンマッピングを行わないため、この設定"
+"は影響しません。HDR 映像の表示に違和感がない限り、「自動」のままにしておいて"
+"ください。BT.2390 が基準カーブです。ハイライト部分が、明るいというより灰色っ"
+"ぽく見える場合は、「クリップ」を試してみてください。"
 
 #. Explanation shown under the "Rendering Quality" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3141,6 +3160,11 @@ msgid ""
 "files and does not use up your shader profile, so it is the thing to try "
 "before the shader pack below."
 msgstr ""
+"「高品質」モードは、MPV 独自の「高品質」プリセットと同じ設定を適用します。つ"
+"まり、GPU への負荷は多少増えますが、アップスケーリングと HDR 処理の品質が向上"
+"します。シェーダーファイルは不要で、シェーダープロファイルも消費しないため、"
+"以下のシェーダーパックを試す前に、まずこちらを試してみることをおすすめします"
+"。"
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3151,6 +3175,10 @@ msgid ""
 "this if playback keeps stopping for buffering. Larger buffers use more "
 "memory and make the first few seconds of a file slower to start."
 msgstr ""
+"再生のどの程度先を読み込むか。MPV のデフォルトは 1 秒ですが、インターネット経"
+"由で接続するサーバーや通信速度が遅い場合はこの値は短すぎます。バッファのため"
+"に再生が頻繁に停止する場合は、この値を大きくしてください。バッファを大きくす"
+"るとメモリを多く消費し、ファイルの最初の数秒間の再生開始が遅くなります。"
 
 #. Explanation shown under the "Motion Interpolation" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3177,6 +3205,13 @@ msgid ""
 "another VapourSynth filter. If video stops working, start with --disable-"
 "hwdec and change this back."
 msgstr ""
+"一部のグラフィックドライバで処理が不安定なため、デフォルトでは無効にしていま"
+"す。「1080p 以上のみ」という設定で有効にするのが無難な方法です。ほとんどの"
+"ハードウェアでは、1080p は追加の処理なしにソフトウェアでデコードします。「"
+"コピー ( 詳細 )」は処理速度が遅くなりますが、映像フィルターと連携するモードの"
+"ため、SVP やその他の VapourSynth フィルターを使用する場合はこちらを選択してく"
+"ださい。動画が再生されなくなった場合は、まず --disable-hwdec を指定して起動し"
+"、その後この設定を元に戻してください。"
 
 #. Explanation shown under the "Enable GUI" setting (under Advanced on the
 #. General tab of Settings).
@@ -3201,6 +3236,11 @@ msgid ""
 "way back is to edit conf.json. This is for a shared TV nobody should be able "
 "to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
+"このデバイスにキャストしているコンテンツのみを表示します。この設定画面を含め"
+"、ライブラリーにはここからアクセスできません。また、システムトレイのアイコン"
+"がないため、戻るには conf.json を編集するしかありません。これは、だれも閲覧す"
+"べきでない共有テレビ向けです。通常のキャスト先については、「インターフェース"
+"設定」を使用してください。"
 
 #. Explanation shown under the "Window Buttons in the Top Bar" setting
 #. (Settings > General > Window).
@@ -3212,6 +3252,13 @@ msgid ""
 "it. On \"Only when the window has no title bar\", MPV is asked whether this "
 "window got one, so desktops that draw a title bar are left alone."
 msgstr ""
+"一部のデスクトップ環境、特に Wayland 上の GNOME では、プレーヤーウィンドウに"
+"タイトルバーが表示されないため、ウィンドウを移動したり閉じたりする方法があり"
+"ません。この場合、最小化、最大化、閉じるボタンは上部のバーに配置され、その"
+"バーをドラッグすることでウィンドウを移動できるようになります。「ウィンドウに"
+"タイトルバーがない場合のみ」という設定では、MPV にそのウィンドウに"
+"タイトルバーがあるかどうかを確認するため、タイトルバーを表示するデスクトップ"
+"環境では変更しません。"
 
 #. Explanation shown under the "Keep Window Buttons in Full Screen" setting
 #. (Settings > General > Window).
@@ -3221,6 +3268,10 @@ msgid ""
 "the buttons are normally hidden there. Turn this on to keep a way out of "
 "full screen that is not a keyboard shortcut."
 msgstr ""
+"フルスクリーン表示では、タイトルバーがどこにも表示されず、移動や最大化を行う"
+"ための操作も必要ないため、通常、これらのボタンは非表示になっています。"
+"キーボードショートカット以外でフルスクリーン表示を終了する手段を確保するには"
+"、この機能を有効にしてください。"
 
 #. Explanation shown under the "Hide the Desktop Title Bar" setting
 #. (Settings > General > Window).
@@ -3232,6 +3283,12 @@ msgid ""
 "unless you want them, since a window with neither can be awkward to move on "
 "some desktops."
 msgstr ""
+"デスクトップ環境に、プレーヤーウィンドウにタイトルバーを表示しないよう要求し"
+"ます。これにより上部のバーのみを表示します。これは上記の設定と連動しており、"
+"「ウィンドウにタイトルバーがない場合のみ」を有効にすると、ボタンがすぐに表示"
+"されます。タイトルバーもバーも表示されないウィンドウは、一部のデスクトップ環"
+"境では移動しにくくなる可能性があるため、必要がない限りは両方の設定をオフにし"
+"ておいてください。"
 
 #. Explanation shown under the "Enable Trickplay Thumbnails" setting
 #. (Settings > Playback > Player Controls).
@@ -3242,6 +3299,11 @@ msgid ""
 "images are fetched from the server per video, which costs disk space and "
 "memory -- tens of MB for an episode, a few hundred for a long film."
 msgstr ""
+"シークバーをドラッグしている間、プレビューフレームを表示します。thumbfast に"
+"対応している独自の OSC スクリプトを含め、あらゆるプレ－ヤーコントロール "
+"スタイルで動作します。画像は動画ごとにサーバーから取得するため、ディスク容量"
+"とメモリを消費します。1 エピソードあたり数十 MB、長編映画の場合は数百 MB 程度"
+"かかります。"
 
 #. Explanation shown under the "Preferred Language" setting (Settings >
 #. Playback > Subtitles & Languages), which only appears when a Dubbed or
@@ -3255,6 +3317,9 @@ msgid ""
 "preference heuristics are built around English naming conventions, your "
 "mileage may vary. Use a language code such as eng."
 msgstr ""
+"吹き替え音声や字幕に使用する言語。なお、この設定の判断基準は英語の命名規則を"
+"もとにしており、結果に差がある場合があります。eng などの言語コードを使用して"
+"ください。"
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
