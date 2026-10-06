@@ -232,6 +232,15 @@ class App:
         #: so a flaky input path stays visible instead of being absorbed.
         self.lost_keys = []
 
+    @classmethod
+    def copy_of(cls, template, **kw):
+        """A launch on a fresh copy of config dir ``template``: it starts
+        where the launch that wrote the template quit. Owned like a fresh
+        dir, so close() removes it."""
+        app = cls(**kw)
+        shutil.copytree(template, app.config_dir, dirs_exist_ok=True)
+        return app
+
     # -- configuration, as a user would write it -----------------------
 
     def _seed(self):

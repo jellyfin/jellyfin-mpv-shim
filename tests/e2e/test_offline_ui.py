@@ -50,39 +50,78 @@ def _backend():
     return os.environ.get("JMS_TEST_BACKEND") or "libmpv"
 
 
-class _OfflineCase(unittest.TestCase):
-    """Download the film online as qa-user, then relaunch with the network
-    cut. Leaves ``self.app`` on the offline Home with the film listed."""
+def _class_relay(cls):
+    upstream = _e2e.SERVER.split("//", 1)[1]
+    host, _, port = upstream.partition(":")
+    cls.relay = _relay.Relay((host, int(port or 80)))
+    cls.addClassCleanup(cls.relay.close)
 
-    #: The app's environment, both launches (_e2e.sync_timers).
+
+def _template(cls, steps):
+    """Run ``steps(app)`` online once for the class and keep what it left on
+    disk as ``cls.template``; each test then launches a copy of it."""
+    app = _app.App(backend=_backend(), env=dict(cls.ENV))
+    cls.addClassCleanup(app.close)
+    app.start()
+    steps(app)
+    rc = app.quit()
+    if rc != 0:
+        raise AssertionError("the template launch exited with %s" % rc)
+    cls.template = app.config_dir
+
+
+def _launch_offline(case, what):
+    """A copy of the class's template, launched with the relay cut."""
+    case.relay.reset()
+    case.relay.cut()
+    case.assertTrue(case.relay.probe_refused(), "the cut is not in effect")
+    case.app = _app.App.copy_of(case.template, backend=_backend(),
+                                env=dict(case.ENV))
+    case.addCleanup(lambda: case.app.close())
+    case.catalog = _flows.Catalog(case.app.config_dir)
+    case.app.start(timeout=90)
+    case.app.wait_for(lambda f: _app.shown(f, DOWNLOADED_TILE % case.film),
+                      timeout=90, what=what)
+
+
+class _OfflineCase(unittest.TestCase):
+    """Download the film online as qa-user, then launch with the network
+    cut. Leaves ``self.app`` on the offline Home with the film listed.
+
+    The online half runs once per class and is kept as a config dir
+    (``_template``); each test launches a copy of it. The saved login names
+    the class's relay, so the relay lives as long as the template and is
+    reset for each test."""
+
+    #: The app's environment, every launch (_e2e.sync_timers).
     ENV = {}
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        session = _e2e.Session()
+        films = [i for i in session.find_all(item_type="Movie")
+                 if i.get("Name") == FILM_NAME]
+        if len(films) != 1:
+            raise AssertionError("want one %r, found %d"
+                                 % (FILM_NAME, len(films)))
+        cls.film = films[0]["Id"]
+        session.reset_played(cls.film)
+        _class_relay(cls)
+
+        def online(app):
+            _flows.login(app, cls.relay)
+            _flows.open_by_search(app, FILM_QUERY, cls.film)
+            _flows.download_open_item(app, _flows.Catalog(app.config_dir),
+                                      cls.film)
+        _template(cls, online)
 
     def setUp(self):
         self.session = _e2e.Session()
-        films = [i for i in self.session.find_all(item_type="Movie")
-                 if i.get("Name") == FILM_NAME]
-        self.assertEqual(1, len(films))
-        self.film = films[0]["Id"]
         self.session.reset_played(self.film)
         self.addCleanup(self.session.reset_played, self.film)
         self.me = (self.session.server_id(), self.session.user_id)
-
-        upstream = _e2e.SERVER.split("//", 1)[1]
-        host, _, port = upstream.partition(":")
-        self.relay = _relay.Relay((host, int(port or 80)))
-        self.addCleanup(self.relay.close)
-        self.app = _app.App(backend=_backend(), env=dict(self.ENV))
-        self.addCleanup(lambda: self.app.close())
-        self.catalog = _flows.Catalog(self.app.config_dir)
-
-        self.app.start()
-        _flows.login(self.app, self.relay)
-        _flows.open_by_search(self.app, FILM_QUERY, self.film)
-        _flows.download_open_item(self.app, self.catalog, self.film)
-        self.app = _flows.relaunch(self.app, self.relay, cut=True)
-        self.app.wait_for(
-            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
-            timeout=90, what="the film in the offline library")
+        _launch_offline(self, "the film in the offline library")
 
     def open_film(self):
         self.app.move_to(DOWNLOADED_TILE % self.film)
@@ -518,44 +557,44 @@ class _TwoProfilesCase(unittest.TestCase):
     """The default profile (Alice, qa-user) downloads the film; Bob is added
     and signed in as qa-admin; the app relaunches offline with Bob active."""
 
-    #: The app's environment, both launches (_e2e.sync_timers).
+    #: The app's environment, every launch (_e2e.sync_timers).
     ENV = {}
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        session = _e2e.Session()
+        admin = _e2e.Session("qa-admin")
+        films = [i for i in session.find_all(item_type="Movie")
+                 if i.get("Name") == FILM_NAME]
+        cls.film = films[0]["Id"]
+        for s in (session, admin):
+            s.reset_played(cls.film)
+        _class_relay(cls)
+
+        def online(app):
+            _flows.login(app, cls.relay)                        # (default)
+            _flows.open_by_search(app, FILM_QUERY, cls.film)
+            _flows.download_open_item(app, _flows.Catalog(app.config_dir),
+                                      cls.film)
+            _flows.add_profile(app, "Bob")
+            app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
+                         what="the profile switcher")
+            _flows.switch_profile(app, "Bob")
+            _flows.add_server_from_anywhere(app)
+            _flows.login(app, cls.relay, account="qa-admin")
+        _template(cls, online)
 
     def setUp(self):
         self.session = _e2e.Session()
         self.admin = _e2e.Session("qa-admin")
-        films = [i for i in self.session.find_all(item_type="Movie")
-                 if i.get("Name") == FILM_NAME]
-        self.film = films[0]["Id"]
         for s in (self.session, self.admin):
             s.reset_played(self.film)
             self.addCleanup(s.reset_played, self.film)
         self.server = self.session.server_id()
         self.alice = (self.server, self.session.user_id)     # qa-user
         self.bob = (self.server, self.admin.user_id)         # qa-admin
-
-        upstream = _e2e.SERVER.split("//", 1)[1]
-        host, _, port = upstream.partition(":")
-        self.relay = _relay.Relay((host, int(port or 80)))
-        self.addCleanup(self.relay.close)
-        self.app = _app.App(backend=_backend(), env=dict(self.ENV))
-        self.addCleanup(lambda: self.app.close())
-        self.catalog = _flows.Catalog(self.app.config_dir)
-
-        self.app.start()
-        _flows.login(self.app, self.relay)                      # (default)
-        _flows.open_by_search(self.app, FILM_QUERY, self.film)
-        _flows.download_open_item(self.app, self.catalog, self.film)
-        _flows.add_profile(self.app, "Bob")
-        self.app.wait_for(lambda f: _app.node(f, "nav-user"), timeout=15,
-                          what="the profile switcher")
-        _flows.switch_profile(self.app, "Bob")
-        _flows.add_server_from_anywhere(self.app)
-        _flows.login(self.app, self.relay, account="qa-admin")
-        self.app = _flows.relaunch(self.app, self.relay, cut=True)
-        self.app.wait_for(
-            lambda f: _app.shown(f, DOWNLOADED_TILE % self.film),
-            timeout=90, what="the film in Bob's offline library")
+        _launch_offline(self, "the film in Bob's offline library")
 
     def _played(self, actor):
         row = self.catalog.userdata(self.film).get(actor)
