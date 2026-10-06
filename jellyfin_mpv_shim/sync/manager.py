@@ -2518,9 +2518,9 @@ class SyncManager:
         destination, and the old copy has to go or the pass never converges.
 
         Orphaned directories -- a playlist deleted while its poster stayed --
-        are **not** touched, because this walks catalog rows. That is
-        unchanged: nothing has ever removed them, which is why `playlist` is in
-        `RESERVED_STORE_DIRS` (the orphan sweep used to delete the whole cache).
+        are **not** touched here, because this walks catalog rows. `_sweep_art`
+        removes the scoped ones; `playlist` is in `RESERVED_STORE_DIRS` so the
+        item sweep does not (it used to delete the whole cache).
         """
         try:
             rows = self.db.list_playlists(ANY_SERVER)
@@ -2633,6 +2633,48 @@ class SyncManager:
                 continue
             log.warning("Removing orphaned download dir: %s", child_path)
             shutil.rmtree(child_path, ignore_errors=True)
+        self._sweep_art(base)
+
+    def _sweep_art(self, base):
+        """Remove series, season and playlist art no row references any more.
+
+        Nothing else deletes it: per-item removal takes the item's own
+        directory, and these are shared by every episode of a series or every
+        member of a playlist, so they outlived the last of them for ever.
+        Runs under `_reconcile_disk`'s guards (a readable catalog holding at
+        least one row) and asks the catalog strictly, so a failed read sweeps
+        nothing. **Only leaf art directories**: under ``playlist/`` the first
+        level is a server scope, which a legacy unscoped playlist directory
+        cannot be told apart from by name -- neither is ever removed here.
+        """
+        try:
+            series, seasons, playlists = self.db.art_owners()
+        except Exception:
+            log.error("Skipping the art sweep: the catalog could not be read.",
+                      exc_info=True)
+            return
+        wanted = ({series_art_dir(self.root, s) for s in series}
+                  | {season_art_dir(self.root, s) for s in seasons}
+                  | {playlist_art_dir(self.root, server_id, pid)
+                     for server_id, pid in playlists})
+        candidates = []
+        for kind in ("series", "season"):
+            candidates += self._subdirs(os.path.join(base, kind))
+        for scope in self._subdirs(os.path.join(base, "playlist")):
+            candidates += self._subdirs(scope)
+        for path in candidates:
+            if path not in wanted:
+                log.info("Removing art nothing references: %s", path)
+                shutil.rmtree(path, ignore_errors=True)
+
+    @staticmethod
+    def _subdirs(path):
+        try:
+            names = os.listdir(path)
+        except OSError:
+            return []
+        return [os.path.join(path, n) for n in names
+                if os.path.isdir(os.path.join(path, n))]
 
     def _adopt_orphan(self, item_id, item_dir, server_uuid):
         """Rebuild the catalog row for a complete download that has none.

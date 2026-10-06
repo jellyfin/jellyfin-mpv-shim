@@ -572,8 +572,9 @@ rather than at whichever site remembered:
   wheels and the Flatpak's sdist build both have); an sRGB-described profile is
   skipped, and an unusable one leaves the pixels as they are.
 
-`imageutil.decodes` is the cache writers' gate (§10, `thumbnails._load_remote`
-and the offline art): bytes that do not decode completely are never kept.
+The thumbnail store persists a body only after `imageutil.decode` accepts it
+(`thumbnails._persist`), and `imageutil.decodes` is the offline art's gate:
+bytes that do not decode completely are never kept.
 
 ## 11. Trickplay: the seek-preview frames
 

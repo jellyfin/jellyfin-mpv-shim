@@ -702,6 +702,8 @@ class ReconcileDiskTest(TmpTest):
         """
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID, status=STATUS_PENDING)
+        # Referenced, so the art sweep keeps them too (OfflineArtSweepTest).
+        set_columns(m.db, ORPHAN_ID, series_id="id1", season_id="id1")
         dirs = [os.path.join(self.tmp, "server", kind, "id1")
                 for kind in ("series", "season", "playlist")]
         for path in dirs:
@@ -721,6 +723,7 @@ class ReconcileDiskTest(TmpTest):
         """
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID, status=STATUS_PENDING)
+        set_columns(m.db, ORPHAN_ID, series_id="id1", season_id="id1")
         # Named literally, NOT derived from RESERVED_STORE_DIRS: building the
         # fixture out of the constant under test means emptying the constant
         # empties the fixture and the test passes with nothing left to check.
@@ -5380,3 +5383,61 @@ class OfflineArtIsWholeOrAbsentTest(unittest.TestCase):
         written = [os.path.join(dp, f) for dp, _d, fs in os.walk(self.tmp)
                    for f in fs if not f.startswith("catalog")]
         self.assertEqual(written, [])
+
+
+class OfflineArtSweepTest(unittest.TestCase):
+    """Series, season and playlist art is shared by every episode or member,
+    so per-item removal never took it, and it outlived the last download that
+    used it for ever. The startup sweep removes what no row references -- under
+    the same guards as the item sweep, because this is code that deletes."""
+
+    SERVER = "a" * 32
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.m = make_manager(self.tmp, self.addCleanup)
+
+    def art(self, *parts):
+        path = os.path.join(self.tmp, "server", *parts)
+        os.makedirs(path)
+        with open(os.path.join(path, "poster.jpg"), "wb") as fh:
+            fh.write(_jpeg())
+        return path
+
+    def fixture(self):
+        add_row(self.m, ORPHAN_ID, status=STATUS_COMPLETE)
+        set_columns(self.m.db, ORPHAN_ID, series_id="kept", season_id="kept")
+        self.m.db.upsert_playlist("pkept", self.SERVER, "uuid", "Kept")
+        kept = [self.art("series", "kept"), self.art("season", "kept"),
+                self.art("playlist", self.SERVER, "pkept")]
+        gone = [self.art("series", "gone"), self.art("season", "gone"),
+                self.art("playlist", self.SERVER, "pgone")]
+        return kept, gone
+
+    def test_unreferenced_art_goes_and_stays_gone(self):
+        kept, gone = self.fixture()
+        legacy = os.path.join(self.tmp, "server", "playlist", "legacyid")
+        os.makedirs(legacy)                 # a scope-level dir: never touched
+        for _ in range(3):                  # three launches
+            self.m._reconcile_disk()
+            for path in kept + [legacy]:
+                self.assertTrue(os.path.isdir(path), path)
+            for path in gone:
+                self.assertFalse(os.path.exists(path), path)
+
+    def test_an_unreadable_catalog_removes_nothing(self):
+        kept, gone = self.fixture()
+        with mock.patch.object(self.m.db, "art_owners",
+                               side_effect=manager_module.sqlite3.Error("x")):
+            self.m._reconcile_disk()
+        self.m.db.healthy = lambda: False
+        self.m._reconcile_disk()
+        for path in kept + gone:
+            self.assertTrue(os.path.isdir(path), path)
+
+    def test_an_empty_catalog_removes_nothing(self):
+        paths = [self.art("series", "s"), self.art("season", "s")]
+        self.m._reconcile_disk()
+        for path in paths:
+            self.assertTrue(os.path.isdir(path), path)
