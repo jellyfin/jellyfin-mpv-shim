@@ -286,6 +286,7 @@ def relaunch(app, relay=None, cut=False, timeout=90, env=None):
         relay.cut()
         assert relay.probe_refused(), "the cut is not in effect"
     again = _app.App(backend=app.backend, config_dir=app.config_dir,
-                     env=app._extra_env if env is None else env)
+                     env=app._extra_env if env is None else env,
+                     mpv_conf=app._mpv_conf)
     again.start(timeout=timeout)
     return again

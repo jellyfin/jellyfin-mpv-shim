@@ -44,6 +44,8 @@ def _backend():
 @_e2e.require_server
 class _PlaybackCase(unittest.TestCase):
     CONF = {}
+    #: Extra mpv.conf lines, as a person's own would be.
+    MPV_CONF = ()
     #: Sign in through the form in every test even in the light tier, for a
     #: class whose subject is what signing in does or leaves behind.
     FRESH_LOGIN = False
@@ -69,7 +71,8 @@ class _PlaybackCase(unittest.TestCase):
         cls.relay = _relay.Relay((host, int(port or 80)))
         cls.addClassCleanup(cls.relay.close)
         app = _app.App(backend=_backend(), conf=dict(cls.CONF),
-                       files=dict(getattr(cls, "FILES", {})))
+                       files=dict(getattr(cls, "FILES", {})),
+                       mpv_conf=cls.MPV_CONF)
         cls.addClassCleanup(app.close)
         app.start()
         _flows.login(app, cls.relay)
@@ -85,7 +88,8 @@ class _PlaybackCase(unittest.TestCase):
             self.relay.reset()
             self.app = _app.App.copy_of(
                 self.template, backend=_backend(), conf=dict(self.CONF),
-                files=dict(getattr(self, "FILES", {})))
+                files=dict(getattr(self, "FILES", {})),
+                mpv_conf=self.MPV_CONF)
             self.addCleanup(lambda: self.app.close())
             self.app.start()
             self.app.wait_for(lambda f: _app.shown(f, "row-libs"),
@@ -96,7 +100,8 @@ class _PlaybackCase(unittest.TestCase):
         self.relay = _relay.Relay((host, int(port or 80)))
         self.addCleanup(self.relay.close)
         self.app = _app.App(backend=_backend(), conf=dict(self.CONF),
-                            files=dict(getattr(self, "FILES", {})))
+                            files=dict(getattr(self, "FILES", {})),
+                            mpv_conf=self.MPV_CONF)
         self.addCleanup(lambda: self.app.close())
         self.app.start()
         _flows.login(self.app, self.relay)
@@ -297,6 +302,10 @@ class AStreamThatDiesMidwayTest(_PlaybackCase):
     RATE = 150_000
     #: The request paths that carry the media -- a direct stream or HLS.
     MEDIA = r"/(Videos|videos)/[0-9a-fA-F-]+/(stream|hls1|main|master)"
+    #: With the network cache on, mpv's readahead is bounded only by bytes
+    #: (150 MiB), so it ran a minute ahead and the test waited that minute
+    #: out after the cut. cache-secs caps it; the shim never sets it.
+    MPV_CONF = ("cache-secs=8",)
     KIND = r"/[Vv]ideos/[0-9a-fA-F-]+/stream"
 
     def test_it_stops_where_it_broke_and_resumes_there(self):

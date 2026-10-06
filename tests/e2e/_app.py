@@ -203,7 +203,7 @@ class App:
     """
 
     def __init__(self, backend="libmpv", config_dir=None, conf=None,
-                 env=None, files=None):
+                 env=None, files=None, mpv_conf=()):
         if backend not in ("libmpv", "jsonipc"):
             raise ValueError(backend)
         self.backend = backend
@@ -224,6 +224,9 @@ class App:
         #: {relative path: text} written into the config dir before launch,
         #: as a person's own files would be (an input.conf, say).
         self._files = dict(files or {})
+        #: Extra mpv.conf lines. Not via ``files``: _seed writes mpv.conf
+        #: itself, after them.
+        self._mpv_conf = list(mpv_conf)
         self.proc = None
         self.mpv = None
         self._job = None
@@ -269,6 +272,7 @@ class App:
         device = os.environ.get("JMS_E2E_AUDIO_DEVICE")
         if device:
             lines.append("audio-device=%s" % device)
+        lines.extend(self._mpv_conf)
         for rel, text in self._files.items():
             with open(os.path.join(self.config_dir, rel), "w",
                       encoding="utf-8") as fh:
