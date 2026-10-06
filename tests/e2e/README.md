@@ -24,7 +24,7 @@ JMS_E2E_SERVER=... python3 -m unittest tests.e2e.test_playback_advance -v
 minutes of real timers for one property, so a default run skips it and the
 summary names it. `--heavy` runs it, and release mode (`--manifest`) always
 does. The shipped app's sync timers can be shortened for a launch with
-`JMS_TEST_SYNC_TIMERS="settle=5,hold=90"` (`sync/manager.py`), which is how
+`JMS_TEST_SYNC_TIMERS="settle=5,floor=30,hold=90"` (`sync/manager.py`), which is how
 the reaper test drives a 900 s hold in 90; the real values' arithmetic is
 unit-tested. `_flows.relaunch` carries a test's environment to the next
 launch, so an App started with `env=` keeps it across a restart.

@@ -385,9 +385,11 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
             "auto_download_delete_watched": True,
             "auto_download_interval_mins": 1}
     #: Seconds. The hold must outlast the app's start by a clear margin: it
-    #: is measured from inside the app, self.launched from out here.
-    SETTLE, HOLD = 5, 90
-    ENV = {"JMS_TEST_SYNC_TIMERS": "settle=%d,hold=%d" % (SETTLE, HOLD)}
+    #: is measured from inside the app, self.launched from out here. And
+    #: hold > floor, as in the app (see the first-phase assertion).
+    SETTLE, FLOOR, HOLD = 5, 30, 90
+    ENV = {"JMS_TEST_SYNC_TIMERS": "settle=%d,floor=%d,hold=%d"
+           % (SETTLE, FLOOR, HOLD)}
 
     def setUp(self):
         self.session = _e2e.Session()
@@ -446,6 +448,14 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
                         % [self.row(e).get("origin") for e in (e2, e3)])
         self.assertFalse(self.row(self.eps[0]),
                          "the watched episode before Next Up was fetched")
+        # Online with every sweep answering, each pass waits for its sweep
+        # and never sits out the hold -- unless the timers are out of order
+        # (a hold under the floor expires first; seen with hold 90/floor 300).
+        with open(self.app.log_path, encoding="utf-8",
+                  errors="replace") as fh:
+            self.assertFalse("reaping without a fresh sweep" in fh.read(),
+                             "a pass sat out the hold while online (see "
+                             "%s)" % self.app.log_path)
         # The gate is per SESSION (manager._sweep_owed): this one has swept
         # already. A relaunch with every sweep failing is a session where
         # none has landed.

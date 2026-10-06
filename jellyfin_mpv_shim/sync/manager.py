@@ -157,10 +157,14 @@ USERDATA_SWEEP_SETTLE = 60
 #: failure. docs/offline-sync.md section 4.
 REAP_SWEEP_HOLD = 900
 
-#: Test-only, like JMS_TEST_OBSERVE: ``JMS_TEST_SYNC_TIMERS="settle=5,hold=90"``
-#: runs the two waits above short, so the e2e suite can drive them end to end
-#: without sitting out the real ones. Read once, at import.
-_TEST_TIMER_NAMES = {"settle": "USERDATA_SWEEP_SETTLE", "hold": "REAP_SWEEP_HOLD"}
+#: Test-only, like JMS_TEST_OBSERVE:
+#: ``JMS_TEST_SYNC_TIMERS="settle=5,floor=30,hold=90"`` runs the waits above
+#: short, so the e2e suite can drive them end to end without sitting out the
+#: real ones. Read once, at import. Keep hold > floor, as the real values are:
+#: a hold shorter than the floor expires before the sweep it waits for.
+_TEST_TIMER_NAMES = {"settle": "USERDATA_SWEEP_SETTLE",
+                     "floor": "USERDATA_SWEEP_FLOOR",
+                     "hold": "REAP_SWEEP_HOLD"}
 
 
 def _test_timers(spec):
