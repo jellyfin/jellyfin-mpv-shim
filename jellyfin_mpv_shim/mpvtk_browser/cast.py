@@ -166,12 +166,14 @@ def _fetch_image(url: Optional[str], timeout: int = 10):
     from io import BytesIO
 
     import requests
-    from PIL import Image
+
+    from .. import imageutil
 
     try:
         r = requests.get(url, timeout=timeout)
         r.raise_for_status()
-        return Image.open(BytesIO(r.content)).convert("RGBA")
+        # These URLs carry no maxWidth, so the pixel bound is all there is.
+        return imageutil.decode(BytesIO(r.content)).convert("RGBA")
     except Exception:
         log.warning("Failed to fetch image %s", url, exc_info=True)
         return None

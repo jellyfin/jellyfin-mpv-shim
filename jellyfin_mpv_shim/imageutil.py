@@ -12,9 +12,114 @@ dependencies has to degrade gracefully when its package is missing (see
 CONTRIBUTING.md).
 """
 
+import io
+import logging
 from typing import NamedTuple
 
 from PIL import Image
+
+log = logging.getLogger("imageutil")
+
+#: Pixels a decode may expand into, checked from the header before any pixel
+#: is decoded. Pillow's own guard only warns below ~179 M px, and a flat
+#: 12000x10000 PNG is ~370 KB on the wire and ~950 MB decoding. 40 M px is
+#: the epub reader's long-standing limit, and above any real cover or plate.
+MAX_DECODE_PIXELS = 40_000_000
+
+#: EXIF orientations that swap width and height (the 90/270-degree ones).
+_SWAPPING_ORIENTATIONS = (5, 6, 7, 8)
+
+
+class TooLarge(ValueError):
+    """An image whose header promises more pixels than MAX_DECODE_PIXELS."""
+
+
+def _open(source):
+    """``Image.open`` on bytes or a path; header only, nothing decoded."""
+    if isinstance(source, (bytes, bytearray, memoryview)):
+        source = io.BytesIO(source)
+    return Image.open(source)
+
+
+def decode(source, max_pixels=MAX_DECODE_PIXELS, box=None):
+    """Bytes or a path -> a loaded image, upright and in sRGB. Raises.
+
+    The one place every artwork and book image is decoded, so the three rules
+    below hold at all of them (the thumbnail store, the epub painter, the cast
+    screen):
+
+    * **Bounded before decoding.** The size is checked from the header, and
+      ``TooLarge`` raised, before ``load()`` allocates anything.
+    * **Upright.** EXIF orientation is applied, as mpv and jellyfin-web do.
+    * **sRGB.** An embedded ICC profile is converted from, so wide-gamut and
+      CMYK art is not drawn off-colour. Where littlecms is missing or the
+      profile is unusable, the pixels are kept as they are.
+
+    ``box`` (w, h) lets a JPEG decode at a reduced scale (``draft``) when the
+    caller only needs that much -- never pass one where the decode is cached
+    at full size (the epub reader keeps originals).
+    """
+    image = _open(source)
+    if box is not None and image.format == "JPEG":
+        image.draft(image.mode if image.mode in ("RGB", "L") else "RGB", box)
+    if image.size[0] * image.size[1] > max_pixels:
+        raise TooLarge("image %dx%d is over %d pixels"
+                       % (image.size[0], image.size[1], max_pixels))
+    image.load()
+    from PIL import ImageOps
+
+    image = ImageOps.exif_transpose(image) or image
+    return _to_srgb(image)
+
+
+def _to_srgb(image):
+    icc = image.info.get("icc_profile")
+    if not icc:
+        return image
+    try:
+        from PIL import ImageCms
+
+        profile = ImageCms.ImageCmsProfile(io.BytesIO(icc))
+        if ImageCms.getProfileDescription(profile).strip().startswith("sRGB"):
+            return image        # already what we draw in; skip the transform
+        alpha = image.mode in ("RGBA", "LA", "PA") or "transparency" in image.info
+        out = ImageCms.profileToProfile(
+            image, profile, ImageCms.createProfile("sRGB"),
+            outputMode="RGBA" if alpha else "RGB")
+        out.info.pop("icc_profile", None)
+        return out
+    except Exception:
+        log.debug("could not convert an ICC profile; keeping the pixels",
+                  exc_info=True)
+        return image
+
+
+def oriented_size(source):
+    """``(w, h)`` from the header, swapped for a 90/270-degree EXIF
+    orientation -- the size ``decode`` will produce. Raises."""
+    with _open(source) as image:
+        width, height = image.size
+        try:
+            orientation = (image.getexif() or {}).get(274)
+        except Exception:
+            orientation = None
+    if orientation in _SWAPPING_ORIENTATIONS:
+        width, height = height, width
+    return int(width), int(height)
+
+
+def decodes(data, max_pixels=MAX_DECODE_PIXELS):
+    """Whether ``data`` is an image that decodes completely: what may be
+    written to an artwork cache. A login page, an empty body and a truncated
+    JPEG are all False -- each one is otherwise kept and never re-fetched."""
+    try:
+        with _open(data) as image:
+            if image.size[0] * image.size[1] > max_pixels:
+                return False
+            image.load()
+        return True
+    except Exception:
+        return False
 
 
 #: Where a banner's crop is centred in its source, as a fraction of the

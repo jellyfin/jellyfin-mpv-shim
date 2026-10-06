@@ -26,11 +26,12 @@ import threading
 import time
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
-from io import BytesIO
 from typing import Optional
 
 import requests
 from PIL import Image
+
+from .. import imageutil
 
 try:
     import pillow_jxl
@@ -483,9 +484,10 @@ class ThumbnailStore:
             with open(url, "rb") as fh:
                 data = fh.read()
 
-        # Annotated as the base class: open() hands back an ImageFile and
-        # convert() a plain Image, and the name is reused for both.
-        image: Image.Image = Image.open(BytesIO(data))
+        # Bounded, upright, sRGB (imageutil.decode). ``box`` lets a JPEG
+        # decode at a fraction of its size: draft() keeps both sides at
+        # least the box's, so a cover crop still has the pixels it needs.
+        image: Image.Image = imageutil.decode(data, box=box)
         # RGB unconditionally used to be the rule here, and convert() does not
         # composite — it simply drops the alpha channel and keeps whatever RGB
         # was underneath, which for a transparent PNG is black. Channel logos

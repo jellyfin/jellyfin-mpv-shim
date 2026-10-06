@@ -595,17 +595,9 @@ def _picture_size(path):
     landscape one.
     """
     try:
-        from PIL import Image
+        from ... import imageutil
 
-        with Image.open(path) as image:
-            width, height = image.size
-            try:
-                orientation = (image.getexif() or {}).get(274)
-            except Exception:
-                orientation = None
-            if orientation in (5, 6, 7, 8):
-                width, height = height, width
-            return int(width), int(height)
+        return imageutil.oriented_size(path)
     except Exception:
         log.info("could not read the size of %s", path, exc_info=True)
         return None
