@@ -16,6 +16,10 @@ except ImportError:
 
 log = logging.getLogger("trickplay")
 
+#: The largest byte offset `overlay-add` accepts: mpv declares it OPT_INT
+#: (player/command.c) and range-checks it, so 2**31 and up is refused.
+MAX_OFFSET = 2**31 - 1
+
 # Frame files are per-generation, never a single reused path.
 #
 # mpv MMAPS whatever file it is handed for overlay-add, so rewriting one in
@@ -172,6 +176,10 @@ class TrickPlay(threading.Thread):
         # (video, first, count, total) for the published window, so a scrub
         # into frames already on disk asks the server for nothing.
         self._window = None
+        # (video, first, count) per window that failed on a bad TILE rather
+        # than the network: fetching it again gets the same bytes, so a scrub
+        # inside one asks for nothing (_covers). Per video, like _window.
+        self._bad = []
 
         threading.Thread.__init__(self)
         # Daemon so a stop that can't join (see below) never blocks process
@@ -224,6 +232,7 @@ class TrickPlay(threading.Thread):
         self._retire_current()
         self._bif = None
         self._window = None
+        self._bad = []
 
     # -- frame-file lifecycle ---------------------------------------------
 
@@ -302,7 +311,13 @@ class TrickPlay(threading.Thread):
         if total <= 0 or frame <= 0:
             return 0, total
         budget = max(1, WINDOW_BUDGET_BYTES // frame)
-        if settings.trickplay_fast_mode or budget >= total:
+        if budget >= total:
+            return 0, total
+        # Fast mode is the whole video in one file -- unless a frame would
+        # start past what overlay-add's `offset` can say. mpv parses it as a
+        # 32-bit int and rejects anything larger, so every preview past 2 GiB
+        # would be a failed overlay; such a video is windowed instead.
+        if settings.trickplay_fast_mode and (total - 1) * frame <= MAX_OFFSET:
             return 0, total
         centre = TrickPlay._frame_index(data, seconds)
         first = max(0, min(centre - budget // 2, total - budget))
@@ -331,6 +346,9 @@ class TrickPlay(threading.Thread):
         is lost by it: a re-fetch would come back equally short, and a new
         item or a clear() drops this outright.
         """
+        for bad_video, first, asked in self._bad:
+            if bad_video is video and first <= frame < first + asked:
+                return True
         cur = self._window
         if cur is None or cur[0] is not video:
             return False
@@ -476,7 +494,7 @@ class TrickPlay(threading.Thread):
                         continue
                     else:
                         log.warning("No trickplay data available")
-                except:
+                except BaseException as exc:
                     # Only if it never became the live file: `path` is the
                     # partial write to clean up, and testing that rather
                     # than the statement order is what keeps a future edit
@@ -484,6 +502,24 @@ class TrickPlay(threading.Thread):
                     # window it just published.
                     if path and path != self._current:
                         _unlink(path)
+                    if windowing and isinstance(exc, bifdecode.BadTile):
+                        # Not a network failure: the same tile comes back
+                        # every time. Recorded so scrubbing inside this
+                        # window stops re-downloading it, and logged once,
+                        # with the sizes -- the only way a report says WHY
+                        # (docs/artwork-pipeline.md section 11.5).
+                        self._bad = [b for b in self._bad if b[0] is video]
+                        self._bad.append((video, first, count))
+                        log.warning(
+                            "Unusual trickplay tile %d for item %s at width "
+                            "%s: %s%s. Previews in frames %d-%d are skipped.",
+                            tile_first + exc.index, video.item_id,
+                            data["Width"], exc,
+                            "; it still divides into the %sx%s grid" % (
+                                data["TileWidth"], data["TileHeight"])
+                            if exc.on_grid else "",
+                            first, first + count - 1)
+                        continue
                     if windowing:
                         # One window failed on an item that HAS trickplay:
                         # retry-by-scrubbing, not a downgrade. The published

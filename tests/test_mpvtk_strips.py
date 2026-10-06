@@ -227,6 +227,40 @@ class TestStripStore(unittest.TestCase):
         self.assertTrue(os.path.exists(entry["src"]),
                         "freed the bitmap the cast screen is drawing")
 
+    def test_keep_answers_whether_the_entry_still_exists(self):
+        s = self._store()
+        entry = s.bitmap("held", _poster(size=(40, 30)))
+        self.assertTrue(s.keep(entry))
+        s.clear()
+        self.assertFalse(s.keep(entry))
+        self.assertFalse(s.keep(None))
+
+    def test_keep_does_not_vouch_for_a_recycled_address(self):
+        """A freed buffer's address can come back for a newer, smaller
+        bitmap. Matching by src let the stale entry -- with its own, larger
+        iw/ih -- pass as live and be drawn against the new buffer."""
+        s = self._store()
+        live = s.bitmap("new", _poster(size=(40, 10)))
+        stale = dict(live, iw=400, ih=300)    # same src, someone else's size
+        self.assertFalse(s.keep(stale))
+        self.assertTrue(s.keep(live))
+
+
+    def test_dead_srcs_names_a_freed_address_in_a_scene(self):
+        """MpvtkApp.scene_check: the only way a test can see a freed buffer,
+        since mpv paints garbage from it rather than failing."""
+        s = self._store(mem=True)
+        entry = s.bitmap("held", _poster(size=(40, 30)))
+        node = {"t": "img", "src": entry["src"], "iw": entry["iw"],
+                "ih": entry["ih"]}
+        self.assertEqual(s.dead_srcs([node]), [])
+        self.assertEqual(len(s.dead_srcs([dict(node, ih=300)])), 1,
+                         "a size the buffer does not hold passed")
+        s.clear()
+        self.assertEqual(len(s.dead_srcs([node])), 1)
+        self.assertEqual(s.dead_srcs([{"t": "box"}]), [])
+
+
     def test_the_same_key_arriving_twice_frees_one_and_counts_one(self):
         """Both insert paths drop the lock across the composite, and the
         same key really does arrive by two routes (a grid composites through

@@ -657,18 +657,13 @@ class ReaderPage(Page):
         if doc.set_viewport(col_w, physical[1] - 2 * style.margin_y):
             route.pop("_entry", None)
         key = self._page_key(doc.page_key(), physical, palette_name)
-        entry = route.get("_entry")
+        entry = self._held_entry(route, store)
         if entry is not None and route.get("_entry_key") == key:
-            store.keep(entry)
             return entry
         if route.get("_busy_key") == key:
             # Already being drawn. Keep showing the previous page rather
             # than blinking a spinner between every turn.
-            previous = route.get("_entry")
-            if previous is not None:
-                store.keep(previous)
-                return previous
-            return None
+            return entry
         route["_busy_key"] = key
         colors = paint.palette(palette_name)
 
@@ -711,10 +706,24 @@ class ReaderPage(Page):
 
         self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed,
                          always=settle)
-        previous = route.get("_entry")
-        if previous is not None:
-            store.keep(previous)
-        return previous
+        # Re-read: `done` may already have parked the new page. A lost entry
+        # was popped by _held_entry above, so whatever is here is live.
+        return route.get("_entry")
+
+    @staticmethod
+    def _held_entry(route, store):
+        """The parked page bitmap, or None once the store has freed it.
+
+        The route dict outlives the store's hold on its bitmap -- the back and
+        forward stacks keep it, and ``clear()`` on an mpv restart frees every
+        buffer -- so a parked entry is only drawable while ``keep`` says so.
+        """
+        entry = route.get("_entry")
+        if entry is not None and not store.keep(entry):
+            route.pop("_entry", None)
+            route.pop("_entry_key", None)
+            return None
+        return entry
 
     @staticmethod
     def _page_key(page_key, physical, palette_name):

@@ -10,6 +10,28 @@ except ImportError:
     Image = None
 
 
+class BadTile(ValueError):
+    """A tile that is not the mosaic its manifest describes: the wrong size,
+    or not a decodable image. Deterministic -- fetching it again gets the
+    same bytes -- which is what separates it from a network failure.
+
+    ``index`` counts the tiles this call pulled, from 0; ``size`` is what
+    arrived (None when it would not even open) and ``expected`` the mosaic
+    the manifest promised. ``on_grid`` says whether ``size`` still divides
+    into the manifest's grid, the signature of tiles left in one directory by
+    two generations of the server's extraction (docs/jellyfin-api-notes.md).
+    """
+
+    def __init__(self, index, size, expected, grid, cause=None):
+        self.index, self.size, self.expected = index, size, expected
+        self.on_grid = bool(size) and (size[0] % grid[0] == 0
+                                       and size[1] % grid[1] == 0)
+        got = "%dx%d" % size if size else "unreadable"
+        super().__init__("tile %d is %s, expected %dx%d%s" % (
+            index, got, expected[0], expected[1],
+            " (%s)" % cause if cause else ""))
+
+
 def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh,
                      skip=0):
     """Write up to `count` BGRA frames from `tiles` into `fh`.
@@ -49,11 +71,15 @@ def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh,
     # one tile per step, so a `for` loop here downloads a whole mosaic to
     # discover it has already written everything it was asked for.
     tiles = iter(tiles)
+    expected = (width * tile_width, height * tile_height)
+    grid = (tile_width, tile_height)
+    index = -1
     while image_count < count:
         try:
             image = next(tiles)
         except StopIteration:
             break
+        index += 1
         # Opened, NOT converted. A mosaic is 3200x1340 at the server's
         # default preview width and twice that per axis at 640px, so every
         # WHOLE-TILE operation costs tens of megabytes -- and converting to
@@ -65,10 +91,13 @@ def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh,
         # 207 -> 71 MB at 640x268, and about 30% faster at the larger size
         # because it also replaces `height` Python slice-and-write calls per
         # frame with one.
-        image = Image.open(BytesIO(image))
+        try:
+            image = Image.open(BytesIO(image))
+        except Exception as exc:
+            raise BadTile(index, None, expected, grid, exc) from exc
 
-        if height * tile_height != image.height or width * tile_width != image.width:
-            raise ValueError("Tile size mismatch.")
+        if image.size != expected:
+            raise BadTile(index, image.size, expected, grid)
 
         for y in range(tile_height):
             for x in range(tile_width):
@@ -80,12 +109,22 @@ def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh,
                 seen += 1
                 image_count += 1
 
-                frame = image.crop((x * width, y * height,
-                                    (x + 1) * width, (y + 1) * height))
-                # mpv is handed this file as BGRA. `raw`/`BGRA` is Pillow's
-                # own channel-swapping packer and is byte-for-byte what the
-                # split/merge/tobytes dance produced.
-                fh.write(frame.convert("RGBA").tobytes("raw", "BGRA"))
+                # The decode is lazy and happens here, so a truncated or
+                # corrupt mosaic fails on its first crop. Only the decode is
+                # inside the try: a failed write (a full disk) is not the
+                # tile's fault and must not be reported as one.
+                try:
+                    frame = image.crop((x * width, y * height,
+                                        (x + 1) * width, (y + 1) * height))
+                    # mpv is handed this file as BGRA. `raw`/`BGRA` is
+                    # Pillow's own channel-swapping packer and is
+                    # byte-for-byte what the split/merge/tobytes dance
+                    # produced.
+                    pixels = frame.convert("RGBA").tobytes("raw", "BGRA")
+                except Exception as exc:
+                    raise BadTile(index, image.size, expected, grid,
+                                  exc) from exc
+                fh.write(pixels)
 
     return image_count
 

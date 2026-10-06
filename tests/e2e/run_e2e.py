@@ -193,6 +193,10 @@ PER_BACKEND = [
     # timestamp that made "previous" an absolute seek to the END of the
     # file. Only a real container has a boundary mpv chose.
     "tests.e2e.test_chapters",
+    # Trickplay against a real server's tiles, read off the relay: each tile
+    # once per window while the pointer scrubs. Needs stdjflib's
+    # `--trickplay "Test Media"`; skips without it.
+    "tests.e2e.test_trickplay_live",
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",
     # Music, played for real. The one content type the suite never played:
@@ -321,6 +325,9 @@ def run_leg(module, backend, use_xvfb, verbosity):
     # it was testing. Children cannot reconfigure themselves here (they are
     # plain `python -m unittest`), so it goes in the environment.
     env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
+    # See tests/integration/run_integration.py: a scene naming a freed bitmap
+    # raises in the app instead of handing mpv a dead address.
+    env["JMS_CHECK_SCENES"] = "1"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
     # tests._outcomes is `-m unittest` plus a per-test record, which is what
