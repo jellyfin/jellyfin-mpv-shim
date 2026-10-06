@@ -29,6 +29,8 @@ a clean exit with `quit()` before anything is killed.
 The plan: ~/Desktop/mpv-shim-offline-e2e-plan.md, "Architecture".
 """
 
+import contextlib
+import functools
 import json
 import os
 import shutil
@@ -47,6 +49,51 @@ IS_WINDOWS = os.name == "nt"
 
 class AppError(AssertionError):
     pass
+
+
+# -- where a test's time goes ---------------------------------------------
+
+#: {step: [calls, seconds, keys]} since the last take_steps(). Times are
+#: inclusive, so nested steps (login > type_into > move_to) overlap; keys
+#: are the keypresses sent while the step was open.
+_STEPS = {}
+_OPEN = []
+
+
+@contextlib.contextmanager
+def step(name):
+    t0 = time.monotonic()
+    _OPEN.append(name)
+    try:
+        yield
+    finally:
+        _OPEN.pop()
+        s = _STEPS.setdefault(name, [0, 0.0, 0])
+        s[0] += 1
+        s[1] += time.monotonic() - t0
+
+
+def timed(name):
+    def wrap(fn):
+        @functools.wraps(fn)
+        def inner(*a, **kw):
+            with step(name):
+                return fn(*a, **kw)
+        return inner
+    return wrap
+
+
+def _count_key():
+    for name in set(_OPEN) | {"*"}:
+        _STEPS.setdefault(name, [0, 0.0, 0])[2] += 1
+
+
+def take_steps():
+    """The tally since the last call, then reset; tests._outcomes records it
+    per test."""
+    out = {k: [v[0], round(v[1], 2), v[2]] for k, v in _STEPS.items()}
+    _STEPS.clear()
+    return out
 
 
 # -- Windows: a job object that takes every descendant with it ------------
@@ -223,6 +270,7 @@ class App:
 
     # -- lifecycle -------------------------------------------------------
 
+    @timed("start")
     def start(self, timeout=60):
         self._seed()
         env = dict(os.environ)
@@ -290,6 +338,7 @@ class App:
     def alive(self):
         return self.proc is not None and self.proc.poll() is None
 
+    @timed("quit")
     def quit(self, timeout=30):
         """Close the window the way a person does, and require a clean exit.
 
@@ -368,6 +417,7 @@ class App:
 
     def key(self, name):
         WATCH("key %s" % name)
+        _count_key()
         self.mpv.command("keypress", name)
 
     def keys(self, *names):
@@ -421,6 +471,7 @@ class App:
         finally:
             WATCH.depth -= 1
 
+    @timed("click")
     def _click(self, node_id, button="MBTN_LEFT", timeout=5):
         """Point at ``node_id``'s centre, wait until the renderer says the
         pointer is on it, then press: a click that proves where it went."""
@@ -448,6 +499,7 @@ class App:
 
     # -- observation -----------------------------------------------------
 
+    @timed("type_into")
     def type_into(self, field, text, masked=False, timeout=10):
         """Focus text field ``field``, type ``text``, and wait until the field
         holds it -- before anything else is pressed. Typing then moving on at
@@ -544,6 +596,7 @@ class App:
         return self.wait_for(lambda f: f.get("rev", 0) > rev, timeout=timeout,
                              what="a frame after rev %s" % rev)
 
+    @timed("press_until")
     def press_until(self, key, predicate, what, timeout=30, retry_after=5):
         """Press ``key`` and wait for ``predicate``. If nothing it asked
         for happened within ``retry_after`` seconds, press it ONCE more and
@@ -577,6 +630,7 @@ class App:
         finally:
             WATCH.depth -= 1
 
+    @timed("move_to")
     def _move_to(self, target, key=None, limit=60):
         """Put keyboard focus (nav) on ``target``.
 

@@ -52,6 +52,7 @@ suite is not a reason for a machine without a server to fail.
 """
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -343,6 +344,15 @@ def run_leg(module, backend, use_xvfb, verbosity):
     return proc.returncode == 0, records
 
 
+def keep_durations(path, module, backend, records):
+    if not path:
+        return
+    with open(path, "a", encoding="utf-8") as fh:
+        for rec in records:
+            fh.write(json.dumps(dict(rec, module=module, backend=backend))
+                     + "\n")
+
+
 def server_answers(address, timeout=10):
     """Whether a Jellyfin server answers its public info endpoint.
 
@@ -373,6 +383,10 @@ def main():
     parser.add_argument("--step", action="store_true",
                         help="watch mode, advancing one action per Enter")
     parser.add_argument("--list", action="store_true")
+    parser.add_argument("--durations", metavar="FILE",
+                        help="append every test's record, with its leg and "
+                             "timings, to FILE (JSON lines) for "
+                             "tools/e2e_durations.py")
     parser.add_argument("-v", "--verbose", action="count", default=1)
     parser.add_argument("--manifest", action="store_true",
                         help="release mode: fail unless every leg ran exactly "
@@ -433,11 +447,13 @@ def main():
     for module in [m for m in modules if m in CONTRACT]:
         ok, records = run_leg(module, None, False, args.verbose)
         results.append((module, "contract", ok, records))
+        keep_durations(args.durations, module, "contract", records)
 
     for backend in backends:
         for module in [m for m in modules if m not in CONTRACT]:
             ok, records = run_leg(module, backend, use_xvfb, args.verbose)
             results.append((module, backend, ok, records))
+            keep_durations(args.durations, module, backend, records)
 
     print("\n" + "=" * 60)
     for module, backend, ok, records in results:

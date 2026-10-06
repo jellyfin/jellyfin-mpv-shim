@@ -20,6 +20,7 @@ import _app
 import _e2e
 
 
+@_app.timed('login')
 def login(app, relay, account="qa-user"):
     """Sign in through the login form, against the relay's address."""
     app.wait_for(lambda f: _app.shown(f, "login-server"), timeout=60,
@@ -37,6 +38,7 @@ def login(app, relay, account="qa-user"):
                  what="the home screen after signing in as %s" % account)
 
 
+@_app.timed('open_by_search')
 def open_by_search(app, query, item_id, section="Movies", landed=None):
     """Search from the top bar and open the result: ends on its detail page
     with Play focused, or, for a page with no Play (a series), once
@@ -62,6 +64,7 @@ def open_by_search(app, query, item_id, section="Movies", landed=None):
                     what="the detail page with Play focused")
 
 
+@_app.timed('download_open_item')
 def download_open_item(app, catalog, item_id, timeout=120):
     """Download the item whose detail page is open, confirming the dialog,
     and wait for the catalog to call it complete."""
@@ -81,6 +84,7 @@ def download_open_item(app, catalog, item_id, timeout=120):
                          % (item_id, catalog.download(item_id)))
 
 
+@_app.timed('remove_download_open_item')
 def remove_download_open_item(app, catalog, item_id, timeout=60):
     """Remove Download on the open detail page, confirmed, and wait for the
     catalog to drop the row."""
@@ -99,6 +103,7 @@ def remove_download_open_item(app, catalog, item_id, timeout=60):
                          "%r" % (item_id, catalog.download(item_id)))
 
 
+@_app.timed('open_settings_tab')
 def open_settings_tab(app, tab):
     """Settings, then the tab called ``tab`` (its id is stab-<tab>)."""
     app.move_to("nav-settings")
@@ -153,6 +158,7 @@ class Catalog:
             "SELECT * FROM pending_playstate WHERE item_id = ?", (item_id,))
 
 
+@_app.timed('add_profile')
 def add_profile(app, name):
     """Settings > Servers & Users > Add User. Leaves Settings open."""
     open_settings_tab(app, "servers")
@@ -163,6 +169,7 @@ def add_profile(app, name):
     app.key("ENTER")
 
 
+@_app.timed('add_server_from_anywhere')
 def add_server_from_anywhere(app):
     """After a profile switch, reach the add-server form: it is either up
     already, or the profile landed in the offline library (a profile with
@@ -189,6 +196,7 @@ def items(frame, dd_id):
     return list(node.get("items") or [])
 
 
+@_app.timed('pick')
 def pick(app, dd_id, index):
     """Open drop-down ``dd_id`` by keyboard and choose entry ``index``.
 
@@ -214,6 +222,7 @@ def selected(frame, dd_id):
             or {}).get("sel")
 
 
+@_app.timed('switch_profile')
 def switch_profile(app, name, timeout=60):
     """Switch to the profile called ``name`` through the top bar's profile
     drop-down, by keyboard, and wait until the app says it is active.
@@ -264,6 +273,7 @@ def users(config_dir):
         return None
 
 
+@_app.timed('relaunch')
 def relaunch(app, relay=None, cut=False, timeout=90):
     """Quit cleanly, optionally cut the network, and start the app again on
     the same config directory. Returns the new App."""
