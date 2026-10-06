@@ -643,74 +643,14 @@ class App:
     def _move_to(self, target, key=None, limit=60):
         """Put keyboard focus (nav) on ``target``.
 
-        By arrows first, steering on the rects the observer publishes
-        (`_steer`); TAB when steering cannot be trusted. Raises when neither
-        gets there -- a target the keyboard cannot reach is a finding, and
-        carrying on types into whatever has focus instead. ``key`` walks
-        with that one key only."""
+        TAB first, then shift+TAB: a long page (Home, with its rows) can put
+        the top bar further away forwards than backwards. Each press waits
+        briefly for focus to move and carries on without it. Raises when neither direction gets there
+        -- a target the keyboard cannot reach is a finding, and carrying on
+        types into whatever has focus instead."""
         f = self.frame() or {}
         if f.get("nav") == target:
             return f
-        if key is None:
-            f = self._steer(target)
-            if f is not None:
-                return f
-        with step("move_to:tab"):
-            return self._tab_walk(target, key, limit)
-
-    #: Arrow presses before steering gives up to the TAB walk.
-    STEER_LIMIT = 30
-
-    def _steer(self, target):
-        """UP/DOWN to the target's row, then LEFT/RIGHT along it: the
-        renderer's spatial nav (mpvtk GUIDE.md section 2). Returns the
-        frame with nav on ``target``, or None to fall back to TAB:
-
-        * a text box (node type ``textbox``), as target or focused: a
-          focused one owns the arrows, and arrows reaching one only ring it,
-          where TAB lands in it ready to type -- what type_into needs;
-        * the playback HUD: while something plays the arrows seek and set
-          the volume, so a steer moved the film and the HUD went away;
-        * no rect for either end (nothing focused yet, a sizeless menu);
-        * a press that moves nothing, or a node visited twice (a wrap or a
-          row that does not overlap the way its rects say)."""
-        seen = set()
-        for _ in range(self.STEER_LIMIT):
-            f = self.frame() or {}
-            nav = f.get("nav")
-            if nav == target:
-                return f
-            cur, tgt = node(f, nav), node(f, target)
-            if (f.get("focus") or f.get("phud_mode") or f.get("phud_shown")
-                    or (tgt or {}).get("t") == "textbox" or nav in seen):
-                return None
-            seen.add(nav)
-            if not cur or not tgt or any(
-                    n.get(k) is None for n in (cur, tgt)
-                    for k in ("x", "y", "w", "h")):
-                return None
-            if tgt["y"] >= cur["y"] + cur["h"]:
-                k = "DOWN"
-            elif tgt["y"] + tgt["h"] <= cur["y"]:
-                k = "UP"
-            elif tgt["x"] + tgt["w"] / 2 > cur["x"] + cur["w"] / 2:
-                k = "RIGHT"
-            else:
-                k = "LEFT"
-            self.key(k)
-            try:
-                self.wait_for(lambda f: f.get("nav") != nav, timeout=2,
-                              what="focus to move")
-            except AppError:
-                if not self.alive():
-                    raise
-                return None
-        return None
-
-    def _tab_walk(self, target, key, limit):
-        """TAB first, then shift+TAB: a long page (Home, with its rows) can
-        put the top bar further away forwards than backwards. Each press
-        waits briefly for focus to move and carries on without it."""
         for k in ((key,) if key else ("TAB", "shift+TAB")):
             for _ in range(limit):
                 was = (self.frame() or {}).get("nav")
