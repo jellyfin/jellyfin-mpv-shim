@@ -284,8 +284,9 @@ ONE_BACKEND = [
     "tests.e2e.test_store_safety",
     # Resume by Range, catalog/users.json restore, the store move.
     "tests.e2e.test_downloads_store",
-    # The offline-sync rulings across screen, catalog and server. Borderline:
-    # PlayOfflineTest plays the local copy; the gate keeps both for it.
+    # The offline-sync rulings across screen, catalog and server. Its
+    # PlayOfflineTest plays the local copy; one backend still, since the
+    # playback modules cover the player (Izzie, 2026-10-06).
     "tests.e2e.test_offline_ui",
     # PINs and profile switching.
     "tests.e2e.test_profiles_live",
