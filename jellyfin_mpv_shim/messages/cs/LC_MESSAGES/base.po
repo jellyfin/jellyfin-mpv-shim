@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-09-02 10:02+0000\n"
+"PO-Revision-Date: 2026-10-07 21:08+0000\n"
 "Last-Translator: Helak <adamhavra@seznam.cz>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
@@ -863,10 +863,8 @@ msgstr "Přehrávání se nepodařilo spustit."
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "Nothing is downloaded to browse offline."
-msgstr "K prohlížení není nic staženo."
+msgstr "Pro prohlížení v režimu offline se nic nestahuje."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -962,7 +960,6 @@ msgstr "Nový PIN"
 #. second time, to check it was typed correctly. A verb. Split from the
 #. yes/no dialog's title of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "Potvrdit"
@@ -1022,10 +1019,8 @@ msgstr "Nepodařilo se uložit PIN."
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Přihlásit se"
+msgstr "Přihlásit se znovu"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1042,6 +1037,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Vaše uložené přihlašovací údaje pro %s již nejsou platné. Při novém "
+"přihlášení zůstanou zachovány vaše stažené soubory a nastavení."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1125,10 +1122,8 @@ msgstr "Připojit"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Konfigurace serveru"
+msgstr "Servery ve vaší síti"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
@@ -1162,6 +1157,8 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Tato adresa patří k jinému serveru. Chcete-li se k němu přihlásit, přidejte "
+"jej místo toho jako nový server."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1171,10 +1168,8 @@ msgstr "Připojuji se…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "Nepodařilo se navázat spojení. Zkontrolujte prosím zadané údaje."
+msgstr "Nepodařilo se přihlásit. Zkontrolujte prosím své údaje."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1295,14 +1290,14 @@ msgstr "Web"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Nevysílané"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Chybí"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2030,85 +2025,80 @@ msgstr "Sloučení snímků"
 #. Video Enhancement); stored as "hq".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Jemné (vysoká kvalita)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "light".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Lehké (hraný film)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "standard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Standardní (animace)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "strong".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Silné"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (MPV decides)"
-msgstr ""
+msgstr "Automaticky (rozhoduje MPV)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2390".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 (odkaz)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2446a".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "BT.2446a"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "spline".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "Spline"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "hable".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Disable"
 msgid "Hable"
-msgstr "Vypnout"
+msgstr "Hable"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "reinhard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "Reinhard"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "clip".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Klip (bez tónového mapování)"
 
 # seeded from jellyfin-web: Default
 #. Choice in the "Rendering Quality" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "default".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "MPV default"
-msgstr "Výchozí"
+msgstr "Výchozí nastavení MPV"
 
 #. Choice in the "Rendering Quality" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "high".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "High quality"
-msgstr "Změnit kvalitu videa"
+msgstr "Vysoká kvalita"
 
 #. Choice in the "Network Buffer" dropdown (Settings > Playback >
 #. Playback); stored as "default".
@@ -2246,13 +2236,13 @@ msgstr ""
 #. Browser); stored as "aligned".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr ""
+msgstr "Zarovnáno podle řádků"
 
 #. Choice in the "Scroll Mode" dropdown (Settings > Browse > Library
 #. Browser); stored as "row".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr ""
+msgstr "Jeden řádek na příčku"
 
 #. Choice in several settings dropdowns, meaning the application decides
 #. rather than the viewer: whether to announce updates, when to download
@@ -2268,44 +2258,42 @@ msgstr "Automaticky"
 #. General > Window); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
-msgstr ""
+msgstr "Pouze pokud okno nemá záhlaví"
 
 #. Choice in the "Page Colour" dropdown (Settings > Browse > Reading);
 #. stored as "dark".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Dark"
-msgstr ""
+msgstr "Tmavé"
 
 #. Choice in the "Page Colour" dropdown (Settings > Browse > Reading);
 #. stored as "sepia".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Sepia"
-msgstr ""
+msgstr "Sépiové"
 
 #. Choice in the "Page Colour" dropdown (Settings > Browse > Reading);
 #. stored as "light".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "Světlé"
 
 #. Choice in the "Comic Reading Mode" dropdown (Settings > Browse >
 #. Reading); stored as "width".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Width"
-msgstr ""
+msgstr "Přizpůsobená šířka"
 
 #. Choice in the "Comic Reading Mode" dropdown (Settings > Browse >
 #. Reading); stored as "page".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "Page"
 msgid "Fit Page"
-msgstr "stránka"
+msgstr "Přizpůsobená stránka"
 
 #. Choice in the "Shading Behind the Player Controls" dropdown (Settings >
 #. Playback > Player Controls), meaning change nothing and let MPV decide.
