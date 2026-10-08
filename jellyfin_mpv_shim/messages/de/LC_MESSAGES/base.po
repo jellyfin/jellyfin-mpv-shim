@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-07 21:08+0000\n"
+"PO-Revision-Date: 2026-10-08 20:08+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -2927,6 +2927,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"Diese Liste hat allein keine Funktion – aktiviere einen der beiden Schalter "
+"darunter. Dadurch wird die in den Audio- und Untertitelmenüs angezeigte Spur "
+"geändert, nicht die automatisch ausgewählte; dafür ist die obige "
+"Voreinstellung zuständig. „und“ bedeutet „nicht getaggt“, daher werden durch "
+"Entfernen dieser Option auch nicht getaggte Spuren ausgeblendet."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -2942,6 +2947,14 @@ msgid ""
 "assume the original audio is Japanese; if yours is not, choose Custom and "
 "write the rules yourself."
 msgstr ""
+"„Untertitel“ behält den Originalton bei und fügt vollständige Untertitel in "
+"deiner Sprache hinzu. „Synchronisiert“ bevorzugt den Ton in deiner Sprache "
+"mit Untertiteln für Schilder und Lieder und greift auf Untertitel zurück, "
+"falls keine Synchronisation verfügbar ist. Die Option „Nur Serien“ belässt "
+"Filme in der vom Server gewählten Version. Die Untertitel-Voreinstellungen "
+"gehen davon aus, dass der Originalton Japanisch ist; falls dies bei Dir "
+"nicht der Fall ist, wähle „Benutzerdefiniert“ und lege die Regeln selbst "
+"fest."
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
@@ -2951,6 +2964,9 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"Der Prozentsatz gibt an, wie viel von dieser App bisher in die jeweilige "
+"Sprache übersetzt wurde; der Rest bleibt auf Englisch. Übersetzungen werden "
+"auf translate.jellyfin.org beigetragen."
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
@@ -2960,6 +2976,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"„Automatisch“ deaktiviert diese Funktion innerhalb eines Flatpak-Pakets, wo "
+"Dein Desktop bereits Updates ankündigt und „flatpak update“ diese "
+"installiert, und lässt sie überall sonst aktiviert."
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3025,6 +3044,11 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"Nach dem Beenden eines Videos gibt es eine kurze Wartezeit: Die "
+"heruntergeladene Datei bleibt so lange gespeichert, dass Du sie erneut "
+"ansehen oder jemand anderes im Haushalt sie nachholen kann, anstatt dass der "
+"nächste Downloadvorgang startet. Sollte der Speicherplatz knapp werden, "
+"werden die angesehenen Downloads vor Ablauf der Frist gelöscht."
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
@@ -3292,6 +3316,9 @@ msgid ""
 "preference heuristics are built around English naming conventions, your "
 "mileage may vary. Use a language code such as eng."
 msgstr ""
+"Die Sprache für synchronisierten Ton oder Untertitel. Beachte, dass die "
+"Präferenzkriterien auf englischen Namenskonventionen basieren; die "
+"Ergebnisse können abweichen. Verwende einen Sprachcode wie z. B. „eng“."
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
@@ -4216,16 +4243,13 @@ msgstr ""
 #. a software package name and the parenthesis holds a shell command; leave
 #. both untranslated.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Install the \"%(package)s\" package (for example \"apt install "
-#| "%(package)s\"), or use MPV 0.41 or newer."
+#, python-format
 msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\")."
 msgstr ""
-"Installiere die \"%(package)s\" Packages (zum Beispiel \"apt install "
-"%(package)s\"), oder verwende MPV 0.41 oder neuer."
+"Installiere die \"%(package)s\" Pakete (zum Beispiel \"apt install %(package)"
+"s\")."
 
 #. Follows the clipboard message above, naming the MPV version that gained
 #. clipboard support.
@@ -4470,18 +4494,15 @@ msgstr "Downloade"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "Warte auf Genehmigung…"
+msgstr "Warte darauf, dass %s sich anmeldet…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Waiting for approval…"
 msgid "Waiting for its profile to sign in…"
-msgstr "Warte auf Genehmigung…"
+msgstr "Warte darauf, das sich das Profil anmeldet…"
 
 #. State of a download waiting for its turn.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -4962,15 +4983,14 @@ msgstr "Die Aufnahmeeinstellungen konnten nicht gespeichert werden."
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "The server is refreshing %s."
-msgstr ""
+msgstr "Der Server aktualisiert %s."
 
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "%s could not be deleted."
+#, python-format
 msgid "%s could not be refreshed."
-msgstr "%s konnte nicht gelöscht werden."
+msgstr "%s konnte nicht aktualisiert werden."
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -5827,10 +5847,8 @@ msgstr "Zufällig"
 #. server refused to remember which sort order the user picked. The sort
 #. itself has already been applied; only remembering it failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "That user could not be added."
 msgid "That sort could not be saved."
-msgstr "Diese Benutzer konnte nicht hinzugefügt werden."
+msgstr "Diese Sortierung konnte nicht gespeichert werden."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
@@ -5928,8 +5946,6 @@ msgstr "Früher"
 #. different sense from the update banner's "Later", which postpones a
 #. notice.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Later"
 msgctxt "guide navigation"
 msgid "Later"
 msgstr "Später"
@@ -6538,7 +6554,7 @@ msgstr "Serien"
 #. the sense of "has no parent server", not "damaged".
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Orphaned Items"
-msgstr ""
+msgstr "Verwaiste Elemente"
 
 # seeded from jellyfin-web: Playlists
 #. Name of the offline library holding downloaded playlists.
@@ -6556,7 +6572,7 @@ msgstr "Wiedergabelisten"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "%(name)s (%(server)s)"
-msgstr ""
+msgstr "%(name)s (%(server)s)"
 
 #. Heading of the offline home-screen row listing films on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6638,7 +6654,7 @@ msgstr "Die angeschauten Downloads in %s löschen?"
 #. that language and is not translated.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the system language"
-msgstr ""
+msgstr "Systemsprache verwenden"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #. Checkbox at the top of Settings that reveals the rows not sorted into a
@@ -6978,7 +6994,7 @@ msgstr "Verbunden"
 #. other two states are "Connected" and "Offline".
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Signed out"
-msgstr ""
+msgstr "Abgemeldet"
 
 #. State beside a server in Settings: the application cannot reach it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7087,21 +7103,19 @@ msgstr "Automatisch Herunterladen"
 #. was already connecting to it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Already reconnecting."
-msgstr ""
+msgstr "Die Verbindung wird bereits wiederhergestellt."
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connected"
+#, python-format
 msgid "Connected to %s."
-msgstr "Verbunden"
+msgstr "Verbunden mit %s."
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connecting…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "Verbinden…"
+msgstr "Verbinde mit %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7112,6 +7126,9 @@ msgid ""
 "%s answered, but it no longer accepts the saved login. Signing in again "
 "keeps its downloads and settings."
 msgstr ""
+"%s hat geantwortet, aber die gespeicherten Anmeldedaten werden nicht mehr "
+"akzeptiert. Beim erneuten Anmelden bleiben Downloads und Einstellungen "
+"erhalten."
 
 #. Body of the same dialog, for a server that did not respond at all. %s is
 #. the server's name.
@@ -7121,13 +7138,14 @@ msgid ""
 "%s did not answer. It may be switched off, or this machine may not be able "
 "to reach it right now."
 msgstr ""
+"%s hat nicht geantwortet. Er ist möglicherweise ausgeschaltet oder kann von "
+"diesem Rechner momentan nicht erreicht werden."
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "Verbindung zum Server fehlgeschlagen."
+msgstr "Verbindung zu %s fehlgeschlagen"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7210,10 +7228,8 @@ msgstr "Zur Wiedergabeliste hinzufügen"
 #. administrators: it asks the server to look again for this item's metadata
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "Aktualisieren"
+msgstr "Metadaten aktualisieren"
 
 #. Action on an item's menu, and the title of the dialog it opens, taking
 #. the item out of the playlist being viewed. An imperative verb phrase.
@@ -7281,7 +7297,7 @@ msgstr "Suche"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "%s (needs reconnect)"
-msgstr ""
+msgstr "%s (Erneute Anmeldung erforderlich)"
 
 #. Tooltip of the window button that hides the window to the taskbar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -7317,8 +7333,6 @@ msgstr "Startseite"
 #. downloaded to this computer, without a server. A place to go, not the
 #. state of a server (compare the Settings status word "Offline").
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Offline"
 msgctxt "server switcher entry"
 msgid "Offline"
 msgstr "Offline"
@@ -7369,7 +7383,7 @@ msgstr "Später"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s — run “flatpak update”"
-msgstr ""
+msgstr "Update verfügbar: %s — “flatpak update” ausführen"
 
 #. Banner announcing a newer release of this application. %s is the version
 #. number.
@@ -7382,14 +7396,12 @@ msgstr "Aktualisierung verfügbar: %s"
 #. means it opens something else.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Details…"
-msgstr ""
+msgstr "Details…"
 
 #. Button on the update banner that puts the notice off for now, so it
 #. returns next time. "Not now", not a direction in time. Two other buttons
 #. use the same English word in other senses and carry their own contexts.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Later"
 msgctxt "update banner"
 msgid "Later"
 msgstr "Später"
@@ -7398,27 +7410,25 @@ msgstr "Später"
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Ignore"
-msgstr ""
+msgstr "Ignorieren"
 
 #. Tooltip of the update banner's Ignore button.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Do not mention this version again"
-msgstr ""
+msgstr "Diese Version nicht wieder erwähnen"
 
 #. Banner across the top of the library after something the user asked
 #. for failed because the server could not be reached. Followed by the
 #. "Retry" and "Go Offline" buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "The server isn't answering."
-msgstr ""
+msgstr "Der Server antwortet nicht."
 
 #. Button on the "server isn't answering" banner: browse only what is
 #. downloaded to this computer instead.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Offline"
 msgid "Go Offline"
-msgstr "Offline"
+msgstr "Offline gehen"
 
 #. Banner shown when no server could be reached and only downloaded items
 #. are listed.
@@ -7504,7 +7514,7 @@ msgstr ""
 #. "Could not play this item: <title> — "; "it" is that item.
 #: jellyfin_mpv_shim/player.py
 msgid "The server stopped sending it partway through."
-msgstr ""
+msgstr "Der Server hat die Übertragung mittendrin abgebrochen."
 
 #. Shown over the video when playback reaches the end of a downloaded
 #. episode and the one after it is not on this device.
@@ -7564,6 +7574,8 @@ msgstr "SVP aktivieren"
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Downloads are unavailable: the saved logins could not be read."
 msgstr ""
+"Downloads sind nicht verfügbar: Die gespeicherten Anmeldungen konnten nicht "
+"gelesen werden."
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
@@ -7627,6 +7639,8 @@ msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
 msgstr ""
+"Die App darf nicht in diesen Ordner schreiben. Wählen einen den Du besitzt, "
+"oder ändere die Berechtigungen, dann versuche es erneut."
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
@@ -7654,6 +7668,8 @@ msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
 msgstr ""
+"Diese App durfte nicht in diesen Ordner schreiben. Die Downloads sind wo sie "
+"waren; prüfe die Berechtigungen des Ordners und versuche es erneut."
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
@@ -7805,16 +7821,13 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
 "Aktualisierung auf MPV Shim v{0} verfügbar\n"
-"Öffne Menü (drücke C) für Details."
+"Führe \"flatpak update\" aus, um sie zu installieren."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
