@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2022-08-06 12:22+0000\n"
-"Last-Translator: Daniel Papasergio <daniel.papasergio@outlook.com>\n"
+"PO-Revision-Date: 2026-10-09 21:05+0000\n"
+"Last-Translator: Rohith <user-21385@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Kannada <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/kn/>\n"
+"jellyfin-mpv-shim/kn/>\n"
 "Language: kn\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -38,14 +38,14 @@ msgstr ""
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "ಪುಟ %d"
 
 #. How far through a book the reader has got, as a percentage. Shown under
 #. the book's tile.
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% ಓದಲಾಗಿದೆ"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -59,14 +59,14 @@ msgstr ""
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "{0}: No Subtitles"
-msgstr ""
+msgstr "{0}: ಉಪಶೀರ್ಷಿಕೆಗಳಿಲ್ಲ"
 
 #. One line of the bulk track-selection report. {0} is an episode's name;
 #. nothing suitable could be chosen for it.
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
 msgid "{0}: Fail"
-msgstr ""
+msgstr "{0}: ವಿಫಲ"
 
 #. Final line of the bulk track-selection report after choosing original
 #. audio with subtitles. {0} and {1} are counts of episodes.
@@ -107,7 +107,7 @@ msgstr ""
 #. the code in another Jellyfin app.
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "ಅನುಮೋದನೆಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ..."
 
 #. Printed in the terminal when the saved logins are being discarded before
 #. signing in again.
@@ -184,37 +184,37 @@ msgstr ""
 #. Playback > Skip Intro / Credits).
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Credits"
-msgstr ""
+msgstr "ಕ್ರೆಡಿಟ್‌ಗಳನ್ನು ಬಿಟ್ಟುಬಿಡಿ"
 
 #. Confirmation drawn over the video after the closing credits were jumped
 #. past. Past tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr ""
+msgstr "ಕ್ರೆಡಿಟ್‌ಗಳನ್ನು ಬಿಟ್ಟುಬಿಡಲಾಗಿದೆ"
 
 #. Prompt drawn over the video offering to jump past the closing credits,
 #. shown when the viewer seeks into them.
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr ""
+msgstr "ಕ್ರೆಡಿಟ್ಸ್ ನಂತರದ ಭಾಗಕ್ಕೆ ಹೋಗಿ"
 
 #. Button drawn over the video during an advertisement break. Pressing it
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
-msgstr ""
+msgstr "ಜಾಹೀರಾತು ಬಿಟ್ಟುಬಿಡಿ"
 
 #. Confirmation drawn over the video after an advertisement break was
 #. jumped past. Past tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Commercial"
-msgstr ""
+msgstr "ಜಾಹೀರಾತನ್ನು ಬಿಟ್ಟುಬಿಡಲಾಗಿದೆ"
 
 #. Prompt drawn over the video offering to jump past an advertisement
 #. break, shown when the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Commercial"
-msgstr ""
+msgstr "ಜಾಹೀರಾತಿನ ನಂತರಕ್ಕೆ ಹೋಗಿ"
 
 #. Button drawn over the video during a preview of a coming episode.
 #. Pressing it jumps past it. An imperative verb phrase.
@@ -282,19 +282,19 @@ msgstr ""
 #. during playback). Also the Subtitle Color setting.
 #: jellyfin_mpv_shim/menu.py
 msgid "White"
-msgstr ""
+msgstr "ಬಿಳಿ"
 
 #. Subtitle colour, on the in-player menu MPV draws over the video. Also
 #. the Subtitle Color setting.
 #: jellyfin_mpv_shim/menu.py
 msgid "Yellow"
-msgstr ""
+msgstr "ಹಳದಿ"
 
 #. Subtitle colour, on the in-player menu MPV draws over the video. Also
 #. the Subtitle Color setting.
 #: jellyfin_mpv_shim/menu.py
 msgid "Black"
-msgstr ""
+msgstr "ಕಪ್ಪು"
 
 #. Subtitle colour, on the in-player menu MPV draws over the video. Also
 #. the Subtitle Color setting.
@@ -306,37 +306,37 @@ msgstr ""
 #. the Subtitle Color setting.
 #: jellyfin_mpv_shim/menu.py
 msgid "Blue"
-msgstr ""
+msgstr "ನೀಲಿ"
 
 #. Subtitle colour, on the in-player menu MPV draws over the video. Also
 #. the Subtitle Color setting.
 #: jellyfin_mpv_shim/menu.py
 msgid "Green"
-msgstr ""
+msgstr "ಹಸಿರು"
 
 #. Subtitle colour, on the in-player menu MPV draws over the video. Also
 #. the Subtitle Color setting.
 #: jellyfin_mpv_shim/menu.py
 msgid "Magenta"
-msgstr ""
+msgstr "ಮೆಜೆಂಟಾ"
 
 #. Subtitle colour, on the in-player menu MPV draws over the video. Also
 #. the Subtitle Color setting.
 #: jellyfin_mpv_shim/menu.py
 msgid "Red"
-msgstr ""
+msgstr "ಕೆಂಪು"
 
 #. Subtitle colour, on the in-player menu MPV draws over the video. Also
 #. the Subtitle Color setting.
 #: jellyfin_mpv_shim/menu.py
 msgid "Gray"
-msgstr ""
+msgstr "ಬೂದು"
 
 #. Subtitle size on the in-player menu and in the Subtitle Size setting.
 #. Smallest of Tiny, Small, Normal, Large, Huge.
 #: jellyfin_mpv_shim/menu.py
 msgid "Tiny"
-msgstr ""
+msgstr "ಅತ್ಯಂತ ಚಿಕ್ಕ"
 
 #. One English word, two settings. A subtitle size on the in-player menu
 #. and in the Subtitle Size setting; and a cover size in the theme settings
@@ -349,20 +349,20 @@ msgstr "ಸಣ್ಣ"
 #. meaning the standard size. One of Tiny, Small, Normal, Large, Huge.
 #: jellyfin_mpv_shim/menu.py
 msgid "Normal"
-msgstr ""
+msgstr "ಸಾಮಾನ್ಯ"
 
 #. One English word, two settings. A subtitle size on the in-player menu
 #. and in the Subtitle Size setting; and a cover size in the theme settings
 #. and a library's View menu. Both are one of a size ladder.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Large"
-msgstr ""
+msgstr "ದೊಡ್ಡ"
 
 #. Subtitle size on the in-player menu and in the Subtitle Size setting.
 #. Largest of Tiny, Small, Normal, Large, Huge.
 #: jellyfin_mpv_shim/menu.py
 msgid "Huge"
-msgstr ""
+msgstr "ಅತ್ಯಂತ ದೊಡ್ಡ"
 
 #. Title of the in-player menu MPV draws over the video, reached by
 #. pressing M during playback.
@@ -460,7 +460,7 @@ msgstr ""
 #. Entry that dismisses the in-player menu. An imperative verb.
 #: jellyfin_mpv_shim/menu.py
 msgid "Close Menu"
-msgstr ""
+msgstr "ಮೆನುವನ್ನು ಮುಚ್ಚಿ"
 
 #. Title of the in-player submenu listing the item's audio tracks.
 #: jellyfin_mpv_shim/menu.py
