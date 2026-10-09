@@ -29,6 +29,7 @@ import posixpath
 import zipfile
 from urllib.parse import unquote
 
+from ..archive_errors import ZIP_READ_ERRORS
 from . import xmlish
 # Re-exported: this is where callers have always imported it from, and it
 # is the layer that gives it meaning. See errors.py for why it is defined
@@ -123,7 +124,7 @@ class EpubArchive:
         try:
             with self._open() as zf, zf.open(entry) as handle:
                 data = handle.read(limit + 1)
-        except (OSError, zipfile.BadZipFile, RuntimeError, EOFError) as exc:
+        except ZIP_READ_ERRORS as exc:
             # RuntimeError is what zipfile raises for an encrypted entry,
             # which is a DRM'd book — a real case, and one whose message
             # should not read as corruption.

@@ -80,6 +80,44 @@ FOLDER_ITEM_TYPES = frozenset({"Folder", "CollectionFolder", "UserView"})
 #: it short of downloading the playlist again.
 RESERVED_STORE_DIRS = frozenset({"series", "season", "playlist"})
 
+
+def _art_present(path):
+    """Whether ``path`` holds artwork that decodes. A 0-byte file from a full
+    disk, a truncated body or a login page counts as missing, so the next
+    sync fetches it again rather than skipping it for ever."""
+    from .. import imageutil
+
+    try:
+        with open(path, "rb") as fh:
+            return imageutil.decodes(fh.read())
+    except OSError:
+        return False
+
+
+def _write_art(path, data):
+    """Write image bytes to ``path`` atomically, and only if they decode.
+
+    Raises ValueError for a body that is not an image (the caller's except
+    logs it). Written beside the final name and renamed, so a write that dies
+    part-way -- ENOSPC is the common one -- leaves nothing behind rather than
+    a partial file the next sync would take for the real thing.
+    """
+    from .. import imageutil
+
+    if not imageutil.decodes(data):
+        raise ValueError("not an image (%d bytes)" % len(data))
+    tmp = "%s.%d.%d.tmp" % (path, os.getpid(), threading.get_ident())
+    try:
+        with open(tmp, "wb") as fh:
+            fh.write(data)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
+
 #: Characters a Jellyfin item id is made of. Ids are GUIDs, normally
 #: dash-stripped hex; the dashed spelling is accepted because both reach a
 #: client depending on the endpoint.
@@ -2480,9 +2518,9 @@ class SyncManager:
         destination, and the old copy has to go or the pass never converges.
 
         Orphaned directories -- a playlist deleted while its poster stayed --
-        are **not** touched, because this walks catalog rows. That is
-        unchanged: nothing has ever removed them, which is why `playlist` is in
-        `RESERVED_STORE_DIRS` (the orphan sweep used to delete the whole cache).
+        are **not** touched here, because this walks catalog rows. `_sweep_art`
+        removes the scoped ones; `playlist` is in `RESERVED_STORE_DIRS` so the
+        item sweep does not (it used to delete the whole cache).
         """
         try:
             rows = self.db.list_playlists(ANY_SERVER)
@@ -2595,6 +2633,48 @@ class SyncManager:
                 continue
             log.warning("Removing orphaned download dir: %s", child_path)
             shutil.rmtree(child_path, ignore_errors=True)
+        self._sweep_art(base)
+
+    def _sweep_art(self, base):
+        """Remove series, season and playlist art no row references any more.
+
+        Nothing else deletes it: per-item removal takes the item's own
+        directory, and these are shared by every episode of a series or every
+        member of a playlist, so they outlived the last of them for ever.
+        Runs under `_reconcile_disk`'s guards (a readable catalog holding at
+        least one row) and asks the catalog strictly, so a failed read sweeps
+        nothing. **Only leaf art directories**: under ``playlist/`` the first
+        level is a server scope, which a legacy unscoped playlist directory
+        cannot be told apart from by name -- neither is ever removed here.
+        """
+        try:
+            series, seasons, playlists = self.db.art_owners()
+        except Exception:
+            log.error("Skipping the art sweep: the catalog could not be read.",
+                      exc_info=True)
+            return
+        wanted = ({series_art_dir(self.root, s) for s in series}
+                  | {season_art_dir(self.root, s) for s in seasons}
+                  | {playlist_art_dir(self.root, server_id, pid)
+                     for server_id, pid in playlists})
+        candidates = []
+        for kind in ("series", "season"):
+            candidates += self._subdirs(os.path.join(base, kind))
+        for scope in self._subdirs(os.path.join(base, "playlist")):
+            candidates += self._subdirs(scope)
+        for path in candidates:
+            if path not in wanted:
+                log.info("Removing art nothing references: %s", path)
+                shutil.rmtree(path, ignore_errors=True)
+
+    @staticmethod
+    def _subdirs(path):
+        try:
+            names = os.listdir(path)
+        except OSError:
+            return []
+        return [os.path.join(path, n) for n in names
+                if os.path.isdir(os.path.join(path, n))]
 
     def _adopt_orphan(self, item_id, item_dir, server_uuid):
         """Rebuild the catalog row for a complete download that has none.
@@ -4156,8 +4236,7 @@ class SyncManager:
                 resp = requests.get(url, timeout=(10, 30), verify=verify,
                                     headers=self._headers_for(client, url))
                 resp.raise_for_status()
-                with open(os.path.join(tp_dir, "%d.jpg" % i), "wb") as fh:
-                    fh.write(resp.content)
+                _write_art(os.path.join(tp_dir, "%d.jpg" % i), resp.content)
             except Exception:
                 log.debug("Trickplay tile %d failed for %s", i, item_id,
                           exc_info=True)
@@ -4219,16 +4298,17 @@ class SyncManager:
         series_dir = series_art_dir(self.root, series_id)
         poster = os.path.join(series_dir, "poster.jpg")
         backdrop = os.path.join(series_dir, "backdrop.jpg")
-        if os.path.exists(poster) and os.path.exists(backdrop):
+        have_poster, have_backdrop = _art_present(poster), _art_present(backdrop)
+        if have_poster and have_backdrop:
             return
         api = client.jellyfin
         verify = not settings.ignore_ssl_cert
         os.makedirs(series_dir, exist_ok=True)
         jobs = []
-        if not os.path.exists(poster):
+        if not have_poster:
             jobs.append((poster, api.artwork(series_id, "Primary", 600,
                                              include_apikey=False)))
-        if not os.path.exists(backdrop):
+        if not have_backdrop:
             jobs.append((backdrop, api.artwork(series_id, "Backdrop", 1280,
                                                include_apikey=False)))
         for path, url in jobs:
@@ -4236,8 +4316,7 @@ class SyncManager:
                 resp = requests.get(url, timeout=(10, 30), verify=verify,
                                     headers=self._headers_for(client, url))
                 resp.raise_for_status()
-                with open(path, "wb") as fh:
-                    fh.write(resp.content)
+                _write_art(path, resp.content)
             except Exception:
                 log.debug("Series art failed: %s", url, exc_info=True)
 
@@ -4254,7 +4333,7 @@ class SyncManager:
         """
         pl_dir = playlist_art_dir(self.root, content_server_id, playlist_id)
         poster = os.path.join(pl_dir, "poster.jpg")
-        if os.path.exists(poster):
+        if _art_present(poster):
             return
         os.makedirs(pl_dir, exist_ok=True)
         url = client.jellyfin.artwork(playlist_id, "Primary", 600,
@@ -4264,8 +4343,7 @@ class SyncManager:
                                 verify=not settings.ignore_ssl_cert,
                                 headers=self._headers_for(client, url))
             resp.raise_for_status()
-            with open(poster, "wb") as fh:
-                fh.write(resp.content)
+            _write_art(poster, resp.content)
         except Exception:
             # Playlists without an image are normal — the tile falls back to
             # its glyph, same as online.
@@ -4292,7 +4370,7 @@ class SyncManager:
         scoped either; see `_download_series_art`."""
         season_dir = season_art_dir(self.root, season_id)
         poster = os.path.join(season_dir, "poster.jpg")
-        if os.path.exists(poster):
+        if _art_present(poster):
             return
         os.makedirs(season_dir, exist_ok=True)
         verify = not settings.ignore_ssl_cert
@@ -4302,8 +4380,7 @@ class SyncManager:
             resp = requests.get(url, timeout=(10, 30), verify=verify,
                                 headers=self._headers_for(client, url))
             resp.raise_for_status()
-            with open(poster, "wb") as fh:
-                fh.write(resp.content)
+            _write_art(poster, resp.content)
         except Exception:
             log.debug("Season art failed for %s", season_id, exc_info=True)
 
@@ -4326,8 +4403,7 @@ class SyncManager:
                 resp = requests.get(url, timeout=(10, 30), verify=verify,
                                     headers=self._headers_for(client, url))
                 resp.raise_for_status()
-                with open(os.path.join(item_dir, name), "wb") as fh:
-                    fh.write(resp.content)
+                _write_art(os.path.join(item_dir, name), resp.content)
             except Exception:
                 log.debug("Artwork %s failed for %s", name, item.get("Id"),
                           exc_info=True)

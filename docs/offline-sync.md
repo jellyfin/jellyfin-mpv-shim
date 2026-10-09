@@ -757,8 +757,9 @@ startup: `os.replace` per file, atomic within a filesystem, and the pass is
 poster at one path or the other, never neither, and the next launch finishes
 it. The only file it deletes is a duplicate the destination already holds,
 which is the newer write. Orphaned directories — a playlist deleted while its
-poster stayed — are untouched, as they always have been; that is why
-`playlist` is in `RESERVED_STORE_DIRS`.
+poster stayed — are not this pass's to remove; `playlist` is in
+`RESERVED_STORE_DIRS` so the item sweep leaves them, and the art sweep below
+takes the ones no row references.
 
 **The offline library spells a playlist's id with its server in it** —
 `constants.offline_playlist_id`, in the manner of `offline:movies` beside it.
@@ -1116,7 +1117,17 @@ a directory only when:
 3. **its name is shaped like an item id** — `_looks_like_item_id`;
 4. **and it is not a live row**, nor one `_adopt_orphan` can rebuild.
 
-Each of those exists because inferring instead deleted something. An
+Each of those exists because inferring instead deleted something.
+
+**Shared art has a sweep of its own** (`SyncManager._sweep_art`), under the same
+first two guards. Series, season and playlist art is shared by every episode or
+member, so per-item removal never takes it, and without this it would outlive the last
+download that used it for ever. It removes a `series/<id>`, `season/<id>` or
+`playlist/<scope>/<id>` directory that no row references (any status — a pending
+download keeps its art), asks the catalog **strictly** (`SyncDB.art_owners`), so
+a read that fails sweeps nothing, and never removes a direct child of
+`playlist/`: a server scope and a pre-R23 unscoped playlist directory are both
+32-hex names. An
 unreadable catalog answers `[]` to every query, and one zeroed 4 KiB page (the
 `downloads` b-tree root) of a 64 KiB catalog therefore deleted 60 of 60
 downloads on startup. A download folder pointed at a directory the user

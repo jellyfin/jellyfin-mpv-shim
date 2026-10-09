@@ -439,6 +439,7 @@ class _BifVideo:
         self.width, self.height = width, height
         self.tile_w, self.tile_h = tile_w, tile_h
         self.count, self.interval = count, interval
+        self.item_id = "item-1"     # both real videos carry it
         #: (start, count) of every tile request, in order.
         self.requested = []
 
@@ -760,6 +761,100 @@ class WindowedTrickplayTest(unittest.TestCase):
                          "the first window ignored the resume position")
 
 
+class _OneBadTile(_BifVideo):
+    """Tile 3 is not what the manifest promises: ``bad`` says how."""
+
+    def __init__(self, bad="tall", **kw):
+        super().__init__(**kw)
+        self.bad = bad
+
+    def _tile(self, index):
+        if index != 3:
+            return super()._tile(index)
+        if self.bad == "corrupt":
+            return b"\xff\xd8\xff not really a jpeg"
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (8, 10)).save(buf, "PNG")    # 2 px taller
+        return buf.getvalue()
+
+
+class _NetworkDrop(_BifVideo):
+    """Tile 3 times out, as a slow link does."""
+
+    def _tile(self, index):
+        if index == 3:
+            import requests
+            raise requests.ConnectionError("read timed out")
+        return super()._tile(index)
+
+
+class AFailedWindowIsNotRefetchedTest(unittest.TestCase):
+    """One bad tile made every scrub inside its window download the whole
+    window again: the failure was never recorded, and the renderer asks once
+    per frame index. That is the "re-requests trickplay images" half of the
+    backlog report, and it needs no concurrency to happen."""
+
+    FRAME_BYTES = WindowedTrickplayTest.FRAME_BYTES
+    setUp = WindowedTrickplayTest.setUp
+    _worker = WindowedTrickplayTest._worker
+    _fetch = WindowedTrickplayTest._fetch
+
+    def _settle(self, tp, video, before):
+        """Wait for the worker to act on a request (or decline to)."""
+        deadline = time.monotonic() + 0.3
+        while time.monotonic() < deadline:
+            if len(video.requested) > before and not tp.trigger.is_set():
+                break
+            time.sleep(0.005)
+        time.sleep(0.05)
+
+    def scrub(self, tp, video, seconds):
+        before = len(video.requested)
+        tp.request_at(seconds)
+        self._settle(tp, video, before)
+
+    def scrub_the_bad_window(self, video):
+        tp, player = self._worker(video)
+        self.assertIsNotNone(self._fetch(tp, player, 0))
+        video.requested.clear()
+        # Frames 12-14: inside the one window the first of them asks for
+        # (10-14), whose tiles include the bad one.
+        for seconds in (125, 135, 145, 125, 135, 145):
+            self.scrub(tp, video, seconds)
+        return tp, player
+
+    def test_a_bad_tile_is_fetched_once_however_often_it_is_scrubbed(self):
+        video = _OneBadTile()
+        with self.assertLogs("trickplay", "WARNING") as logs:
+            self.scrub_the_bad_window(video)
+        self.assertEqual(len(video.requested), 1,
+                         "re-downloaded the failed window: %r"
+                         % video.requested)
+        unusual = [r for r in logs.output if "Unusual trickplay tile" in r]
+        self.assertEqual(len(unusual), 1, logs.output)
+        self.assertIn("Unusual trickplay tile 3 ", unusual[0])
+        self.assertIn("is 8x10, expected 8x8", unusual[0])
+
+    def test_a_corrupt_tile_is_recorded_too(self):
+        video = _OneBadTile(bad="corrupt")
+        with self.assertLogs("trickplay", "WARNING") as logs:
+            self.scrub_the_bad_window(video)
+        self.assertEqual(len(video.requested), 1)
+        self.assertIn("unreadable", "\n".join(logs.output))
+
+    def test_a_network_failure_stays_retryable(self):
+        """Retry-by-scrubbing (section 11.5) is right for a dropped link."""
+        video = _NetworkDrop()
+        tp, _player = self._worker(video)
+        self.assertIsNotNone(self._fetch(tp, _player, 0))
+        video.requested.clear()
+        for seconds in (125, 135, 145):
+            self.scrub(tp, video, seconds)
+        self.assertEqual(len(video.requested), 3,
+                         "a transient failure was recorded as permanent")
+
+
 class WindowMathTest(unittest.TestCase):
     """`_window_for` on its own, at the sizes a real server produces."""
 
@@ -788,6 +883,22 @@ class WindowMathTest(unittest.TestCase):
                 count * data["Width"] * data["Height"] * 4,
                 trickplay.WINDOW_BUDGET_BYTES,
                 "the window is over budget")
+
+    def test_fast_mode_never_needs_an_offset_mpv_refuses(self):
+        """overlay-add's offset is a 32-bit int in mpv. A two-hour film with
+        1280px previews is 720 frames of 3.7 MB, a 2.65 GB file, and every
+        preview past 1h37m was an overlay mpv rejected."""
+        trickplay.settings.trickplay_fast_mode = True
+        huge = dict(self.REAL, Width=1280, Height=720, ThumbnailCount=720)
+        for seconds in (0, 3600, 7190):
+            first, count = trickplay.TrickPlay._window_for(huge, seconds)
+            frame = huge["Width"] * huge["Height"] * 4
+            self.assertLessEqual((count - 1) * frame, trickplay.MAX_OFFSET,
+                                 "a frame of this file is past 2 GiB")
+            self.assertLessEqual(first, 720 - count)
+        self.assertEqual(trickplay.TrickPlay._window_for(self.REAL, 3600),
+                         (0, 770), "fast mode stopped loading the whole "
+                         "video where it fits")
 
     def test_a_degenerate_manifest_does_not_divide_by_zero(self):
         self.assertEqual(
