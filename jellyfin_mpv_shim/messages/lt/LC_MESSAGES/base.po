@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-05 17:57+0000\n"
+"PO-Revision-Date: 2026-10-09 11:27+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -863,10 +863,8 @@ msgstr "Nepavyko pradėti atkūrimo."
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "Nothing is downloaded to browse offline."
-msgstr "Nėra nieko, ką būtų galima naršyti."
+msgstr "Nieko neatsisiunčiama naršymui neprisijungus."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -1017,10 +1015,8 @@ msgstr "PIN kodo išsaugoti nepavyko."
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Prisijungti"
+msgstr "Prisijungti iš naujo"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1116,10 +1112,8 @@ msgstr "Jungtis"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Serverio konfigūracija"
+msgstr "Serveriai jūsų tinkle"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
@@ -1162,8 +1156,6 @@ msgstr "Jungiamasi…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
 msgstr "Nepavyko prisijungti. Patikrinkite savo duomenis."
 
@@ -4137,18 +4129,15 @@ msgstr "Atsisiunčiama"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "Laukiama patvirtinimo…"
+msgstr "Laukiama, kol %s prisijungs…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Waiting for approval…"
 msgid "Waiting for its profile to sign in…"
-msgstr "Laukiama patvirtinimo…"
+msgstr "Laukiama, kol profilis prisijungs…"
 
 #. State of a download waiting for its turn.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -4609,10 +4598,9 @@ msgstr ""
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "%s could not be deleted."
+#, python-format
 msgid "%s could not be refreshed."
-msgstr "Nepavyko ištrinti %s."
+msgstr "Nepavyko atnaujinti %s."
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -5409,10 +5397,8 @@ msgstr "Maišyti"
 #. server refused to remember which sort order the user picked. The sort
 #. itself has already been applied; only remembering it failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "That sort could not be saved."
-msgstr "PIN kodo išsaugoti nepavyko."
+msgstr "Šio rūšiavimo nepavyko išsaugoti."
 
 #. Label beside the dropdown that orders a library grid. A verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -6606,17 +6592,15 @@ msgstr ""
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connected"
+#, python-format
 msgid "Connected to %s."
-msgstr "Prijungtas"
+msgstr "Prisijungta prie %s."
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connecting…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "Jungiamasi…"
+msgstr "Jungiamasi prie %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -6639,10 +6623,9 @@ msgstr ""
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "Nepavyko prisijungti prie serverio."
+msgstr "Nepavyko prisijungti prie %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -6718,10 +6701,8 @@ msgstr "Pridėti į grojaraštį"
 #. administrators: it asks the server to look again for this item's metadata
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "Atnaujinti"
+msgstr "Atnaujinti metaduomenis"
 
 #. Action on an item's menu, and the title of the dialog it opens, taking
 #. the item out of the playlist being viewed. An imperative verb phrase.
@@ -6822,8 +6803,6 @@ msgstr "Pagrindinis"
 #. downloaded to this computer, without a server. A place to go, not the
 #. state of a server (compare the Settings status word "Offline").
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Offline"
 msgctxt "server switcher entry"
 msgid "Offline"
 msgstr "Neprisijungęs"
@@ -6917,10 +6896,8 @@ msgstr ""
 #. Button on the "server isn't answering" banner: browse only what is
 #. downloaded to this computer instead.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Offline"
 msgid "Go Offline"
-msgstr "Neprisijungęs"
+msgstr "Naudotis neprisijungus"
 
 #. Banner shown when no server could be reached and only downloaded items
 #. are listed.
@@ -7283,16 +7260,13 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
 "MPV Shim v{0} galimas atnaujinimas\n"
-"Atidarykite meniu (paspauskite c) detalesniam aprašymui."
+"Norėdami jį įdiegti, paleiskite \"flatpak update\"."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
