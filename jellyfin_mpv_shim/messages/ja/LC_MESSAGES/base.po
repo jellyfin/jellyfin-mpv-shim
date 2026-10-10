@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-06 14:05+0000\n"
+"PO-Revision-Date: 2026-10-10 15:17+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -2234,7 +2234,7 @@ msgstr "連続"
 #. Browser); stored as "aligned".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr "行に合わせて配置"
+msgstr "行に揃える"
 
 #. Choice in the "Scroll Mode" dropdown (Settings > Browse > Library
 #. Browser); stored as "row".
@@ -2343,7 +2343,7 @@ msgstr "ギャップを拡大"
 #. Browser); stored as "center".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr "タイルを中央ぞろえ"
+msgstr "タイルを中央揃え"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "off".
@@ -2763,7 +2763,7 @@ msgstr "ページ色"
 #. Browse > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr "文字の両端ぞろえ"
+msgstr "文字の両端揃え"
 
 #. Label of the dropdown for the "comic_fit" setting (Settings > Browse >
 #. Reading).
@@ -3332,6 +3332,12 @@ msgid ""
 "the next time you seek somewhere new; turning it off applies to the next "
 "video."
 msgstr ""
+"通常、シークプレビューは、シーク先の周辺を数分単位で順次読み込むため、新しい"
+"場所にスクロールする際には少し時間がかかります。この設定をオンにすると、最初"
+"からすべてを読み込むようになります。これにより待ち時間は一切なくなりますが、"
+"長編映画の場合、数百 MB のメモリを消費する可能性があります。この設定をオンに"
+"すると、次に新しい場所にシークする際にその効果を適用し、オフにすると次の動画"
+"から適用します。"
 
 #. Explanation shown under the "Player Controls Style" setting (Settings >
 #. Playback > Player Controls).
@@ -3361,6 +3367,10 @@ msgid ""
 "notches spans one row, in every scroll mode, so a trackpad or trackball "
 "never leaves you a sliver of a row off."
 msgstr ""
+"マウスホイールの 1 ノッチでスクロールするピクセル数。大きくするとスクロール速"
+"度が上がり、低くするとより細かい制御ができます。グリッド上では、どの"
+"スクロールモードでも、行単位でスクロールするように値を丸めます。そのため"
+"トラックパッドやトラックボールで、行がずれてしまうようなことはありません。"
 
 #. Explanation shown under the "Scroll Mode" setting (Settings > Browse >
 #. Library Browser).
@@ -3372,14 +3382,18 @@ msgid ""
 "remote display, or with an external MPV. Pick \"One row per notch\" to move "
 "a whole row, or one home-screen section, at a time."
 msgstr ""
+"「連続」を選択すると、ピクセル単位でスクロールし、ホイールをどこに動かしても"
+"、表示が追いつかない場合は自動的に列を揃えてくれます。非常に大型の"
+"ディスプレイや、処理速度の遅いディスプレイ、リモートディスプレイ、あるいは外"
+"部 MPV を使っている場合など、スクロールがカクつく場合は、「行に揃える」を選ん"
+"でください。「ノッチごとに 1 行」を選ぶと、1 行ごと、またはホーム画面の"
+"セクション単位で移動します。"
 
 #. Explanation shown under the "Show What You're Watching in Discord"
 #. setting (Settings > General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Discordのアクティビティステータス"
+msgstr "Discord の Rich Presence。"
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3390,6 +3404,11 @@ msgid ""
 "before it'll let *any* audio through in passthrough mode. In my tests I got "
 "silence otherwise, but results may vary."
 msgstr ""
+"パススルーを設定しないのであれば、この設定はデフォルトのままにしておいてくだ"
+"さい。Pipewire などの一部のオーディオサーバーはパススルーに対応しておらず、"
+"パススルーモードで*なんらかの*音声を通過させるには、そのカードのパススルーを"
+"無効にしなくてはならない点に注意してください。私のテストでは、そうしないと無"
+"音になってしまいましたが、結果はさまざまと思われます。"
 
 #. Explanation shown under the "Take the Device Exclusively" setting
 #. (Settings > Playback > Audio).
@@ -3398,6 +3417,9 @@ msgid ""
 "Stop anything else using the device while playing. Needed for passthrough on "
 "some systems, and it means other applications will be silent."
 msgstr ""
+"再生中は、そのデバイスを使用している他のすべての操作を停止してください。一部"
+"のシステムではパススルー機能に必要であり、つまりは他のアプリケーションが無音"
+"になります。"
 
 #. Explanation shown under the "Paginated" setting (Settings > Browse >
 #. Library Browser).
@@ -3407,6 +3429,10 @@ msgid ""
 "screenful with First / Previous / Next / Last controls and a page number you "
 "can type into. Easier than precise scrolling on a trackpad."
 msgstr ""
+"ライブラリーと音楽のタイルグリッドをスクロールではなく、ページ単位の切り替え"
+"に : 各ページは 1 画面分で、「最初」「前へ」「次へ」「最後」のコントロールと"
+"、直接入力できるページ番号を表示します。トラックパッドで正確にスクロールする"
+"よりも簡単です。"
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3418,6 +3444,12 @@ msgid ""
 "get a drop shadow so they keep an edge against it. Off, they get the theme's "
 "card colour and no shadow, as Jellyfin Web does."
 msgstr ""
+"チャンネル ロゴは、透明な背景にインクで描かれたもので、他のクライアントが配置"
+"する白いページ用に作成されています。そのため、暗いページでは黒いロゴは見えな"
+"くなってしまいます。「オン」にすると、各ロゴに明るい色合いのプレートを用意し"
+"、少数の白い輪郭線があるロゴにはドロップシャドウを適用することで、背景に対し"
+"て輪郭が際立つようになります。「オフ」では、Jellyfin Web と同様に、テーマの"
+"カードカラーを適用し、ドロップシャドウは表示しません。"
 
 #. Explanation shown under the "Make library logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3428,6 +3460,10 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
+"ロゴ アートワークを描画するように設定したライブラリーにも同様の処理を行います"
+"。デフォルトではオフ : 映画やテレビシリーズのロゴは慣例的に白で、暗い背景でも"
+"十分に視認できるため、影が必要になるのはプレートの方だからです。ダークモード"
+"をお使いの場合は、この設定をオンにしてください。"
 
 #. Explanation shown under the "Theme" setting (Settings > Browse > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3435,6 +3471,8 @@ msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"パレット、グロー、表紙のスタイル、およびデフォルトの表紙サイズ。色は即座に変"
+"更しますが、表紙と見出しのサイズは再起動後に反映します。"
 
 #. Explanation shown under the "Grid Spacing" setting (Settings > Browse >
 #. Library Browser).
@@ -3444,6 +3482,9 @@ msgid ""
 "gaps keeps the page margins the same on every screen size; centring keeps "
 "the covers evenly spaced and moves both margins instead."
 msgstr ""
+"カバーの幅が整数倍で割り切れない場合、余白をどのように処理するか。余白を広げ"
+"ることで、あらゆる画面サイズでページの余白を一定に保つことができます。中央揃"
+"えにすると、カバーの間隔を均等に保ちつつ、両側の余白を移動します。"
 
 #. Explanation shown under the "Full-Width Backdrops" setting (Settings >
 #. Browse > Library Browser).
@@ -3462,6 +3503,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
+"テーマのカバーサイズを上書きします。あらゆるライブラリーの「表示」メニューか"
+"らも設定できます。"
 
 #. Explanation shown under the "12-Hour Clock" setting (Settings > Browse >
 #. Library Browser).
@@ -3481,6 +3524,9 @@ msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"プレーヤー コントローラーは、どのフレームでも読みやすく保つ必要があります。「"
+"なし」を選ぶと、背後の画像に陰影をつけずに、文字にドロップシャドウを適用しま"
+"す。"
 
 #. Explanation shown under the "When the Player Controls Hide" setting
 #. (Settings > Playback > Player Controls).
