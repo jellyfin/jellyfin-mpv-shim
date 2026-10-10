@@ -242,6 +242,25 @@ shallow-cloning. A `tag` is safe to name, because a tag does not move.
 `--share=network` instead of the pinned wheel set — convenient here and disqualifying
 there.
 
+## 4. macOS ARM64
+
+Build with `./build-mac-arm64.sh` after `./gen_pkg.sh --skip-build`.
+
+The build produces a self-contained application bundle `dist/Jellyfin MPV Shim.app`
+and bundles an ARM64 `mpv` binary along with its dynamic libraries (from the
+official pinned stolendata standalone mpv release) as well as `libMoltenVK.dylib`
+and its ICD manifest so hardware-accelerated Vulkan / `gpu-next` works out-of-the-box
+without requiring Homebrew or separate driver installations.
+
+`./artifacts.sh macos-arm64` generates both:
+- `publish/macOS/jellyfin-mpv-shim_<version>_macOS_arm64.dmg`
+- `publish/macOS/jellyfin-mpv-shim_<version>_macOS_arm64.tar.gz`
+
+`tools/check_mac_arch.py` validates that the Python interpreter, the bundled
+mpv binary, the MoltenVK driver library, and the compiled executable are all native
+ARM64 binaries to guard against silent architecture fallback under Rosetta emulation.
+
+## 5. Version spelling
 ### The bundled mpv cplugin needs naming *and* a symbol promotion
 
 The manifest has installed `mpv_inhibit_gnome.so` to `/app/etc/mpv/scripts` and
@@ -272,7 +291,7 @@ mutter honours the Wayland idle-inhibit protocol, so the GNOME plugin only matte
 where that protocol is not in play. KDE and XFCE want `org.freedesktop.ScreenSaver`,
 which *is* a manifest change and is not done here.
 
-## 4. Version spelling
+## 5. Version spelling
 
 `jellyfin_mpv_shim/constants.py:CLIENT_VERSION` is the single source of truth for the
 Python package; `pyproject.toml` reads it via `tool.setuptools.dynamic`. The Inno Setup
@@ -299,7 +318,7 @@ keep the `pre` spelling.
 `version.py` parses both spellings, so the update check orders a pre-release correctly
 against stable tags rather than offering 2.10.0 as an "upgrade".
 
-## 5. The Python build
+## 6. The Python build
 
 PEP 517 / `pyproject.toml` with `setuptools` as the backend. The full build path
 requires the `build` package (`pip install build`); `pip install .[all]` and

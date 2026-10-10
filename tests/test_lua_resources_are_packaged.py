@@ -94,6 +94,20 @@ class LuaIsPackagedTest(unittest.TestCase):
                         "%s does not bundle %s, so that build ships "
                         "without it" % (name, base))
 
+    def test_every_lua_file_is_in_mac_build(self):
+        mac_build = os.path.join(ROOT, "build-mac-arm64.sh")
+        if not os.path.exists(mac_build):
+            return
+        with open(mac_build, encoding="utf-8") as fh:
+            text = fh.read()
+        for path in _shipped_lua():
+            base = os.path.basename(path)
+            with self.subTest(build="build-mac-arm64.sh", lua=base):
+                self.assertIn(
+                    base, text,
+                    "build-mac-arm64.sh does not bundle %s, so that build ships "
+                    "without it" % base)
+
     def test_the_scan_actually_finds_them(self):
         # A guard on the guard: a broken walk would make the check vacuous.
         found = _shipped_lua()
