@@ -119,6 +119,15 @@ def start_playback(
 
     if settings.pre_media_cmd:
         os.system(settings.pre_media_cmd)
+    # Another client's session is still showing the item this replaces; only
+    # a report to the same session would overwrite it.
+    outgoing = playerManager._video
+    if (outgoing is not None and outgoing.client is not None
+            and outgoing.client is not video.client):
+        options = playerManager.get_timeline_options(video=outgoing)
+        if options is not None:
+            playerManager.send_timeline_stopped(
+                options=options, client=outgoing.client, stopped=outgoing)
     playerManager.play(video, offset, is_initial_play=True,
                        pause_stills=pause_stills)
     timelineManager.send_timeline()
