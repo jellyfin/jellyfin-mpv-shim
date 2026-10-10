@@ -488,13 +488,14 @@ class ClientManager(object):
         # Sort creds list by local-first priority
         sorted_credentials = sorted(self.credentials, key=connection_priority)
 
-        # Group by server Id, preserving the priority order within each group.
+        # Group by server Id and account, preserving the priority order
+        # within each group.
         # Different servers connect CONCURRENTLY; the addresses for one server
         # stay a serial fallback chain, because the sort put the most local
         # address first and racing them would let a worse route win.
         chains = OrderedDict()
         for server in sorted_credentials:
-            chains.setdefault(server["Id"], []).append(server)
+            chains.setdefault((server["Id"], server.get("UserId")), []).append(server)
         chains = list(chains.values())
         if not chains:
             return False
@@ -715,6 +716,29 @@ class ClientManager(object):
             replacing_uuid, new_id, old_id)
         return False
 
+    def _own_device_if_shared(self, client):
+        """Give a login its own device id when this profile already holds
+        another credential for the same server.
+
+        Jellyfin keys a session by device, so two accounts on one device id
+        are one session that changes hands, and only one of them can be cast
+        to. The id has to be chosen before the token is minted -- the server
+        binds the token to the device that asked for it -- so this runs after
+        ``connect_to_address`` (which says which server this is) and before
+        the password or Quick Connect request.
+        """
+        server_id = self._answering_server(client).get("Id")
+        if server_id and any(c.get("Id") == server_id
+                             for c in self.credentials):
+            self._use_device(client, str(uuid.uuid4()))
+
+    def _use_device(self, client, device_id):
+        """Present ``client`` as ``device_id``, and record it on the server
+        dict ``_finalize_login`` will save, so the credential remembers it."""
+        client.config.app(USER_APP_NAME, CLIENT_VERSION, self.device_name,
+                          device_id)
+        self._answering_server(client)["device_id"] = device_id
+
     def _finalize_login(
         self, client: "JellyfinClient", username: str,
         owner_id=None, replacing_uuid=None,
@@ -831,6 +855,7 @@ class ClientManager(object):
         client = self.client_factory()
         try:
             client.auth.connect_to_address(server)
+            self._own_device_if_shared(client)
             result = client.auth.login(server, username, password)
             if "AccessToken" not in result:
                 return False
@@ -853,6 +878,7 @@ class ClientManager(object):
         client = self.client_factory()
         try:
             client.auth.connect_to_address(server)
+            self._own_device_if_shared(client)
             servers = client.auth.credentials.get_credentials().get("Servers")
             if not servers:
                 raise QuickConnectError(_("Could not connect to the server."))
@@ -967,7 +993,8 @@ class ClientManager(object):
             return True
 
         for f_client in client_list:
-            if f_client.get("DeviceId") == self.device_id:
+            if f_client.get("DeviceId") == (
+                    (server or {}).get("device_id") or self.device_id):
                 break
         else:
             if not dry_run:
@@ -1128,7 +1155,8 @@ class ClientManager(object):
                 # with a single dry probe; if it still isn't registered, keep
                 # the connection rather than churning through more rebuilds.
                 client = self.clients.get(server["uuid"])
-                if client is not None and self.validate_client(client, dry_run=True):
+                if client is not None and self.validate_client(client, dry_run=True,
+                                                         server=server):
                     self._mark_cast_ready(server)
                 else:
                     self.on_servers_changed()
@@ -1149,7 +1177,7 @@ class ClientManager(object):
         the registry (identity-checked), not just stopped in place."""
         if client is None:
             return False
-        if self.validate_client(client, True):
+        if self.validate_client(client, True, server):
             return True
         log.info("Not connected yet, waiting 3 seconds...")
         if self._stop_event.wait(3):
@@ -1303,6 +1331,8 @@ class ClientManager(object):
         client = self.client_factory()
         try:
             client.auth.connect_to_address(address)
+            if existing.get("device_id"):
+                self._use_device(client, existing["device_id"])
             # Before the password goes out. The connect has already asked the
             # address who it is, so a server we are going to refuse need never
             # be handed the user's credentials on the way to being refused.
@@ -1435,6 +1465,8 @@ class ClientManager(object):
 
         try:
             client = self.client_factory()
+            if server.get("device_id"):
+                self._use_device(client, server["device_id"])
             state = client.authenticate({"Servers": [server]}, discover=False)
             server["connected"] = state["State"] == CONNECTION_STATE["SignedIn"]
             if not server["connected"]:
@@ -1610,16 +1642,17 @@ class ClientManager(object):
         in the switcher and on the home screen. Nothing ever collapses the
         pair: ``remove_client`` takes one uuid.
 
-        This does mean two accounts on one server share one client, which is
-        already true of startup — the chain covers them both. Consistent and
-        limited beats inconsistent.
+        Two accounts on one server are two servers here: the chain, and this
+        question, are per ``(Id, UserId)``.
         """
         if server["uuid"] in self.clients:
             return True
         server_id = server.get("Id")
         if not server_id:
             return False
-        return any(other.get("Id") == server_id and other["uuid"] in self.clients
+        return any(other.get("Id") == server_id
+                   and other.get("UserId") == server.get("UserId")
+                   and other["uuid"] in self.clients
                    for other in list(self.credentials))
 
     def check_all_clients(self):
