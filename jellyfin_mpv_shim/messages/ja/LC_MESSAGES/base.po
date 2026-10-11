@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-10 15:17+0000\n"
+"PO-Revision-Date: 2026-10-11 19:48+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -2216,7 +2216,7 @@ msgstr "20 px"
 #. stored as "None".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
-msgstr "ディスプレーに従う"
+msgstr "ディスプレーに合わせる"
 
 #. Choice in the "Interface Scale" dropdown (Settings > Browse > Theme);
 #. stored as "2.0".
@@ -2694,7 +2694,7 @@ msgstr "Discord に視聴中作品を表示"
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr "インターフェースサイズ"
+msgstr "インターフェース拡大縮小"
 
 # seeded from jellyfin-web: LabelTextSize
 #. Label of the dropdown for the "ui_text_scale" setting (Settings > Browse
@@ -3444,12 +3444,12 @@ msgid ""
 "get a drop shadow so they keep an edge against it. Off, they get the theme's "
 "card colour and no shadow, as Jellyfin Web does."
 msgstr ""
-"チャンネル ロゴは、透明な背景にインクで描かれたもので、他のクライアントが配置"
-"する白いページ用に作成されています。そのため、暗いページでは黒いロゴは見えな"
-"くなってしまいます。「オン」にすると、各ロゴに明るい色合いのプレートを用意し"
-"、少数の白い輪郭線があるロゴにはドロップシャドウを適用することで、背景に対し"
-"て輪郭が際立つようになります。「オフ」では、Jellyfin Web と同様に、テーマの"
-"カードカラーを適用し、ドロップシャドウは表示しません。"
+"チャンネル ロゴは、透明な背景に黒で描きますが、これは他のクライアントが配置す"
+"る白いページ用に作成しています。そのため、暗いページでは黒いロゴは見えずらく"
+"なってしまいます。「オン」にすると、各ロゴに明るい色合いのプレートを用意し、"
+"白い輪郭線があるロゴにはドロップシャドウを適用することで、背景に対して輪郭が"
+"際立つようにします。「オフ」では、Jellyfin Web と同様に、テーマのカードカラー"
+"を適用し、ドロップシャドウは表示しません。"
 
 #. Explanation shown under the "Make library logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3556,6 +3556,9 @@ msgid ""
 "the accessibility minimum, instead of dropping buttons sooner. Off keeps the "
 "older, larger floor."
 msgstr ""
+"ウィンドウを縮小すると、すぐにボタンを消すのではなく、いちばん小さいボタンが"
+"アクセシビリティの最低基準に達するまでプレーヤー コントローラーを縮小します。"
+"「オフ」にすると、以前の、より大きなサイズを維持します。"
 
 #. Explanation shown under the "Mouse Back/Forward Buttons Skip Chapters"
 #. setting (Settings > Playback > Player Controls).
@@ -3564,6 +3567,9 @@ msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
+"再生中のみ、ライブラリー内ではこれらのボタンは「戻る」と「進む」のままです。"
+"デフォルトではオフになっていますが、一部のマウスで誤って押してしまうことがあ"
+"るためです。"
 
 #. Explanation shown under the "Interface Scale" setting (Settings > Browse
 #. > Theme).
@@ -3572,6 +3578,8 @@ msgstr ""
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
+"「ディスプレーに合わせる」は、デスクトップが報告する拡大・縮小率を使用します"
+"。X11 では 100% です。"
 
 #. Explanation shown under the "Text size" setting (Settings > Browse >
 #. Theme).
@@ -3583,6 +3591,12 @@ msgid ""
 "captions are ellipsized, and what needs to be bigger is the whole interface, "
 "which is Interface Scale."
 msgstr ""
+"テキストのみを拡大・縮小します。「インターフェース拡大縮小」は、アートワーク"
+"や余白、コントロールなど、すべてをリサイズしますので、文字が小さすぎる場合は"
+"、インターフェース全体ではなく、こちらを使用してください。上限は 150% : それ"
+"以上では、ほとんどのタイルのキャプションが省略表示されてしまうからです。また"
+"、より大きくする必要があるのはインターフェース全体なので、その場合は「"
+"インターフェース拡大縮小」を使用してください。"
 
 #. Explanation shown under the "Minimum Text Size" setting (Settings >
 #. Browse > Theme).
@@ -3591,6 +3605,9 @@ msgid ""
 "Nothing renders smaller than this, whatever Text Size works out to. Raises "
 "the smallest labels without enlarging headings, which a percentage cannot do."
 msgstr ""
+"「文字サイズ」の設定値に関わらず、ここで設定する値より小さく表示しません。見"
+"出しを拡大することなく最小ラベル文字サイズを大きくすることができます。これは"
+"パーセント指定では実現できません。"
 
 #. Explanation shown under the "Audio Output Mode" setting (Settings >
 #. Playback > Audio).
@@ -3599,6 +3616,8 @@ msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
+"「デフォルト」は何も変更せず、MPV（および自分の mpv.conf ）で決定します。音声"
+"をレシーバーに送信する場合にのみモードを選んでください。"
 
 #. Explanation shown under the "Re-encode Others to AC3" setting (Settings
 #. > Playback > Audio).
@@ -3608,6 +3627,10 @@ msgid ""
 "surround fits down an optical cable. Turn this off if the encoder causes "
 "audio delay; those tracks become stereo instead."
 msgstr ""
+"レシーバーに直接送信できない音声を AC3 にエンコードします。これは光ケーブル経"
+"由でサラウンド音声を伝送する唯一の方法です。エンコーダーによって音声の遅延が"
+"生じる場合は「オフ」にする必要がありますが、その場合は該当のトラックは"
+"ステレオになります。"
 
 #. Explanation shown under the "Profile Group" setting (Settings > Playback
 #. > Video Enhancement).
@@ -3615,6 +3638,8 @@ msgstr ""
 msgid ""
 "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card."
 msgstr ""
+"「HQ」はより高負荷なプロファイルです。高性能なグラフィックカードをお持ちの場"
+"合に、選択してください。"
 
 #. Explanation shown under the "Graphics API for Shaders" setting (Settings
 #. > Playback > Video Enhancement).
@@ -3623,6 +3648,10 @@ msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
+"デフォルトは「自動」です。プロファイルを読み込んだら映像がおかしくなった…とい"
+"った事象が現れない限り、このままにしておいてください。この設定はプロファイル"
+"が有効な場合にのみ適用され、「OpenGL」を選ぶと、HDR 出力を損なう場合がありま"
+"す。"
 
 #. Explanation shown under the "Type Size" setting (Settings > Browse >
 #. Reading).
@@ -3631,6 +3660,8 @@ msgid ""
 "In pixels, before interface scaling. The A- and A+ buttons in the reader "
 "change this too."
 msgstr ""
+"インターフェース拡大縮小前のピクセル数。リーダー画面内の「A-」と「A+」ボタン"
+"でも変更できます。"
 
 #. Explanation shown under the "Comic Reading Mode" setting (Settings >
 #. Browse > Reading).
@@ -3650,6 +3681,9 @@ msgid ""
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
+"大きな効果音と静かなセリフの音量を均一に調整します。この機能を有効にしている"
+"間はパススルーがオフになります。レシーバーが音声を受け取る前に音量を調整する"
+"必要があるためです。"
 
 # seeded from jellyfin-web: HeaderStatus
 #. Heading of the first section of the library filter panel, above the
@@ -3669,10 +3703,8 @@ msgstr "未再生"
 #. items the viewer has already watched. Must read differently from "Play":
 #. in one language these collapsed and the row read "Not played / Play".
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Played"
-msgstr "SyncPlay"
+msgstr "視聴済み"
 
 #. Three uses, all about items the viewer has marked with the heart. A
 #. checkbox in the library filter panel; a button that filters the Live TV
@@ -3689,9 +3721,8 @@ msgstr "お気に入り"
 #. items that were started and not finished, so playback would resume part
 #. way in.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Resumable"
-msgstr "レジューム"
+msgstr "再生途中"
 
 # seeded from jellyfin-web: Genres
 #. Heading of the library filter panel's genre section, and the label of
@@ -3707,7 +3738,6 @@ msgstr "ジャンル"
 #. Heading of a filter-panel section, above a dropdown listing the release
 #. years in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Years"
 msgstr "年"
 
@@ -3730,15 +3760,13 @@ msgstr "タグ"
 #. languages available in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Audio Language"
-msgstr ""
+msgstr "音声言語"
 
 #. Heading of a filter-panel section, above a dropdown of the subtitle
 #. languages available in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Language"
-msgstr "字幕のサイズ: {0}"
+msgstr "字幕言語"
 
 # seeded from jellyfin-web: Features
 #. Heading of a filter-panel section, above checkboxes for extras an item
@@ -3750,44 +3778,39 @@ msgstr "機能"
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items that carry subtitles.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Has Subtitles"
-msgstr "字幕のサイズ: {0}"
+msgstr "字幕"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items that have a trailer.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Has Trailer"
-msgstr "失敗"
+msgstr "予告編"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with bonus material (deleted scenes, featurettes).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr ""
+msgstr "特典映像"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme song attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "テーマ曲"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme video attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "テーマ動画"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading of a filter-panel section, above checkboxes for resolution and
 #. disc format (SD, HD, 4K, 3D, DVD, Blu-ray, ISO).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Video Types"
-msgstr "ビデオ"
+msgstr "ビデオタイプ"
 
 # seeded from jellyfin-web: ChannelResolutionSD
 #. Checkbox in the filter panel's Video Types section: standard definition.
@@ -3808,7 +3831,7 @@ msgstr "HD"
 #. Normally left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 # seeded from jellyfin-web: Option3D
 #. Checkbox in the filter panel's Video Types section: stereoscopic 3D
@@ -3828,32 +3851,30 @@ msgstr "DVD"
 #. Blu-ray disc. A trademark, left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr ""
+msgstr "Blu-ray"
 
 #. Checkbox in the filter panel's Video Types section: a whole disc image
 #. file. Left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "ISO"
-msgstr ""
+msgstr "ISO"
 
 #. Title of the modal that puts the selected item into a playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Playlist"
-msgstr "サーバーを削除"
+msgstr "プレーリストに追加"
 
 #. Shown in the Add to Playlist modal when the viewer has no playlists on
 #. the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "まだプレーリストがありません。"
 
 #. Placeholder text in the empty text field where a new playlist's name is
 #. typed, in the Add to Playlist modal.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "新しいプレーリスト名…"
 
 # seeded from jellyfin-web: Create
 #. Button in the Add to Playlist and Add to Collection modals. Makes the
@@ -3867,15 +3888,13 @@ msgstr "作成"
 #. is visible to other users of the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
-msgstr ""
+msgstr "非公開 ( あなただけに表示 )"
 
 #. Button in the Add to Playlist modal that switches to the Add to
 #. Collection modal. The ellipsis means it opens another view.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "サーバーを削除"
+msgstr "コレクション…"
 
 #. Button that dismisses something without acting. Used on modals (Add to
 #. Playlist, Reading Progress, SyncPlay, the recording dialogs) and as the
@@ -3890,25 +3909,19 @@ msgstr "閉じる"
 #. Title of the modal that puts the selected item into a collection
 #. (Jellyfin's grouping of related items, such as a film series).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Collection"
-msgstr "サーバーを削除"
+msgstr "コレクションに追加"
 
 #. Shown in the Add to Collection modal when the server has no collections.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "サーバーを削除"
+msgstr "まだコレクションがありません。"
 
 #. Placeholder text in the empty text field where a new collection's name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "ユーザ名 "
+msgstr "新しいコレクション名…"
 
 # seeded from jellyfin-web: ButtonBack
 #. Goes one step back. The navigation bar's back button, the row that
@@ -3926,16 +3939,14 @@ msgstr "戻る"
 #. Stands in for the name of a media source (a file or version of an item)
 #. that the server did not name, in the Media Info modal.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Unkn"
 msgid "Unknown"
-msgstr "未知"
+msgstr "不明"
 
 #. Shown in the Media Info modal when the server returned no video, audio
 #. or subtitle stream details for the item.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No media information is available."
-msgstr ""
+msgstr "メディア情報がありません。"
 
 # seeded from jellyfin-web: MoreMediaInfo
 #. The panel listing an item's video, audio and subtitle stream details.
@@ -3957,22 +3968,14 @@ msgstr "OK"
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "ダウンロードを必要とするエピソードが不明です。"
 
 #. Placeholder in the Download modal while the app works out how many items
 #. would be downloaded and how much space they need.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "SVP設定"
+msgstr "確立中…"
 
 #. Summary line in the Download modal. %(count)d is a number of items,
 #. %(size)s an already-formatted size such as "4.2 GB". The middle
@@ -3981,14 +3984,14 @@ msgstr "SVP設定"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%(count)d items · %(size)s"
-msgstr ""
+msgstr "%(count)d アイテム · %(size)s"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. of the items are on disk already.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d already downloaded"
-msgstr ""
+msgstr "%d 件ダウンロード済み"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. of the items have already been watched.
@@ -4002,7 +4005,7 @@ msgstr "%d 未視聴"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "%d 件の不明なサイズ"
 
 # seeded from jellyfin-web: Download
 #. Title of the modal that downloads items for offline viewing. A noun
@@ -4023,18 +4026,18 @@ msgstr "視聴済みを含む"
 #. on disk.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Nothing left to download."
-msgstr ""
+msgstr "要ダウンロードなし。"
 
 #. Error shown when the Download modal's button failed to queue anything.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The download could not be started."
-msgstr ""
+msgstr "ダウンロードを開始できません。"
 
 #. Shown in place of the filter controls when the server offers nothing to
 #. filter this library by.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
-msgstr ""
+msgstr "このライブラリーにはフィルターを適用できません。"
 
 # seeded from jellyfin-web: Filters
 #. Title of the modal that filters a library grid.
@@ -4054,24 +4057,22 @@ msgstr "%d アイテム"
 
 #. Button in the Filters modal. Removes every filter that is set.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Clear All"
-msgstr "SyncPlay"
+msgstr "すべてクリアー"
 
 #. Button that closes the Filters modal, and the View settings modal,
 #. keeping what was chosen. Not "finished" in the sense of a task
 #. completing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
-msgstr ""
+msgstr "選択完了"
 
 #. First entry of every filter-panel dropdown, meaning no restriction on
 #. this field. Neuter, since it stands for genre, year, rating, tag or
 #. language alike.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Any"
-msgstr ""
+msgstr "すべて"
 
 #. One English word, two senses. The first choice in a library's Artwork
 #. dropdown, where the tile shape is taken from whatever artwork the item
@@ -4079,10 +4080,8 @@ msgstr ""
 #. playback controls, where it means MPV decides.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "自動再生"
+msgstr "自動"
 
 # seeded from jellyfin-web: Poster
 #. Choice in the Artwork dropdown of a library's View settings: tall
@@ -4095,15 +4094,13 @@ msgstr "ポスター"
 #. landscape still.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
-msgstr ""
+msgstr "サムネール"
 
 #. Choice in the Artwork dropdown of a library's View settings: a wide,
 #. short banner image.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Banner"
-msgstr "未視聴に設定して中止"
+msgstr "バナー"
 
 # seeded from jellyfin-web: Logo
 #. Choice in the Artwork dropdown of a library's View settings: the title
@@ -4124,7 +4121,7 @@ msgstr "ディスク"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Artwork"
-msgstr ""
+msgstr "アートワーク"
 
 #. Explanation under the Artwork dropdown in a library's View settings.
 #. "Auto" and "Poster" are two of that dropdown's choices; keep them
@@ -4134,27 +4131,27 @@ msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
+"「自動」を選択すると、アートワーク自体からタイルの形を生成しますが、通常"
+"ポスターのような仕上がりになります。「ポスター」を選ぶことでそれを固定します"
+"。"
 
 #. Checkbox in a library's View settings. Draws each item's name under its
 #. tile.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "字幕のサイズ: {0}"
+msgstr "タイトルを表示"
 
 #. Checkbox in a library's View settings. Draws each item's release year
 #. under its tile.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Show years"
-msgstr "番組"
+msgstr "年を表示"
 
 #. Checkbox in a library's View settings, switching the layout from tiles
 #. to a single-column list.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
-msgstr ""
+msgstr "グリッドではなくリスト"
 
 #. Explanation in a library's View settings, saying those choices are saved
 #. to the Jellyfin server rather than to this device, so Jellyfin Web sees
@@ -4162,14 +4159,14 @@ msgstr ""
 #. as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "These are stored on your server and shared with Jellyfin Web."
-msgstr ""
+msgstr "サーバーに保存しており、Jellyfin Web と共有しています。"
 
 #. Checkbox in a library's View settings, switching the grid from scrolling
 #. to one screenful at a time with page buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr ""
+msgstr "ページ分け"
 
 #. Explanation under the Paginated checkbox in a library's View settings.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -4177,14 +4174,14 @@ msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
 msgstr ""
+"スクロールするのではなく、一度にタイルを1 ページ分、表示します。このデバイス"
+"のすべてのライブラリーに適用します。"
 
 #. Title of the modal that chooses how one library's tiles are drawn.
 #. Sentence case in English.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "View settings"
-msgstr "SVP設定"
+msgstr "表示設定"
 
 #. Explanation under the "Make library logos more legible" checkbox in a
 #. library's View settings. "Plate" here is the solid light rectangle drawn
@@ -4195,24 +4192,27 @@ msgid ""
 "shadows the ones whose own outline is white. Off puts the theme's card "
 "colour behind them instead, with no shadows."
 msgstr ""
+"透明なロゴには、明るい色のプレートを背景として適用し、輪郭が白色のものには影"
+"を付けます。「オフ」に設定すると、代わりにテーマのカード色を背景として適用し"
+"、影は表示しません。"
 
 #. Default title of the plain message dialog, used when the caller supplied
 #. none.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
-msgstr ""
+msgstr "通知"
 
 #. Message shown when the viewer asked to copy text but this build of MPV
 #. cannot reach the system clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
-msgstr ""
+msgstr "クリップボードへのコピーは利用できません。"
 
 #. Message shown when the viewer asked to paste but this build of MPV
 #. cannot reach the system clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pasting from the clipboard is not available."
-msgstr ""
+msgstr "クリップボードからの貼り付けは利用できません。"
 
 #. Follows the message saying the clipboard is unavailable. %(package)s is
 #. a software package name and the parenthesis holds a shell command; leave
@@ -4223,6 +4223,8 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
+"「%(package)s」パッケージをインストールする ( 例 : \"apt install %(package)"
+"s\" ) か、MPV 0.41 以降のバージョンをご利用ください。"
 
 #. Follows the message saying the clipboard is unavailable. %(package)s is
 #. a software package name and the parenthesis holds a shell command; leave
@@ -4233,24 +4235,24 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\")."
 msgstr ""
+"「%(package)s」パッケージをインストール ( 例 : \"apt install %(package)s\" ) "
+"してください。"
 
 #. Follows the clipboard message above, naming the MPV version that gained
 #. clipboard support.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Use MPV 0.41 or newer."
-msgstr ""
+msgstr "MPV 0.41 以降のバージョンをご利用ください。"
 
 #. Title of the dialog explaining that copy or paste is unavailable.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Clipboard"
-msgstr ""
+msgstr "クリップボード"
 
 #. Default title of the yes/no dialog, used when the caller supplied none.
 #. A noun naming the dialog, not an instruction to the reader. Split from
 #. the Set PIN dialog's field label of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Confirm"
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "確認"
@@ -4265,100 +4267,94 @@ msgid ""
 "shows you a number for — so there is nothing meaningful to set by hand. It "
 "is still read from the server and shown above."
 msgstr ""
+"%s が電子書籍リーダーとして読んでいる場所を記録します。この数値を表示する"
+"アプリは存在しないため、手動で設定しても意味がありません。それでも、サーバー"
+"から読み込んで上に表示します。"
 
 #. Shown in the Reading Progress dialog. %s is another application's name.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%s stores no reading position."
-msgstr ""
+msgstr "%s は読んでいる場所を保存しません。"
 
 #. Title of the dialog that reads or writes how far through a book the
 #. viewer is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Reading Progress"
-msgstr "設定フォルダを開く"
+msgstr "読書の進行状況"
 
 #. Shown in the Reading Progress dialog while the stored position is being
 #. fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr ""
+msgstr "場所を読み込み中…"
 
 #. Button in the Reading Progress dialog. Takes the position stored on the
 #. server and applies it here. An imperative verb, paired with Push.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr ""
+msgstr "プル"
 
 #. Button in the Reading Progress dialog. Sends the position reached here
 #. up to the server. An imperative verb, paired with Pull.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr ""
+msgstr "プッシュ"
 
 #. Error in the Reading Progress dialog when the stored reading position
 #. could not be fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be read."
-msgstr ""
+msgstr "場所を読み込めませんでした。"
 
 #. Validation message in the Reading Progress dialog when what was typed in
 #. the page field is not a number.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Enter a number."
-msgstr "字幕の変更"
+msgstr "番号を入力してください。"
 
 #. Validation message in the Reading Progress dialog. %d is the last page
 #. of the book.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Enter a page between 1 and %d."
-msgstr ""
+msgstr "ページを 1 ～ %d の間で入力してください。"
 
 #. Validation message in the Reading Progress dialog, used when the book's
 #. length is unknown.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Enter a page of 1 or more."
-msgstr ""
+msgstr "ページを 1 以上で入力してください。"
 
 #. Status message confirming the reading position was sent to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading position saved."
-msgstr ""
+msgstr "読んでいる場所を保存しました。"
 
 #. Error in the Reading Progress dialog when the reading position could not
 #. be sent to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be saved."
-msgstr ""
+msgstr "場所を保存できませんでした。"
 
 #. One row of the SyncPlay group list. %s is a group's name, and the suffix
 #. marks the group this device is currently in.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0}が入りました。"
+msgstr "%s ( 参加中 )"
 
 #. Stands in for the name of a SyncPlay group the server did not name. A
 #. set of people watching in sync.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "新しいグループ"
+msgstr "グループ"
 
 #. Shown in the SyncPlay dialog when nobody on this server has a watch-
 #. together group open.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "新しいグループ"
+msgstr "進行中のグループはありません。"
 
 #. Button that starts a new SyncPlay watch-together group. On the SyncPlay
 #. dialog and on the playback controls.
@@ -4378,10 +4374,8 @@ msgstr "ローカル再生を再開"
 #. Button in the SyncPlay dialog that takes this device out of the watch-
 #. together group. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Leave"
-msgstr "新しいグループ"
+msgstr "離脱"
 
 # seeded from jellyfin-web: Refresh
 #. Button that fetches something again: the SyncPlay group list, the
@@ -4390,51 +4384,27 @@ msgstr "新しいグループ"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Refresh"
-msgstr "リフレッシュ"
+msgstr "再読み込み"
 
 #. Error shown when joining a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "SyncPlay グループに参加できません。"
 
 #. Error shown when starting a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "SyncPlay グループを作成できません。"
 
 #. Error shown when leaving a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "SyncPlay グループを離脱できませんでした。"
 
 #. Error shown when returning to synchronised playback failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not resume SyncPlay playback."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "SyncPlay での再生を再開できませんでした。"
 
 #. Heading of a downloads group: episodes fetched automatically because
 #. they are next to watch in a series being followed.
@@ -4446,7 +4416,7 @@ msgstr "自動 : 次に再生"
 #. series is being watched right now.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Automatic: Actively Watched"
-msgstr "自動 : 視聴途中"
+msgstr "自動 : よく視聴"
 
 # seeded from jellyfin-web: Audio
 #. Name of a search-results and library group holding books read aloud.
@@ -4468,7 +4438,7 @@ msgstr "書籍"
 #. folder, so there is nothing to file them under.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Ungrouped"
-msgstr ""
+msgstr "未グループ"
 
 # seeded from jellyfin-web: Episodes
 #. Name of a search-results and library group holding single episodes of a
@@ -4493,48 +4463,41 @@ msgstr "スペシャル"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Season %s"
-msgstr ""
+msgstr "シーズン %s"
 
 #. State of a download in progress. %d is the percentage finished; the
 #. doubled percent sign prints one.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Downloading %d%%"
-msgstr ""
+msgstr "%d%% ダウンロード中"
 
 #. State of a download that has started but has no progress figure yet.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading"
-msgstr "サーバーを削除"
+msgstr "ダウンロード中"
 
 #. Status of one queued download in Settings > Downloads, in place of
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "承認を待っています…"
+msgstr "%s のサインインを待機中…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Waiting for approval…"
 msgid "Waiting for its profile to sign in…"
-msgstr "承認を待っています…"
+msgstr "プロファイルのサインイン待機中…"
 
 #. State of a download waiting for its turn.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Queued"
-msgstr ""
+msgstr "キュー"
 
 #. State of a download that did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Failed"
 msgstr "失敗"
 
@@ -4549,25 +4512,25 @@ msgstr "プレーリスト"
 #. Heading of a downloads group whose series could not be identified.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
-msgstr ""
+msgstr "不明なシリーズ"
 
 #. Heading of the downloads group holding films and standalone videos.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Movies & Videos"
-msgstr ""
+msgstr "映画 & 動画"
 
 #. First entry of the audio or video track list on the playback controls:
 #. no explicit choice, so MPV picks. "mpv" is the media player's name,
 #. always lower case.
 #: jellyfin_mpv_shim/mpvtk_browser/gateway/playback.py
 msgid "Default (mpv decides)"
-msgstr ""
+msgstr "デフォルト ( MPV が決定 )"
 
 #. Shown on the Live TV Channels tab when the server offers no channels.
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No channels available."
-msgstr ""
+msgstr "チャンネルがありません。"
 
 # seeded from jellyfin-web: None
 #. Choice for a home-screen row, leaving that slot empty. It agrees with
@@ -4608,9 +4571,8 @@ msgstr "続けて聴く"
 #. choice for one in the Home Screen settings.
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Reading"
-msgstr "再生を続ける"
+msgstr "読書を続ける"
 
 # seeded from jellyfin-web: NextUp
 #. The next unwatched episode of a series being followed. The name of a
@@ -4644,15 +4606,13 @@ msgstr "アクティブな録画"
 #. first. The ellipsis means it opens another menu.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Secondary…"
-msgstr ""
+msgstr "副…"
 
 #. Tooltip of the subtitle button on the playback controls drawn over the
 #. video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Subtitle Track"
 msgid "Subtitle Track"
-msgstr "字幕の選択"
+msgstr "字幕トラック"
 
 #. Stands in for the name of a chapter the file did not name, wherever
 #. chapters are listed. %d is its number.
@@ -4662,7 +4622,7 @@ msgstr "字幕の選択"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Chapter %d"
-msgstr ""
+msgstr "チャプター %d"
 
 #. The chapter list of what is playing. The tooltip of the chapter button
 #. on the playback controls and the now-playing bar, and the heading over
@@ -4671,23 +4631,19 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Chapters"
-msgstr ""
+msgstr "チャプター"
 
 #. Tooltip of the audio button on the playback controls drawn over the
 #. video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Audio Track"
 msgid "Audio Track"
-msgstr "音声の選択"
+msgstr "音声トラック"
 
 #. Tooltip of the quality button on the playback controls, which limits how
 #. much bandwidth the server may use.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video Quality"
-msgstr "画質の変更"
+msgstr "画質"
 
 # seeded from jellyfin-web: PlaybackRate
 #. Row on the settings menu of the playback controls, opening a list of
@@ -4708,43 +4664,35 @@ msgstr "アスペクト比"
 #. on for this video only, for a file that is interlaced without saying so.
 #. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Deinterlace"
-msgstr "インターレース"
+msgstr "インターレース解除"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing how large subtitles are drawn.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Size"
-msgstr "字幕のサイズ: {0}"
+msgstr "字幕サイズ"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing where on screen subtitles are drawn.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Position: {0}"
 msgid "Subtitle Position"
-msgstr "字幕の位置: {0}"
+msgstr "字幕の位置"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing the colour subtitles are drawn in. American
 #. spelling of "colour".
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Color: {0}"
 msgid "Subtitle Color"
-msgstr "字幕の色: {0}"
+msgstr "字幕色"
 
 # seeded from jellyfin-web: PlaybackRate
 #. Row on the settings menu of the playback controls, and the title of the
 #. panel it opens, listing how the video is reaching this device and what
 #. MPV is doing with it.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Playback Info"
-msgstr "再生速度"
+msgstr "再生情報"
 
 #. Means "nothing chosen, and the feature is off". The first entry of the
 #. SyncPlay list on the playback controls, and of the video-profile list.
@@ -4763,10 +4711,8 @@ msgstr "ハードウェアアクセラレーション"
 #. Row in the Playback Info panel: which MPV video output driver is drawing
 #. the picture.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video output"
-msgstr "画質の変更"
+msgstr "映像出力"
 
 # seeded from jellyfin-web: LabelDroppedFrames
 #. Row in the Playback Info panel: how many frames were skipped rather than
@@ -4780,62 +4726,57 @@ msgstr "ドロップフレーム"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%(vo)d output, %(dec)d decoder"
-msgstr ""
+msgstr "出力 : %(vo)d , %(dec)d デコーダー"
 
 #. Row in the Playback Info panel: how far the audio and video have drifted
 #. apart, in seconds. Short for audio/video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "A/V sync"
-msgstr ""
+msgstr "A/V 同期"
 
 #. Row in the Playback Info panel: how many seconds of the stream have been
 #. read ahead.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Buffered"
-msgstr ""
+msgstr "バッファ内"
 
 #. Value of the Buffered row in the Playback Info panel. The unit is
 #. seconds.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f s"
-msgstr ""
+msgstr "%.1f 秒"
 
 # seeded from jellyfin-web: DownloadManager
 #. Row in the Playback Info panel: how fast the stream is arriving from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Download speed"
-msgstr "ダウンロード"
+msgstr "ダウンロード速度"
 
 #. Row in the Playback Info panel: what kind of item is playing, such as
 #. Movie or Episode.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Media Key Seek"
 msgid "Media type"
-msgstr "メディアキー探索"
+msgstr "メディアタイプ"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. being played was downloaded to this device earlier.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "downloaded copy"
-msgstr "サーバーを削除"
+msgstr "ダウンロード数"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. is being read from a shared folder rather than streamed.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
-msgstr ""
+msgstr "ローカル ファイル"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. is arriving over the network from the Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "stream from server"
-msgstr ""
+msgstr "サーバーストリーム"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #. Row in the Playback Info panel: how the video is reaching this device.
@@ -4850,17 +4791,14 @@ msgstr "再生方法"
 #. server had to re-encode. Do not confuse with "Seasons": an earlier
 #. translation sweep put a translation of that word here.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Reasons"
-msgstr "シーズン"
+msgstr "理由"
 
 #. Heading of a block in the Playback Info panel holding MPV's own
 #. statistics. The player program, not a person.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Player"
-msgstr "SyncPlay"
+msgstr "プレーヤー"
 
 # seeded from jellyfin-web: File
 #. Heading of a block in the Playback Info panel holding the media file's
@@ -4872,7 +4810,7 @@ msgstr "ファイル"
 #. Shown in the Playback Info panel when nothing is playing.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Nothing is playing."
-msgstr ""
+msgstr "何も再生していません。"
 
 # seeded from jellyfin-web: Previous
 #. Tooltip of the button that goes back one: the previous item in the queue
@@ -4888,29 +4826,26 @@ msgstr "前"
 #. previous chapter.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "サーバーを正常に追加しました。"
+msgstr "前のチャプター"
 
 #. Tooltip of the rewind button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
-msgstr ""
+msgstr "10 秒戻す"
 
 #. Tooltip of the fast-forward button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Forward 30 Seconds"
-msgstr ""
+msgstr "30 秒送る"
 
 # seeded from jellyfin-web: NextUp
 #. Tooltip of the button on the playback controls that jumps to the next
 #. chapter.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Next chapter"
-msgstr "まずは"
+msgstr "次のチャプター"
 
 # seeded from jellyfin-web: Next
 #. Tooltip of the button that goes forward one: the next item in the queue
@@ -4943,24 +4878,20 @@ msgstr "ミュート"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "SVP設定"
+msgstr "設定"
 
 #. Tooltip of the button on the playback controls that fills the screen
 #. with the video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Fullscreen"
 msgid "Fullscreen"
-msgstr "自動全画面"
+msgstr "全画面"
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Those items could not be added to the queue."
-msgstr ""
+msgstr "アイテムをキューに追加できませんでした。"
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #. Status message confirming every episode of a show is now set to record.
@@ -4977,15 +4908,14 @@ msgstr "録画をスケジュールしました。"
 #. Status message when the server refused to set up a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording could not be scheduled."
-msgstr ""
+msgstr "録画予約できませんでした。"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #. Question in the dialog confirming a scheduled recording is to be called
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Cancel recording?"
-msgstr "録画の停止"
+msgstr "録画を中止しますか？"
 
 # seeded from jellyfin-web: RecordingCancelled
 #. Status message confirming a scheduled recording was called off.
@@ -5005,13 +4935,13 @@ msgstr "録画の停止"
 #. to be dropped.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
-msgstr ""
+msgstr "このシリーズの録画を止めますか？"
 
 #. Status message confirming the rule that records every episode was
 #. dropped.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording cancelled."
-msgstr ""
+msgstr "シリーズの録画をキャンセルしました。"
 
 #. Button that stops the rule recording every episode of a show, and the
 #. title of the dialog confirming it. An imperative verb.
@@ -5019,26 +4949,24 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Configure Servers"
 msgid "Cancel Series"
-msgstr "サーバーの設定"
+msgstr "シリーズのキャンセル"
 
 #. Status message when the server refused to call off a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording could not be cancelled."
-msgstr ""
+msgstr "録画をキャンセルできませんでした。"
 
 #. Status message confirming the recording dialog's changes reached the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording settings saved."
-msgstr ""
+msgstr "録画設定を保存しました。"
 
 #. Status message when the server refused the recording dialog's changes.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording settings could not be saved."
-msgstr ""
+msgstr "録画設定を保存できませんでした。"
 
 #. A one-line status message at the bottom of the screen after the menu entry
 #. above was used. %s is the name of the film, show or album. It reports that
@@ -5046,19 +4974,14 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "The server is refreshing %s."
-msgstr ""
+msgstr "サーバーが %s を再読み込みしています。"
 
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "%s could not be refreshed."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "%s を再読み込みできませんでした。"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -5067,7 +4990,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "ディスクから削除"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #. Warning in the dialog that deletes media from the server. This removes
@@ -5085,31 +5008,28 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s を削除しました。"
 
 #. Status message when the server refused to delete an item. %s is its
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s could not be deleted."
-msgstr ""
+msgstr "%s を削除できませんでした。"
 
 #. Question in the dialog that removes a download from this device. The
 #. item stays on the server. %s is its name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "サーバーを削除"
+msgstr "%s のダウンロードを削除しますか？"
 
 #. Title of the dialog that removes a downloaded copy from this device.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Download"
-msgstr "サーバーを削除"
+msgstr "ダウンロードを削除"
 
 # seeded from jellyfin-web: Delete
 #. Confirming button of a dialog that removes something for good: a
@@ -5125,28 +5045,28 @@ msgstr "削除"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
-msgstr ""
+msgstr "ダウンロードを削除できませんでした。"
 
 #. Status message while a file is being handed to whatever application the
 #. system opens it with. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "%s を開き中…"
 
 #. Status message when the operating system has no application registered
 #. for that file type. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Nothing on this system could open %s."
-msgstr ""
+msgstr "このシステムでは %s を開けませんでした。"
 
 #. Status message when the item asked for is already on this device. %s is
 #. its name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s is already downloaded."
-msgstr ""
+msgstr "%s はすでにダウンロード済みです。"
 
 #. Status message when opening a book fails because the Jellyfin account
 #. lacks the permission that allows downloading.
@@ -5155,39 +5075,35 @@ msgid ""
 "Your account is not allowed to download from this server, and a book can "
 "only be read by downloading it."
 msgstr ""
+"あなたのアカウントは、このサーバーからのダウンロードを許可されておらず、"
+"ダウンロードできなければ書籍を読むことはできません。"
 
 #. Status message when something was asked of a download that is not on
 #. this device. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s has not been downloaded."
-msgstr ""
+msgstr "%s をダウンロードしていません。"
 
 #. Status message when fetching an item to this device failed. %s is its
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "%s をダウンロードできませんでした。"
 
 #. Status message while an item is being fetched to this device. %s is its
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Downloading %s…"
-msgstr "サーバーを削除"
+msgstr "%s をダウンロード中…"
 
 #. Error in the recording options dialog when the server would not return
 #. the recording rule.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
-msgstr ""
+msgstr "録画を読み込めませんでした。"
 
 # seeded from jellyfin-web: HeaderSeriesOptions
 #. Button on a programme page, and the title of the dialog it opens,
@@ -5200,10 +5116,8 @@ msgstr "シリーズオプション"
 #. Title of the dialog holding one programme's recording settings. A noun
 #. naming the thing being set up.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (トランスコード)"
+msgstr "録画"
 
 # seeded from jellyfin-web: LabelRecord
 #. Label of the dropdown in the series recording dialog choosing which
@@ -5240,7 +5154,7 @@ msgstr "すでにライブラリに存在する場合はエピソードを録画
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "Only %s"
-msgstr ""
+msgstr "%s のみ"
 
 # seeded from jellyfin-web: OneChannel
 #. Choice in the "Channels" dropdown of the series recording dialog, used
@@ -5285,15 +5199,14 @@ msgstr "だいたい %s"
 #. showings at the time the series normally airs.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Original air time"
-msgstr ""
+msgstr "オリジナル放送日"
 
 # seeded from jellyfin-web: LabelRuntimeMinutes
 #. Choice in the "Air time" dropdown of the series recording dialog: record
 #. the show whenever it airs.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Anytime"
-msgstr "実行時間"
+msgstr "いつでも"
 
 # seeded from jellyfin-web: LabelKeepUpTo
 #. Label of the dropdown in the series recording dialog limiting how many
@@ -5307,13 +5220,13 @@ msgstr "最新"
 #. many minutes before the programme starts.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Start early (minutes)"
-msgstr ""
+msgstr "事前開始 ( 分 )"
 
 #. Label of the number field in the recording dialog: keep recording this
 #. many minutes after the programme ends.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Stop late (minutes)"
-msgstr ""
+msgstr "終了遅延 ( 分 )"
 
 # seeded from jellyfin-web: AsManyAsPossible
 #. Choice in the "Keep up to" dropdown of the series recording dialog:
@@ -5347,10 +5260,8 @@ msgstr "チャンネルの並び替え"
 #. Choice in the "Sort channels by" dropdown of Guide Settings: order
 #. channels by the number the provider gives them.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Channel number"
-msgstr "字幕の変更"
+msgstr "チャンネル番号"
 
 #. Choice in the "Sort channels by" dropdown of Guide Settings: put the
 #. channels watched most recently first.
@@ -5390,23 +5301,20 @@ msgstr "カテゴリ"
 #. holding how channels are sorted and which badges are shown.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Guide Settings"
-msgstr "SVP設定"
+msgstr "番組表設定"
 
 #. Error shown when Guide Settings could not be written to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Guide settings could not be saved."
-msgstr ""
+msgstr "番組表設定を保存できませんでした。"
 
 # seeded from jellyfin-web: Programs
 #. Checkbox in Guide Settings: badge programmes broadcast in high
 #. definition. American spelling of "programmes".
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "HD programs"
-msgstr "番組"
+msgstr "HD 番組"
 
 # seeded from jellyfin-web: LiveBroadcasts
 #. Checkbox in Guide Settings: badge programmes going out as they happen.
@@ -5417,9 +5325,8 @@ msgstr "ライブブロードキャスト"
 # seeded from jellyfin-web: NewEpisodesOnly
 #. Checkbox in Guide Settings: badge first-run episodes.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "New episodes"
-msgstr "新しいエピソードのみ"
+msgstr "新しいエピソード"
 
 # seeded from jellyfin-web: Premieres
 #. Checkbox in Guide Settings: badge first showings.
@@ -5496,31 +5403,23 @@ msgstr "リピート"
 #. grouped by day.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Scheduled"
-msgstr ""
+msgstr "予約済み"
 
 #. Error shown when an item took too long to start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Timed out loading this item"
-msgstr ""
+msgstr "このアイテムの読み込みタイムアウト"
 
 #. Error shown when an item would not start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "このアイテムを再生できませんでした"
 
 #. Button on the playback error screen that tries again while asking the
 #. server to re-encode the video. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid "No Transcode"
 msgid "Retry with Transcode"
-msgstr "トランスコードしない"
+msgstr "トランスコードして再試行"
 
 # seeded from jellyfin-web: Repeat
 #. State of the repeat button on the now-playing bar: play the whole queue
@@ -5548,7 +5447,7 @@ msgstr "リピートしない"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, python-format
 msgid "Back %d seconds"
-msgstr ""
+msgstr "%d 秒戻す"
 
 #. Action on an item's menu that starts it. An imperative verb, and it must
 #. not read the same as "Played": in one language it did, and a filter row
@@ -5559,10 +5458,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play"
-msgstr "SyncPlay"
+msgstr "再生"
 
 # seeded from jellyfin-web: ButtonPause
 #. Tooltip of the button on the now-playing bar that halts playback. An
@@ -5576,7 +5473,7 @@ msgstr "一時停止"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, python-format
 msgid "Forward %d seconds"
-msgstr ""
+msgstr "%d 秒送る"
 
 # seeded from jellyfin-web: ButtonStop
 #. Tooltip of the button on the now-playing bar that ends playback. An
@@ -5613,7 +5510,7 @@ msgstr "リピート"
 #. Tooltip of the loudness slider on the now-playing bar.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Volume"
-msgstr ""
+msgstr "音量"
 
 #. Status message when a web address could not be handed to the system's
 #. browser.
@@ -5625,7 +5522,7 @@ msgstr "このリンクを開けません。"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d chapters"
-msgstr ""
+msgstr "%d チャプター"
 
 # seeded from jellyfin-web: ButtonResume
 #. Action on an item's menu that carries on from where watching stopped. An
@@ -5649,31 +5546,29 @@ msgstr "再起動"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to play queue"
-msgstr "サーバーを削除"
+msgstr "再生キューに追加"
 
 #. Button on a book or audiobook's page that marks it as read or listened
 #. to, drawn ticked when it already is. It replaces "Watched", which is
 #. wrong for something you read or listen to.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
-msgstr ""
+msgstr "読了"
 
 #. Shown in place of a page's content when the item could not be fetched
 #. from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Item not available."
-msgstr ""
+msgstr "アイテムが無効です。"
 
 #. Caption on an audiobook's page saying how far in the listener has got,
 #. as in "1h 12m in". %s is an already-formatted duration.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%s in"
-msgstr ""
+msgstr "%s 経過"
 
 # seeded from jellyfin-web: ButtonStart
 #. Column heading in an audiobook's chapter table: the time each chapter
@@ -5686,7 +5581,7 @@ msgstr "スタート"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d pages"
-msgstr ""
+msgstr "%d ページ"
 
 #. Action on a book's menu that opens it in the reader. An imperative verb.
 #. It carries a context because the English word is also the past tense
@@ -5695,38 +5590,32 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "読む"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #. Button on a book's page that hands the file to whatever application the
 #. system opens it with. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Open Externally"
-msgstr "外部"
+msgstr "ブラウザ外で開く"
 
 #. Shown on a book's page while the file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading…"
-msgstr "サーバーを削除"
+msgstr "ダウンロード中…"
 
 # seeded from jellyfin-web: Programs
 #. Shown on a book's page while the stored reading position is being
 #. fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Progress…"
-msgstr "番組"
+msgstr "進行中…"
 
 #. Shown in place of a grid or list that has no items in it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing here."
-msgstr "サーバー設定"
+msgstr "何もありません。"
 
 #. Error shown when a comic file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -5736,13 +5625,13 @@ msgstr "このマンガを開けませんでした。"
 #. Error shown when one page of a comic could not be decoded.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This page could not be read."
-msgstr ""
+msgstr "このページを読むことができませんでした。"
 
 #. Error shown when fetching a book or comic to this device did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "The download failed."
-msgstr ""
+msgstr "ダウンロードに失敗。"
 
 #. Shown while a comic file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -5753,13 +5642,13 @@ msgstr "マンガを取得中…"
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
-msgstr ""
+msgstr "ズームアウト"
 
 #. Tooltip of the comic reader's button that makes the page larger. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "ズームイン"
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #. Heading of the row of items similar to the one being viewed. Jellyfin
@@ -5774,15 +5663,13 @@ msgstr "これに似たもの"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
-msgstr ""
+msgstr "シリーズに移動"
 
 #. Button on an item's page that plays its trailer.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "失敗"
+msgstr "予告編"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Heading over an item's chapter thumbnails on its page. Jellyfin Web uses
@@ -5797,7 +5684,7 @@ msgstr "シーン"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
-msgstr ""
+msgstr "バージョン %d"
 
 # seeded from jellyfin-web: LabelVersion
 #. Label of the dropdown on an item's page choosing between several files
@@ -5810,7 +5697,7 @@ msgstr "バージョン"
 #. item's page. Deliberately clipped, because it sits inside a narrow list.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
+msgstr "副"
 
 # seeded from jellyfin-web: EndsAtValue
 #. Caption on an item's page: the clock time it would finish at if started
@@ -5823,12 +5710,12 @@ msgstr "%sに終了"
 #. Shown on the Favorites page when nothing has been marked.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
 msgid "Nothing is marked as a favourite yet."
-msgstr ""
+msgstr "まだお気に入りマークしたものはありません。"
 
 #. Shown on the Genres page when the server listed none.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/genres.py
 msgid "No genres to show for this library."
-msgstr ""
+msgstr "このライブラリーに表示するジャンルはありません。"
 
 # seeded from jellyfin-web: LabelName
 #. Two uses. A choice in a library's Sort dropdown, ordering items
@@ -5863,10 +5750,8 @@ msgstr "コミュニティ評価"
 #. Choice in a library's Sort dropdown: order items by when they were last
 #. watched.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Date Played"
-msgstr "自動再生"
+msgstr "再生日"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Choice in a library's Sort dropdown: order items by how many times they
@@ -5885,9 +5770,8 @@ msgstr "実行時間"
 #. Choice in a library's Sort dropdown: order items by the score
 #. professional reviewers have given them.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Critics Rating"
-msgstr "コミュニティ評価"
+msgstr "批評家評価"
 
 # seeded from jellyfin-web: OptionRandom
 #. Choice in a library's Sort dropdown: order items unpredictably.
@@ -5898,36 +5782,33 @@ msgstr "ランダム"
 #. Choice in a television library's Sort dropdown: order series by when
 #. their newest episode arrived.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Date Episode Added"
-msgstr "追加日時"
+msgstr "エピソード追加日"
 
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
-msgstr ""
+msgstr "表示"
 
 #. Button above a library grid, and the title of the page it opens, listing
 #. the broadcasters that made the items.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Networks"
-msgstr ""
+msgstr "ネットワーク"
 
 #. Button above a library grid, and the title of the page it opens, listing
 #. groups of related items.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections"
-msgstr "サーバーを削除"
+msgstr "コレクション"
 
 #. Button above a library grid that opens the filter panel, when filters
 #. are set. %d is how many are set.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "Filter (%d)"
-msgstr ""
+msgstr "フィルター (%d)"
 
 # seeded from jellyfin-web: Filter
 #. Button above a library grid that opens the filter panel, when no filters
@@ -5940,10 +5821,8 @@ msgstr "フィルター"
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play All"
-msgstr "SyncPlay"
+msgstr "すべて再生"
 
 # seeded from jellyfin-web: Shuffle
 #. Button on a library grid, an album, a playlist, a series or a season that
@@ -5961,10 +5840,8 @@ msgstr "シャッフル"
 #. server refused to remember which sort order the user picked. The sort
 #. itself has already been applied; only remembering it failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "That sort could not be saved."
-msgstr "PIN を保存できませんでした。"
+msgstr "並び順を保存できませんでした。"
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
@@ -5976,14 +5853,14 @@ msgstr "並び替え"
 #. reach the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "That view setting could not be saved."
-msgstr ""
+msgstr "表示設定を保存できませんでした。"
 
 #. Status message when Play was chosen on something the app found no
 #. playable item inside.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to play."
-msgstr ""
+msgstr "再生するものはありません。"
 
 # seeded from jellyfin-web: HeaderLibraries
 #. Heading of the home-screen row holding the viewer's libraries.
@@ -5994,7 +5871,7 @@ msgstr "ライブラリ"
 #. Shown on the home screen when the server returned nothing to list.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Nothing to show yet."
-msgstr ""
+msgstr "まだ表示するものはありません。"
 
 # seeded from jellyfin-web: Programs
 #. Name of a tab on the Live TV page, listing what is on now and coming up.
@@ -6045,19 +5922,17 @@ msgstr "シリーズ"
 #. Shown on the Live TV Programs tab when the server returned no listings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No programs are listed right now."
-msgstr ""
+msgstr "現在、表示する番組がありません。"
 
 #. Tooltip of the button that moves the Live TV guide back one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "サーバーを正常に追加しました。"
+msgstr "前の日"
 
 #. Tooltip of the button that scrolls the Live TV guide back a few hours.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
-msgstr ""
+msgstr "前に"
 
 #. Tooltip of the button that scrolls the Live TV guide forward a few
 #. hours. Later in time, and the counterpart of "Earlier" beside it. A
@@ -6066,104 +5941,98 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgctxt "guide navigation"
 msgid "Later"
-msgstr ""
+msgstr "後に"
 
 #. Tooltip of the button that moves the Live TV guide forward one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Next Day"
-msgstr ""
+msgstr "次の日"
 
 #. Button that jumps the Live TV guide back to the current time. An adverb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Now"
-msgstr ""
+msgstr "現在"
 
 #. Caption above the Live TV guide, saying which slice of the channel list
 #. is on screen, as in "Channels 1-12 of 240".
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Channels %(from)d-%(to)d of %(total)d"
-msgstr ""
+msgstr "%(from)d - %(to)d / %(total)d チャンネル"
 
 #. Tooltip of the button that shows the previous group of channels in the
 #. Live TV guide.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "サーバーを正常に追加しました。"
+msgstr "前のチャンネル"
 
 #. Tooltip of the button that shows the next group of channels in the Live
 #. TV guide.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
-msgstr ""
+msgstr "もっと"
 
 #. Shown on the Live TV Channels tab when it is filtered to favourites and
 #. none are marked.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No favorite channels yet."
-msgstr ""
+msgstr "まだお気に入りのチャンネルがありません。"
 
 #. Caption on the Live TV Channels tab, counting how many channels there
 #. are.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "%d channels"
-msgstr ""
+msgstr "%d チャンネル"
 
 #. Heading over the most recent recordings on the Live TV Recordings tab.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Latest Recordings"
-msgstr ""
+msgstr "最新の録画"
 
 #. Heading over the folders the server files recordings into, on the Live
 #. TV Recordings tab. A noun phrase: folders holding recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Recording Folders"
-msgstr "設定フォルダを開く"
+msgstr "録画フォルダー"
 
 #. Shown on the Live TV Recordings tab when there are no recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "サーバー設定"
+msgstr "まだ録画していません。"
 
 #. Shown on the Live TV Schedule tab when nothing is set to record.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
-msgstr ""
+msgstr "録画予約がありません。"
 
 #. Shown on the Live TV Series tab when no show is set to record every
 #. episode.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No series are set to record."
-msgstr ""
+msgstr "録画するシリーズがありません。"
 
 #. State of a Live TV programme: it will be recorded when it airs.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Scheduled to record"
-msgstr ""
+msgstr "録画予約"
 
 #. State of a Live TV programme: it is being recorded at this moment.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording now"
-msgstr ""
+msgstr "現在録画中"
 
 #. State of a Live TV programme: a rule is recording every episode of this
 #. show.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording this series"
-msgstr ""
+msgstr "このシリーズを録画中"
 
 #. State of a Live TV programme: a rule records the show, but this
 #. particular airing falls outside it, for instance because it is a repeat.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "This series is set to record, but this showing is not scheduled"
-msgstr ""
+msgstr "このシリーズは録画予約していますが、この番組は予約していません"
 
 #. Button that starts playing a Live TV channel that is on air now. An
 #. imperative verb, and it must not read the same as "Watched": in one
@@ -6209,29 +6078,25 @@ msgstr "録画"
 #. verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Record series"
-msgstr "サーバーを削除"
+msgstr "シリーズ録画"
 
 #. Shown on a channel's page when the server has no listings for it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
-msgstr ""
+msgstr "このチャンネルの番組表データはありません。"
 
 #. Caption on a channel's page, saying how many upcoming programmes are
 #. listed. American spelling of "programmes".
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Showing the next %d programs."
-msgstr ""
+msgstr "これからの %d 番組を表示しています。"
 
 #. Stands in for the name of a Live TV channel the server did not name.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Channel"
-msgstr "未視聴に設定して中止"
+msgstr "チャンネル"
 
 # seeded from jellyfin-web: Albums
 #. Name of a tab on the music page, and of a search-results and library
@@ -6246,7 +6111,7 @@ msgstr "アルバム"
 #. Heading of the row of musicians similar to the one being viewed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
-msgstr ""
+msgstr "似ているアーチスト"
 
 # seeded from jellyfin-web: HeaderInstantMix
 #. Button that starts a queue of tracks like the one chosen. Jellyfin Web
@@ -6257,18 +6122,16 @@ msgstr "jellyfin-web から生成 : HeaderInstantMix"
 
 #. Caption under an album or playlist, counting its songs.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "音声の選択"
+msgstr "%d トラック"
 
 # seeded from jellyfin-web: Artists
 #. Name of a tab on the music page, listing the artists credited on whole
 #. albums as opposed to individual tracks.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Album artists"
-msgstr "アーティスト"
+msgstr "アルバム アーティスト"
 
 # seeded from jellyfin-web: Artists
 #. Name of a tab on the music page, and of a search-results group, holding
@@ -6290,14 +6153,8 @@ msgstr "曲"
 
 #. Status message when music would not start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not start playback."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "再生を開始できませんでした。"
 
 # seeded from jellyfin-web: Edit
 #. Appended to a playlist's name in the page title, marking that the
@@ -6310,25 +6167,24 @@ msgstr "編集"
 #. Shown on a playlist's page when it has no items.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
-msgstr ""
+msgstr "このプレーリストは空です。"
 
 #. Shown on a playlist's page when everything in it is of a kind this
 #. application cannot play.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
-msgstr ""
+msgstr "このプレーリストには、対応しているメディアタイプがありません。"
 
 #. Title of the page listing what is queued to play, and the name given to
 #. that queue when it is saved as a playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Play Queue"
-msgstr ""
+msgstr "再生キュー"
 
 #. Button on the queue and playlist editors that moves the selected rows to
 #. the start of the list. The beginning of an ordering, not a place on
 #. screen. Split from the subtitle position of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgctxt "list position"
 msgid "Top"
 msgstr "上"
@@ -6351,7 +6207,6 @@ msgstr "下"
 #. the end of the list. The end of an ordering, not a place on screen.
 #. Split from the subtitle position of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
 msgstr "下"
@@ -6361,7 +6216,7 @@ msgstr "下"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
 msgid "%d selected"
-msgstr ""
+msgstr "%d 選択"
 
 # seeded from jellyfin-web: SelectAll
 #. Button on the queue and playlist editors that ticks every row. An
@@ -6374,15 +6229,13 @@ msgstr "すべて選択"
 #. imperative verb; it deselects rather than deletes.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Clear"
-msgstr ""
+msgstr "クリアー"
 
 #. Button on the queue editor that saves the queue as a playlist on the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "To Playlist"
-msgstr "サーバーを削除"
+msgstr "プレーリストへ"
 
 #. Button that takes something out of a list without deleting the thing
 #. itself: rows out of the queue or a playlist, an item out of a
@@ -6392,56 +6245,49 @@ msgstr "サーバーを削除"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove"
-msgstr "サーバーを削除"
+msgstr "削除"
 
 #. Shown on the queue editor when nothing is queued.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue is empty."
-msgstr ""
+msgstr "キューが空です。"
 
 #. Status message when taking rows out of the queue or a playlist failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Those items could not be removed."
-msgstr ""
+msgstr "アイテムを削除できませんでした。"
 
 #. Status message when moving rows in the queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue could not be reordered."
-msgstr ""
+msgstr "キューの並べ替えができませんでした。"
 
 #. Button that changes a name: a local profile in Settings, or a playlist
 #. on its edit page. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "ユーザ名:"
+msgstr "変名"
 
 #. Checkbox on the playlist editor. When on, other users of the server can
 #. see this playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
-msgstr ""
+msgstr "公開"
 
 #. Button on the playlist editor, and the title of the dialog it opens,
 #. removing the playlist from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Playlist"
-msgstr "サーバーを削除"
+msgstr "プレーリスト削除"
 
 #. Question in the dialog that removes a playlist from the server. %s is
 #. the playlist's name.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "サーバーを削除"
+msgstr "%s プレーリストを削除しますか？"
 
 # seeded from jellyfin-web: LabelType
 #. Column heading on the queue and playlist editors: what kind of item the
@@ -6461,12 +6307,12 @@ msgstr "時刻"
 #. Status message when moving rows in a playlist failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
-msgstr ""
+msgstr "プレーリストの並べ替えができませんでした。"
 
 #. Status message when removing a playlist from the server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be deleted."
-msgstr ""
+msgstr "プレーリストが削除できませんでした。"
 
 #. Message shown when the Public checkbox is used before the server has
 #. said whether the playlist is public.
@@ -6475,57 +6321,52 @@ msgid ""
 "Still reading this playlist's visibility from the server. Try again in a "
 "moment."
 msgstr ""
+"ひきつづきこのプレーリストの表示・非表示をサーバーから読み込んでいます。時間"
+"をおいてやり直してください。"
 
 #. Error shown when a book file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "This book could not be opened."
-msgstr ""
+msgstr "この書籍を開くことができません。"
 
 #. Entry on the book reader's context menu that puts the paragraph under
 #. the pointer on the clipboard. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
-msgstr ""
+msgstr "段落をコピー"
 
 # seeded from jellyfin-web: Copy
 #. Entry on the book reader's context menu that puts the whole page on the
 #. clipboard. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
 msgid "Copy Page"
-msgstr "コピー"
+msgstr "ページをコピー"
 
 #. Status message confirming a paragraph reached the clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
-msgstr ""
+msgstr "段落をコピーしました。"
 
 #. Status message confirming a page reached the clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the page."
-msgstr ""
+msgstr "ページをコピーしました。"
 
 #. Status message when Copy was pressed with no text under the cursor.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "There is nothing to copy."
-msgstr ""
+msgstr "コピーするものがありません。"
 
 #. Status message when this build of MPV cannot reach the system clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copying is not available."
-msgstr ""
+msgstr "コピーができません。"
 
 #. Status message when text could not be put on the clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy"
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "コピー不可"
 
 #. Status message when the clipboard could not be reached, so the text was
 #. written to a file instead. %s is that file's path.
@@ -6533,60 +6374,51 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "No clipboard available — saved to %s"
-msgstr ""
+msgstr "クリップボードが無効です―― %s に保存しました"
 
 #. Tooltip of the book reader's dropdown listing the chapters. A noun: the
 #. table of contents.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Contents"
-msgstr ""
+msgstr "もくじ"
 
 #. Shown while a book file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Getting the book…"
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "書籍を取得中…"
 
 #. Error shown when a book was fetched but its pages could not be laid out.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "This book could not be drawn."
-msgstr ""
+msgstr "この書籍は描画できませんでした。"
 
 #. Tooltip of the book reader's button that shrinks the type.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
-msgstr ""
+msgstr "やや小さい文字"
 
 #. Tooltip of the book reader's button that enlarges the type.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Large"
 msgid "Larger text"
-msgstr "大きい"
+msgstr "やや大きい文字"
 
 #. Tooltip of the book reader's button that switches between the dark,
 #. sepia and light page backgrounds. British spelling here; the settings
 #. row of the same meaning is spelled the same way.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
-msgstr ""
+msgstr "ページ色"
 
 #. Shown on the search page before anything has been typed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
-msgstr ""
+msgstr "上の検索ボックスに入力してください。"
 
 #. Heading of the search page. %s is what was typed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "サーバー:"
+msgstr "「%s」の結果"
 
 # seeded from jellyfin-web: Shows
 #. Name of a search-results and library group holding television series.
@@ -6614,7 +6446,7 @@ msgstr "ピープル"
 #. because it labels a row of narrow tiles.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
-msgstr ""
+msgstr "TV で"
 
 # seeded from jellyfin-web: Other
 #. Heading of the search-results row holding matches that fit none of the
@@ -6633,7 +6465,7 @@ msgstr "何も見つかりません。"
 #. to.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 msgid "To Series"
-msgstr ""
+msgstr "シリーズへ"
 
 # seeded from jellyfin-web: HeaderSeasons
 #. Heading over a series' seasons on its page. Do not confuse with
@@ -6645,25 +6477,13 @@ msgstr "シーズン"
 
 #. Status message when fetching the next batch of a long list failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "これ以上のアイテムを読み込めませんでした。"
 
 #. Status message when fetching one page of a paged grid failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "このページを読み込めませんでした。"
 
 # seeded from jellyfin-web: HeaderOnNow
 #. Heading of the home-screen row holding Live TV programmes airing at this
@@ -6676,34 +6496,34 @@ msgstr "今"
 #. Heading of a home-screen row of newly added items. {0} is a library's
 #. name, such as "Movies" or "Anime".
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "最近追加された"
+msgstr "{0} に最近追加"
 
 #. Heading of a Live TV row listing episodes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
-msgstr ""
+msgstr "今後のエピソード"
 
 #. Heading of a Live TV row listing films airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Movies"
-msgstr ""
+msgstr "今後の映画"
 
 #. Heading of a Live TV row listing sports airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Sports"
-msgstr ""
+msgstr "今後のスポーツ"
 
 #. Heading of a Live TV row listing children's programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Kids"
-msgstr ""
+msgstr "今後の子ども向け"
 
 #. Heading of a Live TV row listing news programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming News"
-msgstr ""
+msgstr "今後のニュース"
 
 #. Name of a search-results group holding film trailers.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6714,7 +6534,7 @@ msgstr "予告編"
 #. shown in the server picker when browsing offline.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
-msgstr ""
+msgstr "ダウンロード済み"
 
 # seeded from jellyfin-web: TypeOptionPluralSeries
 #. Name of the offline library holding downloaded television series.
@@ -6730,7 +6550,7 @@ msgstr "テレビ番組"
 #. the sense of "has no parent server", not "damaged".
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Orphaned Items"
-msgstr ""
+msgstr "リンク切れアイテム"
 
 # seeded from jellyfin-web: Playlists
 #. Name of the offline library holding downloaded playlists.
@@ -6748,64 +6568,63 @@ msgstr "プレーリスト"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "%(name)s (%(server)s)"
-msgstr ""
+msgstr "%(name)s (%(server)s)"
 
 #. Heading of the offline home-screen row listing films on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
-msgstr ""
+msgstr "ダウンロード済み映画"
 
 #. Heading of the offline home-screen row listing standalone videos on this
 #. device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Videos"
-msgstr ""
+msgstr "ダウンロード済み動画"
 
 #. Heading of the offline home-screen row listing television series on this
 #. device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Shows"
-msgstr ""
+msgstr "ダウンロード済み番組"
 
 # seeded from jellyfin-web: DownloadManager
 #. Heading of the offline home-screen row listing books on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Downloaded Books"
-msgstr "ダウンロード"
+msgstr "ダウンロード済み書籍"
 
 #. Stands in for the name of a season the server did not name. %d is its
 #. number.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "Season %d"
-msgstr ""
+msgstr "シーズン %d"
 
 #. Status message confirming a setting was written. %s is that setting's
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Saved: %s"
-msgstr ""
+msgstr "保存済み : %s"
 
 #. Status message when what was typed into a settings field was not
 #. accepted. %s is that setting's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Invalid value: %s"
-msgstr ""
+msgstr "無効な値 : %s"
 
 #. Status message when saving one setting forced another off. Both
 #. placeholders are settings' names.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Saved: %(key)s (also turned off \"%(other)s\")"
-msgstr ""
+msgstr "保存済み : %(key)s ( 「%(other)s」をオフ)"
 
 #. Shown on the Downloads page when nothing is on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
-msgstr ""
+msgstr "まだダウンロードしていません。"
 
 #. Button beside a downloads group that deletes the items in it already
 #. watched. An imperative verb phrase.
@@ -6832,7 +6651,7 @@ msgstr "%s 内の視聴したダウンロードを削除しますか？"
 #. that language and is not translated.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the system language"
-msgstr ""
+msgstr "システム言語を利用"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #. Checkbox at the top of Settings that reveals the rows not sorted into a
@@ -6860,14 +6679,17 @@ msgid ""
 "Hardware Decoding is the exception: set hwdec there and this app leaves it "
 "alone."
 msgstr ""
+"MPV 詳細設定は、このフォルダーの mpv.conf で行います。MPV は起動時にこれを読"
+"み込み、後でここでの設定を適用するため、ほとんどの設定を上書きします。"
+"ハードウェアデコードは例外 : 「hwdec」に設定すると、このアプリはその設定を変"
+"更しません。"
 
 # seeded from jellyfin-web: Restart
 #. Caption under a settings row whose change does nothing until the
 #. application is started again.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
 msgid "Requires restart"
-msgstr "再起動"
+msgstr "要、再起動"
 
 #. Shown when a settings search found nothing. %s is what was typed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -7043,6 +6865,8 @@ msgstr ""
 #, python-format
 msgid "Set to “%s” in Jellyfin Web, which this app does not display."
 msgstr ""
+"Jellyfin Web の「%s」セクションに設定しましたが、このアプリでは表示できません"
+"。"
 
 #. Label of one home-screen row in the settings list. %d is its position,
 #. counting from one.
