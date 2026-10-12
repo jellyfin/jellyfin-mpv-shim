@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-05 17:57+0000\n"
+"PO-Revision-Date: 2026-10-12 11:24+0000\n"
 "Last-Translator: Szilki077 <szilkimappa@gmail.com>\n"
 "Language-Team: Hungarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hu/>\n"
@@ -863,10 +863,8 @@ msgstr "A lejátszást nem lehetett elindítani"
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "Nothing is downloaded to browse offline."
-msgstr "Semmi sincsen letöltve, amit böngészni lehetne."
+msgstr "Offline böngészéshez nem történik letöltés."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -1023,10 +1021,8 @@ msgstr "A PIN kódot nem lehetett elmenteni."
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Bejelentkezés"
+msgstr "Jelentkezzen be újra"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1043,6 +1039,9 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"A(z) %s szolgáltatáshoz mentett bejelentkezési adatait a rendszer már nem "
+"fogadja el. Az újbóli bejelentkezés megőrzi a letöltéseket és a "
+"beállításokat."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1126,10 +1125,8 @@ msgstr "Kapcsolódás"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Kiszolgálókonfiguráció"
+msgstr "A hálózatán lévő kiszolgálók"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
@@ -1163,6 +1160,8 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Az a cím egy másik szerverhez tartozik. A bejelentkezéshez inkább add hozzá "
+"új szerverként."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1172,10 +1171,8 @@ msgstr "Csatlakozás…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "Nem sikerült csatlakozni. Kérjük, ellenőrizze az adatait."
+msgstr "Nem sikerült bejelentkezni. Kérjük, ellenőrizze az adatait."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1295,14 +1292,14 @@ msgstr "Web"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Nem sugárzott"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Hiányzó"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2475,7 +2472,7 @@ msgstr "Egyéni (config-ban beállítva)"
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "Tájékoztatás a frissítésekről"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
@@ -2604,7 +2601,7 @@ msgstr "Automatikus letöltések törlése megtekintés után"
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "Figyelt letöltések megőrzése (óra, 0 = azonnali törlés)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
@@ -2936,6 +2933,11 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"A „Start Minimized” (Indítás minimalizálva) és a „Fullscreen” (Teljes "
+"képernyő) beállításokkal ez a klasszikus „cast-target” (átküldési célpont) "
+"konfiguráció: az alkalmazás a háttérben várakozik, teljes képernyőre vált, "
+"ha tartalmat küldenek rá, majd visszatér a várakozó állapotba, amint a videó "
+"véget ér, vagy megnyomod a Q billentyűt."
 
 #. Explanation shown under the "Language Filter" list of language codes
 #. (Settings > Playback > Subtitles & Languages). The "two switches below it"
@@ -2948,6 +2950,12 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"Ez a lista önmagában nem csinál semmit – kapcsolja be az alatta lévő két "
+"kapcsoló valamelyikét. A beállítás azt határozza meg, hogy milyen sávokat "
+"kínálnak fel az audio- és feliratmenük, nem pedig azt, hogy melyik kerül "
+"automatikus kiválasztásra; erről a fentebb található előbeállítás "
+"gondoskodik. Az „und” jelölés a címkézetlen sávokra utal, így ennek "
+"eltávolításával a címkézetlen sávok is rejtve maradnak."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -7881,16 +7889,13 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
-"Az MPV Shim v{0} frissítés elérhető!\n"
-"További részletekért nyissa meg a menüt (C billentyű)."
+"Elérhető az MPV Shim v{0} frissítése\n"
+"A telepítéshez futtasd a „flatpak update” parancsot."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
@@ -8011,9 +8016,8 @@ msgstr "Ez a könyvtár"
 #. Name of a video-profile scope: the profile applies to every episode of
 #. this series.
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
 msgid "This Series"
-msgstr "Sorozatok"
+msgstr "Ez a sorozat"
 
 #. Shown for a video-profile scope that has no profile of its own, so it
 #. follows a wider one.
@@ -8027,7 +8031,7 @@ msgstr "Nincs beállítva"
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr "{0}  <-- hatályos"
+msgstr "{0} <-- érvényes"
 
 #. Title of the in-player screen that chooses a video profile per scope. A
 #. video profile is a saved set of MPV shader and rendering options.
