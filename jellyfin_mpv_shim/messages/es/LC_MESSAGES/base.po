@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-12 14:59+0000\n"
+"PO-Revision-Date: 2026-10-12 16:06+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -862,10 +862,8 @@ msgstr "No se pudo iniciar la reproducción."
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "Nothing is downloaded to browse offline."
-msgstr "No hay contenidos descargados para ser explorados."
+msgstr "No hay nada descargado para ser explorado sin conexión."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -961,7 +959,6 @@ msgstr "Nuevo PIN"
 #. second time, to check it was typed correctly. A verb. Split from the
 #. yes/no dialog's title of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "Confirmar"
@@ -1019,10 +1016,8 @@ msgstr "El PIN no pudo ser guardado."
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Conectarse"
+msgstr "Volver a iniciar sesión"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1163,10 +1158,8 @@ msgstr "Conectando…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "No se pudo conectar. Compruebe los datos."
+msgstr "No se pudo iniciar sesión. Por favor, comprueba tus datos."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -2639,10 +2632,8 @@ msgstr "Botones de ventana en la barra superior"
 #. Label of the checkbox for the "window_controls_fullscreen" setting
 #. (Settings > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Window Buttons in the Top Bar"
 msgid "Keep Window Buttons in Full Screen"
-msgstr "Botones de ventana en la barra superior"
+msgstr "Mantener los botones de ventana a pantalla completa"
 
 #. Label of the checkbox for the "hide_title_bar" setting (Settings >
 #. General > Window).
@@ -2659,10 +2650,8 @@ msgstr "Estilo de los controles del reproductor"
 #. Label of the checkbox for the "thumbnail_enable" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "Activar vistas previas en miniatura"
+msgstr "Activar miniaturas de trickplay"
 
 #. Label of the checkbox for the "trickplay_fast_mode" setting (Settings >
 #. Playback > Player Controls).
@@ -2685,8 +2674,6 @@ msgstr "Escala de la interfaz"
 #. Label of the dropdown for the "ui_text_scale" setting (Settings > Browse
 #. > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Text Size"
 msgid "Text size"
 msgstr "Tamaño del texto"
 
@@ -2737,9 +2724,8 @@ msgstr "Hacer los logotipos de la biblioteca más legibles"
 #. Label of the number field for the "reader_font_size" setting (Settings >
 #. Browse > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Type Size"
-msgstr "Tipo"
+msgstr "Tamaño de letra"
 
 #. Label of the dropdown for the "reader_theme" setting (Settings > Browse
 #. > Reading).
@@ -2800,10 +2786,8 @@ msgstr "Tecla de activación de los controles del reproductor"
 #. Label of the text field for the "ui_select_key" setting (under Advanced
 #. on the General tab of Settings).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Select All"
 msgid "Select Key"
-msgstr "Seleccionar todo"
+msgstr "Seleccionar tecla"
 
 #. Label of the dropdown for the "hud_scrim" setting (Settings > Playback >
 #. Player Controls).
@@ -2826,10 +2810,8 @@ msgstr "Esconder los controles del reproductor tras (segundos)"
 #. Label of the checkbox for the "hud_auto_scale" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "When the Player Controls Hide"
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr "Cuando se esconden los controles del reproductor"
+msgstr "Contraer los controles del reproductor en una ventana estrecha"
 
 #. Label of the checkbox for the "mouse_chapter_nav" setting (Settings >
 #. Playback > Player Controls).
@@ -2858,18 +2840,14 @@ msgstr "Tomar el dispositivo de forma exclusiva"
 #. Label of the checkbox for the "shader_pack_enable" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "Perfiles de Reproducción de Video"
+msgstr "Activar perfiles de reproducción de vídeo"
 
 #. Label of the dropdown for the "shader_pack_subtype" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "Nuevo Grupo"
+msgstr "Grupo de perfil"
 
 #. Label of the checkbox for the "shader_pack_remember" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3071,18 +3049,15 @@ msgstr ""
 #. Explanation shown under the "Left Click Pauses Playback" setting
 #. (Settings > Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Off gives MPV's own mouse behaviour instead: drag the video to move the "
-#| "window, and right click to pause. Double click is full screen either way."
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and the right button does whatever your MPV config gives it. Double "
 "click is full screen either way."
 msgstr ""
-"Cuando esta desactivado se utiliza el comportamiento de ratón de MPV: "
-"arrastra el video para mover la ventana, click derecho para pausar. Doble "
-"click es pantalla completa de ambas maneras."
+"Si se desactiva, se utiliza el comportamiento propio del ratón de MPV: "
+"arrastra el vídeo para mover la ventana, y el botón derecho realiza la "
+"acción que le hayas asignado en la configuración de MPV. En cualquier caso, "
+"al hacer doble clic se pasa a pantalla completa."
 
 #. Explanation shown under the "Deinterlace Automatically" setting
 #. (Settings > Playback > Video Enhancement).
@@ -3615,10 +3590,8 @@ msgstr "No reproducido"
 #. items the viewer has already watched. Must read differently from "Play":
 #. in one language these collapsed and the row read "Not played / Play".
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Played"
-msgstr "SyncPlay"
+msgstr "Reproducido"
 
 #. Three uses, all about items the viewer has marked with the heart. A
 #. checkbox in the library filter panel; a button that filters the Live TV
@@ -3627,19 +3600,16 @@ msgstr "SyncPlay"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Favorites"
-msgstr "Eliminar servidor"
+msgstr "Favoritos"
 
 # seeded from jellyfin-web: ButtonResume
 #. Checkbox in the filter panel's Status section. Restricts the library to
 #. items that were started and not finished, so playback would resume part
 #. way in.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Resumable"
-msgstr "Continuar"
+msgstr "Reanudable"
 
 # seeded from jellyfin-web: Genres
 #. Heading of the library filter panel's genre section, and the label of
@@ -3655,9 +3625,8 @@ msgstr "Géneros"
 #. Heading of a filter-panel section, above a dropdown listing the release
 #. years in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Years"
-msgstr "Año"
+msgstr "Años"
 
 # seeded from jellyfin-web: OptionParentalRating
 #. Heading of a filter-panel section, above a dropdown of age ratings (PG,
@@ -3677,18 +3646,14 @@ msgstr "Etiquetas"
 #. Heading of a filter-panel section, above a dropdown of the spoken
 #. languages available in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitles & Languages"
 msgid "Audio Language"
-msgstr "Subtítulos e idiomas"
+msgstr "Idioma del audio"
 
 #. Heading of a filter-panel section, above a dropdown of the subtitle
 #. languages available in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitles & Languages"
 msgid "Subtitle Language"
-msgstr "Subtítulos e idiomas"
+msgstr "Idioma de los subtítulos"
 
 # seeded from jellyfin-web: Features
 #. Heading of a filter-panel section, above checkboxes for extras an item
@@ -3700,44 +3665,39 @@ msgstr "Características"
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items that carry subtitles.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Has Subtitles"
-msgstr "Tamaño de Subtítulo: {0}"
+msgstr "Tiene subtítulos"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items that have a trailer.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Has Trailer"
-msgstr "Falla"
+msgstr "Tiene tráiler"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with bonus material (deleted scenes, featurettes).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr ""
+msgstr "Tiene características especiales"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme song attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "Tiene canción temática"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme video attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "Tiene vídeo temático"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading of a filter-panel section, above checkboxes for resolution and
 #. disc format (SD, HD, 4K, 3D, DVD, Blu-ray, ISO).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Video Types"
-msgstr "Vídeos"
+msgstr "Tipos de vídeo"
 
 # seeded from jellyfin-web: ChannelResolutionSD
 #. Checkbox in the filter panel's Video Types section: standard definition.
@@ -3758,7 +3718,7 @@ msgstr "HD"
 #. Normally left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 # seeded from jellyfin-web: Option3D
 #. Checkbox in the filter panel's Video Types section: stereoscopic 3D
@@ -3778,20 +3738,18 @@ msgstr "DVD"
 #. Blu-ray disc. A trademark, left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr ""
+msgstr "Blu-ray"
 
 #. Checkbox in the filter panel's Video Types section: a whole disc image
 #. file. Left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "ISO"
-msgstr ""
+msgstr "ISO"
 
 #. Title of the modal that puts the selected item into a playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Playlist"
-msgstr "Eliminar servidor"
+msgstr "Añadir a la lista de reproducción"
 
 #. Shown in the Add to Playlist modal when the viewer has no playlists on
 #. the server.
@@ -3821,10 +3779,8 @@ msgstr "Privado (solo tú puedes verlo)"
 #. Button in the Add to Playlist modal that switches to the Add to
 #. Collection modal. The ellipsis means it opens another view.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "Eliminar servidor"
+msgstr "Colecciones…"
 
 #. Button that dismisses something without acting. Used on modals (Add to
 #. Playlist, Reading Progress, SyncPlay, the recording dialogs) and as the
@@ -3839,25 +3795,19 @@ msgstr "Cerrar"
 #. Title of the modal that puts the selected item into a collection
 #. (Jellyfin's grouping of related items, such as a film series).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Collection"
-msgstr "Eliminar servidor"
+msgstr "Añadir a la colección"
 
 #. Shown in the Add to Collection modal when the server has no collections.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Eliminar servidor"
+msgstr "Ninguna colección aún."
 
 #. Placeholder text in the empty text field where a new collection's name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Usuario: "
+msgstr "Nuevo nombre de colección…"
 
 #. Goes one step back. The navigation bar's back button, the row that
 #. leaves a submenu on the playback controls, the button that leaves the
@@ -3874,18 +3824,14 @@ msgstr "Atrás"
 #. Stands in for the name of a media source (a file or version of an item)
 #. that the server did not name, in the Media Info modal.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Unkn"
 msgid "Unknown"
 msgstr "Desconocido"
 
 #. Shown in the Media Info modal when the server returned no video, audio
 #. or subtitle stream details for the item.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Item not available."
 msgid "No media information is available."
-msgstr "Elemento no disponible."
+msgstr "Ninguna información multimedia disponible."
 
 # seeded from jellyfin-web: MoreMediaInfo
 #. The panel listing an item's video, audio and subtitle stream details.
@@ -3906,22 +3852,14 @@ msgstr "OK"
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudo comprobar lo que necesita descargarse."
 
 #. Placeholder in the Download modal while the app works out how many items
 #. would be downloaded and how much space they need.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "Configuración de SVP"
+msgstr "Estimando…"
 
 #. Summary line in the Download modal. %(count)d is a number of items,
 #. %(size)s an already-formatted size such as "4.2 GB". The middle
@@ -4003,10 +3941,8 @@ msgstr "Elementos %d"
 
 #. Button in the Filters modal. Removes every filter that is set.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Clear All"
-msgstr "SyncPlay"
+msgstr "Limpiar todo"
 
 #. Button that closes the Filters modal, and the View settings modal,
 #. keeping what was chosen. Not "finished" in the sense of a task
@@ -4089,9 +4025,8 @@ msgstr "Mostrar títulos"
 #. Checkbox in a library's View settings. Draws each item's release year
 #. under its tile.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Show years"
-msgstr "Series"
+msgstr "Mostrar años"
 
 #. Checkbox in a library's View settings, switching the layout from tiles
 #. to a single-column list.
@@ -4176,16 +4111,13 @@ msgstr ""
 #. a software package name and the parenthesis holds a shell command; leave
 #. both untranslated.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Install the \"%(package)s\" package (for example \"apt install "
-#| "%(package)s\"), or use MPV 0.41 or newer."
+#, python-format
 msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\")."
 msgstr ""
-"Instala el paquete \"%(package)s\" (por ejemplo, \"apt install "
-"%(package)s\"), o usa MPV 0.41 o una versión más reciente."
+"Instala el paquete \"%(package)s\" (por ejemplo, \"apt install %(package)s\")"
+"."
 
 #. Follows the clipboard message above, naming the MPV version that gained
 #. clipboard support.
@@ -4202,7 +4134,6 @@ msgstr "Portapapeles"
 #. A noun naming the dialog, not an instruction to the reader. Split from
 #. the Set PIN dialog's field label of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "Confirmar"
@@ -4230,10 +4161,8 @@ msgstr "%s no almacena su posición de lectura."
 #. Title of the dialog that reads or writes how far through a book the
 #. viewer is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Reading Progress"
-msgstr "Abrir carpeta de configuración"
+msgstr "Progreso de lectura"
 
 #. Shown in the Reading Progress dialog while the stored position is being
 #. fetched from the server.
@@ -4256,68 +4185,57 @@ msgstr ""
 #. Error in the Reading Progress dialog when the stored reading position
 #. could not be fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The position could not be read."
-msgstr "No se pudo aplicar el cambio."
+msgstr "No se pudo leer la posición."
 
 #. Validation message in the Reading Progress dialog when what was typed in
 #. the page field is not a number.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Enter a new PIN."
 msgid "Enter a number."
-msgstr "Introduzca un nuevo PIN."
+msgstr "Introduce un número."
 
 #. Validation message in the Reading Progress dialog. %d is the last page
 #. of the book.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Enter a page between 1 and %d."
-msgstr ""
+msgstr "Introduce una página entre 1 y %d."
 
 #. Validation message in the Reading Progress dialog, used when the book's
 #. length is unknown.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Enter a page of 1 or more."
-msgstr ""
+msgstr "Introduce una página de 1 o más."
 
 #. Status message confirming the reading position was sent to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading position saved."
-msgstr ""
+msgstr "Posición de lectura guardada."
 
 #. Error in the Reading Progress dialog when the reading position could not
 #. be sent to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "The position could not be saved."
-msgstr "El PIN no pudo ser guardado."
+msgstr "La posición no pudo ser guardada."
 
 #. One row of the SyncPlay group list. %s is a group's name, and the suffix
 #. marks the group this device is currently in.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} se ha unido."
+msgstr "%s (unido)"
 
 #. Stands in for the name of a SyncPlay group the server did not name. A
 #. set of people watching in sync.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "Nuevo Grupo"
+msgstr "Grupo"
 
 #. Shown in the SyncPlay dialog when nobody on this server has a watch-
 #. together group open.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Nuevo Grupo"
+msgstr "Ningún grupo activo."
 
 #. Button that starts a new SyncPlay watch-together group. On the SyncPlay
 #. dialog and on the playback controls.
@@ -4350,68 +4268,42 @@ msgstr "Recargar"
 
 #. Error shown when joining a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudo unir al grupo de SyncPlay."
 
 #. Error shown when starting a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudo crear el grupo de SyncPlay."
 
 #. Error shown when leaving a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudo salir del grupo de SyncPlay."
 
 #. Error shown when returning to synchronised playback failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Could not start playback."
 msgid "Could not resume SyncPlay playback."
-msgstr "No se pudo iniciar la reproducción."
+msgstr "No se pudo continuar la reproducción en SyncPlay."
 
 #. Heading of a downloads group: episodes fetched automatically because
 #. they are next to watch in a series being followed.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Automatic"
 msgid "Automatic: Next Up"
-msgstr "Automático"
+msgstr "Automático: Siguiente"
 
 #. Heading of a downloads group: episodes fetched automatically because the
 #. series is being watched right now.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Automatic: Actively Watched"
-msgstr "Eliminar servidor"
+msgstr "Automático: Visto activamente"
 
 #. Name of a search-results and library group holding books read aloud.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Audio"
 msgid "Audiobooks"
-msgstr "Audio"
+msgstr "Audiolibros"
 
 # seeded from jellyfin-web: Books
 #. Name of a search-results and library group holding readable books, and
@@ -4460,27 +4352,22 @@ msgstr "Descargando %d%%"
 
 #. State of a download that has started but has no progress figure yet.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading"
-msgstr "Eliminar servidor"
+msgstr "Descargando"
 
 #. Status of one queued download in Settings > Downloads, in place of
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "Esperando aprobación…"
+msgstr "Esperando a que %s inicie sesión…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Waiting for approval…"
 msgid "Waiting for its profile to sign in…"
-msgstr "Esperando aprobación…"
+msgstr "Esperando a que su perfil inicie sesión…"
 
 #. State of a download waiting for its turn.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
