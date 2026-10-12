@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-11 19:48+0000\n"
+"PO-Revision-Date: 2026-10-12 11:24+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -1195,7 +1195,7 @@ msgstr "オフラインで動作"
 #. this device.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr "ブラウザでのダウンロードはありません。"
+msgstr "閲覧に必要なダウンロードはありません。"
 
 #. Error on the startup screen when none of the remembered servers
 #. answered. The bracketed plural is because there may be one server or
@@ -1913,7 +1913,7 @@ msgstr "テーマ"
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Library Browser"
-msgstr "ライブラリー ブラウザー"
+msgstr "ライブラリーブラウザ"
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2781,13 +2781,13 @@ msgstr "キャスト対象モード ( ライブラリーブラウズなし )"
 #. > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr "キャストからライブラリーブラウザーを開く"
+msgstr "キャストからライブラリーブラウザを開く"
 
 #. Label of the checkbox for the "browser_fullscreen" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr "全画面ライブラリーブラウザー"
+msgstr "全画面ライブラリーブラウザ"
 
 #. Label of the checkbox for the "browse_block_keys" setting (Settings >
 #. General > Input).
@@ -6695,7 +6695,7 @@ msgstr "要、再起動"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "No settings match \"%s\"."
-msgstr ""
+msgstr "「%s」と一致する設定はありません。"
 
 #. Explanation shown when a settings search found nothing. General, Browse
 #. and Playback are tab names on this screen; keep them matching those
@@ -6705,6 +6705,8 @@ msgid ""
 "Only the General, Browse and Playback tabs are searched. Some settings are "
 "hidden until the setting they depend on is turned on."
 msgstr ""
+"全般、閲覧、再生タブのみ検索しました。設定の一部は、依存している設定が有効な"
+"場合にのみ表示します。"
 
 #. Caption under settings search results. %d is how many were found.
 #. Phrased with a count after a colon on purpose, because this application
@@ -6712,13 +6714,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Matches: %d. Pick a tab above to stop searching."
-msgstr ""
+msgstr "一致 : %d 件 - 上のタブを選択すると検索を停止します。"
 
 #. Button beside the download folder in Settings that relocates what is
 #. already downloaded to a new folder. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
-msgstr ""
+msgstr "移動"
 
 #. Explanation shown under "Keep Running in Background" once it is on. The
 #. backticked text is a shell command; leave it as it is.
@@ -6727,6 +6729,8 @@ msgid ""
 "To stop the application, re-launch and uncheck this option or run `jellyfin-"
 "mpv-shim stop`."
 msgstr ""
+"アプリを停止するには、再起動してこの設定のチェックを外すか、「jellyfin-mpv-"
+"shim stop」を実行します。"
 
 #. Explanation under a settings row that is switched on but cannot work.
 #. "pypresence" is a software package name; "Logs" is a tab on this
@@ -6747,110 +6751,106 @@ msgstr ""
 #, python-format
 msgid "Pinned by config: your mpv.conf sets hwdec=%s, which overrides this."
 msgstr ""
+"設定でピン留め : mpv.conf で hwdec=%s と設定しているので、ここでの設定は上書"
+"きされます。"
 
 #. Explanation under a per-server setting. %s is the server it applies to;
 #. "servers tab" is the Servers & Users tab of this Settings screen.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Applies to %s, enable other servers in servers tab."
-msgstr ""
+msgstr "%s に適用し、サーバー タブで、他のサーバーも有効にします。"
 
 #. Question in the dialog that returns downloads to the folder this
 #. application chooses itself.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
-msgstr ""
+msgstr "ダウンロードしたものをデフォルトフォルダーに戻しますか？"
 
 #. Confirming button of the dialog that returns downloads to the folder
 #. this application chooses itself.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the default folder"
-msgstr ""
+msgstr "デフォルトフォルダーを利用"
 
 #. Status message while downloaded files are being relocated. %d is the
 #. percentage done; the doubled percent sign prints one.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Moving downloads… %d%%"
-msgstr ""
+msgstr "ダウンロードを移動中...%d %%"
 
 #. Status message when relocating the download folder did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving the downloads failed."
-msgstr ""
+msgstr "ダウンロードの移動に失敗。"
 
 #. Status message after the download folder was relocated, saying the
 #. application must be started again.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Download folder moved. Restart to finish switching."
 msgstr ""
+"ダウンロードフォルダーを移動しました。切り替えを完了するため、再起動してくだ"
+"さい。"
 
 #. Status message while downloaded files are being relocated, before any
 #. progress figure is known.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving downloads…"
-msgstr ""
+msgstr "ダウンロードを移動中…"
 
 #. Status message when a second download-folder move was asked for while
 #. one is running.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "A move is already in progress."
-msgstr ""
+msgstr "すでに移動を実行中です。"
 
 #. Status message when offline browsing was chosen but nothing is on this
 #. device.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Nothing downloaded to browse offline."
-msgstr ""
+msgstr "オフライン閲覧のために必要なダウンロードはありません。"
 
 #. Status message when no Jellyfin server answered.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "サーバーに到達できませんでした。"
 
 #. Name of the Settings section that chooses which rows the home screen
 #. shows.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
-msgstr ""
+msgstr "ホーム画面"
 
 #. Shown in the Home Screen settings while offline, because these are
 #. stored on the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Connect to a server to change the home screen sections."
-msgstr ""
+msgstr "ホーム画面セクションを変更するには、サーバーに接続してください。"
 
 #. Shown in the Home Screen settings when the server would not return them.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These settings could not be loaded from your server."
-msgstr ""
+msgstr "これらの設定を、サーバーから取得できませんでした。"
 
 #. Button that retries fetching the home screen settings from the server.
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Try Again"
-msgstr ""
+msgstr "再試行"
 
 #. Explanation in the Home Screen settings. "Jellyfin Web" is the browser
 #. client's product name; leave it as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These settings are stored on your server and shared with Jellyfin Web."
-msgstr ""
+msgstr "これらの設定はサーバーに保存されており、Jellyfin Web と共有しています。"
 
 #. Heading in the Home Screen settings, above the list of rows the home
 #. screen shows.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Sections"
-msgstr "サーバーを削除"
+msgstr "セクション"
 
 #. Explanation under the Sections heading in the Home Screen settings.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -6858,6 +6858,8 @@ msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
 msgstr ""
+"ホーム画面に表示する行の順序。このアプリで描画できないセクションは、Web "
+"クライアントで設定するまでそのままです。"
 
 #. Shown for a home-screen row set to something this application cannot
 #. draw. %s is that section's name as Jellyfin Web calls it.
@@ -6873,7 +6875,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Section %d"
-msgstr ""
+msgstr "%d セクション"
 
 # seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #. Checkbox in the Home Screen settings. The quoted names are home-screen
@@ -6896,49 +6898,31 @@ msgstr ""
 #. Status message when the home screen settings would not come back from
 #. the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen settings."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "ホーム画面設定を読み込めませんでした。"
 
 #. Status message confirming the home screen settings reached the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen settings saved."
-msgstr ""
+msgstr "ホーム画面設定を保存しました。"
 
 #. Status message when the home screen settings could not be written to the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen settings."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "ホーム画面設定を保存できませんでした。"
 
 #. Status message confirming the order of the home screen rows reached the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr ""
+msgstr "ホーム画面レイアウトを保存しました。"
 
 #. Status message when the order of the home screen rows could not be
 #. written to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"サーバーを追加できません。\n"
-"接続設定を確認してください。"
+msgstr "ホーム画面レイアウトを保存できませんでした。"
 
 # seeded from jellyfin-web: General
 #. Name of the first tab of Settings, holding what belongs to this
@@ -6952,15 +6936,13 @@ msgstr "全般"
 #. theme, the grid and downloads. A verb used as a tab name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Browse"
-msgstr "ブラウズ"
+msgstr "閲覧"
 
 #. Name of a Settings tab, holding the Jellyfin servers and this
 #. application's local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "サーバーURL "
+msgstr "サーバーとユーザー"
 
 # seeded from jellyfin-web: LabelLogs
 #. Name of a Settings tab showing this application's diagnostic output.
@@ -6971,10 +6953,8 @@ msgstr "ログ"
 
 #. Placeholder in the empty field that searches the settings.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Search settings…"
-msgstr "SVP設定"
+msgstr "設定を検索…"
 
 # seeded from jellyfin-web: Copy
 #. Button on the Logs tab that puts the log on the clipboard. An imperative
@@ -6986,69 +6966,61 @@ msgstr "コピー"
 #. Shown on the Logs tab when nothing has been logged.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
-msgstr ""
+msgstr "まだログ出力をキャプチャーしていません。"
 
 #. Status message when Copy was pressed on an empty log.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
-msgstr ""
+msgstr "コピーすべきものはありません。"
 
 #. Status message confirming the log reached the clipboard. %d is how many
 #. lines.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "Copied %d log lines."
-msgstr ""
+msgstr "ログを %d 行コピーしました。"
 
 #. State beside a server in Settings: the application can reach it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Connected"
-msgstr ""
+msgstr "接続"
 
 #. One-word status in the Servers list: this server answered, but it no
 #. longer accepts the saved login, so the user has to sign in again. The
 #. other two states are "Connected" and "Offline".
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Signed out"
-msgstr ""
+msgstr "サインアウトしました"
 
 #. State beside a server in Settings: the application cannot reach it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Offline"
-msgstr ""
+msgstr "オフライン"
 
 #. Placeholder in the empty field where the name of a new local profile is
 #. typed, in the Users settings. These are this application's own profiles,
 #. each with its own servers, not Jellyfin accounts.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "ユーザ名 "
+msgstr "新しいユーザー名…"
 
 #. Button in the Users settings that creates a new local profile. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Add Server"
 msgid "Add User"
-msgstr "サーバーの追加"
+msgstr "ユーザー追加"
 
 #. Shown in the Servers settings when this profile has signed in to
 #. nothing.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "サーバー設定"
+msgstr "設定済みサーバーはありません。"
 
 #. Heading of the Users section of Settings, listing this application's
 #. local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "ユーザ名:"
+msgstr "ユーザー"
 
 #. Subtitle under the Users heading in Settings. These are this
 #. application's own local profiles, not Jellyfin accounts, and a locked
@@ -7058,45 +7030,40 @@ msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
+"各ユーザーには独自のサーバーとデバイス ID が割り当てられています。ロックされ"
+"たユーザーが別のユーザーに切り替えるには、PIN が必要です。"
 
 #. Heading of the Servers section of Settings. %s is the name of the local
 #. profile whose servers are listed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "サーバー:"
+msgstr "%d のサーバー"
 
 #. Heading of the Servers section of Settings, used when no profile is
 #. named.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "サーバー:"
+msgstr "サーバー"
 
 #. Button beside a local profile in Settings that alters its numeric
 #. passcode. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Change Audio"
 msgid "Change PIN"
-msgstr "オーディオトラックの変更"
+msgstr "PIN の変更"
 
 #. Button beside a local profile in Settings that gives it a numeric
 #. passcode. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "サーバー:"
+msgstr "PIN を設定"
 
 #. Question in the dialog that removes a local profile. %s is the profile's
 #. name; "saved logins" are the servers it is signed in to.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Delete user %s and its saved logins?"
-msgstr ""
+msgstr "%s ユーザーと保存してあるサーバー情報を削除しますか？"
 
 # seeded from jellyfin-web: DeleteUser
 #. Title of the dialog that removes a local profile.
@@ -7820,7 +7787,7 @@ msgstr ""
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr "ライブラリーブラウザーを表示"
+msgstr "ライブラリーブラウザを表示"
 
 #. Entry on this application's system tray menu, on Windows, that reveals
 #. the terminal window. An imperative verb phrase.
