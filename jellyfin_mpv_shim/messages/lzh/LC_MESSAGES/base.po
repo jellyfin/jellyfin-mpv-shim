@@ -7401,3 +7401,11 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "案頭媒體之控"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "令鍵盤媒體鍵、耳機之鈕、鎖屏及案頭媒體小器得以播、暫停、跳過，並示所播者及其封面（MPRIS，唯 Linux）。"

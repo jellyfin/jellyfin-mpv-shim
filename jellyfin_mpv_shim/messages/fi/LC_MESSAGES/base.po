@@ -8154,6 +8154,14 @@ msgstr "Video toistoprofiilit"
 msgid "Select Shader Profile"
 msgstr "Valitse varjostimen profiili"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Työpöydän mediaohjaimet"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Antaa näppäimistön medianäppäinten, kuulokkeiden painikkeiden, lukitusnäytön ja työpöydän mediapienoisohjelmien toistaa, keskeyttää ja ohittaa, ja näyttää toistettavan sisällön kansikuvineen (MPRIS, vain Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "Pohja"
 

@@ -7814,6 +7814,14 @@ msgstr "កម្រងព័ត៌មានការចាក់វីដេអ
 msgid "Select Shader Profile"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "ការគ្រប់គ្រងមេឌៀលើផ្ទៃតុ"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "អនុញ្ញាតឱ្យគ្រាប់ចុចមេឌៀនៃក្ដារចុច ប៊ូតុងកាស អេក្រង់ចាក់សោ និងធាតុក្រាហ្វិកមេឌៀលើផ្ទៃតុ ចាក់ ផ្អាក និងរំលង ហើយបង្ហាញអ្វីដែលកំពុងចាក់ជាមួយគម្របរបស់វា (MPRIS, Linux តែប៉ុណ្ណោះ)។"
+
 #~ msgid "Bottom"
 #~ msgstr "បាត"
 

@@ -7646,6 +7646,14 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "کۆنتڕۆڵەیل میدیای سەر مێز"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "ئیجازە دەێدە بە دۊگمەیل میدیای کیبۆرد، دۊگمەیل هێدسێت، شاشەی قفڵ و ویجێتەیل میدیای سەر مێز پەخش بکەن، ڕاوسن و بازدەن، و ئەوە کە پەخش بۊد وەگەرد بەرگەگەی نیشان دەێد (MPRIS، تەنیا Linux)."
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

@@ -7412,3 +7412,11 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Vidhibiti vya Midia vya Eneo-kazi"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Huruhusu vitufe vya midia vya kibodi, vitufe vya vifaa vya sauti, skrini iliyofungwa na wijeti za midia za eneo-kazi kucheza, kusitisha na kuruka, na huonyesha kinachocheza pamoja na jalada lake (MPRIS, Linux pekee)."

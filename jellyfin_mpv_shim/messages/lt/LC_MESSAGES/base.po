@@ -7415,6 +7415,14 @@ msgstr "Vaizdo atkūrimo profilis"
 msgid "Select Shader Profile"
 msgstr "Pasirinkite Shader profilį"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Darbalaukio medijos valdikliai"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Leidžia klaviatūros medijos klavišams, ausinių mygtukams, užrakinimo ekranui ir darbalaukio medijos valdikliams leisti, pristabdyti ir praleisti, bei rodo, kas grojama, su viršeliu (MPRIS, tik Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "Apačioje"
 

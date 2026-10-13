@@ -8060,6 +8060,14 @@ msgstr "Perfil de reprodução de vídeo"
 msgid "Select Shader Profile"
 msgstr "Selecionar perfil de shader"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Controlos multimédia do ambiente de trabalho"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Permite que as teclas multimédia do teclado, os botões dos auscultadores, o ecrã de bloqueio e os widgets multimédia do ambiente de trabalho reproduzam, pausem e avancem, e mostra o que está a ser reproduzido com a respetiva capa (MPRIS, apenas Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "Fundo"
 

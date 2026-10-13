@@ -8184,6 +8184,14 @@ msgstr "Profiluri de Redare Video"
 msgid "Select Shader Profile"
 msgstr "Selectați Profilul Shader"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Controale media pentru desktop"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Permite tastelor media ale tastaturii, butoanelor căștilor, ecranului de blocare și widgeturilor media de pe desktop să redea, să întrerupă și să sară, și arată ce se redă împreună cu coperta (MPRIS, doar Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "Dedesubt"
 

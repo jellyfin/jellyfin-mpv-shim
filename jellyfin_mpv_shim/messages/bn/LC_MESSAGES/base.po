@@ -7917,6 +7917,14 @@ msgstr "ভিডিও প্লেব্যাক প্রোফাইলস�
 msgid "Select Shader Profile"
 msgstr "শেডার প্রোফাইল নির্বাচন করুন"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "ডেস্কটপ মিডিয়া নিয়ন্ত্রণ"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "কীবোর্ডের মিডিয়া কী, হেডসেটের বোতাম, লক স্ক্রিন এবং ডেস্কটপ মিডিয়া উইজেটকে চালাতে, বিরতি দিতে ও এড়িয়ে যেতে দেয়, এবং কী চলছে তা কভারসহ দেখায় (MPRIS, শুধুমাত্র Linux)।"
+
 #~ msgid "Bottom"
 #~ msgstr "নিচে"
 

@@ -8142,6 +8142,14 @@ msgstr "پروفایل های پخش ویدئو"
 msgid "Select Shader Profile"
 msgstr "نمایه سایه بان را انتخاب کنید"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "کنترل‌های رسانهٔ میزکار"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "به کلیدهای رسانه‌ای صفحه‌کلید، دکمه‌های هدست، صفحهٔ قفل و ابزارک‌های رسانه‌ای میزکار اجازهٔ پخش، مکث و رد کردن می‌دهد و آنچه در حال پخش است را همراه با جلد آن نشان می‌دهد (MPRIS، فقط Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "پایین"
 

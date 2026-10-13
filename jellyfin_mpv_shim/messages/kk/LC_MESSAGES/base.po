@@ -8142,6 +8142,14 @@ msgstr "Beine oinatu profaily"
 msgid "Select Shader Profile"
 msgstr "Şeider profailyn tañdau"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Жұмыс үстеліндегі медиа басқару"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Пернетақтаның медиа пернелеріне, гарнитура түймелеріне, құлыптау экранына және жұмыс үстелінің медиа виджеттеріне ойнатуға, кідіртуге және өткізіп жіберуге мүмкіндік береді, сондай-ақ не ойнап тұрғанын мұқабасымен көрсетеді (MPRIS, тек Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "Tömende"
 

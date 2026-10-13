@@ -7789,6 +7789,14 @@ msgstr "वीडियो प्लेबैक प्रोफाइल बद
 msgid "Select Shader Profile"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "डेस्कटॉप मीडिया नियंत्रण"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "कीबोर्ड की मीडिया कुंजियों, हेडसेट के बटनों, लॉक स्क्रीन और डेस्कटॉप मीडिया विजेट को चलाने, रोकने और छोड़ने देता है, और जो चल रहा है उसे उसके कवर के साथ दिखाता है (MPRIS, केवल Linux)।"
+
 #, fuzzy
 #~| msgid ""
 #~| "Could not add server.\n"

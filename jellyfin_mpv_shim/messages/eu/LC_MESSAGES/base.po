@@ -8165,6 +8165,14 @@ msgstr "Bideo Erreprodukzio Profilak"
 msgid "Select Shader Profile"
 msgstr "Itzal-Profilak Aukeratu"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Mahaigaineko multimedia-kontrolak"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Teklatuko multimedia-teklei, entzungailuen botoiei, blokeo-pantailari eta mahaigaineko multimedia-trepetei erreproduzitzea, pausatzea eta saltatzea ahalbidetzen die, eta erreproduzitzen ari dena azalarekin erakusten du (MPRIS, Linux soilik)."
+
 #~ msgid "Bottom"
 #~ msgstr "Azpian"
 

@@ -7513,6 +7513,14 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "ޑެސްކްޓޮޕް މީޑިއާ ކޮންޓްރޯލްތައް"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "ކީބޯޑުގެ މީޑިއާ ކީތަކާއި، ހެޑްސެޓްގެ ބަޓަންތަކާއި، ލޮކް ސްކްރީނާއި ޑެސްކްޓޮޕް މީޑިއާ ވިޖެޓްތަކަށް ޕްލޭ، ޕޯޒް އަދި ސްކިޕް ކުރެވޭނެ، އަދި ޕްލޭވަމުންދާ އެއްޗެއް ކަވަރާއެކު ދައްކައެވެ (MPRIS، Linux އަށް އެކަނި)."
+
 # seeded from jellyfin-web: Default
 #~ msgid "Default"
 #~ msgstr "ޑީފޯލްޓް"

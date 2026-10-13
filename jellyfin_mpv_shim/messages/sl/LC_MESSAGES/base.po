@@ -7830,6 +7830,14 @@ msgstr "Profili predvajanja videa"
 msgid "Select Shader Profile"
 msgstr "Izberi profil senčenja"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Upravljanje predstavnosti na namizju"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Omogoča predstavnostnim tipkam tipkovnice, gumbom slušalk, zaklenjenemu zaslonu in predstavnostnim gradnikom namizja predvajanje, premor in preskok ter prikaže, kaj se predvaja, z naslovnico (MPRIS, samo Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "Na dnu"
 

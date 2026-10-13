@@ -8107,6 +8107,14 @@ msgstr "Proffiliau Chwarae"
 msgid "Select Shader Profile"
 msgstr "Dewis Proffil Cysgodydd"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Rheolyddion cyfryngau'r bwrdd gwaith"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Yn gadael i allweddi cyfryngau'r bysellfwrdd, botymau clustffonau, y sgrin gloi a theclynnau cyfryngau'r bwrdd gwaith chwarae, oedi a neidio, ac yn dangos beth sy'n chwarae gyda'i glawr (MPRIS, Linux yn unig)."
+
 #~ msgid "Bottom"
 #~ msgstr "Gwaelod"
 

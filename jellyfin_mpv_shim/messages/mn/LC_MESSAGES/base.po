@@ -8173,6 +8173,14 @@ msgstr "Видео тоглуулах профайл"
 msgid "Select Shader Profile"
 msgstr "Shader Profile-г сонгоно уу"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Ширээний компьютерын медиа удирдлага"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Гарын медиа товчлуур, чихэвчний товч, түгжээний дэлгэц болон ширээний медиа виджетүүдэд тоглуулах, түр зогсоох, алгасах боломж олгож, юу тоглож байгааг хавтасных нь хамт харуулна (MPRIS, зөвхөн Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "Доод"
 

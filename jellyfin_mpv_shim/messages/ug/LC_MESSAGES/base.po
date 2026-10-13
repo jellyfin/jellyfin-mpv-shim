@@ -7497,6 +7497,14 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "ئۈستەلئۈستى ۋاسىتە كونتروللىرى"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "كۇنۇپكا تاختىسىنىڭ ۋاسىتە كۇنۇپكىلىرى، تىڭشىغۇچ كۇنۇپكىلىرى، قۇلۇپ ئېكرانى ۋە ئۈستەلئۈستى ۋاسىتە زاپچاسلىرىنىڭ قويۇش، ۋاقىتلىق توختىتىش ۋە ئاتلاشنى قىلىشىغا يول قويىدۇ، ھەمدە قويۇلۇۋاتقان نەرسىنى مۇقاۋىسى بىلەن كۆرسىتىدۇ (MPRIS، پەقەت Linux)."
+
 # seeded from jellyfin-web: Default
 #~ msgid "Default"
 #~ msgstr "سۈكۈتتىكى"

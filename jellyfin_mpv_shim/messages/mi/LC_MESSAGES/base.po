@@ -7438,6 +7438,14 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "Ngā mana pāpāho o te papamahi"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "Ka tuku i ngā pātuhi pāpāho o te papapātuhi, ngā pātene o te hōtaka taringa, te mata raka me ngā wītiki pāpāho o te papamahi ki te pūrei, ki te tatari, ki te peke, ā, ka whakaatu i te mea e pūrei ana me tōna uhi (MPRIS, Linux anake)."
+
 # seeded from jellyfin-web: Default
 #~ msgid "Default"
 #~ msgstr "Taunoa"

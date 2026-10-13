@@ -8241,6 +8241,14 @@ msgstr "影片播放設定檔"
 msgid "Select Shader Profile"
 msgstr "選擇陰影設定檔"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "桌面媒體控制"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "讓鍵盤媒體鍵、耳機按鈕、鎖定畫面和桌面媒體小工具可以播放、暫停和跳過，並顯示正在播放的內容及其封面（MPRIS，僅限 Linux）。"
+
 #~ msgid "Bottom"
 #~ msgstr "底部"
 

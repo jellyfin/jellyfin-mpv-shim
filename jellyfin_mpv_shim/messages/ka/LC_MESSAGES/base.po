@@ -8114,6 +8114,14 @@ msgstr "ვიდეოს დაკვრის პროფილები"
 msgid "Select Shader Profile"
 msgstr "შეიდერის პროფილის არჩევა"
 
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr "სამუშაო მაგიდის მედიის მართვა"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
+msgstr "საშუალებას აძლევს კლავიატურის მედია ღილაკებს, ყურსასმენის ღილაკებს, ჩაკეტვის ეკრანს და სამუშაო მაგიდის მედია ვიჯეტებს დაკვრას, პაუზას და გამოტოვებას, და აჩვენებს რა იკვრება გარეკანით (MPRIS, მხოლოდ Linux)."
+
 #~ msgid "Bottom"
 #~ msgstr "ქვედა"
 
