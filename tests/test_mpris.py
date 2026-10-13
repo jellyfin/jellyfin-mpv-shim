@@ -46,7 +46,16 @@ class FakePM:
 
     def __init__(self):
         self.tasks = []
-        self._player = mock.Mock(playback_abort=False, playback_time=12.5)
+        self.player_reads = []
+        pm = self
+
+        class Player:
+            # Any read is recorded: the bus thread must never touch mpv.
+            def __getattr__(self, name):
+                pm.player_reads.append(name)
+                return 0.0
+
+        self._player = Player()
 
     def put_task(self, func, *args):
         self.tasks.append((func.__name__, args))
@@ -77,9 +86,11 @@ def snap(item_id="a1", pos=0.0, paused=False, **kw):
 
 def service(clock=None):
     pm = FakePM()
-    svc = mpris.MprisService(mpris.Controls(pm), RecorderBus())
-    if clock is not None:
-        svc._seek = mpris.SeekDetector(clock)
+    if clock is None:
+        svc = mpris.MprisService(mpris.Controls(pm), RecorderBus())
+    else:
+        svc = mpris.MprisService(mpris.Controls(pm), RecorderBus(),
+                                 clock=clock)
     return svc, pm
 
 
@@ -218,11 +229,55 @@ class ControlsTest(unittest.TestCase):
         svc, _ = service()
         self.assertFalse(svc.call("Explode", ()))
 
-    def test_position_is_read_live(self):
-        svc, pm = service()
-        self.assertEqual(svc.get(mpris.PLAYER_IFACE, "Position"), 12500000)
-        pm._player.playback_abort = True
-        self.assertEqual(svc.get(mpris.PLAYER_IFACE, "Position"), 0)
+    def _position(self, svc):
+        return svc.get(mpris.PLAYER_IFACE, "Position")
+
+    def test_position_never_reads_the_player(self):
+        """`Position` is answered on the bus thread, and python-mpv's
+        terminate() clears the handle before the core is flagged shut down:
+        a read in that window hands NULL to mpv_get_property, a segfault no
+        except can catch. The snapshot is the only safe source."""
+        clock = Clock()
+        svc, pm = service(clock)
+        svc.publish(snap(pos=12.5), Video({"Id": "a1"}))
+        for _ in range(3):
+            clock.now += 1
+            self._position(svc)
+        svc.publish({"stopped": True}, None)
+        self._position(svc)
+        self.assertEqual(pm.player_reads, [])
+
+    def test_position_follows_the_clock_while_playing(self):
+        clock = Clock()
+        svc, _ = service(clock)
+        svc.publish(snap(pos=12.5), Video({"Id": "a1"}))
+        for step in range(1, 4):
+            clock.now += 2
+            self.assertEqual(self._position(svc), 12500000 + step * 2000000)
+
+    def test_position_holds_while_paused(self):
+        clock = Clock()
+        svc, _ = service(clock)
+        svc.publish(snap(pos=40.0, paused=True), Video({"Id": "a1"}))
+        for _ in range(3):
+            clock.now += 5
+            self.assertEqual(self._position(svc), 40000000)
+
+    def test_position_is_capped_at_the_duration(self):
+        """A snapshot that stops arriving -- the end of the file -- must not
+        run the position past the track's length."""
+        clock = Clock()
+        svc, _ = service(clock)
+        svc.publish(snap(pos=298.0), Video({"Id": "a1"}))
+        clock.now += 30
+        self.assertEqual(self._position(svc), 300000000)
+
+    def test_position_is_zero_when_stopped(self):
+        svc, _ = service(Clock())
+        self.assertEqual(self._position(svc), 0)
+        svc.publish(snap(pos=12.5), Video({"Id": "a1"}))
+        svc.publish({"stopped": True}, None)
+        self.assertEqual(self._position(svc), 0)
 
     def test_volume_write_is_clamped_and_queued(self):
         svc, pm = service()

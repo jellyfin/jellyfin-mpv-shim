@@ -230,29 +230,23 @@ class Controls:
         pct = max(0.0, min(1.5, float(fraction))) * 100.0
         self._task(self.pm.set_volume, pct)
 
-    def position_us(self):
-        try:
-            player = self.pm._player
-            if player is None or player.playback_abort:
-                return 0
-            return _us(player.playback_time)
-        except Exception:
-            return None
-
 
 class MprisService:
 
 
-    def __init__(self, controls=None, bus=None, fetch_art=None):
+    def __init__(self, controls=None, bus=None, fetch_art=None,
+                 clock=time.monotonic):
         self.controls = controls
         self.bus = bus
         self.fetch_art = fetch_art
+        self._clock = clock
         self._lock = threading.Lock()
         self._props = player_props(None, metadata_for(None, None))
         self._snapshot = None
+        self._snapshot_at = None
         self._item = None
         self._art = {}
-        self._seek = SeekDetector()
+        self._seek = SeekDetector(clock)
 
     def publish(self, snapshot, video=None):
         try:
@@ -273,6 +267,7 @@ class MprisService:
                        if self._props.get(k) != v}
             self._props = props
             self._snapshot = snapshot
+            self._snapshot_at = self._clock()
             self._item = item
             jumped = False
             if not stopped:
@@ -327,18 +322,32 @@ class MprisService:
                 "SupportedMimeTypes": [],
             }.get(prop)
         if prop == "Position":
-            pos = self.controls.position_us() if self.controls else None
-            if pos is None:
-                with self._lock:
-                    snap = self._snapshot or {}
-                pos = _us(snap.get("position"))
-            return pos
+            return self._position_us()
         if prop in ("Rate", "MinimumRate", "MaximumRate"):
             return 1.0
         if prop == "CanControl":
             return True
         with self._lock:
             return self._props.get(prop)
+
+    def _position_us(self):
+        """Extrapolated from the last snapshot, never read from mpv.
+
+        This runs on the bus thread, and python-mpv's terminate() clears
+        the handle before the core is flagged shut down: a read in that
+        window hands NULL to mpv_get_property, which no except can catch.
+        """
+        with self._lock:
+            snap, at = self._snapshot, self._snapshot_at
+        if not snap or snap.get("stopped"):
+            return 0
+        pos = float(snap.get("position") or 0.0)
+        if not snap.get("paused") and at is not None:
+            pos += self._clock() - at
+        duration = snap.get("duration")
+        if duration:
+            pos = min(pos, float(duration))
+        return _us(pos)
 
     def call(self, method, args):
         c = self.controls
