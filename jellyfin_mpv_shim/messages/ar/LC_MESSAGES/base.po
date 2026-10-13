@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-09-30 22:36+0000\n"
+"PO-Revision-Date: 2026-10-11 19:48+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -862,10 +862,8 @@ msgstr "تعذر تشغيل Playback."
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "Nothing is downloaded to browse offline."
-msgstr "لم يتم تنزيل شيء للمستعرض."
+msgstr "لم يتم تنزيل شيء للاستعراض منقطع الاتصال."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -1017,10 +1015,8 @@ msgstr "تعذر حفظ الرمز."
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "تسجيل دخول"
+msgstr "تسجيل دخول مجددا"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1037,6 +1033,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"ولوجك المحفوظ لـ %s لم يعد مقبولا. قم بتسجيل الدخول مجددا للحفاظ على التحميلات "
+"و الاعدادات."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1116,10 +1114,8 @@ msgstr "توصيل"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "إعدادات الخادم"
+msgstr "الخوادم على شبكتك"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
@@ -1152,7 +1148,7 @@ msgstr "لم يتم اعتماد التوصيل السريع."
 msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
-msgstr ""
+msgstr "هذا العنوان لخادم مختلف. لتسجيل الدخول إليه, اضفه كخادم جديد."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1162,10 +1158,8 @@ msgstr "توصيل…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "تعذر التواصل مع الخادم. يرجى مراجعة تفاصيلك."
+msgstr "تعذر تسجيل الدخول. يرجى مراجعة تفاصيلك."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1285,14 +1279,14 @@ msgstr "الويب"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "لم يتم بثه"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "مفقود"
 
 # seeded from jellyfin-web: Video
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2462,7 +2456,7 @@ msgstr "مخصص (محدد في الخيارات)"
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "اخبرني عن التحديثات"
 
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
 #. General > Input).
@@ -2590,7 +2584,7 @@ msgstr "حذف التحميلات التلقائية فور المشاهدة"
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "احتفظ بالمواد المشاهدة المحملة لـ (ساعات, 0 = حذف مباشرة)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
@@ -2845,7 +2839,7 @@ msgstr "وضع الصوت الخارج"
 #. Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr "جهاز الصوت الخارج"
+msgstr "جهاز إخراج الصوت"
 
 #. Label of the checkbox for the "audio_exclusive" setting (Settings >
 #. Playback > Audio).
@@ -2937,6 +2931,10 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"هذه اللائحة لا تعمل من تلقاء نفسها -- قم بتشغيل أحد المفاتيح أدناها. هذا سيقوم "
+"بتغيير المسار الصوتي و الترجمة للوائح الممنوخة لك, لا يتم اختيار اي مفتاح "
+"تلقائيا; الوضع أعلاه هو من يختار. لوائح \"und\" غير موسومة, لذا حذفها سيخفي "
+"المسار غير الموسوم معها."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -2961,6 +2959,8 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"هذه نسبة ترجمة التطبيق لهذه اللغة حتى الآن; الباقي يبقى باالنجليزية. الترجمات "
+"يتم التطوع بها عند translate.jellyfin.org."
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
@@ -4294,10 +4294,9 @@ msgstr "حذف الخادم"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "انتظار الاعتماد…"
+msgstr "انتظار ولوج %s…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
@@ -5503,52 +5502,46 @@ msgstr "يجري التحميل…"
 #. fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Progress…"
-msgstr "تقدم…"
+msgstr "جاري العمل…"
 
 #. Shown in place of a grid or list that has no items in it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Nothing has been recorded yet."
 msgid "Nothing here."
-msgstr "لا يوجد شيء تم تسجيله بعد."
+msgstr "لا شيء هنا."
 
 #. Error shown when a comic file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "This comic could not be opened."
-msgstr "تعذر تطبيق التغييرات."
+msgstr "تعذر فتح هذه القصة المصورة."
 
 #. Error shown when one page of a comic could not be decoded.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "This page could not be read."
-msgstr "تعذر تطبيق التغييرات."
+msgstr "تعذر قراءة الصفحة."
 
 #. Error shown when fetching a book or comic to this device did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "The download failed."
-msgstr ""
+msgstr "فشل التحميل."
 
 #. Shown while a comic file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
-msgstr ""
+msgstr "استحضار القصة المصورة…"
 
 #. Tooltip of the comic reader's button that makes the page smaller. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
-msgstr ""
+msgstr "تصغير"
 
 #. Tooltip of the comic reader's button that makes the page larger. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "تقريب"
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #. Heading of the row of items similar to the one being viewed. Jellyfin
@@ -5556,22 +5549,20 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "More Like This"
-msgstr "المزيد من المثيل لهذا"
+msgstr "المزيد من المماثل لهذا"
 
 #. Action on an episode's menu that opens the page of the series it belongs
 #. to. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
-msgstr ""
+msgstr "الذهاب للمسلسلات"
 
 #. Button on an item's page that plays its trailer.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "فشل"
+msgstr "إعلان ترويجي"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Heading over an item's chapter thumbnails on its page. Jellyfin Web uses
@@ -5586,7 +5577,7 @@ msgstr "مشاهد"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
-msgstr ""
+msgstr "إصدار %d"
 
 # seeded from jellyfin-web: LabelVersion
 #. Label of the dropdown on an item's page choosing between several files
@@ -7059,17 +7050,15 @@ msgstr ""
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connected"
+#, python-format
 msgid "Connected to %s."
-msgstr "متصل"
+msgstr "متصل مع %s"
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connecting…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "توصيل…"
+msgstr "توصيل مع %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7092,10 +7081,9 @@ msgstr ""
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "تعذرت التواصل مع الخادم."
+msgstr "تعذرت التواصل مع %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7404,9 +7392,9 @@ msgstr "إعدادات الخوادم"
 #. Bar along the bottom while items are being fetched. %(name)s is what is
 #. downloading now and %(n)d how many are still queued.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, python-format, fuzzy
+#, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr "تحميل %(name)ات — %(n)d باق"
+msgstr "تحميل %(name)ات — %(n)d باقي"
 
 #. Bar along the bottom while items are being fetched and the current one
 #. has no name. %(n)d is how many are still queued.

@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-01 12:57+0000\n"
-"Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
+"PO-Revision-Date: 2026-10-12 11:24+0000\n"
+"Last-Translator: nenadsuperzmaj <nenadsuperzmaj@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sr/>\n"
 "Language: sr\n"
@@ -1043,6 +1043,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Ваша сачувана пријава за %s се више не прихвата. Поновна пријава ће сачувати "
+"преузимања и подешавања."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1163,6 +1165,8 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Та адреса је на другом серверу. Да се пријавите на њу, додајте је као нови "
+"сервер."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1295,14 +1299,14 @@ msgstr "Веб"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Неприказано"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Недостаје"
 
 # seeded from jellyfin-web: Video
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2476,7 +2480,7 @@ msgstr "Прилагођено (подешено у конфигурацији)"
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "Обавести ме о ажурирањима"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
@@ -2605,7 +2609,7 @@ msgstr "Избриши аутоматска преузимања након шт
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "Време чувања праћених преузимања (у сатима, 0 значи да се одмах брише)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
@@ -7785,16 +7789,13 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
 "MPV Shim v{0} је доступан за ажурирање\n"
-"Отворите мени (притисните \"c\") за детаље."
+"Покрените \"flatpak update\" да га инсталирате."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
@@ -7805,7 +7806,7 @@ msgstr "(подразумевано)"
 #. Terminal menu entry that creates a local profile of this application.
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr "Novi korisnik"
+msgstr "Нови корисник"
 
 #. Printed in the terminal when the profile asked to be deleted is the one
 #. in use.

@@ -564,6 +564,7 @@ class Settings(SettingsBase):
     notify_updates: str = "default"
     lang: Optional[str] = None
     discord_presence: bool = False
+    mpris: bool = True
     ignore_ssl_cert: bool = False
     menu_mouse: bool = True
     media_keys: bool = True

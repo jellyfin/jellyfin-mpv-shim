@@ -1647,6 +1647,30 @@ class TestTileContextMenu(unittest.TestCase):
         menu_pick(self.b, "restart")
         self.assertEqual([p[2] for p in self.ctl.played], [None])
 
+    def _book(self, ticks=94197537713):
+        return {"Id": "b1", "Name": "Vol 18", "Type": "AudioBook",
+                "UserData": {"PlaybackPositionTicks": ticks}}
+
+    def test_the_play_chip_resumes_an_audiobook(self):
+        self.b._play_tile(self._book())
+        self.assertEqual(self.ctl.played, [(["b1"], "srv1", 0)])
+        self.assertEqual(self.ctl.play_offsets, [94197537713])
+
+    def test_an_audiobook_offers_resume_and_restart(self):
+        acts = [e[2] for e in self.b._tile_menu_entries(self._book())]
+        self.assertIn("play", acts)
+        self.assertIn("restart", acts)
+
+    def test_audiobook_from_beginning_does_not_resume(self):
+        self.b._open_tile_menu(self._book(), 10, 10)
+        menu_pick(self.b, "restart")
+        self.assertEqual(self.ctl.play_offsets, [None])
+
+    def test_a_song_is_not_resumed(self):
+        self.b._play_tile({"Id": "s1", "Type": "Audio",
+                           "UserData": {"PlaybackPositionTicks": 5000}})
+        self.assertEqual(self.ctl.play_offsets, [None])
+
     def test_dismiss_closes_menu(self):
         self.b._open_tile_menu({"Id": "m1", "Type": "Movie"}, 10, 10)
         self.b._close_menu()

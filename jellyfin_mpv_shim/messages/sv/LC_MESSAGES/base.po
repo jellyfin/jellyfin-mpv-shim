@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-09-19 11:53+0000\n"
-"Last-Translator: SIMBA <pontusosterlindh@gmail.com>\n"
+"PO-Revision-Date: 2026-10-12 14:59+0000\n"
+"Last-Translator: Maltavius <marten@voxberg.se>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sv/>\n"
 "Language: sv\n"
@@ -7896,44 +7896,41 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
 "MPV Shim v{0} uppdatering tillgänglig. \n"
-"Öppna menyn (tryck C) för ytterligare detaljer."
+"Kör \"flatpak update\" för att installera den."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
-msgstr ""
+msgstr "(standard)"
 
 #. Terminal menu entry that creates a local profile of this application.
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Ny Användare"
 
 #. Printed in the terminal when the profile asked to be deleted is the one
 #. in use.
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Byt till en annan användare innan du tar bort denna."
 
 #. Printed in the terminal when deleting the last remaining local profile
 #. was refused.
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Åtminstone en användare krävs."
 
 #. Printed in the terminal when the named local profile does not exist.
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "Användaren inte hittad."
 
 #. Stands in for a track's language when the file does not say.
 #. Deliberately clipped to four characters, because it sits inside a track

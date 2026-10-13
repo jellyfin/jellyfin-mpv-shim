@@ -1,0 +1,37 @@
+{
+    "name": "Elegance",
+    "palette": {
+        "WINDOW_BG": "111827",
+        "CARD_BG": "111827",
+        "PANEL_BG": "1d2635",
+        "PLACEHOLDER_BG": "1d2635",
+        "BUTTON_BG": "111827",
+        "BUTTON_ACTIVE": "29354a",
+        "ENTRY_BG": "1d2635",
+        "BORDER": "47505c",
+        "TEXT_FG": "d1d5db",
+        "SUBTLE_FG": "9ca3af",
+        "ACCENT": "d1d5db",
+        "ACCENT_HOVER": "f3f8ff",
+        "ACCENT_SOFT": "29354a",
+        "ACCENT_FG": "29354a",
+        "WATCHED_GREEN": "22c55e",
+        "FAV_RED": "d15353"
+    },
+    "browse_bg": "111827",
+    "poster_scale": 1.4,
+    "rounded": true,
+    "badge_shadow": true,
+    "arrow_bg": "299a5d",
+    "arrow_alpha": 255,
+    "window_gradient": [
+        [
+            0.0,
+            "1d2635"
+        ],
+        [
+            0.75,
+            "111827"
+        ]
+    ]
+}
