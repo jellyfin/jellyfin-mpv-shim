@@ -143,6 +143,7 @@ class TilesMixin:
     #: all, so the dialog would always be empty (see books.py). A Photo and
     #: a Program are out for the same reason.
     MENU_MEDIA_INFO = PLAYABLE_TYPES | {"Audio", "AudioBook"}
+    MENU_RESUMABLE = PLAYABLE_TYPES | {"AudioBook"}
 
     #: Types that offer Refresh Metadata. Everything that is a real library
     #: item, which is the server's own rule: `/Items/{id}/Refresh` takes an
@@ -326,7 +327,8 @@ class TilesMixin:
             # part-watched item from a tile became impossible. Only for the
             # single-item types -- a container's Play resolves to a queue and
             # has no one position to carry.
-            pos = (ud.get("PlaybackPositionTicks") or 0) if t in PLAYABLE_TYPES else 0
+            pos = ((ud.get("PlaybackPositionTicks") or 0)
+                   if t in self.MENU_RESUMABLE else 0)
             if pos > 0:
                 out.append((_("Resume"), "play_arrow", "play"))
                 out.append((_("Play from beginning"), "first_page", "restart"))
@@ -762,7 +764,10 @@ class TilesMixin:
             self._play_list([item.get("ChannelId") or item.get("Id")], server)
             return
         if t in ("Audio", "AudioBook"):
-            self._play_list([item.get("Id")], server, audio=True)
+            # Passing the item lets play_list resume an audiobook.
+            items = [item] if resume and t == "AudioBook" else None
+            self._play_list([item.get("Id")], server, audio=True,
+                            items=items)
             return
         if t in PLAYABLE_TYPES:
             # Resume, like the overlay play button on a jellyfin-web card
