@@ -15,7 +15,7 @@ jobs:
     - name: Setup Python 3.13
       uses: actions/setup-python@v7
       with:
-        python-version: 3.14
+        python-version: 3.15
     - name: Setup git SDK
       uses: Shadowghost/setup-git-for-windows-sdk@node-24
       with:
@@ -130,7 +130,7 @@ jobs:
     - name: Setup Python 3.13
       uses: actions/setup-python@v7
       with:
-        python-version: 3.14
+        python-version: 3.15
     - name: Setup git SDK
       uses: Shadowghost/setup-git-for-windows-sdk@node-24
       with:
@@ -235,7 +235,7 @@ jobs:
     - name: Setup Python 3.14
       uses: actions/setup-python@v7
       with:
-        python-version: 3.14
+        python-version: 3.15
         architecture: arm64
     - name: Download mpv
       id: mpv
