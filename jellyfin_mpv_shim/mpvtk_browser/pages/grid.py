@@ -670,7 +670,15 @@ class GridPage(Page):
         if not stored:
             return {}
         keys = self._panel_keys()
-        return {k: v for k, v in stored.items() if k in keys}
+        return {k: v for k, v in self._persistable(stored).items()
+                if k in keys}
+
+    def _persistable(self, filters):
+        """`filters` without the A-Z letter, which is never saved or
+        restored: it is navigation, the Filter badge does not count it, and
+        a library reopened on "S" looks like it lost most of its items."""
+        return {k: v for k, v in (filters or {}).items()
+                if k not in self._NOT_IN_PANEL}
 
     def _persist_filters(self):
         """Write the filters to the server without touching the screen.
@@ -688,10 +696,8 @@ class GridPage(Page):
         means "the first candidate" to `save_view_setting`, so the next
         change writes to the same key this one did either way.
 
-        The whole dict, JSON-encoded -- the A-Z rail's letter included,
-        because it is one of `_filters`, and a filter that does not
-        survive a relaunch is the bug this exists to fix. Ours, not a
-        cross-client write: no jellyfin-web client reads this key (see
+        The whole dict bar the letter (`_persistable`), JSON-encoded. Ours,
+        not a cross-client write: no jellyfin-web client reads this key (see
         `view_prefs.FILTERS_SETTING`), so unlike the sort this changes
         nothing anywhere else.
         """
@@ -703,7 +709,8 @@ class GridPage(Page):
         server = route.get("server") or self.ctx.server
         parent = route.get("parent_id")
         ctype = route.get("collection_type")
-        value = json.dumps(route.get("_filters") or {}, sort_keys=True)
+        filters = self._persistable(route.get("_filters"))
+        value = json.dumps(filters, sort_keys=True)
         route_view = route.get("_view")
         key = ((route_view or {}).get("filters") or (None, None))[1]
         if route_view is not None:
@@ -1273,7 +1280,8 @@ class GridPage(Page):
 
     def _set_filter(self, key, value):
         self.route.setdefault("_filters", {})[key] = value
-        self._persist_filters()
+        if key not in self._NOT_IN_PANEL:
+            self._persist_filters()
         self._reload()
 
     def _toggle_filter(self, key):

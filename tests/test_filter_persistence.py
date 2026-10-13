@@ -85,15 +85,35 @@ class FilterPersistenceTest(unittest.TestCase):
                                   sort_keys=True)),
                       saved)
 
-    def test_the_az_rail_is_saved_too(self):
-        """The letter is one of `_filters`, and a filter that does not
-        survive a relaunch is the bug this exists to fix."""
+    # The A-Z rail is navigation, not a filter the user set up: a library
+    # reopened weeks later on "S" looks like it lost most of its items, and
+    # the Filter badge does not count the letter, so nothing would say why.
+    # Kept in the route for the session, never written or restored.
+
+    def test_picking_a_letter_writes_nothing(self):
         b, src = self._browser()
 
         self._page(b)._set_filter("letter", "S")
 
+        self.assertEqual([], getattr(src, "saved_view_settings", []))
+
+    def test_a_filter_saved_after_a_letter_leaves_the_letter_out(self):
+        b, src = self._browser()
+        page = self._page(b)
+
+        page._set_filter("letter", "S")
+        page._toggle_filter("favorite")
+
         _p, _s, value, _k = src.saved_view_settings[-1]
-        self.assertEqual("S", json.loads(value)["letter"])
+        self.assertEqual({"favorite": True}, json.loads(value))
+        self.assertEqual("S", b.route["_filters"]["letter"])
+
+    def test_a_stored_letter_is_not_restored(self):
+        """A value written by a build that did save the letter."""
+        b, src = self._browser(view_settings=self._stored_view(
+            dict(STORED, letter="S")))
+
+        self.assertEqual(STORED, src.queries[-1]["filters"])
 
     def test_a_save_lands_on_the_key_it_was_read_from(self):
         b, src = self._browser(view_settings=self._stored_view(
