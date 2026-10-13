@@ -36,6 +36,7 @@ from tests._shell_harness import FakeSource, _SyncPool, build_scene  # noqa: E40
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser         # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser import view_prefs               # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser import theme                    # noqa: E402
 from jellyfin_mpv_shim.conf import settings                         # noqa: E402
 
 #: The stored shape is the page's own filter dict, so the tests build
@@ -337,6 +338,57 @@ class FilterPersistenceTest(unittest.TestCase):
         texts = [n.get("text") for n in nodes if n.get("text")]
         self.assertIn("Filter (2)", texts)
 
+
+    # -- telling the user the filters are on ----------------------------------
+    #
+    # A remembered filter is invisible until something says so: a library
+    # reopening short, or empty, for a reason chosen weeks ago.
+
+    def _empty_filtered(self):
+        b, src = self._browser(view_settings=self._stored_view(STORED))
+        src.grid_items = []
+        page = self._page(b)
+        page._reload()
+        return b, src, page
+
+    def test_the_filter_button_is_accented_while_filters_are_on(self):
+        for stored, accented in ((None, False), (STORED, True)):
+            view = self._stored_view(stored) if stored else None
+            b, _src = self._browser(view_settings=view)
+            nodes, _h = build_scene(b)
+            [btn] = [n for n in nodes if n.get("id") == "grid-filter"]
+            with self.subTest(stored=stored):
+                self.assertEqual(accented, btn["fill"] == theme.ACCENT)
+
+    def test_a_filtered_library_with_nothing_left_says_why(self):
+        b, _src, _page = self._empty_filtered()
+
+        nodes, _h = build_scene(b)
+
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertIn("No items match these filters.", texts)
+        self.assertTrue([n for n in nodes if n.get("id") == "grid-empty-clear"])
+
+    def test_its_clear_button_clears_and_asks_again(self):
+        b, src, _page = self._empty_filtered()
+        nodes, handlers = build_scene(b)
+        asked = len(src.queries)
+
+        handlers["grid-empty-clear"]["click"]()
+
+        self.assertEqual({}, b.route["_filters"])
+        self.assertGreater(len(src.queries), asked)
+        self.assertEqual({}, src.queries[-1]["filters"])
+
+    def test_an_empty_library_with_no_filters_says_nothing_of_filters(self):
+        b, src = self._browser()
+        src.grid_items = []
+        self._page(b)._reload()
+
+        nodes, _h = build_scene(b)
+
+        texts = [n.get("text") for n in nodes if n.get("text")]
+        self.assertNotIn("No items match these filters.", texts)
 
 if __name__ == "__main__":
     unittest.main()

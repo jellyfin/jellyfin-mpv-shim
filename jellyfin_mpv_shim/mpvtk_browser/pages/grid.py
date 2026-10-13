@@ -329,6 +329,20 @@ class GridPage(Page):
             return Column(self._header(None, size[0]) + [chrome.busy()],
                           pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                           flex=1, align="stretch")
+        if not items and self._active_filters():
+            # Filters can be remembered from a visit weeks ago, so "Nothing
+            # here." over a library that has items reads as data loss. Say
+            # which it is, and offer the way out the panel would otherwise
+            # hide. Ahead of the list/grid/paged split: all three would draw
+            # the generic line.
+            return Column(self._header(items, size[0]) + [
+                Text(_("No items match these filters."), size="large",
+                     color=theme.SUBTLE_FG),
+                Row([controls.action_btn("close", _("Clear Filters"),
+                                         "grid-empty-clear",
+                                         self._clear_filters),
+                     Spacer(flex=1)]),
+            ], pad=chrome.CONTENT_PAD, gap=GRID_GAP, flex=1, align="stretch")
         if view_prefs.is_list(self._view("imageType"), self._view("viewType")):
             # A table stretches to fill, so it has no slack to centre and
             # takes the plain content padding.
