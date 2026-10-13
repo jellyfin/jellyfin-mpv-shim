@@ -43,6 +43,28 @@ from jellyfin_mpv_shim.mpvtk_browser import view_prefs               # noqa: E40
 STORED = {"genre": "Action", "unplayed": True}
 
 
+class _DeferredPool:
+    """Holds submitted jobs until the test runs them, in the order it picks
+    -- the four-worker pool promises no order between two jobs."""
+
+    def __init__(self):
+        self.jobs = []
+
+    def submit(self, fn, *a, **k):
+        self.jobs.append(lambda: fn(*a, **k))
+
+    def run_one(self):
+        if self.jobs:
+            self.jobs.pop(0)()
+
+    def run_all(self, reverse=False):
+        while self.jobs:
+            self.jobs.pop(-1 if reverse else 0)()
+
+    def shutdown(self, *a, **k):
+        pass
+
+
 class FilterPersistenceTest(unittest.TestCase):
     def _browser(self, view_settings=None, route_extra=None, supported=None):
         src = FakeSource()
@@ -175,6 +197,59 @@ class FilterPersistenceTest(unittest.TestCase):
         self.assertTrue(src.saved_view_settings)
         # And the reload's load re-fetched and installed the real view.
         self.assertEqual(self._stored_view(STORED), b.route["_view"])
+
+    # -- ordering ------------------------------------------------------------
+    #
+    # Every tick saves the whole dict on the shared four-worker pool, and the
+    # DisplayPreferences lock orders no two of them: two ticks a moment apart
+    # could land oldest-last, leaving the server one tick behind the screen
+    # until the next launch shows it. One save in flight per route, and the
+    # latest dict is what it writes.
+
+    def _defer(self, b):
+        pool = _DeferredPool()
+        b._pool = pool
+        return pool
+
+    def test_two_ticks_whose_jobs_run_newest_first_still_save_the_newest(self):
+        b, src = self._browser()
+        page = self._page(b)
+        pool = self._defer(b)
+
+        page._toggle_filter("unplayed")
+        page._toggle_filter("favorite")
+        pool.run_all(reverse=True)
+
+        _p, _s, value, _k = src.saved_view_settings[-1]
+        self.assertEqual(b.route["_filters"], json.loads(value))
+
+    def test_the_last_write_is_the_screen_over_many_ticks(self):
+        b, src = self._browser()
+        page = self._page(b)
+        pool = self._defer(b)
+
+        for key in ("unplayed", "favorite", "unplayed", "hd", "favorite"):
+            page._toggle_filter(key)
+            pool.run_one()                    # some land mid-burst...
+            page._toggle_filter("resumable")
+        pool.run_all(reverse=True)            # ...the rest out of order
+
+        _p, _s, value, _k = src.saved_view_settings[-1]
+        self.assertEqual(b.route["_filters"], json.loads(value))
+        self.assertEqual([], pool.jobs)
+
+    def test_a_failed_save_does_not_stop_the_next_one(self):
+        b, src = self._browser()
+        page = self._page(b)
+        src.save_view_fails = True
+        page._toggle_filter("unplayed")
+        self.assertIn("could not be saved", b.status.lower())
+
+        src.save_view_fails = False
+        page._toggle_filter("favorite")
+
+        _p, _s, value, _k = src.saved_view_settings[-1]
+        self.assertEqual(b.route["_filters"], json.loads(value))
 
     # -- reading -----------------------------------------------------------
 

@@ -15,6 +15,7 @@ handlers.
 import dataclasses
 import json
 import logging
+import threading
 
 from ...i18n import _
 from ...mpvtk.widgets import (
@@ -24,6 +25,10 @@ from .. import dialogs, pagination, theme, view_prefs
 from ..components import chrome, controls
 from ..tile_renderer import GRID_GAP
 from .base import Page
+
+#: Guards each route's `_filter_save` queue. Held for a dict swap, never
+#: across the network.
+_FILTER_SAVE_LOCK = threading.Lock()
 
 #: Grid sort modes (label, SortBy, SortOrder) — ported from the Tk browser.
 #: Only the grid and person routes sort, so they live with their page.
@@ -720,9 +725,38 @@ class GridPage(Page):
             view["filters"] = (filters, key)
             route["_view"] = view
 
+        # One save in flight per route, writing the latest dict. Each tick
+        # used to be its own job on the four-worker pool, and nothing orders
+        # two of them -- the DisplayPreferences lock only stops them
+        # interleaving -- so a quick second tick could land first and the
+        # older dict last. A change made while a save runs only replaces
+        # `pending`; the running job picks it up before it finishes.
+        with _FILTER_SAVE_LOCK:
+            state = route.setdefault("_filter_save",
+                                     {"pending": None, "running": False})
+            state["pending"] = (value, key)
+            if state["running"]:
+                return
+            state["running"] = True
+
         def work():
-            save(server, parent, ctype, view_prefs.FILTERS_SETTING,
-                 value, key=key)
+            error = None
+            while True:
+                with _FILTER_SAVE_LOCK:
+                    item = state["pending"]
+                    state["pending"] = None
+                    if item is None:
+                        # Cleared in the same step that found nothing left,
+                        # so a tick landing now starts a job of its own.
+                        state["running"] = False
+                        break
+                try:
+                    save(server, parent, ctype, view_prefs.FILTERS_SETTING,
+                         item[0], key=item[1])
+                except Exception as exc:
+                    error = exc
+            if error is not None:
+                raise error
 
         def failed(_exc):
             self.ctx.status(_("Those filters could not be saved."))
