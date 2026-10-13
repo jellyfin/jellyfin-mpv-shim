@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-13 15:00+0000\n"
+"PO-Revision-Date: 2026-10-13 23:04+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -2950,6 +2950,9 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"El porcentaje es cuánto de esta aplicación ha llegado a ser traducido a este "
+"idioma; el resto permanece en inglés. Se contribuye a las traducciones en "
+"translate.jellyfin.org."
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
@@ -3908,7 +3911,7 @@ msgstr "%d vistos"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "%d de tamaño desconocido"
 
 # seeded from jellyfin-web: Download
 #. Title of the modal that downloads items for offline viewing. A noun
@@ -3940,7 +3943,7 @@ msgstr "La descarga no pudo empezar."
 #. filter this library by.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
-msgstr ""
+msgstr "Esta biblioteca no ofrece filtros."
 
 # seeded from jellyfin-web: Filters
 #. Title of the modal that filters a library grid.
@@ -4193,13 +4196,13 @@ msgstr "Leyendo la posición…"
 #. server and applies it here. An imperative verb, paired with Push.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr ""
+msgstr "Obtener"
 
 #. Button in the Reading Progress dialog. Sends the position reached here
 #. up to the server. An imperative verb, paired with Pull.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr ""
+msgstr "Enviar"
 
 #. Error in the Reading Progress dialog when the stored reading position
 #. could not be fetched from the server.
@@ -4337,7 +4340,7 @@ msgstr "Libros"
 #. folder, so there is nothing to file them under.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Ungrouped"
-msgstr ""
+msgstr "Sin agrupar"
 
 #. Name of a search-results and library group holding single episodes of a
 #. series. Also the heading over a season's episode list.
@@ -4618,20 +4621,20 @@ msgstr ""
 #. apart, in seconds. Short for audio/video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "A/V sync"
-msgstr ""
+msgstr "Sincronización A/V"
 
 #. Row in the Playback Info panel: how many seconds of the stream have been
 #. read ahead.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Buffered"
-msgstr ""
+msgstr "En búfer"
 
 #. Value of the Buffered row in the Playback Info panel. The unit is
 #. seconds.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f s"
-msgstr ""
+msgstr "%.1f s"
 
 #. Row in the Playback Info panel: how fast the stream is arriving from the
 #. server.
@@ -4655,13 +4658,13 @@ msgstr "copia descargada"
 #. is being read from a shared folder rather than streamed.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
-msgstr ""
+msgstr "archivo local"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. is arriving over the network from the Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "stream from server"
-msgstr ""
+msgstr "transmitir desde el servidor"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #. Row in the Playback Info panel: how the video is reaching this device.
@@ -4695,7 +4698,7 @@ msgstr "Archivo"
 #. Shown in the Playback Info panel when nothing is playing.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Nothing is playing."
-msgstr ""
+msgstr "Nada en reproducción."
 
 #. Tooltip of the button that goes back one: the previous item in the queue
 #. on the playback controls and the now-playing bar, and the previous batch
@@ -4815,13 +4818,13 @@ msgstr "Cancelar grabación"
 #. to be dropped.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
-msgstr ""
+msgstr "¿Dejar de grabar esta serie?"
 
 #. Status message confirming the rule that records every episode was
 #. dropped.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording cancelled."
-msgstr ""
+msgstr "Grabación de serie cancelada."
 
 #. Button that stops the rule recording every episode of a show, and the
 #. title of the dialog confirming it. An imperative verb.
@@ -4841,7 +4844,7 @@ msgstr "La grabación no pudo ser cancelada."
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording settings saved."
-msgstr ""
+msgstr "Configuración de grabación guardada."
 
 #. Status message when the server refused the recording dialog's changes.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -4854,7 +4857,7 @@ msgstr "La configuración de grabación no pudo ser guardada."
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "The server is refreshing %s."
-msgstr ""
+msgstr "El servidor está recargando %s."
 
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
