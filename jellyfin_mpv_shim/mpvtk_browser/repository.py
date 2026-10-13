@@ -884,9 +884,12 @@ class LibrarySource:
         # The sort rides in the same dict because it is in the same document:
         # asking for it separately would be a second read of a blob this one
         # has already cached, and the grid needs both before it can issue the
-        # item query.
+        # item query. The filters ride with it for the same reason -- ours,
+        # not a setting web reads (see view_prefs.FILTERS_SETTING).
         out.update(view_prefs.resolve_sort(custom, parent_id,
                                            collection_type))
+        out.update(view_prefs.resolve_filters(custom, parent_id,
+                                              collection_type))
         return out
 
     def _display_prefs_custom(self, server_uuid, refresh=False):

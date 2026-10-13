@@ -217,6 +217,7 @@ TAB_SECTIONS = {
         (_("Library Browser"), ["library_image_cache_mb",
                                 "scroll_wheel_pixels",
                                 "scroll_mode", "paginated",
+                                "remember_filters",
                                 "grid_fill",
                                 "backdrop_full_width",
                                 "detail_poster",
@@ -697,6 +698,7 @@ LABEL_OVERRIDES = {
     "backdrop_full_width": _("Full-Width Backdrops"),
     "clock_12h": _("12-Hour Clock"),
     "grid_fill": _("Grid Spacing"),
+    "remember_filters": _("Remember Library Filters"),
     "logo_legibility_live_tv": _("Make Live TV logos more legible"),
     "logo_legibility_library": _("Make library logos more legible"),
     # Named for what they do to the page, not for the module they belong
@@ -1046,6 +1048,10 @@ NOTES = {
                    "scrolling: each page is one screenful with First / "
                    "Previous / Next / Last controls and a page number you can "
                    "type into. Easier than precise scrolling on a trackpad."),
+    "remember_filters": _("Reopen each library with the filters it had "
+                          "last time (genre, unplayed, favorites and the "
+                          "rest), saved to your account on the server. Off, "
+                          "filters only last until you leave the library."),
     "logo_legibility_live_tv": _(
         "Channel logos are ink on a transparent background, drawn for the "
         "white page other clients put them on, so on a dark one the black ones"

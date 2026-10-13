@@ -331,6 +331,13 @@ reached two ways has two keys. A real setting observed in the wild:
 from. `viewType` is a key this client used to write and **nothing in
 jellyfin-web has ever read**.
 
+`mpvshim-filters` is a key this client writes and reads **alone**: web has no
+server-side filter setting to share — its legacy filter menu writes a scatter
+of per-setting `-filter-*` keys, its one JSON-blob `-filter` key is
+localStorage-only (`saveQuerySettings` passes `enableOnServer: false`), and its
+modern app keeps view settings per browser. The value is the shim's own filter
+dict, JSON-encoded whole, so no other client could apply it even by accident.
+
 ### 7.4 Live TV guide preferences
 
 `livetv-channelorder`, `livetv-favoritechannelsattop`,

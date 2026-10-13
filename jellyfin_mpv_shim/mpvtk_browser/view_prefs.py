@@ -18,6 +18,9 @@ stranded under a name their web client will not look at. The observed
 evidence is section 7.3.
 """
 
+import json
+
+
 #: Image types jellyfin-web offers per library view, and what each means for
 #: the grid: ``(geometry attribute, image type requested)``.
 #:
@@ -163,6 +166,46 @@ def resolve_sort(custom_prefs, parent_id, collection_type):
                 out[setting] = (raw, key)
                 break
     return out
+
+
+#: The CustomPrefs suffix this client stores a library's filters under.
+#: OURS, unlike every other setting in this module: jellyfin-web has no
+#: server-side filter setting to share. Its legacy filter menu writes a
+#: scatter of per-setting keys (``<key>-filter-HasSubtitles`` and friends),
+#: its one JSON-blob ``-filter`` key is localStorage-only
+#: (``saveQuerySettings`` passes ``enableOnServer: false``), and its modern
+#: app keeps the whole view settings in localStorage per browser. There is
+#: no key to borrow that a web client would ever read back, so this one is
+#: spelled as ours to say so.
+FILTERS_SETTING = "mpvshim-filters"
+
+
+def resolve_filters(custom_prefs, parent_id, collection_type):
+    """``{"filters": (dict, key)}``, ``(None, None)`` where nothing usable
+    is stored.
+
+    The value is this client's own ``route["_filters"]`` dict, JSON-encoded
+    whole -- the panel's keys and value shapes, not the server's query
+    fields, because the only reader is the writer.
+
+    Junk is skipped rather than applied: a value that does not decode, or
+    decodes to something that is not a JSON object (a hand edit, another
+    client's key collision), moves the search on to the next candidate
+    key -- the same rule :func:`resolve_image_type` keeps about a value it
+    does not know, so a corrupt typed key cannot shadow a good bare one.
+    """
+    prefs = custom_prefs or {}
+    for key in keys_for(parent_id, collection_type, FILTERS_SETTING):
+        raw = str(prefs.get(key) or "").strip()
+        if not raw:
+            continue
+        try:
+            stored = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(stored, dict):
+            return {"filters": (stored, key)}
+    return {"filters": (None, None)}
 
 
 def resolve_view_type(custom_prefs, parent_id, collection_type):

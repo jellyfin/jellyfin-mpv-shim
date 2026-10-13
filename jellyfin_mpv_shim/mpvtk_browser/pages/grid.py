@@ -13,7 +13,9 @@ handlers.
 """
 
 import dataclasses
+import json
 import logging
+import threading
 
 from ...i18n import _
 from ...mpvtk.widgets import (
@@ -23,6 +25,18 @@ from .. import dialogs, pagination, theme, view_prefs
 from ..components import chrome, controls
 from ..tile_renderer import GRID_GAP
 from .base import Page
+
+def _remembering():
+    """`remember_filters`, read at the moment of each save and load so the
+    setting applies without a restart."""
+    from ...conf import settings
+
+    return settings.remember_filters
+
+
+#: Guards each route's `_filter_save` queue. Held for a dict swap, never
+#: across the network.
+_FILTER_SAVE_LOCK = threading.Lock()
 
 #: Grid sort modes (label, SortBy, SortOrder) — ported from the Tk browser.
 #: Only the grid and person routes sort, so they live with their page.
@@ -76,6 +90,10 @@ _DEFAULT_VIEW = {
     # whether the route keeps its own sort or takes the server's.
     "sortby": (None, None),
     "sortorder": (None, None),
+    # None for the same reason, and read through the same contract: the
+    # filters are ours alone (view_prefs.FILTERS_SETTING), but they live
+    # in this document and travel with the rest of it.
+    "filters": (None, None),
 }
 
 #: Collection types with a Genres screen. Music has its own, in the
@@ -191,17 +209,27 @@ class GridPage(Page):
                 if index is not None:
                     route["_sort"] = index
                     _n, q_sort_by, q_sort_order = self._sorts()[index]
+            # The stored filters, and only where the route carries none --
+            # the same rule the sort above follows, for the same reason.
+            # `is None`, not falsy: an empty dict is a real answer ("the
+            # user cleared them"), and re-seeding it would resurrect what
+            # they cleared on the next reload.
+            q_filters = filters
+            if route.get("_filters") is None:
+                seeded = self._stored_filters(view)
+                route["_filters"] = seeded
+                q_filters = seeded
             if collections:
                 # Collections are server-wide and recursive (a BoxSet
                 # can gather items from several libraries), so this is a
                 # different query, not a filter on the library.
                 items, total = source.get_movie_collections(
                     srv, sort_by=q_sort_by, sort_order=q_sort_order,
-                    filters=filters, image_type=image_type)
+                    filters=q_filters, image_type=image_type)
             else:
                 items, total = source.get_library_items(
                     srv, parent, sort_by=q_sort_by, sort_order=q_sort_order,
-                    filters=filters, image_type=image_type,
+                    filters=q_filters, image_type=image_type,
                     collection_type=ctype)
             # Paint the tiles BEFORE asking for the filter pickers. Nothing
             # on the first frame needs them and they are the slow half of
@@ -301,6 +329,20 @@ class GridPage(Page):
             return Column(self._header(None, size[0]) + [chrome.busy()],
                           pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                           flex=1, align="stretch")
+        if not items and self._active_filters():
+            # Filters can be remembered from a visit weeks ago, so "Nothing
+            # here." over a library that has items reads as data loss. Say
+            # which it is, and offer the way out the panel would otherwise
+            # hide. Ahead of the list/grid/paged split: all three would draw
+            # the generic line.
+            return Column(self._header(items, size[0]) + [
+                Text(_("No items match these filters."), size="large",
+                     color=theme.SUBTLE_FG),
+                Row([controls.action_btn("close", _("Clear Filters"),
+                                         "grid-empty-clear",
+                                         self._clear_filters),
+                     Spacer(flex=1)]),
+            ], pad=chrome.CONTENT_PAD, gap=GRID_GAP, flex=1, align="stretch")
         if view_prefs.is_list(self._view("imageType"), self._view("viewType")):
             # A table stretches to fill, so it has no slack to centre and
             # takes the plain content padding.
@@ -631,6 +673,115 @@ class GridPage(Page):
 
         def failed(_exc):
             self.ctx.status(_("That sort could not be saved."))
+
+        self.ctx.run.run(work, lambda _r: None, self.ctx.run.epoch,
+                         on_error=failed)
+
+    def _stored_filters(self, view):
+        """The stored filter dict as THIS source can apply it, or {} for
+        "nothing stored".
+
+        Only what the source can apply survives the read -- the same
+        fallback judgement `_sort_index` makes about a sort this library's
+        menu does not offer. A downloaded library seeds nothing it cannot
+        honour rather than drawing a Filter badge for filtering that is
+        not happening.
+
+        The values are not validated against the library -- a genre it
+        stopped offering, a year nothing has. They are the user's own
+        choices, an unmatched one answers with an empty grid rather than
+        a wrongly filtered one, and the Filter button's count says what
+        is on.
+        """
+        stored = ((view or {}).get("filters") or (None, None))[0]
+        if not stored or not _remembering():
+            return {}
+        keys = self._panel_keys()
+        return {k: v for k, v in self._persistable(stored).items()
+                if k in keys}
+
+    def _persistable(self, filters):
+        """`filters` without the A-Z letter, which is never saved or
+        restored: it is navigation, the Filter badge does not count it, and
+        a library reopened on "S" looks like it lost most of its items."""
+        return {k: v for k, v in (filters or {}).items()
+                if k not in self._NOT_IN_PANEL}
+
+    def _persist_filters(self):
+        """Write the filters to the server without touching the screen.
+
+        `_persist_sort`'s contract exactly: the reload has already been
+        asked for by the caller, a failure reports and leaves the screen
+        as it is, and the route's `_view` copy is kept in step so the next
+        change writes to the key this one did.
+
+        No `_view` yet means the first load is still in flight, and
+        publishing a default here would stop `_install` from ever
+        publishing the real one (it only writes where the route has
+        none) -- stranding the screen on the defaults for the rest of the
+        session. Nothing is published in that case: `key=None` already
+        means "the first candidate" to `save_view_setting`, so the next
+        change writes to the same key this one did either way.
+
+        The whole dict bar the letter (`_persistable`), JSON-encoded. Ours,
+        not a cross-client write: no jellyfin-web client reads this key (see
+        `view_prefs.FILTERS_SETTING`), so unlike the sort this changes
+        nothing anywhere else.
+        """
+        route = self.route
+        source = self.ctx.source
+        save = getattr(source, "save_view_setting", None)
+        if save is None or not _remembering():
+            return
+        server = route.get("server") or self.ctx.server
+        parent = route.get("parent_id")
+        ctype = route.get("collection_type")
+        filters = self._persistable(route.get("_filters"))
+        value = json.dumps(filters, sort_keys=True)
+        route_view = route.get("_view")
+        key = ((route_view or {}).get("filters") or (None, None))[1]
+        if route_view is not None:
+            view = dict(route_view)
+            # The dict, as `view_prefs.resolve_filters` hands it over, not
+            # the JSON that goes to the server: `_stored_filters` reads it.
+            view["filters"] = (filters, key)
+            route["_view"] = view
+
+        # One save in flight per route, writing the latest dict. Each tick
+        # used to be its own job on the four-worker pool, and nothing orders
+        # two of them -- the DisplayPreferences lock only stops them
+        # interleaving -- so a quick second tick could land first and the
+        # older dict last. A change made while a save runs only replaces
+        # `pending`; the running job picks it up before it finishes.
+        with _FILTER_SAVE_LOCK:
+            state = route.setdefault("_filter_save",
+                                     {"pending": None, "running": False})
+            state["pending"] = (value, key)
+            if state["running"]:
+                return
+            state["running"] = True
+
+        def work():
+            error = None
+            while True:
+                with _FILTER_SAVE_LOCK:
+                    item = state["pending"]
+                    state["pending"] = None
+                    if item is None:
+                        # Cleared in the same step that found nothing left,
+                        # so a tick landing now starts a job of its own.
+                        state["running"] = False
+                        break
+                try:
+                    save(server, parent, ctype, view_prefs.FILTERS_SETTING,
+                         item[0], key=item[1])
+                except Exception as exc:
+                    error = exc
+            if error is not None:
+                raise error
+
+        def failed(_exc):
+            self.ctx.status(_("Those filters could not be saved."))
 
         self.ctx.run.run(work, lambda _r: None, self.ctx.run.epoch,
                          on_error=failed)
@@ -1048,6 +1199,10 @@ class GridPage(Page):
         keep = {k: v for k, v in (self.route.get("_filters") or {}).items()
                 if k in self._NOT_IN_PANEL}
         self.route["_filters"] = keep
+        # An empty dict, not a popped key: "cleared" has to stay
+        # distinguishable from "never set", or the next reload would seed
+        # the stored filters back over what the user just removed.
+        self._persist_filters()
         self._reload()
         self.ctx.invalidate()
 
@@ -1183,6 +1338,8 @@ class GridPage(Page):
 
     def _set_filter(self, key, value):
         self.route.setdefault("_filters", {})[key] = value
+        if key not in self._NOT_IN_PANEL:
+            self._persist_filters()
         self._reload()
 
     def _toggle_filter(self, key):
@@ -1205,6 +1362,7 @@ class GridPage(Page):
             other = dialogs.MUTUALLY_EXCLUSIVE.get(key)
             if other:
                 f[other] = False
+        self._persist_filters()
         self._reload()
 
     def _toggle_collections(self):

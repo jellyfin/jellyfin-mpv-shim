@@ -345,6 +345,11 @@ class Settings(SettingsBase):
     # move between pages; adjacent pages are prefetched so paging is instant.
     # Global — applies to every tile grid at once.
     paginated: bool = False
+    # Each library reopens with the filters it had (stored on the server,
+    # per library, under a key only this client reads). Off, nothing is
+    # saved or restored -- what is already stored stays, unused, and comes
+    # back if this is turned on again. Read per save and per load.
+    remember_filters: bool = True
     # Artwork on a transparent background gets a light plate — the page it was
     # drawn for — plus, where its outermost ink is itself white, a drop shadow
     # to hold its shape against that plate. Off, it gets the theme's own card
