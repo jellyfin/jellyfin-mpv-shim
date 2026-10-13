@@ -28,6 +28,7 @@ if __name__ == "__main__":
 import json
 import sys
 import unittest
+from unittest import mock
 
 sys.argv = [sys.argv[0]]
 
@@ -35,6 +36,7 @@ from tests._shell_harness import FakeSource, _SyncPool, build_scene  # noqa: E40
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser         # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser import view_prefs               # noqa: E402
+from jellyfin_mpv_shim.conf import settings                         # noqa: E402
 
 #: The stored shape is the page's own filter dict, so the tests build
 #: stored values the same way the page does -- through the resolver, not
@@ -197,6 +199,33 @@ class FilterPersistenceTest(unittest.TestCase):
         self.assertTrue(src.saved_view_settings)
         # And the reload's load re-fetched and installed the real view.
         self.assertEqual(self._stored_view(STORED), b.route["_view"])
+
+    # -- remember_filters off ------------------------------------------------
+
+    def test_off_a_tick_writes_nothing(self):
+        b, src = self._browser()
+        with mock.patch.object(settings, "remember_filters", False):
+            self._page(b)._toggle_filter("unplayed")
+            self._page(b)._clear_filters()
+
+        self.assertEqual([], getattr(src, "saved_view_settings", []))
+        self.assertEqual({}, b.route["_filters"])
+
+    def test_off_stored_filters_are_not_restored(self):
+        with mock.patch.object(settings, "remember_filters", False):
+            b, src = self._browser(view_settings=self._stored_view(STORED))
+
+        self.assertEqual({}, src.queries[-1]["filters"])
+
+    def test_turned_off_mid_session_the_screen_keeps_its_filters(self):
+        """Filters already on screen are the session's, not the setting's:
+        switching it off stops the saving, not the filtering."""
+        b, src = self._browser(view_settings=self._stored_view(STORED))
+        with mock.patch.object(settings, "remember_filters", False):
+            self._page(b)._toggle_filter("favorite")
+
+        self.assertEqual(dict(STORED, favorite=True), b.route["_filters"])
+        self.assertEqual([], getattr(src, "saved_view_settings", []))
 
     # -- ordering ------------------------------------------------------------
     #

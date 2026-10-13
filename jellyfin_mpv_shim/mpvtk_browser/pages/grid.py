@@ -26,6 +26,14 @@ from ..components import chrome, controls
 from ..tile_renderer import GRID_GAP
 from .base import Page
 
+def _remembering():
+    """`remember_filters`, read at the moment of each save and load so the
+    setting applies without a restart."""
+    from ...conf import settings
+
+    return settings.remember_filters
+
+
 #: Guards each route's `_filter_save` queue. Held for a dict swap, never
 #: across the network.
 _FILTER_SAVE_LOCK = threading.Lock()
@@ -672,7 +680,7 @@ class GridPage(Page):
         is on.
         """
         stored = ((view or {}).get("filters") or (None, None))[0]
-        if not stored:
+        if not stored or not _remembering():
             return {}
         keys = self._panel_keys()
         return {k: v for k, v in self._persistable(stored).items()
@@ -709,7 +717,7 @@ class GridPage(Page):
         route = self.route
         source = self.ctx.source
         save = getattr(source, "save_view_setting", None)
-        if save is None:
+        if save is None or not _remembering():
             return
         server = route.get("server") or self.ctx.server
         parent = route.get("parent_id")
