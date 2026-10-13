@@ -108,6 +108,17 @@ class FilterPersistenceTest(unittest.TestCase):
         self.assertEqual({"favorite": True}, json.loads(value))
         self.assertEqual("S", b.route["_filters"]["letter"])
 
+    def test_what_a_save_records_reads_back(self):
+        """The route's `_view` copy is what a later seed reads, so it has to
+        hold what the resolver hands over -- a dict, not the JSON text."""
+        b, src = self._browser(view_settings=self._stored_view(STORED))
+        page = self._page(b)
+
+        page._toggle_filter("favorite")
+
+        self.assertEqual(dict(STORED, favorite=True),
+                         page._stored_filters(b.route["_view"]))
+
     def test_a_stored_letter_is_not_restored(self):
         """A value written by a build that did save the letter."""
         b, src = self._browser(view_settings=self._stored_view(

@@ -715,7 +715,9 @@ class GridPage(Page):
         key = ((route_view or {}).get("filters") or (None, None))[1]
         if route_view is not None:
             view = dict(route_view)
-            view["filters"] = (value, key)
+            # The dict, as `view_prefs.resolve_filters` hands it over, not
+            # the JSON that goes to the server: `_stored_filters` reads it.
+            view["filters"] = (filters, key)
             route["_view"] = view
 
         def work():
