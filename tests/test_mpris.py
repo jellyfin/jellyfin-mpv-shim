@@ -323,6 +323,29 @@ class FetchArtTest(unittest.TestCase):
                                     raise_for_status=lambda: None))
         self.assertEqual(seen, [{}])
 
+    def test_a_failed_write_leaves_no_temp_file(self):
+        client = self._client()
+        get = lambda u, headers, timeout: mock.Mock(
+            content=b"jpg", raise_for_status=lambda: None)
+        with tempfile.TemporaryDirectory() as d:
+            with mock.patch.object(mpris.os, "replace",
+                                   side_effect=OSError("in use")):
+                with self.assertRaises(OSError):
+                    mpris.fetch_art(client, "i", "t", directory=d, get=get)
+            self.assertEqual(os.listdir(d), [])
+
+    def test_prune_sweeps_stale_temp_files_but_not_fresh_ones(self):
+        """A fresh one may be another art thread's write in progress."""
+        with tempfile.TemporaryDirectory() as d:
+            stale = os.path.join(d, "a_t.jpg.123.456.tmp")
+            fresh = os.path.join(d, "b_t.jpg.123.789.tmp")
+            for p in (stale, fresh):
+                open(p, "wb").close()
+            old = os.path.getmtime(fresh) - mpris.TEMP_MAX_AGE - 60
+            os.utime(stale, (old, old))
+            mpris._prune(d)
+            self.assertEqual(os.listdir(d), [os.path.basename(fresh)])
+
     def test_prune_keeps_the_newest(self):
         with tempfile.TemporaryDirectory() as d:
             for i in range(mpris.ART_KEEP + 5):

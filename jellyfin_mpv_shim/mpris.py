@@ -26,6 +26,9 @@ NO_TRACK = "/org/mpris/MediaPlayer2/TrackList/NoTrack"
 SEEK_TOLERANCE = 2.0
 ART_KEEP = 20
 ART_WIDTH = 512
+# Older than this, a temp file is a leftover from a write that died, not
+# another art thread's write in progress.
+TEMP_MAX_AGE = 600
 
 INTROSPECTION = """
 <node>
@@ -558,20 +561,36 @@ def fetch_art(client, item_id, tag, directory=None, get=None):
     resp = get(url, headers=headers, timeout=15)
     resp.raise_for_status()
     os.makedirs(directory, exist_ok=True)
-    tmp = path + ".part"
-    with open(tmp, "wb") as fh:
-        fh.write(resp.content)
-    os.replace(tmp, path)
+    # Unique per writer, as thumbnails.ThumbnailStore._load_remote does: two
+    # art threads can fetch the same cover.
+    tmp = "%s.%d.%d.tmp" % (path, os.getpid(), threading.get_ident())
+    try:
+        with open(tmp, "wb") as fh:
+            fh.write(resp.content)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
     _prune(directory)
     return path
 
 
 def _prune(directory, keep=ART_KEEP):
     try:
-        files = [os.path.join(directory, f) for f in os.listdir(directory)
+        names = os.listdir(directory)
+        files = [os.path.join(directory, f) for f in names
                  if f.endswith(".jpg")]
         files.sort(key=os.path.getmtime, reverse=True)
-        for old in files[keep:]:
+        stale = time.time() - TEMP_MAX_AGE
+        # A write killed outright (power cut, SIGKILL) skips the cleanup in
+        # fetch_art, and nothing else would ever list these.
+        leftovers = [os.path.join(directory, f) for f in names
+                     if f.endswith((".tmp", ".part"))]
+        for old in files[keep:] + [p for p in leftovers
+                                   if os.path.getmtime(p) < stale]:
             try:
                 os.remove(old)
             except OSError:
