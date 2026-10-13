@@ -7510,14 +7510,6 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "lo skami jicmu ke se tavla minji jitro"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "curmi lo nu lo batke be lo samjmipli ku joi lo batke be lo selsnapra ku joi lo selstela vidni ku joi lo jicmu minji cu cfari lo nu snavi ku jo'u lo nu denpa ku jo'u lo nu plipe ku gi'e jarco lo se snavi joi lo tanxe pixra (MPRIS, Linux po'o)."
-
 #~ msgid "Bottom"
 #~ msgstr "dziraipau"
 

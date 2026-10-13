@@ -8132,14 +8132,6 @@ msgstr "Профили воспроизведения видео"
 msgid "Select Shader Profile"
 msgstr "Выбрать профиль шейдера"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Управление медиа с рабочего стола"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Позволяет мультимедийным клавишам клавиатуры, кнопкам гарнитуры, экрану блокировки и медиавиджетам рабочего стола воспроизводить, ставить на паузу и переключать, а также показывает, что воспроизводится, с обложкой (MPRIS, только Linux)."
-
 #~ msgid "Bottom"
 #~ msgstr "Внизу"
 

@@ -8159,14 +8159,6 @@ msgstr "Video taasesituse profiilid"
 msgid "Select Shader Profile"
 msgstr "Vali Varjutaja Profiil"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Töölaua meediajuhtimine"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Võimaldab klaviatuuri meediaklahvidel, peakomplekti nuppudel, lukustuskuval ja töölaua meediavidinatel esitada, peatada ja vahele jätta ning näitab, mis mängib, koos kaanepildiga (MPRIS, ainult Linux)."
-
 #~ msgid "Bottom"
 #~ msgstr "All"
 

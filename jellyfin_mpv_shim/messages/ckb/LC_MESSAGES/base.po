@@ -7791,14 +7791,6 @@ msgstr "لاڕووی خستنەوەسەری ڤیدیۆ"
 msgid "Select Shader Profile"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "کۆنترۆڵەکانی میدیای سەر مێز"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "ڕێگە دەدات بە دوگمەکانی میدیای تەختەکلیل، دوگمەکانی بیستۆک، شاشەی قوفڵ و ویجێتەکانی میدیای سەر مێز لێبدەن، ڕابگرن و بازبدەن، و ئەوەی لێدەدرێت لەگەڵ بەرگەکەی پیشان دەدات (MPRIS، تەنها Linux)."
-
 #~ msgid "Bottom"
 #~ msgstr "ژێرەوە"
 

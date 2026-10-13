@@ -8047,14 +8047,6 @@ msgstr "Videólejátszási profilok"
 msgid "Select Shader Profile"
 msgstr "Árnyalóprofil kiválasztása"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Asztali médiavezérlők"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Lehetővé teszi, hogy a billentyűzet médiabillentyűi, a fejhallgató gombjai, a zárolási képernyő és az asztali médiamodulok lejátsszanak, szüneteltessenek és léptessenek, és megjeleníti, mi szól, a borítójával együtt (MPRIS, csak Linux)."
-
 #~ msgid "Bottom"
 #~ msgstr "Alul"
 

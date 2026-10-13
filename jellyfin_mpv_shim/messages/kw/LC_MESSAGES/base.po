@@ -7458,14 +7458,6 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Kontrolyow media an pennskrifva"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "A as alwhedhow media an bysowek, boton an pennklewell, an skrin alhwedhys ha widgetow media an pennskrifva dhe wari, powes ha lamma, hag a dhiskwedh an pyth usi ow kwari gans y gudhlenn (MPRIS, Linux hepken)."
-
 # seeded from jellyfin-web: Default
 #~ msgid "Default"
 #~ msgstr "Defowt"

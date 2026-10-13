@@ -7758,14 +7758,6 @@ msgstr "Perfil de Reproducción de Video"
 msgid "Select Shader Profile"
 msgstr "Seleccionar Perfil de Sombras"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Controles multimedia del escritorio"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Permite que las teclas multimedia del teclado, los botones de los auriculares, la pantalla de bloqueo y los widgets multimedia del escritorio reproduzcan, pausen y salten, y muestra lo que se está reproduciendo con su portada (MPRIS, solo Linux)."
-
 #~ msgid "Bottom"
 #~ msgstr "Inferior"
 

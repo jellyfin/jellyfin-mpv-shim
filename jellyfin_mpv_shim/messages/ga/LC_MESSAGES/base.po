@@ -8191,14 +8191,6 @@ msgstr "Próifílí Athsheinm Físe"
 msgid "Select Shader Profile"
 msgstr "Roghnaigh Próifíl an Scáthóra"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Rialuithe meán an deisce"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Ligeann sé d'eochracha meán an mhéarchláir, do chnaipí an chluasáin, don scáileán glasála agus do ghiuirléidí meán an deisce seinm, sos agus scipeáil a dhéanamh, agus taispeánann sé a bhfuil á sheinm lena chlúdach (MPRIS, Linux amháin)."
-
 #~ msgid "Bottom"
 #~ msgstr "Bun"
 

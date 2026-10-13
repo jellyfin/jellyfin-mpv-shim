@@ -7786,14 +7786,6 @@ msgstr "Profile odtwarzania wideo"
 msgid "Select Shader Profile"
 msgstr "Wybierz profil shadera"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Sterowanie multimediami z pulpitu"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Pozwala klawiszom multimedialnym klawiatury, przyciskom słuchawek, ekranowi blokady i widżetom multimedialnym pulpitu odtwarzać, wstrzymywać i pomijać oraz pokazuje, co jest odtwarzane, wraz z okładką (MPRIS, tylko Linux)."
-
 #~ msgid "Bottom"
 #~ msgstr "Na dole"
 

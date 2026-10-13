@@ -7404,11 +7404,3 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Desktop Media Riggin'"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Lets yer keyboard's media keys, headset buttons, the lock screen an' desktop media widgets play, heave to an' skip, an' shows what be playin' with its cover (MPRIS, Linux only)."

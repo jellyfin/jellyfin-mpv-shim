@@ -7941,14 +7941,6 @@ msgstr "भिडियो प्लेब्याक प्रोफाइल�
 msgid "Select Shader Profile"
 msgstr "शेडर प्रोफाइल चयन गर्नुहोस्"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "डेस्कटप मिडिया नियन्त्रणहरू"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "किबोर्डका मिडिया कुञ्जीहरू, हेडसेटका बटनहरू, लक स्क्रिन र डेस्कटप मिडिया विजेटहरूलाई प्ले, पज र स्किप गर्न दिन्छ, र के बजिरहेको छ त्यसलाई कभरसहित देखाउँछ (MPRIS, Linux मात्र)।"
-
 #~ msgid "Bottom"
 #~ msgstr "तल"
 

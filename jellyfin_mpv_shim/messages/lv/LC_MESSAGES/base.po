@@ -8101,14 +8101,6 @@ msgstr "Video atskaņošanas profils"
 msgid "Select Shader Profile"
 msgstr "Izvēlieties ēnotāja profilu"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Darbvirsmas multivides vadīklas"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Ļauj tastatūras multivides taustiņiem, austiņu pogām, bloķēšanas ekrānam un darbvirsmas multivides logrīkiem atskaņot, pauzēt un izlaist, kā arī parāda, kas tiek atskaņots, ar tā vāciņu (MPRIS, tikai Linux)."
-
 #~ msgid "Bottom"
 #~ msgstr "Apakšā"
 

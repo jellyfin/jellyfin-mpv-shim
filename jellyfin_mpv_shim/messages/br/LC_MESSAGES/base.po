@@ -7957,14 +7957,6 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Kontrolloù media ar burev"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Lezel a ra alc'hwezioù media ar c'hlavier, boutonoù ar c'hasklevier, ar skramm prennañ ha widgetoù media ar burev da lenn, ehanañ ha lammat, hag e tiskouez ar pezh a vez lennet gant e golo (MPRIS, Linux hepken)."
-
 # seeded from jellyfin-web: Default
 #~ msgid "Default"
 #~ msgstr "Dre ziouer"

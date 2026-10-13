@@ -7424,11 +7424,3 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "የዴስክቶፕ ሚዲያ መቆጣጠሪያዎች"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "የቁልፍ ሰሌዳ ሚዲያ ቁልፎች፣ የጆሮ ማዳመጫ አዝራሮች፣ የመቆለፊያ ማያ ገጹ እና የዴስክቶፕ ሚዲያ መግብሮች እንዲያጫውቱ፣ ለአፍታ እንዲያቆሙ እና እንዲዘሉ ያስችላል፣ እና የሚጫወተውን ከሽፋኑ ጋር ያሳያል (MPRIS፣ Linux ብቻ)።"

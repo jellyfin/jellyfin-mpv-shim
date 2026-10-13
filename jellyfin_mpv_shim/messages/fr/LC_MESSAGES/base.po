@@ -8012,14 +8012,6 @@ msgstr "Profil de lecture vidéo"
 msgid "Select Shader Profile"
 msgstr "Sélectionner le profil du nuanceur"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Contrôles multimédias du bureau"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Permet aux touches multimédias du clavier, aux boutons du casque, à l'écran de verrouillage et aux widgets multimédias du bureau de lire, mettre en pause et passer, et affiche ce qui est en cours de lecture avec sa pochette (MPRIS, Linux uniquement)."
-
 #~ msgid "Bottom"
 #~ msgstr "Bas"
 

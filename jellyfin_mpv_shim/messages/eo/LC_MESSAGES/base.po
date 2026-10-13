@@ -8144,14 +8144,6 @@ msgstr "Profiloj pri ludado de videoj"
 msgid "Select Shader Profile"
 msgstr "Elekti Ombrigilan Profilon"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "Labortablaj aŭdvidaj regiloj"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "Ebligas al la aŭdvidaj klavoj de klavaro, butonoj de kapaŭdilo, la ŝlosekrano kaj labortablaj aŭdvidaj fenestraĵoj ludi, paŭzi kaj transsalti, kaj montras kio ludas kun ĝia kovrilo (MPRIS, nur Linux)."
-
 #~ msgid "Bottom"
 #~ msgstr "Malsupro"
 

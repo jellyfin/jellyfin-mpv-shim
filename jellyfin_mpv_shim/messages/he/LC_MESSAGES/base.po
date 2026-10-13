@@ -8020,14 +8020,6 @@ msgstr "פרופילים לניגון וידאו"
 msgid "Select Shader Profile"
 msgstr "בחר פרופיל Shader"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "פקדי מדיה של שולחן העבודה"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "מאפשר למקשי המדיה במקלדת, לכפתורי האוזניות, למסך הנעילה ולווידג'טים של המדיה בשולחן העבודה לנגן, להשהות ולדלג, ומציג את מה שמתנגן עם העטיפה שלו (MPRIS, Linux בלבד)."
-
 #~ msgid "Bottom"
 #~ msgstr "תחתית"
 

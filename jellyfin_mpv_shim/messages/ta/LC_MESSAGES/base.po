@@ -7978,14 +7978,6 @@ msgstr "வீடியோ இயக்க சுயவிவரம்"
 msgid "Select Shader Profile"
 msgstr "ஷேடர் சுயவிவரத்தைத் தேர்ந்தெடுக்கவும்"
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "டெஸ்க்டாப் மீடியா கட்டுப்பாடுகள்"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "விசைப்பலகை மீடியா விசைகள், ஹெட்செட் பொத்தான்கள், பூட்டுத் திரை மற்றும் டெஸ்க்டாப் மீடியா விட்ஜெட்டுகள் இயக்க, இடைநிறுத்த மற்றும் தவிர்க்க அனுமதிக்கிறது, மேலும் இயங்குவதை அதன் அட்டையுடன் காட்டுகிறது (MPRIS, Linux மட்டும்)."
-
 #~ msgid "Bottom"
 #~ msgstr "கீழே"
 

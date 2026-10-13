@@ -8021,14 +8021,6 @@ msgstr ""
 msgid "Select Shader Profile"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Desktop Media Controls"
-msgstr "ഡെസ്ക്ടോപ്പ് മീഡിയ നിയന്ത്രണങ്ങൾ"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Lets keyboard media keys, headset buttons, the lock screen and desktop media widgets play, pause and skip, and shows what is playing with its cover (MPRIS, Linux only)."
-msgstr "കീബോർഡ് മീഡിയ കീകൾ, ഹെഡ്സെറ്റ് ബട്ടണുകൾ, ലോക്ക് സ്ക്രീൻ, ഡെസ്ക്ടോപ്പ് മീഡിയ വിഡ്ജറ്റുകൾ എന്നിവയ്ക്ക് പ്ലേ ചെയ്യാനും താൽക്കാലികമായി നിർത്താനും ഒഴിവാക്കാനും അനുവദിക്കുന്നു, പ്ലേ ചെയ്യുന്നത് അതിന്റെ കവറിനൊപ്പം കാണിക്കുന്നു (MPRIS, Linux മാത്രം)."
-
 # seeded from jellyfin-web: Default
 #~ msgid "Default"
 #~ msgstr "സ്ഥിരസ്ഥിതി"
