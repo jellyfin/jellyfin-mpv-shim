@@ -177,7 +177,7 @@ TAB_SECTIONS = {
         # needs it cannot read anything else on this screen to find it, and
         # may well be reading it through a phone camera.
         (_("This Device"), ["lang", "player_name", "raise_mpv",
-                            "discord_presence",
+                            "discord_presence", "mpris",
                             "check_updates", "notify_updates"]),
         # A controller drives the *library* as much as playback -- it is the
         # couch input for the whole app, not a player control -- so it sits
@@ -367,6 +367,7 @@ RESTART_REQUIRED = frozenset({
     # `if settings.discord_presence:` at module scope in player.py -- an
     # import guard, so nothing short of a restart re-runs it.
     "discord_presence",
+    "mpris",
     # Handed to each JellyfinClient at construction; until then the servers
     # go on showing the old name.
     "player_name",
@@ -687,6 +688,7 @@ LABEL_OVERRIDES = {
     "thumbnail_enable": _("Enable Trickplay Thumbnails"),
     "trickplay_fast_mode": _("Load All Seek Previews at Once"),
     "discord_presence": _("Show What You're Watching in Discord"),
+    "mpris": _("Desktop Media Controls"),
     "ui_scale": _("Interface Scale"),
     "ui_text_scale": _("Text size"),
     "ui_text_min": _("Minimum Text Size"),
@@ -1028,6 +1030,9 @@ NOTES = {
     # settings/general.py raises it, and only for someone it is actually
     # broken for.
     "discord_presence": _("Discord Rich Presence."),
+    "mpris": _("Lets keyboard media keys, headset buttons, the lock screen "
+               "and desktop media widgets play, pause and skip, and shows "
+               "what is playing with its cover (MPRIS, Linux only)."),
     "audio_device": _("Leave this to Default unless setting up passthrough. "
                       "Note some audio servers like Pipewire don't like "
                       "passthrough and will need to be disabled for a card "

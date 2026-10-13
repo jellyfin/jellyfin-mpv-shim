@@ -60,6 +60,16 @@ def _server_uuid_of(video):
     return None
 
 
+def _mpris_on():
+    """Whether MPRIS is running."""
+    try:
+        from . import mpris
+
+        return mpris._service is not None
+    except Exception:
+        return False
+
+
 def _discord_on():
     """Whether Discord Rich Presence came up.
 
@@ -110,9 +120,20 @@ class ReportingMixin:
         bar to hide."""
         from .player import _mpv_errors
 
-        cb = self.on_playstate
-        if cb is None:
+        bar = self.on_playstate
+        mpris_on = _mpris_on()
+        if bar is None and not mpris_on:
             return
+        video = None
+
+        def cb(payload):
+            if bar is not None:
+                bar(payload)
+            if mpris_on:
+                from . import mpris
+
+                mpris.publish(payload, video)
+
         try:
             video = self._video
             try:
