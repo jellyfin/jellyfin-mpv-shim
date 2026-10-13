@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-12 11:24+0000\n"
+"PO-Revision-Date: 2026-10-13 15:00+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -7038,7 +7038,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Servers for %s"
-msgstr "%d のサーバー"
+msgstr "%s のサーバー"
 
 #. Heading of the Servers section of Settings, used when no profile is
 #. named.
@@ -7383,9 +7383,8 @@ msgstr ""
 #. Button on the restart banner that closes and reopens the application
 #. immediately. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Restart Now"
-msgstr "再起動"
+msgstr "今すぐ再起動"
 
 #. Button on the banner asking for a restart, putting it off for now. It
 #. carries a context because the update banner has a button of the same
@@ -7393,7 +7392,7 @@ msgstr "再起動"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "Restart banner"
 msgid "Later"
-msgstr ""
+msgstr "後で"
 
 #. Banner announcing a newer release, shown inside a Flatpak where the
 #. desktop's own updater installs it. %s is the version number; the quoted
@@ -7467,41 +7466,39 @@ msgstr "サーバーの設定"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr ""
+msgstr "%(name)s をダウンロード中 — 残り %(n)d 件"
 
 #. Bar along the bottom while items are being fetched and the current one
 #. has no name. %(n)d is how many are still queued.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading — %(n)d remaining"
-msgstr ""
+msgstr "ダウンロード中 — 残り %(n)d 件"
 
 #. Button on the downloading bar that opens the downloads page. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
-msgstr ""
+msgstr "ダウンロードを表示"
 
 #. Stands in for a value the player could not report, on the playback
 #. controls. Lower case, because it appears inside a line rather than
 #. starting one.
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr ""
+msgstr "不明"
 
 #. Entry on the settings menu of the classic on-screen controls, opening
 #. MPV's own statistics overlay.
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
-msgstr ""
+msgstr "再生データ"
 
 #. Marker beside a quality option on the playback controls, meaning the
 #. server would re-encode the video to reach it. A noun here.
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (トランスコード)"
+msgstr "トランスコード"
 
 #. First entry of a video profile list for a narrower scope, meaning "stop
 #. overriding and follow the wider setting".
