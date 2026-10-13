@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 00:25-0400\n"
+"POT-Creation-Date: 2026-10-13 12:18+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2595,6 +2595,12 @@ msgstr ""
 msgid "Show What You're Watching in Discord"
 msgstr ""
 
+#. Label of the checkbox for the "mpris" setting (Settings > General > This
+#. Device). Turns on control by the desktop's media keys and media widgets.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Desktop Media Controls"
+msgstr ""
+
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3154,6 +3160,15 @@ msgstr ""
 #. setting (Settings > General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Discord Rich Presence."
+msgstr ""
+
+#. Help note under the "mpris" setting (Settings > General > This Device).
+#. MPRIS is the name of the Linux standard; leave it untranslated.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Lets keyboard media keys, headset buttons, the lock screen and desktop media "
+"widgets play, pause and skip, and shows what is playing with its cover "
+"(MPRIS, Linux only)."
 msgstr ""
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >

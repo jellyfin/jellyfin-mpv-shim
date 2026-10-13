@@ -126,6 +126,12 @@ def _use_spawn_start_method():
             "the way out.", actual)
 
 
+def _stop_mpris():
+    from . import mpris
+
+    mpris.stop()
+
+
 def main():
     args = get_args()
 
@@ -307,6 +313,10 @@ def main():
     playerManager.timeline_trigger = timelineManager.trigger
     actionThread.start()
     playerManager.action_trigger = actionThread.trigger
+    if settings.mpris:
+        from . import mpris
+
+        mpris.start(playerManager)
     # Resolve the menu at call time: even though the OSDMenu now survives mpv
     # re-creation, binding through playerManager keeps this correct if that
     # ever changes.
@@ -393,6 +403,7 @@ def main():
         # names the step that hung, even if the dump is unavailable.
         for name, stop in (
             ("player", playerManager.terminate),
+            ("mpris", _stop_mpris),
             ("timeline", timelineManager.stop),
             ("action thread", actionThread.stop),
             ("sync manager", syncManager.stop),

@@ -728,6 +728,14 @@ You can use the config file to enable and disable features.
   - Was a `true`/`false` setting before 3.1.0. An existing `false` becomes
     `disabled`; an existing `true` becomes `default`, since nothing on disk
     distinguishes "never touched it" from "asked for it".
+- `mpris` - Publish playback over MPRIS on Linux, so keyboard media keys,
+  headset buttons, the lock screen and desktop media widgets control the
+  shim, and show the title, artist, album and cover of what is playing.
+  Next/previous follow the Jellyfin queue (or seek, with `media_key_seek`).
+  Default: `true`
+  - Also in Settings → General → This Device. Needs PyGObject (`python-gobject`
+    on most distributions); without it the setting does nothing. Takes effect
+    after a restart.
 - `discord_presence` - Enable Discord rich presence support. Default: `false`
   - Also in Settings → General → This Device. Needs the optional `pypresence` package
     (`pip install jellyfin-mpv-shim[discord]`) and takes effect after a
