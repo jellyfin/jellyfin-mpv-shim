@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-13 09:25+0000\n"
+"PO-Revision-Date: 2026-10-13 15:00+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -2577,7 +2577,7 @@ msgstr "Elimina las descargas automáticas una vez visualizadas"
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "Mantener descargas vistas durante (horas, 0 = eliminar de inmediato)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
@@ -2753,7 +2753,7 @@ msgstr "Modo de lectura de cómics"
 #. General tab of Settings).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "Modo de objetivo de lanzamiento (ninguna búsqueda en biblioteca)"
 
 #. Label of the checkbox for the "display_mirror_summon" setting (Settings
 #. > General > Window).
@@ -2959,6 +2959,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"\"Automático\" desactiva esto dentro de un Flatpak, donde tu escritorio ya "
+"anuncia actualizaciones y \"flatpak update\" las instala, y lo mantiene en "
+"todo lo demás."
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3027,6 +3030,11 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"Un período de gracia después de que finalices algo: se mantiene descargado "
+"durante este tiempo, para que puedas volver a verlo o alguien más en la casa "
+"pueda ponerse al día, en lugar de pasar a la siguiente comprobación. "
+"Quedarse sin espacio aún elimina las descargas vistas antes de que el tiempo "
+"se acabe."
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
@@ -3227,6 +3235,13 @@ msgid ""
 "it. On \"Only when the window has no title bar\", MPV is asked whether this "
 "window got one, so desktops that draw a title bar are left alone."
 msgstr ""
+"Algunos entornos de escritorio, GNOME en Wayland en particular, no dibujan "
+"la barra de título en la ventana del reproductor, no dejando forma de "
+"moverla o cerrarla. En su lugar esto pone minimizar, maximizar y cerrar en "
+"la barra superior, y te permite arrastrar la ventana por ahí. En \"Solo "
+"cuando la ventana no tenga barra de título\", se le pregunta a MPV si esta "
+"ventana tiene una, para que los escritorios que muestran una barra de título "
+"no se modifiquen."
 
 #. Explanation shown under the "Keep Window Buttons in Full Screen" setting
 #. (Settings > General > Window).
