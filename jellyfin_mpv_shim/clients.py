@@ -8,7 +8,7 @@ from .constants import (CAPABILITIES, CLIENT_VERSION, USER_APP_NAME,
                         USER_AGENT, APP_NAME, CONNECT_BUSY,
                         CONNECT_SIGNED_OUT, CONNECT_UNREACHABLE,
                         REAUTH_WRONG_SERVER)
-from .utils import resolved_host_is_private
+from .utils import answering_server, resolved_host_is_private
 from .i18n import _
 
 import os.path
@@ -659,13 +659,7 @@ class ClientManager(object):
         later, which is what keeps the early and late checks comparing the
         same thing.
         """
-        try:
-            return (client.auth.credentials.get_credentials()
-                    .get("Servers") or [{}])[0]
-        except Exception:
-            log.debug("could not read the server that answered",
-                      exc_info=True)
-            return {}
+        return answering_server(client)
 
     @staticmethod
     def _replaces_the_same_server(replacing_uuid, server, credentials):

@@ -255,10 +255,33 @@ def plex_color_to_mpv(color: str):
     return "#FF" + color.upper()[1:]
 
 
+def answering_server(client) -> dict:
+    """The server dict the last connect filled in, or ``{}``.
+
+    The apiclient rewrites ``Id``, ``Name`` and ``Version`` from
+    ``/System/Info/Public`` on every connect, before any login.
+    """
+    try:
+        return (client.auth.credentials.get_credentials()
+                .get("Servers") or [{}])[0]
+    except Exception:
+        log.debug("could not read the server that answered", exc_info=True)
+        return {}
+
+
+def _server_major(version: Optional[str]) -> int:
+    """The server's major version, or 0 when it cannot be told."""
+    try:
+        return int(str(version).split(".")[0])
+    except ValueError:
+        return 0
+
+
 def get_profile(
     is_remote: bool = False,
     video_bitrate: Optional[int] = None,
     force_transcode: bool = False,
+    server_version: Optional[str] = None,
 ):
     if video_bitrate is None:
         if is_remote:
@@ -335,13 +358,24 @@ def get_profile(
             {"Format": "ssa", "Method": "External"},
             {"Format": "smi", "Method": "Embed"},
             {"Format": "smi", "Method": "External"},
-            # Jellyfin currently refuses to serve these subtitle types as external.
+            # An external .sup is served raw from 10.10 on; without this the
+            # server burns it in (#811). Embed never applies to a sidecar.
+            {"Format": "pgssub", "Method": "External"},
             {"Format": "pgssub", "Method": "Embed"},
             {"Format": "dvdsub", "Method": "Embed"},
             {"Format": "dvbsub", "Method": "Embed"},
             {"Format": "pgs", "Method": "Embed"},
         ],
     }
+
+    # VobSub as an .mks sidecar is a 12.0 route. 10.x ignores Container, so
+    # this entry would turn VobSub .mks and .idx/.sub -- both working burn-ins
+    # there -- into sidecar urls that answer 404 and 400 (measured, 10.11.11).
+    # Unknown counts as old: a wrong "old" costs a transcode, a wrong "new"
+    # costs the subtitles.
+    if _server_major(server_version) >= 12:
+        profile["SubtitleProfiles"].append(
+            {"Format": "dvdsub", "Method": "External", "Container": "mks"})
 
     if settings.transcode_hi10p:
         profile["CodecProfiles"].append(

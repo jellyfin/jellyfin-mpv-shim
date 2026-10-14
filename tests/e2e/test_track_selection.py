@@ -30,12 +30,9 @@ language and title, read back off `track-list` — rather than on the number
 that was sent. And two of them go the other way: the server has to be told
 which track is playing, or every other client shows the wrong one.
 
-**Not covered:** the counter's "do not advance for an external stream" rule.
-It only bites on a file that mixes external and embedded streams *of the same
-type*, and no fixture here has one — the sidecar file's subtitles are all
-external, so the embedded map stays empty either way, and the audio loop never
-sees an external stream at all. Mutating that branch away leaves this file
-green. It wants a fixture with an embedded subtitle *and* a sidecar.
+**Not covered here:** a file mixing external and embedded streams *of the
+same type*. For audio that is `test_stream_parity_live.ExternalAudioTest`; for
+subtitles it still wants a fixture with an embedded subtitle *and* a sidecar.
 """
 
 import os

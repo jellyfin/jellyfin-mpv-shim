@@ -57,6 +57,11 @@ server agree. Resolving it client-side and posting it would be a behaviour
 change. This is the one place where "what PlaybackInfo was asked for" and
 "what `video.aid` ends at" legitimately differ, and only in that direction.
 
+**An external audio track is never mpv's to select.** The server delivers one
+only by transcoding it in (`AudioIsExternal`), so `map_streams` gives it no
+mpv id and `set_streams` restarts to renegotiate when one is picked. Offline
+the sidecar was never downloaded, so it is simply not selectable there.
+
 ## 3. Subtitles
 
 The same chain with one extra row, and that row is the whole difference.

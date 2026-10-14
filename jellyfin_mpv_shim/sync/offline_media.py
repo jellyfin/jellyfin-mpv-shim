@@ -338,14 +338,16 @@ class OfflineVideo(Video):
         source = self.media_source or self._source
         streams = source.get("MediaStreams") or []
 
+        # External audio is not downloaded and has no mpv id here; see
+        # Video.map_streams. `audio_external` stays empty: offline there is
+        # no server to renegotiate with, so picking one restarts for nothing.
         index = 1
         for stream in streams:
-            if stream.get("Type") != "Audio":
+            if stream.get("Type") != "Audio" or stream.get("IsExternal"):
                 continue
             self.audio_uid[index] = stream["Index"]
             self.audio_seq[stream["Index"]] = index
-            if not stream.get("IsExternal"):
-                index += 1
+            index += 1
 
         index = 1
         for sub in streams:

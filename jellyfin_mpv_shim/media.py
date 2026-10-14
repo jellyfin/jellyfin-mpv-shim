@@ -9,7 +9,7 @@ from sys import platform
 from . import conf
 from .conf import settings
 from .language_config import apply as apply_language_config
-from .utils import is_local_domain, get_profile, get_seq
+from .utils import answering_server, is_local_domain, get_profile, get_seq
 from .user_policy import may_download
 from .i18n import _
 
@@ -234,6 +234,8 @@ class Video(object):
     #: without `__init__` its absence is not a gap in coverage, it is an
     #: AttributeError out of the middle of a start.
     explicit_tracks = False
+    #: Server indices of external audio tracks: only a transcode carries one.
+    audio_external = frozenset()
 
     def __init__(
         self,
@@ -460,16 +462,21 @@ class Video(object):
 
         streams = self.media_source.get("MediaStreams") or []
 
+        self.audio_external = frozenset(
+            s["Index"] for s in streams
+            if s.get("Type") == "Audio" and s.get("IsExternal"))
+
+        # A sidecar is no track of mpv's in direct play: the server never
+        # direct-plays a selected external audio track (AudioIsExternal), and
+        # numbering one here gave it the next embedded track's mpv id.
         index = 1
         for stream in streams:
-            if stream.get("Type") != "Audio":
+            if stream.get("Type") != "Audio" or stream.get("IsExternal"):
                 continue
 
             self.audio_uid[index] = stream["Index"]
             self.audio_seq[stream["Index"]] = index
-
-            if not stream.get("IsExternal"):
-                index += 1
+            index += 1
 
         index = 1
         for sub in streams:
@@ -956,7 +963,9 @@ class Video(object):
                 self.parent.is_local, video_bitrate, force_transcode
             )
         )
-        profile = get_profile(not self.parent.is_local, video_bitrate, force_transcode)
+        profile = get_profile(not self.parent.is_local, video_bitrate,
+                              force_transcode,
+                              answering_server(self.client).get("Version"))
         # Before the negotiation, not after it: the aid below is what the
         # server bakes into a transcode.
         self.resolve_tracks_for_negotiation()
@@ -988,9 +997,7 @@ class Video(object):
         if srcid is None and ((self.aid is not None and self.aid >= 0)
                               or (self.sid is not None and self.sid >= 0)):
             srcid = (self.source_for_track_rules() or {}).get("Id")
-        self.playback_info = self.client.jellyfin.get_play_info(
-            self.item_id, profile, self.aid, self.sid, media_source_id=srcid
-        )
+        self.playback_info = self._get_play_info(profile, srcid)
 
         self.media_source = self.get_best_media_source(self.srcid)
         if self.media_source is None:
@@ -1033,6 +1040,25 @@ class Video(object):
                 log.info("Full Playback Info: {0}".format(self.playback_info))
             log.info("Media Decision: {0}".format(self.media_source))
         return url
+
+    def _get_play_info(self, profile, srcid):
+        # jellyfin-apiclient-python <= 1.20.1 tests `if aid:` and drops index
+        # 0, and the server numbers external streams first, so 0 is the first
+        # sidecar track. Drop this once the pin is past the fix.
+        if 0 not in (self.aid, self.sid):
+            return self.client.jellyfin.get_play_info(
+                self.item_id, profile, self.aid, self.sid,
+                media_source_id=srcid)
+        args = {"UserId": "{UserId}", "AutoOpenLiveStream": True,
+                "IsPlayback": True, "DeviceProfile": profile}
+        if self.aid is not None:
+            args["AudioStreamIndex"] = self.aid
+        if self.sid is not None:
+            args["SubtitleStreamIndex"] = self.sid
+        if srcid:
+            args["MediaSourceId"] = srcid
+        return self.client.jellyfin.items(
+            "/%s/PlaybackInfo" % self.item_id, "POST", json=args)
 
     def get_duration(self):
         # The MediaSource comes first because the Item DTO is unreliable for
@@ -1106,7 +1132,7 @@ class Video(object):
 
         if aid is not None and self.aid != aid:
             self.aid = aid
-            if self.is_transcode:
+            if self.is_transcode or aid in self.audio_external:
                 need_restart = True
 
         if sid is not None and self.sid != sid:
