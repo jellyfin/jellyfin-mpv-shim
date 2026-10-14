@@ -98,6 +98,62 @@ class KeysAcrossAFilmTest(_InputCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+class ArrowsFollowTheLayoutTest(_InputCase):
+    """Row 33, the direction half, on the shipped app's own Home. Elsewhere
+    an arrow is only shown to move focus at all (test_input_routing), the
+    picking rules are proven on drawn scenes (tests/lua), and the harness
+    walks by TAB -- so where an arrow GOES on a real screen was unasserted.
+    Plus the one trap TAB never meets: an arrow reaching a text box only
+    rings it, and ENTER is what lets you type."""
+
+    def press(self, key):
+        was = self.app.frame().get("nav")
+        self.app.key(key)
+        f = self.app.wait_for(lambda f: f.get("nav") not in (None, was),
+                              timeout=5, what="%s to move focus from %s"
+                              % (key, was))
+        return f, _app.node(f, f["nav"])
+
+    def test_down_right_left_up_go_where_the_screen_says(self):
+        f = self.app.move_to("nav-home")
+        home = _app.node(f, "nav-home")
+        f, first = self.press("DOWN")
+        self.assertFalse(f["nav"].startswith("nav-"),
+                         "DOWN stayed in the top bar (%s)" % f["nav"])
+        self.assertGreaterEqual(first["y"], home["y"] + home["h"],
+                                "DOWN landed on %s, not below the top bar"
+                                % f["nav"])
+        start = f["nav"]
+        f, right = self.press("RIGHT")
+        self.assertGreater(right["x"], first["x"],
+                           "RIGHT went to %s, not rightwards" % f["nav"])
+        self.assertTrue(right["y"] < first["y"] + first["h"]
+                        and right["y"] + right["h"] > first["y"],
+                        "RIGHT left the row for %s" % f["nav"])
+        f, _ = self.press("LEFT")
+        self.assertEqual(start, f["nav"], "LEFT did not come back")
+        f, _ = self.press("UP")
+        self.assertTrue(f["nav"].startswith("nav-"),
+                        "UP from the first row went to %s, not the top bar"
+                        % f["nav"])
+        self.assertEqual([], self.app.lost_keys)
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+    def test_an_arrow_rings_the_search_box_and_enter_lets_you_type(self):
+        self.app.move_to("nav-home")
+        f = self.app.move_to("nav-search", key="RIGHT")
+        self.assertIsNone(f.get("focus"),
+                          "an arrow put the search box in typing focus")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: f.get("focus") == "nav-search",
+                          timeout=5, what="ENTER to focus the search box")
+        self.app.type("Eat")
+        self.app.wait_for(lambda f: _app.fields(f).get("nav-search")
+                          == "Eat", timeout=10, what="the search box to "
+                          "hold what was typed")
+        self.assertEqual(0, self.app.quit(timeout=30))
+
+
 class SpaceAndMuteAfterMusicTest(_InputCase):
     """Row 33, PM C2: after music, stopped, then a film, SPACE and `m` still
     reach the film. The music half's key claims outlived the music."""

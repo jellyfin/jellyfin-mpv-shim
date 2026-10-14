@@ -307,6 +307,7 @@ class UserInterface:
         self._app = app
         strips = (StripStore(mem_store=MemoryStore()) if app.in_process
                   else StripStore(cache_dir=cache_dir("mpvtk-browser-")))
+        app.scene_check = strips.dead_srcs
         # Artwork outlives the session: every entry is keyed by the server's
         # own image tag, so last week's poster is still this week's poster,
         # and a scratch directory meant re-fetching a whole library on every

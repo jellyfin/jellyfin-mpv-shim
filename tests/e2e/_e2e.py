@@ -182,6 +182,36 @@ def require_server_and_mpv(obj):
     return require_server(h.require_real_mpv(obj))
 
 
+def sync_timers(**secs):
+    """An App ``env`` that runs the app's sync timers short:
+    ``sync_timers(settle=5, replay=5)``. Names and why: sync/manager.py
+    JMS_TEST_SYNC_TIMERS."""
+    return {"JMS_TEST_SYNC_TIMERS": ",".join(
+        "%s=%d" % kv for kv in sorted(secs.items()))}
+
+
+#: Set by run_e2e.py for --heavy and for every release-mode (--manifest) run.
+HEAVY_ENV = "JMS_E2E_HEAVY"
+
+
+#: Set by run_e2e.py for --gate and every --manifest run: the release gate.
+GATE_ENV = "JMS_E2E_GATE"
+
+
+def gate():
+    """The release gate: every test signs in and launches cold. The light
+    tier reuses a class's sign-in instead (Izzie, 2026-10-06)."""
+    return os.environ.get(GATE_ENV) == "1"
+
+
+def heavy(obj):
+    """Release-gate only: minutes of real timers for one property. A default
+    run skips it and the runner's summary names it."""
+    return unittest.skipUnless(
+        os.environ.get(HEAVY_ENV) == "1",
+        "heavy: runs with run_e2e.py --heavy or --manifest")(obj)
+
+
 # --------------------------------------------------------------------------
 # Settings + the player module
 # --------------------------------------------------------------------------

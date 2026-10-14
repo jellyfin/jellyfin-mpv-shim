@@ -100,6 +100,8 @@ def _handler_lambdas(module):
 POPULATION = {
     # Gateway `_act` target sites.
     "audit_act_targets": lambda m: len(m.sites()),
+    # Calls to StripStore.keep, used or not.
+    "audit_keep_result": lambda m: len(m.sites()),
     # `build_player` call sites and forwarding wrappers. NOT on this branch
     # yet -- it arrives with `todo-mpv-write-guard` at the merge, and this
     # entry goes live then. `test_every_audit_is_registered` is what would

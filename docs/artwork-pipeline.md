@@ -551,6 +551,31 @@ to draw it at 214px (19 KB)**. Nothing inset there is wider than a 16:9 still, s
 `banner.poster_box` caps the width against the slot's own height
 (`MAX_INSET_ASPECT`) as well as against the banner's width.
 
+### 10.8 One decode entrance: `imageutil.decode`
+
+Every artwork and book image decodes through `imageutil.decode` — the thumbnail
+store, the epub painter and the cast screen — so three rules hold at all of them
+rather than at whichever site remembered:
+
+- **Bounded before it allocates.** The pixel count is read from the header and
+  refused above `MAX_DECODE_PIXELS` (40 M) before `load()`. Library requests are
+  `maxWidth` only (§9), and the server passes an original no wider than that
+  through untouched, so **height is unbounded**: a flat 12000×10000 PNG is ~370 KB
+  on the wire and ~950 MB decoded, on each of six workers. A JPEG asked for at a
+  box is `draft()`ed first, so a camera-sized photo still makes a tile; the epub
+  reader passes no box, because it caches originals.
+- **Upright.** EXIF orientation is applied, as mpv and jellyfin-web do.
+  `imageutil.oriented_size` is the header-only half, and the epub layout and the
+  comic reader size their boxes with it, so a rotated picture is laid out the
+  shape it is drawn.
+- **sRGB.** An embedded ICC profile is converted from (littlecms, which Pillow's
+  wheels and the Flatpak's sdist build both have); an sRGB-described profile is
+  skipped, and an unusable one leaves the pixels as they are.
+
+The thumbnail store persists a body only after `imageutil.decode` accepts it
+(`thumbnails._persist`), and `imageutil.decodes` is the offline art's gate:
+bytes that do not decode completely are never kept.
+
 ## 11. Trickplay: the seek-preview frames
 
 The seek bar's preview thumbnails do not go through the store above at all.
@@ -699,8 +724,19 @@ where neither can send `shim-trickplay-need` again — `renderer.lua` takes the
 `img_is_bif`. So one dropped tile mid-film meant chapter stills for the rest of
 the item, with Python still perfectly able to serve windows nothing would ever
 ask for. The fallback belongs to "this item has no trickplay at all", which is
-a different branch. A window that fails leaves the published one live and is
-retried by scrubbing.
+a different branch. A window that fails leaves the published one live.
+
+**Retried by scrubbing only when the failure was the network.** A tile that is
+the wrong size or does not decode (`bifdecode.BadTile`) comes back the same every
+time, and the renderer asks once per frame index outside the window, so retrying
+it downloaded the whole window again for every pointer movement across the bad
+region. Such a window is recorded (`TrickPlay._bad`, consulted by `_covers`) and
+logged once with the tile's actual and expected size; `docs/jellyfin-api-notes.md`
+("Trickplay: the server trusts tiles it did not make") has what produces one.
+
+`trickplay_fast_mode` loads the whole video in one file only while every frame
+starts within 2 GiB: overlay-add's `offset` is a 32-bit int in mpv and is
+refused above that, so a longer video at a large preview width is windowed.
 
 This is why `media.Video.get_hls_tile_images` raising rather than truncating is
 the right shape: an online tile failure aborts the window instead of publishing

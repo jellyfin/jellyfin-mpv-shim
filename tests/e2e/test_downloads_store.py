@@ -145,6 +145,114 @@ class AKilledDownloadResumesTest(_DownloadCase):
 
 
 @_e2e.require_server
+class APlaylistPageRemovesItsDownloadTest(unittest.TestCase):
+    """The playlist page's own Download and Remove Download, online.
+
+    Remove did nothing online: the page built its item with no ServerId,
+    and since 9e100261 the catalog keys a playlist on (id, server), where
+    a None server matches only the unscoped row [iw, 2026-10-04]. Its unit
+    test agrees with its fake by construction, so this is the test that
+    can tell: the server's own ServerId, the catalog's own rows, the
+    page's own buttons."""
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        self.songs = []
+        for a in self.session.find_all(library="Music",
+                                       item_type="MusicAlbum"):
+            got = self.session.find_all(item_type="Audio",
+                                        parent_id=a["Id"])
+            if len(got) >= 2:
+                self.songs = [s["Id"] for s in got[:2]]
+                break
+        self.assertEqual(2, len(self.songs), "no album with two tracks")
+        # Before sign-in: Home's library row is read then (S2's note).
+        self.playlist = self.session._request("/Playlists", method="POST",
+                                              body={
+            "Name": "jms-e2e-pl-remove", "Ids": self.songs,
+            "UserId": self.session.user_id, "MediaType": "Audio"})["Id"]
+        self.addCleanup(self.session._request, "/Items/%s" % self.playlist,
+                        "DELETE")
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        self.relay = _relay.Relay((host, int(port or 80)))
+        self.addCleanup(self.relay.close)
+        self.app = _app.App(backend=_backend())
+        self.addCleanup(lambda: self.app.close())
+        self.catalog = _flows.Catalog(self.app.config_dir)
+        self.app.start()
+        _flows.login(self.app, self.relay)
+
+    def playlist_rows(self):
+        return self.catalog._query(
+            "SELECT server_id FROM playlists WHERE playlist_id = ?",
+            (self.playlist,))
+
+    def open_page(self):
+        """Home -> the Playlists shelf -> this playlist's page."""
+        views = self.session._request("/Users/%s/Views"
+                                      % self.session.user_id)["Items"]
+        shelf = next(v["Id"] for v in views
+                     if v.get("CollectionType") == "playlists")
+        self.app.press_until("ESC", lambda f: _app.shown(f, "row-libs"),
+                             what="Home")
+        f = self.app.frame()
+        first = next(n["id"] for n in f["nodes"]
+                     if (n.get("id") or "").startswith("row-libs-"))
+        self.app.move_to(first)
+        self.app.move_to("row-libs-" + shelf, key="RIGHT")
+        tile = "grid-0-" + self.playlist
+        self.app.press_until("ENTER", lambda f: _app.shown(f, tile),
+                             what="the Playlists shelf")
+        self.app.move_to(tile)
+        self.app.press_until("ENTER", lambda f: _app.shown(f, "pl-play"),
+                             what="the playlist's page")
+
+    def test_remove_download_on_the_page_removes_it(self):
+        self.open_page()
+        self.app.move_to("pl-download")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "dl-ok"), timeout=15,
+                          what="the download dialog")
+        self.app.move_to("dl-ok")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(
+            lambda: all((self.catalog.download(s) or {}).get("status")
+                        == "complete" for s in self.songs), timeout=120),
+            "the playlist's songs did not all download")
+        # The premise: one row, scoped to the server the page is on.
+        self.assertEqual([{"server_id": self.session.server_id()}],
+                         self.playlist_rows())
+
+        self.open_page()
+        self.app.wait_for(lambda f: _app.shown(f, "pl-undownload"),
+                          timeout=30, what="Remove Download on the page")
+        self.app.move_to("pl-undownload")
+        self.app.key("ENTER")
+        self.app.wait_for(lambda f: _app.shown(f, "dlg-ok"), timeout=15,
+                          what="the Delete Download confirmation")
+        self.app.move_to("dlg-ok")
+        self.app.key("ENTER")
+        self.assertTrue(_e2e.wait_for(lambda: not self.playlist_rows(),
+                                      timeout=60),
+                        "Remove Download left the playlist in the catalog: "
+                        "%r" % self.playlist_rows())
+        self.assertTrue(_e2e.wait_for(
+            lambda: all(self.catalog.download(s) is None
+                        for s in self.songs), timeout=60),
+            "Remove Download left the playlist's songs in the catalog")
+        store = os.path.join(self.app.config_dir, "offline", "server")
+        self.assertEqual([], [s for s in self.songs
+                              if os.path.exists(os.path.join(store, s))],
+                         "song files left on disk")
+
+        self.open_page()
+        f = self.app.wait_for(lambda f: _app.shown(f, "pl-download"),
+                              timeout=30, what="Download offered again")
+        self.assertFalse(_app.shown(f, "pl-undownload"))
+
+
+@_e2e.require_server
 class AMusicPlaylistDownloadsAsOneTest(unittest.TestCase):
     """Row 67 (INV N15): a playlist of songs, downloaded from its tile's
     menu with the MENU key -- the ten-foot way -- lands as one unit: its
@@ -255,11 +363,14 @@ class AMusicPlaylistDownloadsAsOneTest(unittest.TestCase):
         self.assertEqual(0, self.app.quit(timeout=30))
 
 
+@_e2e.heavy
 @_e2e.require_server
 class AutoDownloadAndTheReaperTest(unittest.TestCase):
-    """Row 64 under the REAL timers -- a long leg (~20 minutes): the settle
-    (60 s), the userdata sweep floor (300 s) and the reap hold (900 s from
-    launch) are constants, not settings. A show put into Next Up downloads
+    """Row 64 on the shipped app's timers, run short: the settle and the reap
+    hold are constants, not settings, so the app is launched with
+    JMS_TEST_SYNC_TIMERS (sync/manager.py). The hold's own arithmetic at
+    its real 900 s is unit-tested (test_reap_after_sweep); what this adds is
+    the whole path end to end. A show put into Next Up downloads
     its next episodes by itself; one of them watched on the server is
     reaped (watched grace 0 h), the next is kept; and only auto-downloads
     are ever reaped. c0cfac0b: not while no sweep has landed this session,
@@ -273,6 +384,11 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
             "auto_download_keep_watched_hours": 0,
             "auto_download_delete_watched": True,
             "auto_download_interval_mins": 1}
+    #: Seconds. The hold must outlast the app's start by a clear margin: it
+    #: is measured from inside the app, self.launched from out here. And
+    #: hold > floor, as in the app (see the first-phase assertion).
+    SETTLE, FLOOR, HOLD = 5, 30, 90
+    ENV = _e2e.sync_timers(settle=SETTLE, floor=FLOOR, hold=HOLD)
 
     def setUp(self):
         self.session = _e2e.Session()
@@ -297,7 +413,8 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
         host, _, port = upstream.partition(":")
         self.relay = _relay.Relay((host, int(port or 80)))
         self.addCleanup(self.relay.close)
-        self.app = _app.App(backend=_backend(), conf=dict(self.CONF))
+        self.app = _app.App(backend=_backend(), conf=dict(self.CONF),
+                            env=dict(self.ENV))
         self.addCleanup(lambda: self.app.close())
         self.catalog = _flows.Catalog(self.app.config_dir)
         self.launched = time.monotonic()
@@ -330,6 +447,14 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
                         % [self.row(e).get("origin") for e in (e2, e3)])
         self.assertFalse(self.row(self.eps[0]),
                          "the watched episode before Next Up was fetched")
+        # Online with every sweep answering, each pass waits for its sweep
+        # and never sits out the hold -- unless the timers are out of order
+        # (a hold under the floor expires first; seen with hold 90/floor 300).
+        with open(self.app.log_path, encoding="utf-8",
+                  errors="replace") as fh:
+            self.assertFalse("reaping without a fresh sweep" in fh.read(),
+                             "a pass sat out the hold while online (see "
+                             "%s)" % self.app.log_path)
         # The gate is per SESSION (manager._sweep_owed): this one has swept
         # already. A relaunch with every sweep failing is a session where
         # none has landed.
@@ -347,11 +472,11 @@ class AutoDownloadAndTheReaperTest(unittest.TestCase):
             "the premise: the catalog never learned E02 was watched")
         # c0cfac0b: no reap while no sweep has LANDED this session, however
         # watched the catalog says the row is -- and the hold is BOUNDED:
-        # REAP_SWEEP_HOLD (900 s) from the first pass that found a sweep
+        # REAP_SWEEP_HOLD (HOLD here) from the first pass that found a sweep
         # owed, then the pass reaps anyway, so a server that takes the
         # connection and never answers cannot switch retention off.
         seen = len(self.relay.requests)
-        while time.monotonic() < self.launched + 840:
+        while time.monotonic() < self.launched + self.HOLD - 30:
             self.assertTrue(self.row(e2), "reaped before any sweep landed, "
                             "%.0f s into the session"
                             % (time.monotonic() - self.launched))

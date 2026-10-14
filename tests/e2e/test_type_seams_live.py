@@ -174,8 +174,10 @@ class _ChainCase(_PlaybackCase):
         self.app.press_until("ENTER", lambda f: _app.node(f, tile),
                              what="Home")
         f = self.app.frame()
+        # Not the row's page arrows (-pl/-pr), drawn once the row overflows.
         first = next(n["id"] for n in f["nodes"]
-                     if (n.get("id") or "").startswith("row-libs-"))
+                     if (n.get("id") or "").startswith("row-libs-")
+                     and not n["id"].endswith(("-pl", "-pr")))
         self.app.move_to(first)
         self.app.move_to(tile, key="RIGHT")
         # The grid's top level is the photo albums; one of them, then a

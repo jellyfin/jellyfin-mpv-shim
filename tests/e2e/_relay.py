@@ -220,6 +220,18 @@ class Relay:
             except OSError:
                 pass
 
+    def reset(self):
+        """Pass everything at full speed, nothing held or failing, and forget
+        what was recorded: a relay shared by a class's tests starts each one
+        clean."""
+        self.fail(None)
+        self.drop_held()
+        self.throttle(None)
+        self.restore()
+        for seen in (self.requests, self.bodies, self.redirects,
+                     self.request_tokens, self.ranges):
+            del seen[:]
+
     # -- confirming a fault is really in effect ------------------------
 
     def probe_refused(self, timeout=3.0):

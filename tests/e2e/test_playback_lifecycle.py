@@ -18,6 +18,7 @@ in, and the server and mpv are read.
   mpv behind.
 """
 
+import atexit
 import json
 import os
 import sys
@@ -41,19 +42,76 @@ def _backend():
     return os.environ.get("JMS_TEST_BACKEND", "libmpv")
 
 
+#: The light tier's signed-in config: (relay, config dir), made once per
+#: process -- one module leg -- on first use. Per process, not per class:
+#: nearly every class holds one test, so a per-class sign-in only added a
+#: launch. CONF, FILES and MPV_CONF are applied when each copy launches.
+_SIGNED_IN = []
+
+
+def _signed_in_template():
+    if not _SIGNED_IN:
+        upstream = _e2e.SERVER.split("//", 1)[1]
+        host, _, port = upstream.partition(":")
+        # The saved login names this relay's address, so it lives as long
+        # as the template, and each test resets it.
+        relay = _relay.Relay((host, int(port or 80)))
+        app = _app.App(backend=_backend())
+        try:
+            app.start()
+            _flows.login(app, relay)
+            rc = app.quit()
+            if rc != 0:
+                raise AssertionError("the sign-in launch exited with %s" % rc)
+        except BaseException:
+            app.close()
+            relay.close()
+            raise
+        atexit.register(relay.close)
+        atexit.register(app.close)
+        _SIGNED_IN.extend([relay, app.config_dir])
+    return _SIGNED_IN
+
+
 @_e2e.require_server
 class _PlaybackCase(unittest.TestCase):
     CONF = {}
+    #: Extra mpv.conf lines, as a person's own would be.
+    MPV_CONF = ()
+    #: Sign in through the form in every test even in the light tier, for a
+    #: class whose subject is what signing in does or leaves behind.
+    FRESH_LOGIN = False
+
+    @classmethod
+    def _reuses_login(cls):
+        """Light tier: launch each test on a copy of one signed-in config
+        (_signed_in_template). Not in the gate, not for FRESH_LOGIN, and not
+        where before_login sets up something the app must find AT sign-in."""
+        return (not _e2e.gate() and not cls.FRESH_LOGIN
+                and cls.before_login is _PlaybackCase.before_login)
 
     def setUp(self):
         self.session = _e2e.Session()
         self.before_login()
+        if self._reuses_login():
+            self.relay, template = _signed_in_template()
+            self.relay.reset()
+            self.app = _app.App.copy_of(
+                template, backend=_backend(), conf=dict(self.CONF),
+                files=dict(getattr(self, "FILES", {})),
+                mpv_conf=self.MPV_CONF)
+            self.addCleanup(lambda: self.app.close())
+            self.app.start()
+            self.app.wait_for(lambda f: _app.shown(f, "row-libs"),
+                              timeout=60, what="Home, already signed in")
+            return
         upstream = _e2e.SERVER.split("//", 1)[1]
         host, _, port = upstream.partition(":")
         self.relay = _relay.Relay((host, int(port or 80)))
         self.addCleanup(self.relay.close)
         self.app = _app.App(backend=_backend(), conf=dict(self.CONF),
-                            files=dict(getattr(self, "FILES", {})))
+                            files=dict(getattr(self, "FILES", {})),
+                            mpv_conf=self.MPV_CONF)
         self.addCleanup(lambda: self.app.close())
         self.app.start()
         _flows.login(self.app, self.relay)
@@ -140,6 +198,10 @@ class TheLastItemIsMarkedWatchedTest(_PlaybackCase):
         self.assertFalse(self.server(film).get("Played"),
                          "watched before it ended")
         self.seek_to(580)
+        # Then to a few seconds short of mpv's own end, by RIGHT (+5 s):
+        # the film runs past 600 s, and playing out the rest in real time
+        # was ~18 s a leg. Short of it, so EOF is still reached by playing.
+        self.seek_to(self.app.prop("duration") - 6, key="RIGHT")
         self.assertTrue(
             _e2e.wait_for(lambda: self.server(film).get("Played"),
                           timeout=120),
@@ -248,12 +310,20 @@ class AStreamThatDiesMidwayTest(_PlaybackCase):
     whole within seconds from a local server)."""
 
     NAME = LONG_NAME
-    #: Where the stream is cut, and the read rate that keeps mpv fetching
-    #: past it. At 150 kB/s a 10-minute 44 MB film is about 60 s ahead.
-    CUT_AT = 20
-    RATE = 150_000
+    #: Skipped to by one UP (+60 s) and cut just past: the stop has to land
+    #: beyond 5 % of the film or the server keeps no resume point, and
+    #: playing there in real time cost 20 s a leg.
+    CUT_AT = 62
+    #: Read rate: above the film's ~71 kB/s so mpv is still fetching at the
+    #: cut, and close to it so the lead it builds -- and the test then waits
+    #: out after the cut -- stays a few seconds. At 150 kB/s it was ~25 s.
+    RATE = 100_000
     #: The request paths that carry the media -- a direct stream or HLS.
     MEDIA = r"/(Videos|videos)/[0-9a-fA-F-]+/(stream|hls1|main|master)"
+    #: With the network cache on, mpv's readahead is bounded only by bytes
+    #: (150 MiB), so it ran a minute ahead and the test waited that minute
+    #: out after the cut. cache-secs caps it; the shim never sets it.
+    MPV_CONF = ("cache-secs=8",)
     KIND = r"/[Vv]ideos/[0-9a-fA-F-]+/stream"
 
     def test_it_stops_where_it_broke_and_resumes_there(self):
@@ -262,6 +332,7 @@ class AStreamThatDiesMidwayTest(_PlaybackCase):
         _flows.open_by_search(self.app, self.NAME, film)
         self.relay.throttle(self.RATE)
         self.play()
+        self.seek_to(self.CUT_AT - 2)
         self.assertTrue(_e2e.wait_for(
             lambda: (self.time_pos() or 0) > self.CUT_AT, timeout=90),
             "the film never got going")

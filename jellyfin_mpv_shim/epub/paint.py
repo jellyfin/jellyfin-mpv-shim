@@ -11,7 +11,6 @@ the same cache and the same LRU. The cost is that text on the page cannot
 be selected or hit-tested; §4.9 is what stands in for it.
 """
 
-import io
 import logging
 
 log = logging.getLogger("epub.paint")
@@ -184,32 +183,25 @@ def decode_image(data, max_pixels=40_000_000):
     layer caps the *bytes* an entry may deliver, and this caps what those
     bytes are allowed to expand into.
     """
-    from PIL import Image
+    from .. import imageutil
 
     try:
-        picture = Image.open(io.BytesIO(data))
-        # **Before load(), not after.** Image.open parses the header only,
-        # so the size is known while the pixels are still compressed;
-        # checking afterwards means a flat 8000x8000 PNG is a few hundred
-        # KB on the wire, ~190 MB in memory, and only then refused — which
-        # is the allocation the guard exists to prevent.
-        if picture.size[0] * picture.size[1] > max_pixels:
-            log.info("image %s is too large to draw", picture.size)
-            return None
-        picture.load()
+        # No box: the book caches this decode at full size (book.py).
+        return imageutil.decode(data, max_pixels)
+    except imageutil.TooLarge as exc:
+        log.info("%s; not drawn", exc)
     except Exception:
         log.debug("undecodable image", exc_info=True)
-        return None
-    return picture
+    return None
 
 
 def image_size(data):
-    """``(w, h)`` without decoding the pixels. None if unreadable."""
-    from PIL import Image
+    """``(w, h)`` without decoding the pixels, as ``decode_image`` will draw
+    it (EXIF-rotated). None if unreadable."""
+    from .. import imageutil
 
     try:
-        with Image.open(io.BytesIO(data)) as picture:
-            return picture.size
+        return imageutil.oriented_size(data)
     except Exception:
         log.debug("unreadable image header", exc_info=True)
         return None

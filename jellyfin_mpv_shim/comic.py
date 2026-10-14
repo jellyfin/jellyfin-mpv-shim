@@ -27,6 +27,8 @@ import tempfile
 import threading
 import zipfile
 
+from .archive_errors import ZIP_READ_ERRORS
+
 log = logging.getLogger("comic")
 
 #: Extensions holding pages this module can read.
@@ -234,8 +236,7 @@ class ComicArchive:
                     data = handle.read(MAX_PAGE_BYTES + 1)
         except ComicError:
             raise
-        except (OSError, tarfile.TarError, zipfile.BadZipFile, RuntimeError,
-                EOFError) as exc:
+        except ZIP_READ_ERRORS + (tarfile.TarError,) as exc:
             # RuntimeError is zipfile's answer for an encrypted entry — a
             # password-protected comic, which is a real case whose message
             # should not read as corruption.

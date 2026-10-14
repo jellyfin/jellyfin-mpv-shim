@@ -935,6 +935,17 @@ class TestOnlinePlaylistArt(unittest.TestCase):
         self.assertEqual(src.image_spec(item)[0], "P1")
 
 
+def _jpeg_bytes():
+    import io
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (6, 9), (40, 40, 40)).save(buf, "JPEG")
+    return buf.getvalue()
+
+
+_JPEG = _jpeg_bytes()
+
+
 class TestPlaylistArtDownload(TmpTest):
     """Playlist art is fetched at download time so the offline tile has
     the playlist's own poster to show.
@@ -952,7 +963,8 @@ class TestPlaylistArtDownload(TmpTest):
 
         class FakeResp:
             status_code = status
-            content = b"jpeg"
+            # A real one: the writer refuses bytes that do not decode.
+            content = _JPEG
 
             def raise_for_status(self):
                 if status >= 400:

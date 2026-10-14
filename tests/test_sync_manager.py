@@ -702,6 +702,8 @@ class ReconcileDiskTest(TmpTest):
         """
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID, status=STATUS_PENDING)
+        # Referenced, so the art sweep keeps them too (OfflineArtSweepTest).
+        set_columns(m.db, ORPHAN_ID, series_id="id1", season_id="id1")
         dirs = [os.path.join(self.tmp, "server", kind, "id1")
                 for kind in ("series", "season", "playlist")]
         for path in dirs:
@@ -721,6 +723,7 @@ class ReconcileDiskTest(TmpTest):
         """
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID, status=STATUS_PENDING)
+        set_columns(m.db, ORPHAN_ID, series_id="id1", season_id="id1")
         # Named literally, NOT derived from RESERVED_STORE_DIRS: building the
         # fixture out of the constant under test means emptying the constant
         # empties the fixture and the test passes with nothing left to check.
@@ -5276,3 +5279,165 @@ class TheIdentityDoorOnlyDeletesForADownloadThatHappensTest(TmpTest):
                              "its row went with the directory")
         self.assertFalse(m._is_cancelled(self.ORPHAN),
                          "the user's own in-flight download was cancelled")
+
+
+def _jpeg(color=(30, 90, 160)):
+    import io
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (60, 90), color).save(buf, "JPEG")
+    return buf.getvalue()
+
+
+class OfflineArtIsWholeOrAbsentTest(unittest.TestCase):
+    """Offline art was written straight to its final name and the series,
+    season and playlist writers skip a file that exists. A write that died
+    part-way (ENOSPC), a login page or an empty 200 left a file every later
+    sync took for the real thing: that tile stayed blank for good."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.m = make_manager(self.tmp, self.addCleanup)
+        self.client = FakeClient()
+        self.client.jellyfin.artwork = (
+            lambda item_id, kind, width, include_apikey=True:
+            "http://example/Items/%s/Images/%s" % (item_id, kind))
+        self.body = _jpeg()
+        self.fetched = []
+
+        class Resp:
+            def __init__(self, body):
+                self.content = body
+
+            def raise_for_status(self):
+                pass
+
+        def get(url, **_kw):
+            self.fetched.append(url)
+            return Resp(self.body)
+        patcher = mock.patch.object(manager_module.requests, "get", get)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def series(self):
+        SyncManager._download_series_art(self.m, self.client, "s1")
+        return manager_module.series_art_dir(self.tmp, "s1")
+
+    def test_a_zero_byte_poster_is_fetched_again_once(self):
+        d = manager_module.series_art_dir(self.tmp, "s1")
+        os.makedirs(d)
+        open(os.path.join(d, "poster.jpg"), "wb").close()   # the ENOSPC shape
+        with open(os.path.join(d, "backdrop.jpg"), "wb") as fh:
+            fh.write(_jpeg())
+        for _ in range(3):
+            self.series()
+        self.assertEqual([u.rsplit("/", 1)[1] for u in self.fetched],
+                         ["Primary"], "skipped the bad poster, or refetched "
+                         "a good file: %r" % self.fetched)
+        with open(os.path.join(d, "poster.jpg"), "rb") as fh:
+            self.assertEqual(fh.read(), self.body)
+
+    def test_a_body_that_is_not_an_image_is_never_written(self):
+        self.body = b"<html>please sign in</html>"
+        for _ in range(3):
+            d = self.series()
+        self.assertEqual(sorted(os.listdir(d)), [],
+                         "kept a non-image (or its temp file) as art")
+        self.assertEqual(len(self.fetched), 6, "stopped retrying")
+
+    def test_a_write_that_dies_part_way_leaves_nothing(self):
+        real_open = open
+
+        def full_disk(path, mode="r", *a, **k):
+            fh = real_open(path, mode, *a, **k)
+            if "w" in mode:
+                def write(_data):
+                    raise OSError(errno.ENOSPC, "No space left on device")
+                fh.write = write
+            return fh
+        with mock.patch("builtins.open", full_disk):
+            SyncManager._download_season_art(self.m, self.client, "se1")
+        d = manager_module.season_art_dir(self.tmp, "se1")
+        self.assertEqual(os.listdir(d), [], "a partial file was left behind")
+
+    def test_every_writer_goes_through_the_check(self):
+        """The defect was a pattern: five writers, each with its own open()."""
+        self.body = b""
+        row_dir = os.path.join(self.tmp, "item")
+        os.makedirs(row_dir)
+        SyncManager._download_artwork(
+            self.m, self.client,
+            {"Id": "i1", "ImageTags": {"Primary": "t", "Thumb": "t"},
+             "BackdropImageTags": ["t"]}, row_dir)
+        SyncManager._download_playlist_art(self.m, self.client, "srv", "p1")
+        SyncManager._download_season_art(self.m, self.client, "se1")
+        self.series()
+        j = self.client.jellyfin
+        j.get_item = lambda item_id, fields=None: {"Trickplay": {"src": {
+            "320": {"ThumbnailCount": 10, "TileWidth": 10, "TileHeight": 10,
+                    "Width": 320, "Height": 180, "Interval": 10000}}}}
+        j.trickplay_tile_url = lambda *a, **k: "http://example/tp/0.jpg"
+        SyncManager._download_trickplay(self.m, self.client, "i1",
+                                        {"Id": "src"}, row_dir)
+        written = [os.path.join(dp, f) for dp, _d, fs in os.walk(self.tmp)
+                   for f in fs if not f.startswith("catalog")]
+        self.assertEqual(written, [])
+
+
+class OfflineArtSweepTest(unittest.TestCase):
+    """Series, season and playlist art is shared by every episode or member,
+    so per-item removal never took it, and it outlived the last download that
+    used it for ever. The startup sweep removes what no row references -- under
+    the same guards as the item sweep, because this is code that deletes."""
+
+    SERVER = "a" * 32
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.m = make_manager(self.tmp, self.addCleanup)
+
+    def art(self, *parts):
+        path = os.path.join(self.tmp, "server", *parts)
+        os.makedirs(path)
+        with open(os.path.join(path, "poster.jpg"), "wb") as fh:
+            fh.write(_jpeg())
+        return path
+
+    def fixture(self):
+        add_row(self.m, ORPHAN_ID, status=STATUS_COMPLETE)
+        set_columns(self.m.db, ORPHAN_ID, series_id="kept", season_id="kept")
+        self.m.db.upsert_playlist("pkept", self.SERVER, "uuid", "Kept")
+        kept = [self.art("series", "kept"), self.art("season", "kept"),
+                self.art("playlist", self.SERVER, "pkept")]
+        gone = [self.art("series", "gone"), self.art("season", "gone"),
+                self.art("playlist", self.SERVER, "pgone")]
+        return kept, gone
+
+    def test_unreferenced_art_goes_and_stays_gone(self):
+        kept, gone = self.fixture()
+        legacy = os.path.join(self.tmp, "server", "playlist", "legacyid")
+        os.makedirs(legacy)                 # a scope-level dir: never touched
+        for _ in range(3):                  # three launches
+            self.m._reconcile_disk()
+            for path in kept + [legacy]:
+                self.assertTrue(os.path.isdir(path), path)
+            for path in gone:
+                self.assertFalse(os.path.exists(path), path)
+
+    def test_an_unreadable_catalog_removes_nothing(self):
+        kept, gone = self.fixture()
+        with mock.patch.object(self.m.db, "art_owners",
+                               side_effect=manager_module.sqlite3.Error("x")):
+            self.m._reconcile_disk()
+        self.m.db.healthy = lambda: False
+        self.m._reconcile_disk()
+        for path in kept + gone:
+            self.assertTrue(os.path.isdir(path), path)
+
+    def test_an_empty_catalog_removes_nothing(self):
+        paths = [self.art("series", "s"), self.art("season", "s")]
+        self.m._reconcile_disk()
+        for path in paths:
+            self.assertTrue(os.path.isdir(path), path)

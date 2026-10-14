@@ -174,6 +174,9 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
     # a frozen browser passes: exactly how a route-key collision shipped with
     # 1886 tests green. Every leg runs strict.
     env["JMS_STRICT_BUILDS"] = "1"
+    # Every pushed scene's image addresses are checked against the strip
+    # store (MpvtkApp.scene_check): a freed one cannot be seen any other way.
+    env["JMS_CHECK_SCENES"] = "1"
     # A leg's own stdout is cp1252 on Windows, so a test whose docstring
     # holds a character outside it dies in print() rather than in anything
     # it was testing. Children cannot reconfigure themselves here (they are

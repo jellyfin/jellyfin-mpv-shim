@@ -441,6 +441,25 @@ so toggling a sort re-decoded the visible screenful for nothing.
 The **composited rows** are a different trade and normally not worth shedding:
 they are what makes going Back instant, and Back is the most common move there is.
 
+### Held bitmaps
+
+Almost everything asks the strip store for what it draws on every frame, so a
+cache hit is also the store's signal that a bitmap is on screen. Two callers
+*park* an entry instead and draw from it across frames: the epub reader (on its
+route dict) and the cast screen (on `self`). **The parked dict outlives the
+buffer.** The route dict survives on the back and forward stacks, eviction and the
+small-RAM trim free anything not on screen, and `clear()` frees everything when mpv
+is re-created. On libmpv an image `src` is a raw address mpv copies from the
+moment the scene lands, so drawing a freed one is an access violation on Windows
+and garbage pixels on Linux — never a missing picture a test could see.
+
+So `StripStore.keep(entry)` answers whether the entry is still cached, by
+**identity** (a freed address can come back for a newer bitmap), and a holder that
+hears False drops the entry and composites again. `tools/audit_keep_result.py`
+(run by `tests/test_no_ignored_keep.py`) fails a call that ignores the answer, and
+under both test runners `JMS_CHECK_SCENES` makes `MpvtkApp` refuse any scene whose
+image addresses the store no longer holds (`StripStore.dead_srcs`).
+
 ## 7. Scroll state
 
 `jellyfin_mpv_shim/mpvtk_browser/scroll_state.py` owns where each scroll

@@ -232,8 +232,10 @@ class NoAddServerDuringASwitchTest(_ProfilesCase):
         self.assertFalse(_app.shown(self.app.frame(), "login-server"),
                          "Add Server opened while a switch was in flight")
         self.relay.restore()
+        # Not `sv-add`: Settings is where the test already was, so it
+        # answered at once and the switch then landed under the next step.
+        # A switch lands on Home, or on Retry when it fails.
         f = self.app.wait_for(lambda f: _app.shown(f, "row-libs")
-                              or _app.shown(f, "sv-add")
                               or _app.shown(f, "conn-retry"), timeout=90,
                               what="the switch landing")
         if _app.shown(f, "conn-retry"):

@@ -31,7 +31,9 @@ revoke the device's session, which is what a signed-out client looks like.
 import logging
 import os
 import sys
+import types
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _e2e  # noqa: E402
@@ -125,6 +127,15 @@ class _BrowserCase(unittest.TestCase):
             self.addCleanup(logger.setLevel, logger.level)
             logger.setLevel(logging.CRITICAL)
         self.conn.client.config.data["auth.server"] = DEAD
+        # The apiclient retries a refused request five times, a second apart,
+        # and a route makes several: ~5 s of sleep per failure, which was
+        # most of this module's two minutes. Module-level, so the async
+        # runner's threads see it too.
+        from jellyfin_apiclient_python import http as _http
+        patcher = mock.patch.object(
+            _http, "time", types.SimpleNamespace(sleep=lambda _s: None))
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def _goto(self, name):
         library = self.libraries.get(name)

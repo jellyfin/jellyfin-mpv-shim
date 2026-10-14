@@ -50,6 +50,21 @@ class TestCastScreen(unittest.TestCase):
         b._cast_size = (800, 600)
         return b   # app is None -> invalidate() is a guarded no-op
 
+    def test_a_cleared_store_is_composited_again_not_drawn(self):
+        """The parked full-window entry outlives a clear() or an eviction;
+        drawing it declared a freed address to mpv."""
+        m = self._cast()
+        m._composite(ITEM_DATA, (800, 600))
+        old = m._cast_entry["src"]
+        m.strips.clear()
+        for _ in range(3):
+            node = m._render_cast({"kind": "cast"}, (800, 600))
+            self.assertNotEqual(getattr(node, "src", None), old,
+                                "drew the bitmap whose buffer was freed")
+        self.assertIsInstance(node, ImageNode,
+                              "never composited the screen again")
+
+
     def test_build_item_data(self):
         d = MpvtkBrowser._build_item_data(
             {"Name": "Movie", "Overview": "o", "Type": "Movie",

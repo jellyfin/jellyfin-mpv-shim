@@ -1435,6 +1435,31 @@ class TestABuildFailureIsNotSilentUnderTest(unittest.TestCase):
             app._render()
         self.assertEqual(app.build_errors, 1)
 
+    def test_a_scene_naming_a_freed_bitmap_raises_when_checked(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Image
+
+        from unittest import mock
+
+        app = self._app(lambda size: Image("&1", 4, 4, w=4, h=4),
+                        strict=False)
+        app._extend_metrics = lambda texts: False
+        app.backend = mock.Mock()
+        app.on_scene_pushed = None
+        app.scene_check = lambda nodes: ["&1 freed"]
+        app.check_scenes = True
+        with self.assertRaises(AssertionError):
+            app._render()
+        self.assertFalse(app.backend.command.called,
+                         "pushed the scene before refusing it")
+        app.check_scenes = False      # production: no check, no cost
+        calls = []
+        app.scene_check = lambda nodes: calls.append(nodes) or ["x"]
+        app._dirty = True
+        app._render()
+        self.assertEqual(calls, [], "checked with JMS_CHECK_SCENES unset")
+        self.assertTrue(app.backend.command.called, "the scene was not pushed")
+
+
     def test_strict_defaults_from_the_environment(self):
         """Read from os.environ at construction rather than set per test, so
         an integration test added later is strict without anyone opting in."""

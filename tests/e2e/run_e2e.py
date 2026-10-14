@@ -52,6 +52,7 @@ suite is not a reason for a machine without a server to fail.
 """
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -192,6 +193,10 @@ PER_BACKEND = [
     # timestamp that made "previous" an absolute seek to the END of the
     # file. Only a real container has a boundary mpv chose.
     "tests.e2e.test_chapters",
+    # Trickplay against a real server's tiles, read off the relay: each tile
+    # once per window while the pointer scrubs. Needs stdjflib's
+    # `--trickplay "Test Media"`; skips without it.
+    "tests.e2e.test_trickplay_live",
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",
     # Music, played for real. The one content type the suite never played:
@@ -269,6 +274,29 @@ PER_BACKEND = [
 
 MODULES = CONTRACT + PER_BACKEND
 
+# Light run: these run on LIGHT_BACKEND only; --gate runs them on both. The
+# rule is the module's SUBJECT -- the store, the catalog, a screen's own
+# state -- not whether it happens to start an mpv: every shipped-app test
+# does. A module that plays, routes input, or quits by a backend's own path
+# stays in the matrix. Izzie, 2026-10-06.
+ONE_BACKEND = [
+    # The download folder's files, by content hash.
+    "tests.e2e.test_store_safety",
+    # Resume by Range, catalog/users.json restore, the store move.
+    "tests.e2e.test_downloads_store",
+    # The offline-sync rulings across screen, catalog and server. Its
+    # PlayOfflineTest plays the local copy; one backend still, since the
+    # playback modules cover the player (Izzie, 2026-10-06).
+    "tests.e2e.test_offline_ui",
+    # PINs and profile switching.
+    "tests.e2e.test_profiles_live",
+    # conf.json, ticks, search, the Logs tab.
+    "tests.e2e.test_settings_live",
+    # Sort persistence across a relaunch.
+    "tests.e2e.test_browse_routes",
+]
+LIGHT_BACKEND = "libmpv"
+
 BACKENDS = ("libmpv", "jsonipc")
 
 SINK_NAME = "jms-e2e-sink"
@@ -320,6 +348,9 @@ def run_leg(module, backend, use_xvfb, verbosity):
     # it was testing. Children cannot reconfigure themselves here (they are
     # plain `python -m unittest`), so it goes in the environment.
     env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
+    # See tests/integration/run_integration.py: a scene naming a freed bitmap
+    # raises in the app instead of handing mpv a dead address.
+    env["JMS_CHECK_SCENES"] = "1"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
     # tests._outcomes is `-m unittest` plus a per-test record, which is what
@@ -341,6 +372,15 @@ def run_leg(module, backend, use_xvfb, verbosity):
     except OSError:
         pass
     return proc.returncode == 0, records
+
+
+def keep_durations(path, module, backend, records):
+    if not path:
+        return
+    with open(path, "a", encoding="utf-8") as fh:
+        for rec in records:
+            fh.write(json.dumps(dict(rec, module=module, backend=backend))
+                     + "\n")
 
 
 def server_answers(address, timeout=10):
@@ -373,6 +413,17 @@ def main():
     parser.add_argument("--step", action="store_true",
                         help="watch mode, advancing one action per Enter")
     parser.add_argument("--list", action="store_true")
+    parser.add_argument("--gate", action="store_true",
+                        help="release gate: heavy tests, every module on "
+                             "both backends, and a fresh sign-in and launch "
+                             "per test (no reuse); --manifest implies it")
+    parser.add_argument("--heavy", action="store_true",
+                        help="also run the release-gate-only tests "
+                             "(_e2e.heavy); --manifest implies it")
+    parser.add_argument("--durations", metavar="FILE",
+                        help="append every test's record, with its leg and "
+                             "timings, to FILE (JSON lines) for "
+                             "tools/e2e_durations.py")
     parser.add_argument("-v", "--verbose", action="count", default=1)
     parser.add_argument("--manifest", action="store_true",
                         help="release mode: fail unless every leg ran exactly "
@@ -424,6 +475,15 @@ def main():
         os.environ["JMS_E2E_WATCH"] = str(args.watch or 1.0)
         if args.step:
             os.environ["JMS_E2E_STEP"] = "1"
+    gate = args.gate or args.manifest or args.update_manifest
+    if gate:
+        os.environ["JMS_E2E_GATE"] = "1"
+    else:
+        os.environ.pop("JMS_E2E_GATE", None)
+    if args.heavy or gate:
+        os.environ["JMS_E2E_HEAVY"] = "1"
+    print("tier:   %s" % ("gate" if gate else
+                          "light (--gate for the release gate)"))
     use_xvfb = not args.no_xvfb and shutil.which("xvfb-run") is not None
     backends = [args.backend] if args.backend else list(BACKENDS)
     modules = args.module or MODULES
@@ -433,11 +493,18 @@ def main():
     for module in [m for m in modules if m in CONTRACT]:
         ok, records = run_leg(module, None, False, args.verbose)
         results.append((module, "contract", ok, records))
+        keep_durations(args.durations, module, "contract", records)
 
+    light_skips = []
     for backend in backends:
         for module in [m for m in modules if m not in CONTRACT]:
+            if (not gate and not args.backend and module in ONE_BACKEND
+                    and backend != LIGHT_BACKEND):
+                light_skips.append("%s [%s]" % (module, backend))
+                continue
             ok, records = run_leg(module, backend, use_xvfb, args.verbose)
             results.append((module, backend, ok, records))
+            keep_durations(args.durations, module, backend, records)
 
     print("\n" + "=" * 60)
     for module, backend, ok, records in results:
@@ -452,6 +519,11 @@ def main():
             for module, backend, _ok, records in results}
     for line in _manifest.skip_lines(legs):
         print(line)
+    if light_skips:
+        print("light tier: %d leg(s) not run (ONE_BACKEND; --gate runs "
+              "them):" % len(light_skips))
+        for leg in light_skips:
+            print("  " + leg)
     print("=" * 60)
     print("%d/%d legs passed" % (len(results) - len(failed), len(results)))
     path = _manifest.manifest_path("e2e")

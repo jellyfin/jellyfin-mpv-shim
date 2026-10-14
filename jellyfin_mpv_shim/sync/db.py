@@ -1681,6 +1681,19 @@ class SyncDB:
             "SELECT 1 FROM item_userdata WHERE item_id=? AND played=1 "
             "LIMIT 1", (item_id,)))
 
+    def art_owners(self):
+        """``(series ids, season ids, {(server_id, playlist_id)})`` that some
+        row still references -- every status, so a pending download keeps its
+        art. **Strict**: an unreadable catalog raises rather than answering
+        "nothing", because the caller deletes what is not listed here."""
+        rows = self._query("SELECT series_id, season_id FROM downloads",
+                           strict=True)
+        playlists = self._query(
+            "SELECT server_id, playlist_id FROM playlists", strict=True)
+        return ({r["series_id"] for r in rows if r["series_id"]},
+                {r["season_id"] for r in rows if r["season_id"]},
+                {(p["server_id"], p["playlist_id"]) for p in playlists})
+
     def healthy(self):
         """Can the catalog's own rows actually be read?
 

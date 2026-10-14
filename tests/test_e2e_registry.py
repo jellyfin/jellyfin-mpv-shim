@@ -65,3 +65,19 @@ class E2ERegistryTest(unittest.TestCase):
         excuse a future module that happens to take its name."""
         gone = sorted(UNREGISTERED - _modules_on_disk())
         self.assertEqual(gone, [])
+
+    def test_one_backend_names_only_per_backend_modules(self):
+        """ONE_BACKEND trims a leg from the light run. A contract module
+        there would do nothing, and a misspelled one would silently keep
+        both legs -- either way the list stops saying what the run does."""
+        import ast
+        path = os.path.join(E2E, "run_e2e.py")
+        with open(path, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read())
+        lists = {t.id: ast.literal_eval(node.value)
+                 for node in tree.body if isinstance(node, ast.Assign)
+                 for t in node.targets
+                 if isinstance(t, ast.Name)
+                 and t.id in ("PER_BACKEND", "ONE_BACKEND")}
+        self.assertEqual(
+            sorted(set(lists["ONE_BACKEND"]) - set(lists["PER_BACKEND"])), [])

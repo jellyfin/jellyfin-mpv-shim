@@ -15,6 +15,7 @@ platform is expected to run.
 import json
 import os
 import sys
+import time
 import unittest
 
 OUTCOMES_ENV = "JMS_TEST_OUTCOMES"
@@ -26,15 +27,26 @@ class RecordingResult(unittest.TextTestResult):
 
     path = None
 
-    def _record(self, test, outcome, reason=""):
+    def startTest(self, test):
+        self._t0 = time.time()
+        super().startTest(test)
+
+    def _record(self, test, outcome, reason="", steps=True):
         if not self.path:
             return
         # A setUpClass/setUpModule failure arrives as an _ErrorHolder, whose
         # id() names the class or module rather than a test. Record it under
         # that id: a class whose setup failed ran none of its tests, and the
         # manifest check reports those tests missing.
-        line = json.dumps({"id": test.id(), "outcome": outcome,
-                           "reason": str(reason)})
+        rec = {"id": test.id(), "outcome": outcome, "reason": str(reason),
+               # Wall clock, so the gaps between tests (class setup) show
+               # too: tools/e2e_durations.py reads both.
+               "t0": getattr(self, "_t0", None), "t1": time.time()}
+        # The real-app harness tallies its steps per test (_app.take_steps).
+        app = sys.modules.get("_app")
+        if steps and app is not None and hasattr(app, "take_steps"):
+            rec["steps"] = app.take_steps()
+        line = json.dumps(rec)
         with open(self.path, "a", encoding="utf-8") as fh:
             fh.write(line + "\n")
 
@@ -69,7 +81,8 @@ class RecordingResult(unittest.TextTestResult):
         super().addSubTest(test, subtest, err)
         if err is not None:
             failed = issubclass(err[0], test.failureException)
-            self._record(subtest, "fail" if failed else "error")
+            self._record(subtest, "fail" if failed else "error",
+                         steps=False)
 
 
 class RecordingRunner(unittest.TextTestRunner):

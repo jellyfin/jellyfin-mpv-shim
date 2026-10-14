@@ -1620,7 +1620,11 @@ class StripStore:
 
     def keep(self, entry):
         """Say that ``entry`` is still on screen, for a caller that holds one
-        across frames instead of asking for it again.
+        across frames instead of asking for it again. Returns whether it is
+        still cached: **a False means its buffer is freed**, and drawing it
+        hands mpv a dead address. The caller must drop the entry and
+        composite again (docs/browser-shell.md §6, "Held bitmaps").
+        ``tools/audit_keep_result.py`` fails a call that ignores the answer.
 
         Almost everything re-requests what it draws every frame -- a strip
         row, a placeholder, an art cell -- so the ordinary cache hit is also
@@ -1631,13 +1635,39 @@ class StripStore:
         screen, and its src is the biggest single buffer this app makes.
         """
         if not entry:
-            return
-        src = entry.get("src") if isinstance(entry, dict) else None
+            return False
+        # Identity only, never ``src``: a freed buffer's address can be
+        # handed to a newer, smaller bitmap, and matching on it vouched for
+        # the old entry's iw/ih against the new buffer -- a heap over-read.
         with self._lock:
             for key, cached in self._cache.items():
-                if cached is entry or (src and cached.get("src") == src):
+                if cached is entry:
                     self._touch(key)
-                    return
+                    return True
+        return False
+
+    def dead_srcs(self, nodes):
+        """Image srcs in a laid-out scene that mpv must not read: an
+        in-memory address this store no longer holds, or one whose buffer
+        is not the ``iw*ih*4`` bytes the node declares. Only the libmpv
+        ``&address`` form is checked -- a freed file on jsonipc is a blank
+        picture, not a read of freed memory. For MpvtkApp.scene_check."""
+        if self.mem is None:
+            return []
+        bufs = self.mem._bufs
+        dead = []
+        for node in nodes:
+            src = node.get("src")
+            if node.get("t") not in ("img", "imgmap") or not src \
+                    or not src.startswith("&"):
+                continue
+            buf = bufs.get(src)
+            if buf is None:
+                dead.append("%s freed" % src)
+            elif len(buf) != node["iw"] * node["ih"] * 4:
+                dead.append("%s is %d bytes, node says %dx%d"
+                            % (src, len(buf), node["iw"], node["ih"]))
+        return dead
 
     def set_memory_pressure(self, tight):
         """Switch between the roomy and the small-machine byte budget.

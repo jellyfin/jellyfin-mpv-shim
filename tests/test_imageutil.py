@@ -19,6 +19,7 @@ if __name__ == "__main__":
 import ast
 import inspect
 import os
+import struct
 import sys
 import unittest
 
@@ -204,6 +205,125 @@ class TestHelpers(unittest.TestCase):
         cjk = imageutil.pil_font(24, text="日本語")
         self.assertIsNotNone(latin)
         self.assertIsNotNone(cjk)
+
+
+def _encode(image, fmt, **kw):
+    import io
+    buf = io.BytesIO()
+    image.save(buf, fmt, **kw)
+    return buf.getvalue()
+
+
+def _exif_rotated_jpeg():
+    """600x400 pixels, tagged orientation 6: upright it is 400x600."""
+    image = Image.new("RGB", (600, 400), (200, 40, 40))
+    exif = Image.Exif()
+    exif[274] = 6
+    return _encode(image, "JPEG", exif=exif.tobytes())
+
+
+def _s15(v): return struct.pack(">i", round(v * 65536))
+def swapped_primaries_icc():
+    """A v2 RGB display profile whose red and green colorants are sRGB's
+    green and red: honoured, a (255, 0, 0) pixel is green."""
+    def xyz(x, y, z): return b"XYZ " + b"\0" * 4 + _s15(x) + _s15(y) + _s15(z)
+    curv = b"curv" + b"\0" * 4 + struct.pack(">IH", 1, 0x0233) + b"\0\0"  # gamma 2.2
+    text = b"swapped primaries\0"
+    desc = (b"desc" + b"\0" * 4 + struct.pack(">I", len(text)) + text
+            + b"\0" * 8 + b"\0" * 3 + b"\0" * 67)
+    tags = [(b"desc", desc), (b"wtpt", xyz(0.9642, 1.0, 0.8249)),
+            (b"rXYZ", xyz(0.3851, 0.7169, 0.0971)),   # sRGB's green
+            (b"gXYZ", xyz(0.4361, 0.2225, 0.0139)),   # sRGB's red
+            (b"bXYZ", xyz(0.1431, 0.0606, 0.7141)),
+            (b"rTRC", curv), (b"gTRC", curv), (b"bTRC", curv)]
+    offset = 128 + 4 + 12 * len(tags)
+    table, body = b"", b""
+    for sig, data in tags:
+        data += b"\0" * (-len(data) % 4)
+        table += sig + struct.pack(">II", offset + len(body), len(data))
+        body += data
+    size = offset + len(body)
+    header = (struct.pack(">I", size) + b"lcms" + struct.pack(">I", 0x02100000)
+              + b"mntrRGB XYZ " + b"\0" * 12 + b"acsp" + b"\0" * 24
+              + struct.pack(">I", 0) + _s15(0.9642) + _s15(1.0) + _s15(0.8249)
+              + b"\0" * 48)
+    assert len(header) == 128, len(header)
+    return header + struct.pack(">I", len(tags)) + table + body
+
+
+def _red_tagged_with_swapped_primaries():
+    return _encode(Image.new("RGB", (8, 8), (255, 0, 0)), "PNG",
+                   icc_profile=swapped_primaries_icc())
+
+
+class TestOneDecodeEntrance(unittest.TestCase):
+    """imageutil.decode is every artwork and book decode: bounded before it
+    allocates, upright, and in sRGB. Each sink is checked, not just the
+    helper -- the defect was each site doing (or not doing) its own."""
+
+    def sinks(self, data):
+        """(name, decoded image) from each decode site, given bytes."""
+        import tempfile
+        from jellyfin_mpv_shim.epub import paint
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import ThumbnailStore
+
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "art.img")
+            with open(path, "wb") as fh:
+                fh.write(data)
+            store = ThumbnailStore(os.path.join(d, "cache"))
+            self.addCleanup(store.shutdown)
+            thumb = store._load_image("k", path, (2000, 2000))
+        return [("thumbnails", thumb), ("epub", paint.decode_image(data))]
+
+    def test_exif_orientation_is_applied_everywhere(self):
+        data = _exif_rotated_jpeg()
+        for name, image in self.sinks(data):
+            self.assertEqual(image.size, (400, 600), name + " drew it sideways")
+        from jellyfin_mpv_shim.epub import paint
+        self.assertEqual(paint.image_size(data), (400, 600),
+                         "epub layout sized the box for the unrotated image")
+
+    def test_an_icc_profile_is_converted_to_srgb(self):
+        """Honoured, the profile turns stored red into green; ignored, the
+        pixel stays red -- the off-colour wide-gamut and CMYK case."""
+        for name, image in self.sinks(_red_tagged_with_swapped_primaries()):
+            r, g, b = image.convert("RGB").getpixel((0, 0))[:3]
+            self.assertGreater(g, 200, "%s ignored the profile: %r"
+                               % (name, (r, g, b)))
+            self.assertLess(r, 60, name)
+
+    def test_a_pixel_bomb_is_refused_before_it_is_decoded(self):
+        """~1 KB on the wire, 120 M px decoded: the 951 MB case."""
+        data = _encode(Image.new("L", (12000, 10000)), "PNG")
+        self.assertLess(len(data), 200_000)
+        with self.assertRaises(imageutil.TooLarge):
+            imageutil.decode(data)
+        from jellyfin_mpv_shim.epub import paint
+        self.assertIsNone(paint.decode_image(data))
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import ThumbnailStore
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "bomb.png")
+            with open(path, "wb") as fh:
+                fh.write(data)
+            store = ThumbnailStore(os.path.join(d, "cache"))
+            self.addCleanup(store.shutdown)
+            with self.assertRaises(imageutil.TooLarge):
+                store._load_image("k", path, (200, 200))
+
+    def test_a_big_jpeg_decodes_at_the_size_asked_for(self):
+        """draft(): a camera-sized JPEG over the bound still makes a tile."""
+        data = _encode(Image.new("RGB", (9000, 6000), (9, 9, 9)), "JPEG")
+        image = imageutil.decode(data, box=(300, 200))
+        self.assertGreaterEqual(image.size[0], 300)
+        self.assertLess(image.size[0], 9000)
+
+    def test_decodes_refuses_what_a_cache_must_not_keep(self):
+        good = _encode(Image.new("RGB", (64, 64)), "JPEG")
+        self.assertTrue(imageutil.decodes(good))
+        for bad in (b"", b"<html>login</html>", good[:len(good) // 2]):
+            self.assertFalse(imageutil.decodes(bad), bad[:20])
 
 
 class TestTheCouplingIsGone(unittest.TestCase):
