@@ -255,6 +255,10 @@ def plex_color_to_mpv(color: str):
     return "#FF" + color.upper()[1:]
 
 
+#: Codecs the server can hand over as an image subtitle sidecar.
+IMAGE_SUBTITLE_CODECS = ("pgssub", "dvdsub")
+
+
 def answering_server(client) -> dict:
     """The server dict the last connect filled in, or ``{}``.
 
@@ -282,6 +286,7 @@ def get_profile(
     video_bitrate: Optional[int] = None,
     force_transcode: bool = False,
     server_version: Optional[str] = None,
+    image_sidecars: bool = True,
 ):
     if video_bitrate is None:
         if is_remote:
@@ -376,6 +381,14 @@ def get_profile(
     if _server_major(server_version) >= 12:
         profile["SubtitleProfiles"].append(
             {"Format": "dvdsub", "Method": "External", "Container": "mks"})
+
+    # The same entries also let a transcode extract an EMBEDDED image track;
+    # a profile cannot tell the two apart (Video._declines_extraction).
+    if not image_sidecars:
+        profile["SubtitleProfiles"] = [
+            p for p in profile["SubtitleProfiles"]
+            if not (p["Method"] == "External"
+                    and p["Format"] in IMAGE_SUBTITLE_CODECS)]
 
     if settings.transcode_hi10p:
         profile["CodecProfiles"].append(

@@ -278,5 +278,138 @@ class DownloadedSidecarTest(unittest.TestCase):
                          ["0.srt"])
 
 
+#: An embedded PGS track (2) and an external .sup (0), as both servers number
+#: them.
+PGS_STREAMS = [
+    {"Index": 0, "Type": "Subtitle", "Codec": "PGSSUB", "Language": "eng",
+     "IsExternal": True},
+    {"Index": 1, "Type": "Video", "Codec": "h264"},
+    {"Index": 2, "Type": "Subtitle", "Codec": "PGSSUB", "Language": "fra"},
+    {"Index": 3, "Type": "Audio", "Codec": "aac", "Language": "eng"},
+]
+
+
+class ExtractionOptOutTest(unittest.TestCase):
+    """With `{pgssub, External}` offered, a transcode hands out an EMBEDDED
+    PGS track as a sidecar the server extracts on fetch -- every subtitle
+    stream in the file, into its cache. A profile entry cannot tell embedded
+    from external, so the opt-out leaves the entry out of the one request
+    whose subtitle is an embedded image track."""
+
+    def _offered(self, sid, extract, default=None):
+        from jellyfin_mpv_shim.conf import settings
+
+        v, api = _video(_source(PGS_STREAMS,
+                                DefaultSubtitleStreamIndex=default))
+        v.sid = sid
+        with mock.patch.object(settings, "extract_image_subtitles", extract), \
+                mock.patch.object(settings, "always_transcode", False), \
+                mock.patch.object(settings, "language_config", None):
+            v.get_playback_url()
+        return PGS_EXTERNAL in api.bodies[0]["DeviceProfile"]["SubtitleProfiles"]
+
+    def test_opting_out_burns_an_embedded_track_in(self):
+        self.assertFalse(self._offered(2, extract=False))
+
+    def test_the_servers_own_default_counts_as_the_choice(self):
+        self.assertFalse(self._offered(None, extract=False, default=2))
+
+    def test_an_external_sup_stays_a_sidecar_either_way(self):
+        """#811 is not what is being opted out of."""
+        self.assertTrue(self._offered(0, extract=False))
+
+    def test_opted_in_offers_it(self):
+        self.assertTrue(self._offered(2, extract=True))
+
+    def test_switching_to_an_extracted_track_mid_transcode_renegotiates(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        v = _mapped(PGS_STREAMS)
+        v.is_transcode = True
+        v.subtitle_extracted = frozenset({2})
+        for extract, restart in ((False, True), (True, False)):
+            with self.subTest(extract=extract), \
+                    mock.patch.object(settings, "extract_image_subtitles",
+                                      extract):
+                v.sid = 0
+                self.assertEqual(v.set_streams(None, 2), restart)
+
+
+#: x-external-audio-default: the server's default is the sidecar.
+EXTERNAL_DEFAULT_STREAMS = [
+    {"Index": 0, "Type": "Audio", "Codec": "aac", "Language": "spa",
+     "IsExternal": True, "IsDefault": True},
+    {"Index": 1, "Type": "Video", "Codec": "h264"},
+    {"Index": 2, "Type": "Audio", "Codec": "aac", "Language": "eng",
+     "IsDefault": True},
+    {"Index": 3, "Type": "Audio", "Codec": "aac", "Language": "fra"},
+    {"Index": 4, "Type": "Subtitle", "Codec": "subrip", "Language": "eng",
+     "IsExternal": True},
+]
+
+
+class OfflineFallsThroughTest(unittest.TestCase):
+    """Offline, a track that is not on disk is no answer at its level of the
+    chain (docs/track-selection.md), and resolution moves to the next one.
+    External audio is never downloaded; a sidecar subtitle may be missing."""
+
+    def _offline(self, subs_on_disk=(), **source_kw):
+        import os
+        import tempfile
+        from jellyfin_mpv_shim.sync.offline_media import OfflineVideo
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        for index in subs_on_disk:
+            open(os.path.join(tmp.name, "%d.srt" % index), "wb").close()
+        v = OfflineVideo.__new__(OfflineVideo)
+        v._source = _source(EXTERNAL_DEFAULT_STREAMS, **source_kw)
+        v.media_source = None
+        v._subs_dir = tmp.name
+        v.item = {"MediaSources": [v._source]}
+        v.srcid = None
+        v.explicit_tracks = False
+        v.aid = v.sid = None
+        return v
+
+    def _resolve(self, v, rules=None):
+        from jellyfin_mpv_shim.conf import settings
+        with mock.patch.object(settings, "language_config", rules):
+            v.resolve_tracks_for_negotiation()
+            v.media_source = dict(v._source)
+            v.map_streams()
+
+    def test_a_missing_default_falls_to_the_files_own(self):
+        v = self._offline(DefaultAudioStreamIndex=0)
+        self._resolve(v)
+        self.assertEqual(v.aid, 2, "the HUD names a track mpv is not playing")
+
+    def test_a_rule_naming_a_missing_track_does_not_match(self):
+        from jellyfin_mpv_shim.language_config import parse_language_config
+        v = self._offline(DefaultAudioStreamIndex=3)
+        self._resolve(v, parse_language_config([{"alang": "spa"}]))
+        self.assertEqual(v.aid, 3, "the next level, the source default")
+
+    def test_the_memory_ranks_only_what_is_on_disk(self):
+        streams = self._offline().source_for_track_rules()["MediaStreams"]
+        self.assertEqual(sorted(s["Index"] for s in streams), [1, 2, 3])
+
+    def test_an_explicit_pick_falls_through_only_where_it_is_missing(self):
+        """The playable half of a pick stands; the other half takes the next
+        level, the source default."""
+        v = self._offline((4,), DefaultAudioStreamIndex=3)
+        v.explicit_tracks = True
+        v.aid, v.sid = 0, 4
+        self._resolve(v)
+        self.assertEqual((v.aid, v.sid), (3, 4))
+
+    def test_a_sidecar_subtitle_counts_only_if_downloaded(self):
+        for on_disk, sid in (((), None), ((4,), 4)):
+            with self.subTest(on_disk=on_disk):
+                v = self._offline(on_disk, DefaultSubtitleStreamIndex=4)
+                self._resolve(v)
+                self.assertEqual(v.sid, sid)
+
+
 if __name__ == "__main__":
     unittest.main()

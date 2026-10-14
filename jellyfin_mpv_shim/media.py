@@ -9,7 +9,8 @@ from sys import platform
 from . import conf
 from .conf import settings
 from .language_config import apply as apply_language_config
-from .utils import answering_server, is_local_domain, get_profile, get_seq
+from .utils import (IMAGE_SUBTITLE_CODECS, answering_server,
+                    is_local_domain, get_profile, get_seq)
 from .user_policy import may_download
 from .i18n import _
 
@@ -236,6 +237,8 @@ class Video(object):
     explicit_tracks = False
     #: Server indices of external audio tracks: only a transcode carries one.
     audio_external = frozenset()
+    #: Embedded image subtitles a transcode delivers as extracted sidecars.
+    subtitle_extracted = frozenset()
 
     def __init__(
         self,
@@ -477,6 +480,12 @@ class Video(object):
             self.audio_uid[index] = stream["Index"]
             self.audio_seq[stream["Index"]] = index
             index += 1
+
+        self.subtitle_extracted = frozenset(
+            s["Index"] for s in streams
+            if s.get("Type") == "Subtitle" and not s.get("IsExternal")
+            and s.get("DeliveryMethod") == "External"
+            and (s.get("Codec") or "").lower() in IMAGE_SUBTITLE_CODECS)
 
         index = 1
         for sub in streams:
@@ -963,12 +972,13 @@ class Video(object):
                 self.parent.is_local, video_bitrate, force_transcode
             )
         )
-        profile = get_profile(not self.parent.is_local, video_bitrate,
-                              force_transcode,
-                              answering_server(self.client).get("Version"))
         # Before the negotiation, not after it: the aid below is what the
         # server bakes into a transcode.
         self.resolve_tracks_for_negotiation()
+        profile = get_profile(not self.parent.is_local, video_bitrate,
+                              force_transcode,
+                              answering_server(self.client).get("Version"),
+                              image_sidecars=not self._declines_extraction())
         # A stream index means nothing without the source it indexes into, and
         # the server treats it that way: measured on Jellyfin 12.0, PlaybackInfo
         # **silently ignores AudioStreamIndex unless MediaSourceId is sent with
@@ -1040,6 +1050,24 @@ class Video(object):
                 log.info("Full Playback Info: {0}".format(self.playback_info))
             log.info("Media Decision: {0}".format(self.media_source))
         return url
+
+    def _declines_extraction(self):
+        """The user opted out of extraction and the subtitle being negotiated
+        -- the chosen one, else the server's default -- is an embedded image
+        track. An external .sup is not affected: that is a file, not an
+        extraction (#811)."""
+        if settings.extract_image_subtitles:
+            return False
+        source = self.source_for_track_rules() or {}
+        sid = self.sid
+        if sid is None:
+            sid = source.get("DefaultSubtitleStreamIndex")
+        stream = next((s for s in source.get("MediaStreams") or []
+                       if s.get("Type") == "Subtitle"
+                       and s.get("Index") == sid), None)
+        return bool(stream and not stream.get("IsExternal")
+                    and (stream.get("Codec") or "").lower()
+                    in IMAGE_SUBTITLE_CODECS)
 
     def _get_play_info(self, profile, srcid):
         # jellyfin-apiclient-python <= 1.20.1 tests `if aid:` and drops index
@@ -1145,6 +1173,11 @@ class Video(object):
             was_burned_in = self.sid in self.subtitle_enc
             self.sid = sid
             if sid in self.subtitle_enc or was_burned_in:
+                need_restart = True
+            # Fetching it is what makes the server extract; renegotiating
+            # burns it in instead (_declines_extraction).
+            if (sid in self.subtitle_extracted
+                    and not settings.extract_image_subtitles):
                 need_restart = True
 
         return need_restart

@@ -78,7 +78,7 @@ class EmbeddedPgsTranscodeTest(_Live):
     PGS as a sidecar instead of burning it in -- on 10.11 as well as 12.x
     (measured; the source read suggested 10.11 would still burn it in)."""
 
-    def test_it_arrives_as_a_sidecar(self):
+    def _transcode(self):
         from jellyfin_mpv_shim.media import Media
 
         item = self.session.find("PGS (Blu-ray image subtitles)",
@@ -94,6 +94,10 @@ class EmbeddedPgsTranscodeTest(_Live):
         self.assertTrue(_e2e.wait_for(lambda: self.pm._player.duration),
                         "mpv never opened the transcode")
         self.assertTrue(video.is_transcode)
+        return video, sid
+
+    def test_it_arrives_as_a_sidecar(self):
+        video, sid = self._transcode()
         self.assertIn(sid, video.subtitle_url,
                       "embedded PGS was burnt in rather than extracted")
         self.assertTrue(_e2e.wait_for(lambda: self.selected("sub")),
@@ -101,6 +105,15 @@ class EmbeddedPgsTranscodeTest(_Live):
         sub = self.selected("sub")
         self.assertTrue(sub.get("external"), sub)
         self.assertEqual(sub.get("codec"), "hdmv_pgs_subtitle", sub)
+
+    def test_opting_out_burns_it_in(self):
+        from unittest import mock
+        from jellyfin_mpv_shim.conf import settings
+
+        with mock.patch.object(settings, "extract_image_subtitles", False):
+            video, sid = self._transcode()
+        self.assertIn(sid, video.subtitle_enc,
+                      "opted out, and the server was still offered extraction")
 
 
 @_e2e.require_server_and_mpv

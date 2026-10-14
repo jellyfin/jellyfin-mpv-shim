@@ -228,6 +228,10 @@ class Settings(SettingsBase):
     # transcoding it to SDR costs server CPU and loses the HDR presentation
     # for no benefit. CONFIG_VERSION 1 migrates existing configs off it.
     transcode_dolby_vision: bool = False
+    #: Off: an embedded PGS/VobSub track chosen during a transcode is burnt
+    #: in rather than fetched as a sidecar, which makes the server extract
+    #: every subtitle stream in the file into its cache.
+    extract_image_subtitles: bool = True
     allow_transcode_to_h265: bool = False
     prefer_transcode_to_h265: bool = False
     remote_kbps: int = 10000

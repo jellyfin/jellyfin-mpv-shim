@@ -283,6 +283,37 @@ class OfflineVideo(Video):
         # behind conf.any_segment_wanted(), same as online.
         self.intro_tried = False
 
+    def _sidecar(self, index):
+        """The downloaded file for external subtitle `index`, or None."""
+        matches = glob.glob(os.path.join(self._subs_dir, "%s.*" % index))
+        return matches[0] if matches else None
+
+    def _playable(self, source):
+        """`source` without the streams this copy cannot play.
+
+        Offline a track that is not on disk is no answer at any level of the
+        chain, so resolution falls to the next level (docs/track-selection.md
+        section 4). External audio is never downloaded; a sidecar subtitle
+        may not have been.
+        """
+        if not source:
+            return source
+        keep = [s for s in source.get("MediaStreams") or []
+                if not (s.get("IsExternal") and (
+                    s.get("Type") == "Audio"
+                    or (s.get("Type") == "Subtitle"
+                        and self._sidecar(s.get("Index")) is None)))]
+        kept = {s.get("Index") for s in keep}
+        playable = dict(source, MediaStreams=keep)
+        for key in ("DefaultAudioStreamIndex", "DefaultSubtitleStreamIndex"):
+            index = playable.get(key)
+            if index is not None and index >= 0 and index not in kept:
+                playable[key] = None
+        return playable
+
+    def source_for_track_rules(self):
+        return self._playable(Video.source_for_track_rules(self))
+
     def resolve_tracks_for_negotiation(self):
         """Settle language_config from the LOCAL source, before playback.
 
@@ -301,7 +332,7 @@ class OfflineVideo(Video):
         """
         if self.explicit_tracks or self._tracks_resolved:
             return
-        source = self.media_source or self._source
+        source = self._playable(self.media_source or self._source)
         if not source:
             return
         self._tracks_resolved = True
@@ -356,10 +387,9 @@ class OfflineVideo(Video):
             if sub.get("IsExternal"):
                 # External: downloaded sidecar (named <index>.<fmt>); match it
                 # regardless of extension.
-                matches = glob.glob(os.path.join(
-                    self._subs_dir, "%s.*" % sub.get("Index")))
-                if matches:
-                    self.subtitle_url[sub["Index"]] = matches[0]
+                path = self._sidecar(sub.get("Index"))
+                if path:
+                    self.subtitle_url[sub["Index"]] = path
             else:
                 # Embedded in the downloaded original file. The cached source
                 # (from get_item) often lacks DeliveryMethod, so we key off
@@ -368,9 +398,22 @@ class OfflineVideo(Video):
                 self.subtitle_seq[sub["Index"]] = index
                 index += 1
 
+        playable = self._playable(source)
+        kept = {s.get("Index") for s in playable.get("MediaStreams") or []}
+
         # A deliberate selection in the library browser is final (see
-        # Video.map_streams): use the chosen aid/sid as-is.
+        # Video.map_streams) -- unless it names a track that is not on disk,
+        # which is no answer: only that half falls through to the levels
+        # below, and the half that is playable stands.
+        skipped = (source.get("DefaultAudioStreamIndex")
+                   != playable.get("DefaultAudioStreamIndex"))
         if self.explicit_tracks:
+            if self.aid is not None and self.aid not in kept:
+                self.aid = None
+                skipped = True
+            if self.sid is not None and self.sid >= 0 and self.sid not in kept:
+                self.sid = None
+            self._fill_from_lower_levels(playable, True, skipped)
             return
 
         # Skipped once resolve_tracks_for_negotiation has run, exactly as
@@ -379,17 +422,37 @@ class OfflineVideo(Video):
         # overwrite the choice the user carried over from the last episode.
         if not self._tracks_resolved:
             rule_aid, rule_sid = apply_language_config(
-                settings.language_config, source, self.item)
+                settings.language_config, playable, self.item)
             if rule_aid is not None:
                 self.aid = rule_aid
             if rule_sid is not None:
                 self.sid = rule_sid
-        user_aid = source.get("DefaultAudioStreamIndex")
-        user_sid = source.get("DefaultSubtitleStreamIndex")
-        if user_aid is not None and self.aid is None:
-            self.aid = user_aid
-        if user_sid is not None and self.sid is None:
-            self.sid = user_sid
+        self._fill_from_lower_levels(playable, False, skipped)
+
+    def _fill_from_lower_levels(self, playable, rule, skipped):
+        """Fill whichever of aid/sid is still unset from the rest of the
+        chain: the rule (when not already applied) and the source default.
+
+        If a level named an audio track that is not on disk, the bottom is
+        the file's own default, named rather than left to mpv so the HUD
+        says what is playing. Nothing skipped, nothing named: `None`, and
+        mpv chooses, as it does online."""
+        if rule and (self.aid is None or self.sid is None):
+            rule_aid, rule_sid = apply_language_config(
+                settings.language_config, playable, self.item)
+            if self.aid is None:
+                self.aid = rule_aid
+            if self.sid is None:
+                self.sid = rule_sid
+        if self.aid is None:
+            self.aid = playable.get("DefaultAudioStreamIndex")
+        if self.sid is None:
+            self.sid = playable.get("DefaultSubtitleStreamIndex")
+        if self.aid is None and skipped and self.audio_seq:
+            audio = [s for s in playable.get("MediaStreams") or []
+                     if s.get("Type") == "Audio"]
+            default = next((s for s in audio if s.get("IsDefault")), audio[0])
+            self.aid = default["Index"]
 
     def _acting_login(self):
         """The saved login this playback is happening *under*, or None.
