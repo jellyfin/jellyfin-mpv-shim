@@ -142,9 +142,10 @@ class TheNegotiationTest(unittest.TestCase):
             video.get_playback_url()
 
     def test_index_zero_reaches_the_server(self):
-        """The first external stream is index 0, and the apiclient's
-        `if aid:` drops it -- so picking that track sends nothing, the server
-        plays its default, and nothing errors."""
+        """The first external stream is index 0, and an apiclient before
+        1.20.2 (`if aid:`) drops it -- so picking that track sends nothing,
+        the server plays its default, and nothing errors. This runs the
+        installed apiclient, so it also fails an environment below the pin."""
         for kind, field in (("aid", "AudioStreamIndex"),
                             ("sid", "SubtitleStreamIndex")):
             with self.subTest(kind):

@@ -614,8 +614,8 @@ stores its position verbatim — see §12.
 - **External streams are numbered first.** Sidecar audio and subtitles take
   `Index` 0..n, ahead of the video and the file's own tracks (10.11.11 and
   12.2). So index 0 is a real stream, and usually a sidecar: anything that
-  tests an index for truth drops it. jellyfin-apiclient-python <= 1.20.1 did
-  exactly that in `get_play_info`.
+  tests an index for truth drops it. jellyfin-apiclient-python did exactly
+  that in `get_play_info` until 1.20.2, which the pin requires.
 - **A selected external audio track always transcodes** (`AudioIsExternal`,
   every version): there is no route that hands a client the sidecar raw.
 - **The server remembers each user's audio pick per item**

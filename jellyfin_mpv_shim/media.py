@@ -1007,7 +1007,8 @@ class Video(object):
         if srcid is None and ((self.aid is not None and self.aid >= 0)
                               or (self.sid is not None and self.sid >= 0)):
             srcid = (self.source_for_track_rules() or {}).get("Id")
-        self.playback_info = self._get_play_info(profile, srcid)
+        self.playback_info = self.client.jellyfin.get_play_info(
+            self.item_id, profile, self.aid, self.sid, media_source_id=srcid)
 
         self.media_source = self.get_best_media_source(self.srcid)
         if self.media_source is None:
@@ -1068,25 +1069,6 @@ class Video(object):
         return bool(stream and not stream.get("IsExternal")
                     and (stream.get("Codec") or "").lower()
                     in IMAGE_SUBTITLE_CODECS)
-
-    def _get_play_info(self, profile, srcid):
-        # jellyfin-apiclient-python <= 1.20.1 tests `if aid:` and drops index
-        # 0, and the server numbers external streams first, so 0 is the first
-        # sidecar track. Drop this once the pin is past the fix.
-        if 0 not in (self.aid, self.sid):
-            return self.client.jellyfin.get_play_info(
-                self.item_id, profile, self.aid, self.sid,
-                media_source_id=srcid)
-        args = {"UserId": "{UserId}", "AutoOpenLiveStream": True,
-                "IsPlayback": True, "DeviceProfile": profile}
-        if self.aid is not None:
-            args["AudioStreamIndex"] = self.aid
-        if self.sid is not None:
-            args["SubtitleStreamIndex"] = self.sid
-        if srcid:
-            args["MediaSourceId"] = srcid
-        return self.client.jellyfin.items(
-            "/%s/PlaybackInfo" % self.item_id, "POST", json=args)
 
     def get_duration(self):
         # The MediaSource comes first because the Item DTO is unreliable for
