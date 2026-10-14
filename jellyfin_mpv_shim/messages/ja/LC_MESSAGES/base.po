@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-13 15:00+0000\n"
+"PO-Revision-Date: 2026-10-14 18:14+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -4590,7 +4590,7 @@ msgstr "次に再生"
 #. in the Home Screen settings. Jellyfin Web uses the same phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "Recently Added"
-msgstr "最近追加された"
+msgstr "最近追加"
 
 # seeded from jellyfin-web: HeaderActiveRecordings
 #. Heading over the Live TV programmes being recorded at this moment. Used
@@ -7075,14 +7075,13 @@ msgstr "ユーザーの削除"
 #. Lower case, a small caption rather than a sentence.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
-msgstr ""
+msgstr "利用中"
 
 #. Question in the dialog that forgets a server. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "サーバーを削除"
+msgstr "%s サーバーとその保存済みのログイン情報を削除しますか？"
 
 #. Title of the dialog that forgets a server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7093,28 +7092,26 @@ msgstr "サーバーを削除"
 #. be fetched automatically.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Auto-download"
-msgstr ""
+msgstr "自動ダウンロード"
 
 #. Status message when a reconnect to a server is already under way: the user
 #. pressed Retry a second time, or something else (the periodic health check)
 #. was already connecting to it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Already reconnecting."
-msgstr ""
+msgstr "すでに再接続中。"
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connect to Jellyfin"
+#, python-format
 msgid "Connected to %s."
-msgstr "Jellyfin に接続"
+msgstr "%s に接続しました。"
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connecting…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "接続中…"
+msgstr "%s に接続中…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7125,6 +7122,8 @@ msgid ""
 "%s answered, but it no longer accepts the saved login. Signing in again "
 "keeps its downloads and settings."
 msgstr ""
+"%s は応答しましたが、保存済みのログイン情報はすでに受け付けられませんでした。"
+"再度ログインすれば、ダウンロードしたデータや設定を引き継げます。"
 
 #. Body of the same dialog, for a server that did not respond at all. %s is
 #. the server's name.
@@ -7134,33 +7133,34 @@ msgid ""
 "%s did not answer. It may be switched off, or this machine may not be able "
 "to reach it right now."
 msgstr ""
+"%s は応答しませんでした。電源が切れているか、今はこの端末から接続できない可能"
+"性があります。"
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "サーバーに接続できません。"
+msgstr "%s に接続できません"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "The server could not be removed."
-msgstr ""
+msgstr "サーバーを削除できませんでした。"
 
 #. Status message when creating a local profile failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be added."
-msgstr ""
+msgstr "そのユーザーを追加できませんでした。"
 
 #. Title of the dialog that changes a local profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Rename User"
-msgstr ""
+msgstr "ユーザーを変名"
 
 #. Status message when changing a local profile's name failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be renamed."
-msgstr ""
+msgstr "そのユーザーを変名できませんでした。"
 
 # seeded from jellyfin-web: LabelYear
 #. Column heading in a library shown as a list: the item's release year.
@@ -7171,7 +7171,7 @@ msgstr "年"
 #. Column heading in a library shown as a list: how long the item runs.
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"
-msgstr ""
+msgstr "再生時間"
 
 # seeded from jellyfin-web: Artist
 #. Column heading in a music track table: who performs the track.
@@ -7196,79 +7196,65 @@ msgstr "初めから再生"
 #. Action on an item's menu that puts it directly after what is playing
 #. now. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Play next"
-msgstr "再生回数"
+msgstr "次に再生"
 
 # seeded from jellyfin-web: Unplayed
 #. Action on an item's menu that tells the server it has not been watched.
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Mark unplayed"
-msgstr "未再生"
+msgstr "未視聴とマーク"
 
 #. Action on an item's menu that tells the server it has been watched. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark played"
-msgstr "未視聴に設定して中止"
+msgstr "視聴済みとマーク"
 
 #. Action on an item's menu that opens the playlist chooser. An imperative
 #. verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to playlist"
-msgstr "サーバーを削除"
+msgstr "プレーリストに追加"
 
 # seeded from jellyfin-web: Refresh
 #. An entry in the right-click menu on a library tile, shown only to server
 #. administrators: it asks the server to look again for this item's metadata
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "リフレッシュ"
+msgstr "メタデータを再読み込み"
 
 #. Action on an item's menu, and the title of the dialog it opens, taking
 #. the item out of the playlist being viewed. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from playlist"
-msgstr "サーバーを削除"
+msgstr "プレーリストから削除"
 
 #. Action on an item's menu, and the title of the dialog it opens, taking
 #. the item out of the collection being viewed. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from collection"
-msgstr "サーバーを削除"
+msgstr "コレクションから削除"
 
 #. Question in the confirmation dialog. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "サーバーを削除"
+msgstr "%s をこのプレーリストから削除しますか？"
 
 #. Question in the confirmation dialog. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "サーバーを削除"
+msgstr "%s をこのコレクションから削除しますか？"
 
 #. Status message when Add to play queue was chosen on something the app
 #. found no playable item inside.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
-msgstr ""
+msgstr "ここにはキューに入るアイテムはありません。"
 
 #. How a clock time is assembled on a twelve-hour clock. {time} is like
 #. "8:30" and {period} is the translation of AM or PM. Reorder them, or
@@ -7277,14 +7263,14 @@ msgstr ""
 #, python-brace-format
 msgctxt "12-hour clock"
 msgid "{time} {period}"
-msgstr ""
+msgstr "{time} {period}"
 
 #. The morning half of a twelve-hour clock, as in "8:30 AM". Many languages
 #. have their own marker; some drop it and use a 24-hour clock instead.
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "AM"
-msgstr ""
+msgstr "AM"
 
 #. The afternoon half of a twelve-hour clock, as in "8:30 PM". Many
 #. languages have their own marker; some drop it and use a 24-hour clock
@@ -7292,7 +7278,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "PM"
-msgstr ""
+msgstr "PM"
 
 # seeded from jellyfin-web: Search
 #. Tooltip of the navigation bar's search button. A verb.
@@ -7306,12 +7292,12 @@ msgstr "検索"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "%s (needs reconnect)"
-msgstr ""
+msgstr "%s ( 要、再接続 )"
 
 #. Tooltip of the window button that hides the window to the taskbar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Minimize"
-msgstr ""
+msgstr "最小化"
 
 # seeded from jellyfin-web: LabelRestore
 #. Tooltip of the window button that returns a maximized window to its
@@ -7322,16 +7308,14 @@ msgstr "復元"
 
 #. Tooltip of the window button that fills the screen with the window.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Maximum"
 msgid "Maximize"
-msgstr "最大"
+msgstr "最大化"
 
 #. Tooltip of the grip in the window's bottom corner that drags the window
 #. larger or smaller. A verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "サイズ変更"
 
 # seeded from jellyfin-web: Home
 #. Name of the home screen, on the navigation bar's Home button and as the
@@ -7344,32 +7328,26 @@ msgstr "ホーム"
 #. downloaded to this computer, without a server. A place to go, not the
 #. state of a server (compare the Settings status word "Offline").
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Work Offline"
 msgctxt "server switcher entry"
 msgid "Offline"
-msgstr "オフラインで動作"
+msgstr "オフライン"
 
 #. Tooltip of the navigation bar's dropdown that switches between Jellyfin
 #. servers.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "サーバー:"
+msgstr "サーバー"
 
 #. Tooltip of the navigation bar's dropdown that switches between accounts
 #. on this server.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "ユーザ名:"
+msgstr "ユーザー"
 
 #. Placeholder in the empty search field on the navigation bar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
-msgstr ""
+msgstr "検索…"
 
 #. Banner shown when settings were changed that only take effect after the
 #. application is started again. %s is a comma-separated list of those
@@ -7377,7 +7355,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Restart to apply: %s"
-msgstr ""
+msgstr "再起動して適用 : %s"
 
 # seeded from jellyfin-web: Restart
 #. Button on the restart banner that closes and reopens the application
@@ -7400,7 +7378,7 @@ msgstr "後で"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s — run “flatpak update”"
-msgstr ""
+msgstr "更新がリリースされています : %s ―「flatpak update」を実行してください"
 
 #. Banner announcing a newer release of this application. %s is the version
 #. number.
