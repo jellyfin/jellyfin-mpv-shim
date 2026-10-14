@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-13 23:04+0000\n"
+"PO-Revision-Date: 2026-10-14 18:14+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -1223,7 +1223,7 @@ msgstr "O cambia a otro usuario"
 #. sent something from another Jellyfin app.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 msgid "Ready to cast"
-msgstr "Listo para cast"
+msgstr "Listo para recibir contenido"
 
 #. Instruction under the idle cast screen's heading.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
@@ -2753,13 +2753,13 @@ msgstr "Modo de lectura de cómics"
 #. General tab of Settings).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr "Modo de objetivo de lanzamiento (ninguna búsqueda en biblioteca)"
+msgstr "Modo de recepción de contenido (ninguna búsqueda en biblioteca)"
 
 #. Label of the checkbox for the "display_mirror_summon" setting (Settings
 #. > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "Recepción de contenido abre el explorador de la biblioteca"
 
 #. Label of the checkbox for the "browser_fullscreen" setting (Settings >
 #. General > Window).
@@ -2926,6 +2926,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"Esta lista no hace nada por sí misma -- activa uno de los dos interruptores "
+"que hay debajo. Cambia qué pistas de audio y subtítulos te ofrecen los "
+"menús, no cuál se selecciona automáticamente; el preajuste de abajo es el "
+"que hace eso. \"und\" significa no etiquetado, por lo que eliminarlo esconde "
+"además las pistas no etiquetadas."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -2941,6 +2946,12 @@ msgid ""
 "assume the original audio is Japanese; if yours is not, choose Custom and "
 "write the rules yourself."
 msgstr ""
+"\"Subtitulado\" mantiene el audio original y añade subtítulos completos en "
+"tu idioma. \"Doblado\" prefiere audio en tu idioma con subtítulos de signos "
+"y canciones, y regresa a subtitulado cuando no hay doblaje. La opción «solo "
+"series» muestra las películas que el servidor elija. Los preajustes "
+"subtitulados asumen que el audio original es japonés; si el tuyo no lo es, "
+"elige Personalizado y escribe las reglas por ti mismo."
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
@@ -3221,12 +3232,12 @@ msgid ""
 "way back is to edit conf.json. This is for a shared TV nobody should be able "
 "to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
-"Mostrar únicamente lo que se transmita (cast) a esta máquina. No se podrá "
-"acceder desde aquí a la biblioteca, incluida esta pantalla de configuración, "
-"y, si no hay un icono en la bandeja del sistema, la única forma de volver "
-"atrás será editar conf.json. Esta opción está pensada para un televisor "
-"compartido en el que nadie debería poder navegar por el contenido; para un "
-"dispositivo receptor de Cast normal, usa la configuración de Interfaz."
+"Mostrar solo lo que se transmita a esta máquina. No se podrá acceder desde "
+"aquí a la biblioteca, incluida esta pantalla de configuración y, si no hay "
+"un icono en la bandeja del sistema, la única forma de volver atrás será "
+"editar conf.json. Esta opción está pensada para un televisor compartido en "
+"el que nadie debería poder navegar por el contenido; para un dispositivo "
+"receptor de contenido normal, usa la configuración de Interfaz."
 
 #. Explanation shown under the "Window Buttons in the Top Bar" setting
 #. (Settings > General > Window).
@@ -3254,6 +3265,10 @@ msgid ""
 "the buttons are normally hidden there. Turn this on to keep a way out of "
 "full screen that is not a keyboard shortcut."
 msgstr ""
+"La pantalla completa no tiene barra de título por ningún lado y nada para "
+"mover o maximizar, por lo que los botones suelen estar ocultos. Activa esto "
+"para disponer de una forma de salir de pantalla completa que no sea un atajo "
+"de teclado."
 
 #. Explanation shown under the "Hide the Desktop Title Bar" setting
 #. (Settings > General > Window).
@@ -3265,6 +3280,13 @@ msgid ""
 "unless you want them, since a window with neither can be awkward to move on "
 "some desktops."
 msgstr ""
+"Indica al escritorio que no muestre la barra de título en la ventana del "
+"reproductor, de modo que la barra superior sea la única visible. Combina con "
+"la configuración anterior: en \"Solo cuando la ventana no tenga barra de "
+"título\" los botones aparecen tan pronto como esté activado. Deja ambos "
+"desactivados a menos que los quieras, ya que una ventana que no tenga "
+"ninguna de las dos cosas puede resultar incómoda de mover en algunos "
+"escritorios."
 
 #. Explanation shown under the "Enable Trickplay Thumbnails" setting
 #. (Settings > Playback > Player Controls).
@@ -3275,6 +3297,12 @@ msgid ""
 "images are fetched from the server per video, which costs disk space and "
 "memory -- tens of MB for an episode, a few hundred for a long film."
 msgstr ""
+"Muestra un frame de vista previa mientras arrastras la barra de "
+"desplazamiento. Funciona con todos los estilos de control del reproductor, "
+"incluyendo tu propio script OSC si soporta miniaturas rápidas. Las imágenes "
+"son obtenidas desde el servidor por vídeo, lo que requiere espacio de "
+"almacenamiento y memoria -- decenas de MB para un episodio, cientos para una "
+"película larga."
 
 #. Explanation shown under the "Preferred Language" setting (Settings >
 #. Playback > Subtitles & Languages), which only appears when a Dubbed or
@@ -3288,6 +3316,10 @@ msgid ""
 "preference heuristics are built around English naming conventions, your "
 "mileage may vary. Use a language code such as eng."
 msgstr ""
+"El idioma a usar para audio doblado o subtítulos traducidos. Ten en cuenta "
+"que las heurísticas de preferencias están construidas en torno a "
+"convenciones de nomenclatura inglesas, por lo que tu experiencia puede "
+"variar. Usa un código de idioma como por ejemplo eng."
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
