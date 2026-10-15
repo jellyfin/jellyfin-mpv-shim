@@ -295,6 +295,59 @@ class RealMpvSmokeTest(unittest.TestCase):
                 lambda: bool(client.jellyfin.stopped), timeout=30)
             self.assertTrue(stopped, "final stop was never reported")
 
+    def test_a_slow_sidecar_does_not_hold_the_start(self):
+        """The server answers an embedded sidecar only once it has extracted
+        every subtitle stream of the file, which can take minutes. A
+        synchronous sub_add held the start paused on its first frame for all
+        of it. docs/track-selection.md section 7."""
+        import http.server
+        import tempfile
+        import threading
+
+        srt = b"1\n00:00:00,000 --> 00:10:00,000\nhello\n"
+        delay = 6
+
+        class Late(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                time.sleep(delay)
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(srt)))
+                self.end_headers()
+                self.wfile.write(srt)
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Late)
+        server.daemon_threads = True
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        url = "http://127.0.0.1:%d/Stream.srt" % server.server_address[1]
+
+        tmp = tempfile.mkdtemp(prefix="jms-slowsub-")
+        self.addCleanup(__import__("shutil").rmtree, tmp, ignore_errors=True)
+        clip = h.make_test_clip(os.path.join(tmp, "s.mp4"), duration=30)
+        video = RealVideo(clip, FakeClient(), item_id="slowsub", duration=30)
+        video.sid = 0
+        video.subtitle_url = {0: url}
+
+        started = time.time()
+        self.pm.play(video, is_initial_play=True)
+        took = time.time() - started
+        self.addCleanup(self.pm.stop)
+        self.assertLess(took, delay - 1,
+                        "the start waited for the sidecar (%.1fs)" % took)
+
+        def selected_external():
+            return any(t.get("type") == "sub" and t.get("selected")
+                       and t.get("external-filename") == url
+                       for t in self.pm._player.track_list or [])
+
+        self.assertTrue(self._pump_until(selected_external, timeout=delay + 15),
+                        "the sidecar never arrived, or arrived unselected")
+        self.assertIn(0, self.pm.external_subtitles)
+
     def test_seek_to_end_fires_eof_autoadvance(self):
         # Issue #541: skipping to the very end of a file must still fire the
         # end-of-file event and auto-advance. The historical bug was mpv NOT

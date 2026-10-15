@@ -81,6 +81,16 @@ class _TrackTest(_e2e.E2ETestCase):
         return {s["Index"]: s for s in self.video.media_source["MediaStreams"]
                 if s["Type"] == kind}
 
+    def _settle_on_sidecar(self, uid, timeout=30):
+        """A sidecar loads asynchronously and is selected on the action
+        thread (docs/track-selection.md section 7), so pump that, as the real
+        ActionThread would, until sidecar `uid` is loaded and selected."""
+        def shown():
+            track = self._selected("sub")
+            return (uid in self.pm.external_subtitles and track is not None
+                    and track.get("id") == self.pm.external_subtitles[uid])
+        return _e2e.pump_until(self.pm, shown, timeout=timeout)
+
     def _selected(self, kind):
         """The track mpv is actually playing, as mpv describes it."""
         track_id = self.pm._player.aid if kind == "audio" else self.pm._player.sid
@@ -252,7 +262,7 @@ class ExternalSubtitleTest(_TrackTest):
                     "this fixture's subtitle %d is no longer delivered as an "
                     "external file" % uid)
                 self.pm.set_streams(None, uid)
-                time.sleep(SETTLE)
+                self._settle_on_sidecar(uid)
                 track = self._selected("sub")
                 self.assertIsNotNone(
                     track, "sidecar %d (%s) was never loaded into mpv"
@@ -272,13 +282,13 @@ class ExternalSubtitleTest(_TrackTest):
         uids = sorted(self._streams("Subtitle"))
         first, second = uids[0], uids[1]
         self.pm.set_streams(None, first)
-        time.sleep(SETTLE)
+        self.assertTrue(self._settle_on_sidecar(first))
         was = self.pm._player.sid
         self.pm.set_streams(None, second)
-        time.sleep(SETTLE)
+        self.assertTrue(self._settle_on_sidecar(second))
         before = len(self._mpv_tracks("sub"))
         self.pm.set_streams(None, first)
-        time.sleep(SETTLE)
+        self._settle_on_sidecar(first)
         self.assertEqual(
             len(self._mpv_tracks("sub")), before,
             "going back to a sidecar added another copy of it to mpv")

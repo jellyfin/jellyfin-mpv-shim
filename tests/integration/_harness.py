@@ -801,6 +801,21 @@ class FakeMPV:
         self.sub = self._sub_counter
         return self._sub_counter
 
+    def command_async(self, name, *args, callback=None):
+        """Only `sub-add` is modelled: the track appears in `track_list` the
+        way mpv lists an external one, unselected (the shim passes "auto"),
+        and the reply comes at once -- on the calling thread, where real mpv
+        uses its own; the shim only queues a task from it either way."""
+        self.commands.append((name,) + args)
+        if name != "sub-add":
+            raise NotImplementedError("FakeMPV.command_async: " + name)
+        self._sub_counter += 1
+        self.track_list = list(self.track_list) + [{
+            "type": "sub", "id": self._sub_counter, "external": True,
+            "external-filename": args[0]}]
+        if callback is not None:
+            callback(None, None)
+
     def screenshot(self):
         self.commands.append(("screenshot",))
 
@@ -1264,7 +1279,7 @@ def build_player(player_module, video=None, test=None):
     pm.action_trigger = None
     pm._track_memory = None
     pm.external_subtitles = {}
-    pm.external_subtitles_rev = {}
+    pm._pending_subs = {}
     pm.should_send_timeline = False
     pm.start_time = 0.0
     pm.url = None

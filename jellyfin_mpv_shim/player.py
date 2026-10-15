@@ -636,8 +636,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # (media_source, aid, sid) of the playing item, carried to the next
         # episode in the queue (jellyfin-web-style track matching).
         self._track_memory = None
+        # sidecar index -> mpv track id, once loaded; and the indexes whose
+        # load is in flight, to the epoch that started it (_add_external_sub).
         self.external_subtitles = {}
-        self.external_subtitles_rev = {}
+        self._pending_subs = {}
         self.should_send_timeline = False
         self.start_time = None
         self.url = None
@@ -3231,7 +3233,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._play_epoch += 1
         self.is_in_intro = False
         self.external_subtitles = {}
-        self.external_subtitles_rev = {}
+        self._pending_subs = {}
 
         self.upd_player_hide()
         # The remembered track is applied in play(), before the url: doing it
@@ -4729,25 +4731,69 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                         exc_info=True)
 
     def _ensure_external_sub(self, sub_id: int):
-        """mpv track id for an external subtitle, loading it if needed WITHOUT
-        disturbing the primary selection (sub_add ``auto``, unlike
-        load_external_sub's implicit select). Returns None if it can't load."""
+        """mpv track id for a loaded external subtitle. Otherwise starts the
+        load and returns None; the load applies the secondary when it lands."""
         if sub_id in self.external_subtitles:
             return self.external_subtitles[sub_id]
+        self._add_external_sub(sub_id)
+        return None
+
+    def _add_external_sub(self, sub_id: int):
+        """Hand mpv a sidecar without waiting for it, selecting nothing.
+
+        Never a synchronous ``sub_add``: the server answers an embedded
+        sidecar only after extracting every subtitle stream of the file, which
+        can take minutes, and the add held a playback start paused on its
+        first frame, under ``_lock``, for all of it (docs/track-selection.md
+        section 7). What the sidecar is for is decided when it lands, in
+        _external_sub_added. Not @synchronous -- always called under _lock."""
+        video = self._video
+        url = (getattr(video, "subtitle_url", None) or {}).get(sub_id)
+        if url is None or sub_id in self._pending_subs:
+            return
+        epoch = self._play_epoch
+        self._pending_subs[sub_id] = epoch
+
+        def landed(error, result):
+            # mpv's event thread: player work here races _lock. Queue it.
+            self.put_task(self._external_sub_added, epoch, sub_id, url, error)
+
+        if settings.log_decisions:
+            log.info("Load External Subtitle: {0}".format(url))
         try:
-            sub_url = self._video.subtitle_url[sub_id]
-        except (KeyError, AttributeError):
-            return None
-        try:
-            self._player.sub_add(sub_url, "auto")
-        except (SystemError,) + _mpv_errors:
-            log.info("PlayerManager::could not load external secondary subtitle")
-            return None
-        track = self._external_track_id(sub_url)
-        if track is not None:
-            self.external_subtitles[sub_id] = track
-            self.external_subtitles_rev[track] = sub_id
-        return track
+            self._player.command_async("sub-add", url, "auto",
+                                       callback=landed)
+        except Exception:
+            self._pending_subs.pop(sub_id, None)
+            log.warning("PlayerManager::could not load external subtitle %s",
+                        sub_id, exc_info=True)
+
+    @synchronous("_lock")
+    def _external_sub_added(self, epoch, sub_id, url, error):
+        """A sidecar load finished. Selected only if it is still wanted: the
+        user may have picked something else while it loaded."""
+        # A later play() reset the maps and owns them; mpv aborts an add
+        # still pending at loadfile anyway, so this is normally an error.
+        if epoch != self._play_epoch:
+            return
+        self._pending_subs.pop(sub_id, None)
+        if error is not None:
+            log.warning("PlayerManager::external subtitle %s did not load: %s",
+                        sub_id, error)
+            return
+        track = self._external_track_id(url)
+        if track is None:
+            log.warning("PlayerManager::external subtitle %s loaded but is "
+                        "not in mpv's track list", sub_id)
+            return
+        self.external_subtitles[sub_id] = track
+        video = self._video
+        if video is None:
+            return
+        if video.sid == sub_id:
+            self._player.sub = track
+        if getattr(video, "secondary_sid", None) == sub_id:
+            self._apply_secondary_subtitle()
 
     def _external_track_id(self, sub_url: str):
         """The mpv track id of a just-added external subtitle, matched back by
@@ -4794,16 +4840,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def load_external_sub(self, sub_id: int):
         if sub_id in self.external_subtitles:
             self._player.sub = self.external_subtitles[sub_id]
-        else:
-            try:
-                sub_url = self._video.subtitle_url[sub_id]
-                if settings.log_decisions:
-                    log.info("Load External Subtitle: {0}".format(sub_url))
-                self._player.sub_add(sub_url)
-                self.external_subtitles[sub_id] = self._player.sub
-                self.external_subtitles_rev[self._player.sub] = sub_id
-            except SystemError:
-                log.info("PlayerManager::could not load external subtitle")
+            return
+        # Nothing until it lands -- not mpv's own default track, which is a
+        # subtitle the user did not pick.
+        self._player.sub = "no"
+        self._add_external_sub(sub_id)
 
 
 

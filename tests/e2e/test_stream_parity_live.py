@@ -65,7 +65,8 @@ class PgsSidecarTest(_Live):
         self.assertFalse(video.is_transcode,
                          "the .sup made the server burn it in (#811): %s"
                          % _reasons(video))
-        self.assertTrue(_e2e.wait_for(lambda: self.selected("sub")),
+        self.assertTrue(_e2e.pump_until(self.pm, lambda: self.selected("sub"),
+                                       timeout=30),
                         "no subtitle track was ever selected")
         sub = self.selected("sub")
         self.assertTrue(sub.get("external"), sub)
@@ -100,7 +101,8 @@ class EmbeddedPgsTranscodeTest(_Live):
         video, sid = self._transcode()
         self.assertIn(sid, video.subtitle_url,
                       "embedded PGS was burnt in rather than extracted")
-        self.assertTrue(_e2e.wait_for(lambda: self.selected("sub")),
+        self.assertTrue(_e2e.pump_until(self.pm, lambda: self.selected("sub"),
+                                       timeout=30),
                         "the extracted sidecar was never selected")
         sub = self.selected("sub")
         self.assertTrue(sub.get("external"), sub)
@@ -131,7 +133,8 @@ class VobSubMksTest(_Live):
             return
         self.assertFalse(video.is_transcode,
                          "a 12.x server burnt in a VobSub .mks it can serve")
-        self.assertTrue(_e2e.wait_for(lambda: self.selected("sub")),
+        self.assertTrue(_e2e.pump_until(self.pm, lambda: self.selected("sub"),
+                                       timeout=30),
                         "no subtitle track was ever selected")
         sub = self.selected("sub")
         self.assertTrue(sub.get("external"), sub)
