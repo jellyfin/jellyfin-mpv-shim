@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-14 18:14+0000\n"
+"PO-Revision-Date: 2026-10-16 06:49+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -7385,13 +7385,13 @@ msgstr "更新がリリースされています : %s ―「flatpak update」を�
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s"
-msgstr ""
+msgstr "更新がリリースされています : %s"
 
 #. Button on the update banner that opens the release notes. The ellipsis
 #. means it opens something else.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Details…"
-msgstr ""
+msgstr "詳細…"
 
 #. Button on the update banner that puts the notice off for now, so it
 #. returns next time. "Not now", not a direction in time. Two other buttons
@@ -7487,10 +7487,8 @@ msgstr ""
 #. Value shown beside the SyncPlay row on the playback controls when this
 #. device is watching in sync with a group.
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlayを有効にしました。"
+msgstr "SyncPlay 有効"
 
 #. Shown over the video while the next item is being opened.
 #: jellyfin_mpv_shim/player.py
