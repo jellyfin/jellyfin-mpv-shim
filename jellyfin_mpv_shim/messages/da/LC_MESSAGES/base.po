@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-09-22 19:45+0000\n"
-"Last-Translator: Ulrik <ulrik@users.noreply.translate.jellyfin.org>\n"
+"PO-Revision-Date: 2026-10-16 06:50+0000\n"
+"Last-Translator: z33k90 <z33k@protonmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
 "Language: da\n"
@@ -38,14 +38,14 @@ msgstr "Side %(page)d af %(total)d"
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr "Side%d"
+msgstr "Side %d"
 
 #. How far through a book the reader has got, as a percentage. Shown under
 #. the book's tile.
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr "%d%% læs"
+msgstr "%d%% læst"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -862,10 +862,8 @@ msgstr "Afspilning kunne ikke startes."
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "Nothing is downloaded to browse offline."
-msgstr "Der er ikke downloadet noget som der kan gennemses."
+msgstr "Intet er downloadet som kan gennemses offline."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -1022,10 +1020,8 @@ msgstr "PIN kunne ikke gemmes."
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Log Ind"
+msgstr "Log Ind Igen"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1042,6 +1038,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Dit gemte login for %s er ikke længere accepteret. Indlogning igen beholder "
+"dets downloads og indstillinger."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1125,10 +1123,8 @@ msgstr "Forbind"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Serverkonfiguration"
+msgstr "Servere på dit netværk"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
@@ -1162,6 +1158,8 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Denne adresse er til en anden server. Tilføj den som en ny server i stedet, "
+"for at logge ind på den."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1171,10 +1169,8 @@ msgstr "Tilslutter…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "Det var ikke muligt at tilslutte. Kontroller venligst dine detaljer."
+msgstr "Det var ikke muligt at logge ind. Kontroller venligst dine detaljer."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1295,14 +1291,14 @@ msgstr "Web"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Uudsendt"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Mangler"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2133,13 +2129,13 @@ msgstr "Jellyfin brugerflade"
 #. Player Controls); stored as "mpv".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "MPV brugerflade"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "custom".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "Brugerdefineret OSC"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "none".
@@ -2476,7 +2472,7 @@ msgstr "Brugerdefineret (indstil i konfiguration)"
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "Giv Besked Om Opdateringer"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
@@ -2606,7 +2602,7 @@ msgstr "Slet automatisk episoder når de er blevet set"
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "Behold sete downloadede episoder (timer, 0 = slet lige efter)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
@@ -2665,10 +2661,8 @@ msgstr "Vindue knapper i top-baren"
 #. Label of the checkbox for the "window_controls_fullscreen" setting
 #. (Settings > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Window Buttons in the Top Bar"
 msgid "Keep Window Buttons in Full Screen"
-msgstr "Vindue knapper i top-baren"
+msgstr "Behold vindue knapper i fuldskærm"
 
 #. Label of the checkbox for the "hide_title_bar" setting (Settings >
 #. General > Window).
@@ -2685,10 +2679,8 @@ msgstr "Størrelse for afspiller betjening"
 #. Label of the checkbox for the "thumbnail_enable" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "Aktivér forhåndsvisning af miniaturer"
+msgstr "Aktivér Trickplay miniaturer"
 
 #. Label of the checkbox for the "trickplay_fast_mode" setting (Settings >
 #. Playback > Player Controls).
@@ -2738,7 +2730,7 @@ msgstr "Fuldbredde baggrunde"
 #. Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "12-Hour Clock"
-msgstr ""
+msgstr "12-timers ur"
 
 #. Label of the dropdown for the "grid_fill" setting (Settings > Browse >
 #. Library Browser).
@@ -2823,10 +2815,8 @@ msgstr "Tast som aktiverer afspiller betjeningen"
 #. Label of the text field for the "ui_select_key" setting (under Advanced
 #. on the General tab of Settings).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Select All"
 msgid "Select Key"
-msgstr "Vælg alle"
+msgstr "Vælg tast"
 
 #. Label of the dropdown for the "hud_scrim" setting (Settings > Playback >
 #. Player Controls).
@@ -2849,16 +2839,14 @@ msgstr "Gem afspiller betjeningen efter (sekunder)"
 #. Label of the checkbox for the "hud_auto_scale" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "When the Player Controls Hide"
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr "Når afspiller betjeningen gemmes"
+msgstr "Formindsk afspiller betjeningen i smalt vindue"
 
 #. Label of the checkbox for the "mouse_chapter_nav" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr "Musens Frem/Tilbage knapper springer kapitler over"
+msgstr "Musens Tilbage/Frem knapper springer kapitler over"
 
 #. Label of the dropdown for the "audio_mode" setting (Settings > Playback
 #. > Audio).
@@ -2987,6 +2975,9 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"Antallet af procenter er hvor meget denne app er blevet oversat indtil "
+"videre; resten er på engelsk. Oversættelser bidrages til på "
+"translate.jellyfin.org."
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
