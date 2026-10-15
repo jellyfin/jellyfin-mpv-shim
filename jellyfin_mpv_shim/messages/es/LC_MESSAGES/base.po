@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-14 18:14+0000\n"
+"PO-Revision-Date: 2026-10-16 06:49+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -3332,6 +3332,13 @@ msgid ""
 "the next time you seek somewhere new; turning it off applies to the next "
 "video."
 msgstr ""
+"Las vistas previas de avance suelen cargarse unos minutos cada vez en torno "
+"al punto al que te desplazas, por lo que al desplazarte a un nuevo punto hay "
+"que esperar un momento. Activa esta opción para cargarlas todas de antemano: "
+"así no habrá que esperar nunca, aunque una película larga puede ocupar "
+"varios cientos de MB de memoria. Activarlo se aplica a lo que estés viendo "
+"la próxima vez que te desplaces a un nuevo punto; si la desactivas, se "
+"aplicará al siguiente vídeo."
 
 #. Explanation shown under the "Player Controls Style" setting (Settings >
 #. Playback > Player Controls).
@@ -3361,6 +3368,11 @@ msgid ""
 "notches spans one row, in every scroll mode, so a trackpad or trackball "
 "never leaves you a sliver of a row off."
 msgstr ""
+"La rueda se desplaza un píxel por cada muesca. Súbelo para desplazarte más "
+"rápido y bájalo para un control más preciso. En una cuadrícula, el valor se "
+"redondea de modo que un número entero de muescas abarque una fila, en "
+"cualquier modo de desplazamiento, por lo que ni el trackpad ni el trackball "
+"te dejarán nunca una fracción de fila sin cubrir."
 
 #. Explanation shown under the "Scroll Mode" setting (Settings > Browse >
 #. Library Browser).
@@ -3372,6 +3384,13 @@ msgid ""
 "remote display, or with an external MPV. Pick \"One row per notch\" to move "
 "a whole row, or one home-screen section, at a time."
 msgstr ""
+"El desplazamiento \"continuo\" avanza píxel a píxel y se detiene donde lo "
+"coloque la rueda, alineando las filas automáticamente si la pantalla no "
+"puede seguir el ritmo. Selecciona \"Alineado a filas\" si el desplazamiento "
+"sigue siendo entrecortado, como puede ocurrir en una pantalla muy grande, "
+"lenta o remota, o con un MPV externo. Selecciona \"Una fila por muesca\" "
+"para desplazar una fila completa, o una sección de la pantalla de inicio, "
+"cada vez."
 
 #. Explanation shown under the "Show What You're Watching in Discord"
 #. setting (Settings > General > This Device).
@@ -3429,6 +3448,14 @@ msgid ""
 "get a drop shadow so they keep an edge against it. Off, they get the theme's "
 "card colour and no shadow, as Jellyfin Web does."
 msgstr ""
+"Los logotipos de los canales están dibujados con tinta sobre un fondo "
+"transparente, pensados para la página blanca en la que los colocan otros "
+"clientes, por lo que, en una página oscura, los negros desaparecen. Cuando "
+"están activados, cada logotipo adquiere el color claro para el que fue "
+"diseñado, y los pocos que tienen un contorno blanco reciben una sombra "
+"proyectada para que se distingan sobre el fondo. Cuando están desactivados, "
+"adquieren el color de la tarjeta del tema y no tienen sombra, tal y como "
+"ocurre en Jellyfin Web."
 
 #. Explanation shown under the "Make library logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3439,6 +3466,10 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
+"Lo mismo se aplica a una biblioteca configurada para dibujar logotipos. "
+"Desactivado por defecto: por convención, el logotipo de una película o una "
+"serie es blanco y ya se distingue bien sobre un fondo oscuro, y es la paleta "
+"la que hace que necesite una sombra. Actívalo si los tuyos son oscuros."
 
 #. Explanation shown under the "Theme" setting (Settings > Browse > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3458,6 +3489,11 @@ msgid ""
 "gaps keeps the page margins the same on every screen size; centring keeps "
 "the covers evenly spaced and moves both margins instead."
 msgstr ""
+"Cuando el ancho no se ajusta a un número entero de portadas, se deja un "
+"espacio sin cubrir. Al ampliar los espacios, los márgenes de la página se "
+"mantienen iguales en cualquier tamaño de pantalla; al centrar, las portadas "
+"quedan espaciadas de manera uniforme y, en su lugar, se desplazan ambos "
+"márgenes."
 
 #. Explanation shown under the "Full-Width Backdrops" setting (Settings >
 #. Browse > Library Browser).
@@ -3467,6 +3503,9 @@ msgid ""
 "client does. It shows more of the artwork without taking any more vertical "
 "space."
 msgstr ""
+"El fondo de la página de detalles se extiende hasta los bordes de la "
+"ventana, como hace el cliente web. Muestra más de la ilustración sin ocupar "
+"más espacio vertical."
 
 #. Explanation shown under the "Cover Size" setting (Settings > Browse >
 #. Theme).
@@ -3484,6 +3523,9 @@ msgid ""
 "and its air times, and the \"Ends at\" labels on a detail page and the "
 "player controls."
 msgstr ""
+"Muestras la hora del día como \"8:30 PM\" en lugar de \"20:30\" — la guía de "
+"TV en vivo y sus horas de emisión, y las etiquetas \"Finaliza a las\" en una "
+"página de detalles y en los controles del reproductor."
 
 #. Explanation shown under the "Shading Behind the Player Controls" setting
 #. (Settings > Playback > Player Controls).
@@ -3492,6 +3534,9 @@ msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"Los controles tienen que permanecer legibles en cualquier frame. \"Ninguno\" "
+"aplica una sombra proyectada al texto en lugar de sombrear el dibujo por "
+"debajo."
 
 #. Explanation shown under the "When the Player Controls Hide" setting
 #. (Settings > Playback > Player Controls).
@@ -3500,6 +3545,8 @@ msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"\"Ocultar a menos que se pase el cursor por encima\" los mantiene visibles "
+"solo mientras el puntero esté sobre ellos, pausado o no."
 
 #. Explanation shown under the "Hide the Player Controls After (seconds)"
 #. setting (Settings > Playback > Player Controls).
@@ -3508,6 +3555,8 @@ msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"0 lo oculta tan pronto como el puntero no esté sobre él, y fuerza \"Ocultar "
+"a menos que pase el cursor por encima\"."
 
 #. Explanation shown under the "Shrink the Player Controls on a Narrow
 #. Window" setting (Settings > Playback > Player Controls).
@@ -3517,6 +3566,9 @@ msgid ""
 "the accessibility minimum, instead of dropping buttons sooner. Off keeps the "
 "older, larger floor."
 msgstr ""
+"Al reducir el tamaño de la ventana, los controles se van reduciendo hasta "
+"que el botón más pequeño alcanza el mínimo de accesibilidad, en lugar de "
+"eliminar botones antes. Desactivado mantiene el tamaño anterior, más grande."
 
 #. Explanation shown under the "Mouse Back/Forward Buttons Skip Chapters"
 #. setting (Settings > Playback > Player Controls).
@@ -3525,6 +3577,9 @@ msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
+"Solo durante la reproducción; en la biblioteca esos botones siguen siendo "
+"Atrás y Adelante. Desactivado por defecto porque son fáciles de pulsar por "
+"accidente con algunos ratones."
 
 #. Explanation shown under the "Interface Scale" setting (Settings > Browse
 #. > Theme).
@@ -3546,6 +3601,12 @@ msgid ""
 "captions are ellipsized, and what needs to be bigger is the whole interface, "
 "which is Interface Scale."
 msgstr ""
+"Solo escala el texto. La opción Escala de interfaz cambia el tamaño de todo, "
+"ilustraciones, espaciado y controles incluidos, así que usa esto cuando las "
+"palabras son demasiado pequeñas, en lugar de con la interfaz completa. Se "
+"detiene al 150%: en el pasado la mayoría de leyendas de los títulos eran "
+"omitidas (...), y lo que necesita ser más grande es la interfaz completa, lo "
+"que viene siendo Escala de interfaz."
 
 #. Explanation shown under the "Minimum Text Size" setting (Settings >
 #. Browse > Theme).
@@ -3554,6 +3615,9 @@ msgid ""
 "Nothing renders smaller than this, whatever Text Size works out to. Raises "
 "the smallest labels without enlarging headings, which a percentage cannot do."
 msgstr ""
+"Nada se renderiza más pequeño que esto, sea cual sea el tamaño de texto "
+"resultante. Aumenta las etiquetas más pequeñas sin alargar los encabezados, "
+"lo que un porcentaje no puede hacer."
 
 #. Explanation shown under the "Audio Output Mode" setting (Settings >
 #. Playback > Audio).
@@ -3605,6 +3669,8 @@ msgid ""
 "In pixels, before interface scaling. The A- and A+ buttons in the reader "
 "change this too."
 msgstr ""
+"En píxeles, antes del escalado de interfaz. Los botones A- y A+ en el lector "
+"también cambian esto."
 
 #. Explanation shown under the "Comic Reading Mode" setting (Settings >
 #. Browse > Reading).
@@ -3613,6 +3679,8 @@ msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
 msgstr ""
+"Cómo una página de cómic es ajustada a la ventana cuando la abres. Los "
+"propios botones del lector también cambian esto."
 
 #. Explanation shown under the "Night Mode (Auto Volume Adj)" setting
 #. (Settings > Playback > Audio).
@@ -4069,6 +4137,9 @@ msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
+"\"Auto\" da forma a las fichas a partir de la propia ilustración, lo que "
+"suele dar como resultado pósteres. Elige \"Póster\" para que se mantengan "
+"así."
 
 #. Checkbox in a library's View settings. Draws each item's name under its
 #. tile.
@@ -4647,7 +4718,7 @@ msgstr "Frames perdidos"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%(vo)d output, %(dec)d decoder"
-msgstr ""
+msgstr "%(vo)d de salida, %(dec)d de decodificador"
 
 #. Row in the Playback Info panel: how far the audio and video have drifted
 #. apart, in seconds. Short for audio/video.
@@ -4905,7 +4976,7 @@ msgstr "No se pudo recargar %s."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Eliminar del disco"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #. Warning in the dialog that deletes media from the server. This removes
@@ -4923,7 +4994,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s fue eliminado."
 
 #. Status message when the server refused to delete an item. %s is its
 #. name.
@@ -4966,14 +5037,14 @@ msgstr "La descarga no pudo ser eliminada."
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "Abriendo %s…"
 
 #. Status message when the operating system has no application registered
 #. for that file type. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Nothing on this system could open %s."
-msgstr ""
+msgstr "Nada en este sistema pudo abrir %s."
 
 #. Status message when the item asked for is already on this device. %s is
 #. its name.
@@ -4989,6 +5060,8 @@ msgid ""
 "Your account is not allowed to download from this server, and a book can "
 "only be read by downloading it."
 msgstr ""
+"Tu cuenta no tiene permisos para descargar de este servidor, y un libro solo "
+"puede ser leído descargándolo."
 
 #. Status message when something was asked of a download that is not on
 #. this device. %s is the item's name.
@@ -5065,7 +5138,7 @@ msgstr "No grabar episodios que ya están en mi biblioteca"
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "Only %s"
-msgstr ""
+msgstr "Solo %s"
 
 # seeded from jellyfin-web: OneChannel
 #. Choice in the "Channels" dropdown of the series recording dialog, used
@@ -5110,7 +5183,7 @@ msgstr "Aproximadamente %s"
 #. showings at the time the series normally airs.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Original air time"
-msgstr ""
+msgstr "Hora de emisión original"
 
 # seeded from jellyfin-web: LabelAirTime
 #. Choice in the "Air time" dropdown of the series recording dialog: record
@@ -5131,13 +5204,13 @@ msgstr "Mantener hasta"
 #. many minutes before the programme starts.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Start early (minutes)"
-msgstr ""
+msgstr "Iniciar más pronto (en minutos)"
 
 #. Label of the number field in the recording dialog: keep recording this
 #. many minutes after the programme ends.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Stop late (minutes)"
-msgstr ""
+msgstr "Detener más tarde (en minutos)"
 
 # seeded from jellyfin-web: AsManyAsPossible
 #. Choice in the "Keep up to" dropdown of the series recording dialog:
@@ -5308,7 +5381,7 @@ msgstr "Repetir"
 #. grouped by day.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Scheduled"
-msgstr ""
+msgstr "Programado"
 
 #. Error shown when an item took too long to start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
@@ -5454,7 +5527,7 @@ msgstr "Agregar a la cola de reproducción"
 #. wrong for something you read or listen to.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
-msgstr ""
+msgstr "Finalizado"
 
 #. Shown in place of a page's content when the item could not be fetched
 #. from the server.
@@ -5468,7 +5541,7 @@ msgstr "Elemento no disponible."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%s in"
-msgstr ""
+msgstr "lleva %s"
 
 # seeded from jellyfin-web: ButtonStart
 #. Column heading in an audiobook's chapter table: the time each chapter
@@ -5481,7 +5554,7 @@ msgstr "Inicio"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d pages"
-msgstr ""
+msgstr "%d páginas"
 
 #. Action on a book's menu that opens it in the reader. An imperative verb.
 #. It carries a context because the English word is also the past tense
@@ -5490,7 +5563,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "Leer"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #. Button on a book's page that hands the file to whatever application the
@@ -5536,19 +5609,19 @@ msgstr "Falló la descarga."
 #. Shown while a comic file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
-msgstr ""
+msgstr "Obteniendo cómic…"
 
 #. Tooltip of the comic reader's button that makes the page smaller. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
-msgstr ""
+msgstr "Alejar"
 
 #. Tooltip of the comic reader's button that makes the page larger. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "Acercar"
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #. Heading of the row of items similar to the one being viewed. Jellyfin
@@ -5563,7 +5636,7 @@ msgstr "Más como este"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
-msgstr ""
+msgstr "Ir a la serie"
 
 #. Button on an item's page that plays its trailer.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -5584,7 +5657,7 @@ msgstr "Escenas"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
-msgstr ""
+msgstr "Versión %d"
 
 # seeded from jellyfin-web: LabelVersion
 #. Label of the dropdown on an item's page choosing between several files
@@ -5597,7 +5670,7 @@ msgstr "Versión"
 #. item's page. Deliberately clipped, because it sits inside a narrow list.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
+msgstr "Sub"
 
 # seeded from jellyfin-web: EndsAtValue
 #. Caption on an item's page: the clock time it would finish at if started
@@ -5610,12 +5683,12 @@ msgstr "Termina a las %s"
 #. Shown on the Favorites page when nothing has been marked.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
 msgid "Nothing is marked as a favourite yet."
-msgstr ""
+msgstr "Nada se ha marcado aún como favorito."
 
 #. Shown on the Genres page when the server listed none.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/genres.py
 msgid "No genres to show for this library."
-msgstr ""
+msgstr "Ningún género a mostrar para esta biblioteca."
 
 # seeded from jellyfin-web: LabelName
 #. Two uses. A choice in a library's Sort dropdown, ordering items
@@ -5663,7 +5736,7 @@ msgstr "Número de reproducciones"
 #. Choice in a library's Sort dropdown: order items by how long they run.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Runtime"
-msgstr ""
+msgstr "Duración"
 
 # seeded from jellyfin-web: OptionCommunityRating
 #. Choice in a library's Sort dropdown: order items by the score
@@ -5688,13 +5761,13 @@ msgstr "Fecha en la que el episodio se añadió"
 #. how this library is displayed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
-msgstr ""
+msgstr "Vista"
 
 #. Button above a library grid, and the title of the page it opens, listing
 #. the broadcasters that made the items.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Networks"
-msgstr ""
+msgstr "Redes"
 
 #. Button above a library grid, and the title of the page it opens, listing
 #. groups of related items.
@@ -5707,7 +5780,7 @@ msgstr "Colecciones"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "Filter (%d)"
-msgstr ""
+msgstr "Filtros (%d)"
 
 # seeded from jellyfin-web: Filter
 #. Button above a library grid that opens the filter panel, when no filters
@@ -5770,7 +5843,7 @@ msgstr "Bibliotecas"
 #. Shown on the home screen when the server returned nothing to list.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Nothing to show yet."
-msgstr ""
+msgstr "Nada que mostrar aún."
 
 # seeded from jellyfin-web: Programs
 #. Name of a tab on the Live TV page, listing what is on now and coming up.
@@ -5821,7 +5894,7 @@ msgstr "Series"
 #. Shown on the Live TV Programs tab when the server returned no listings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No programs are listed right now."
-msgstr ""
+msgstr "Ningún programa está listado ahora mismo."
 
 #. Tooltip of the button that moves the Live TV guide back one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -5831,7 +5904,7 @@ msgstr "Día anterior"
 #. Tooltip of the button that scrolls the Live TV guide back a few hours.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
-msgstr ""
+msgstr "Previo"
 
 #. Tooltip of the button that scrolls the Live TV guide forward a few
 #. hours. Later in time, and the counterpart of "Earlier" beside it. A
@@ -5840,7 +5913,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgctxt "guide navigation"
 msgid "Later"
-msgstr ""
+msgstr "Más tarde"
 
 #. Tooltip of the button that moves the Live TV guide forward one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -5850,14 +5923,14 @@ msgstr "Día siguiente"
 #. Button that jumps the Live TV guide back to the current time. An adverb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Now"
-msgstr ""
+msgstr "Ahora"
 
 #. Caption above the Live TV guide, saying which slice of the channel list
 #. is on screen, as in "Channels 1-12 of 240".
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Channels %(from)d-%(to)d of %(total)d"
-msgstr ""
+msgstr "Canales %(from)d-%(to)d de %(total)d"
 
 #. Tooltip of the button that shows the previous group of channels in the
 #. Live TV guide.
@@ -5869,25 +5942,25 @@ msgstr "Canales anteriores"
 #. TV guide.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
-msgstr ""
+msgstr "Más canales"
 
 #. Shown on the Live TV Channels tab when it is filtered to favourites and
 #. none are marked.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No favorite channels yet."
-msgstr ""
+msgstr "Ningún canal favorito aún."
 
 #. Caption on the Live TV Channels tab, counting how many channels there
 #. are.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "%d channels"
-msgstr ""
+msgstr "%d canales"
 
 #. Heading over the most recent recordings on the Live TV Recordings tab.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Latest Recordings"
-msgstr ""
+msgstr "Últimas grabaciones"
 
 #. Heading over the folders the server files recordings into, on the Live
 #. TV Recordings tab. A noun phrase: folders holding recordings.
@@ -5909,12 +5982,12 @@ msgstr "No hay nada programado para grabar."
 #. episode.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No series are set to record."
-msgstr ""
+msgstr "Ninguna serie está configurada para grabar."
 
 #. State of a Live TV programme: it will be recorded when it airs.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Scheduled to record"
-msgstr ""
+msgstr "Programada para grabar"
 
 #. State of a Live TV programme: it is being recorded at this moment.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
