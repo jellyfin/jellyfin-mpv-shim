@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-16 23:53+0000\n"
+"PO-Revision-Date: 2026-10-17 01:29+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -7912,7 +7912,7 @@ msgstr "Anime4K x2 知覚的 ( Perceptual ) + シャープ化 ( Deblur ) ( HD �
 #. the bracketed words say what it does.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN (Denoise + Sharpen)"
-msgstr ""
+msgstr "ArtCNN ( ノイズ除去・Denoise + シャープ化・Sharpen)"
 
 #. Name of a video shader profile. The bracketed code is the model's own
 #. name; leave it as it is.
