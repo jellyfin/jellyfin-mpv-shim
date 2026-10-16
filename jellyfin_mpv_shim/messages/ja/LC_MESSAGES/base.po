@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-16 20:21+0000\n"
+"PO-Revision-Date: 2026-10-16 23:53+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -7567,12 +7567,12 @@ msgstr "SVPを有効化"
 #. accounts the user has signed in to their Jellyfin servers with.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Downloads are unavailable: the saved logins could not be read."
-msgstr ""
+msgstr "ダウンロード不可 : 保存済みログインデータを読み込めませんでした。"
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "The downloads are already in that folder."
-msgstr ""
+msgstr "そのフォルダーは、すでにダウンロード先に設定しています。"
 
 #. Error when the download folder was changed while something is being
 #. fetched.
@@ -7581,6 +7581,8 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"ダウンロード中はダウンロードフォルダーを変更できません。完了を待って、実行し"
+"てください。"
 
 #. Error when the folder chosen for downloads sits within the present one,
 #. which the move cannot handle.
@@ -7588,17 +7590,21 @@ msgstr ""
 msgid ""
 "That folder is inside the current download folder. Choose one outside it."
 msgstr ""
+"そのフォルダーは現在のダウンロードフォルダー内です。別のフォルダ―を選択してく"
+"ださい。"
 
 #. Error when the folder chosen for downloads could not be opened.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't read that folder. Check the path and its permissions."
-msgstr ""
+msgstr "そのフォルダーを読み込めません。パスと権限を確認してください。"
 
 #. Error when the folder chosen for downloads already holds this
 #. application's files.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
 msgstr ""
+"そのフォルダーはすでにダウンロード済みファイルを保存しています。空の"
+"フォルダーを選んでください。"
 
 #. Error when the folder chosen for downloads holds other files, which this
 #. application would take charge of.
@@ -7607,11 +7613,13 @@ msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
+"そのフォルダーは空ではありません。空のフォルダーを選んでください。"
+"ダウンロードフォルダーはアプリが管理し、内容を移動したり削除したりします。"
 
 #. Error when the folder chosen for downloads could not be made.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
-msgstr ""
+msgstr "そのフォルダーを作成できません。パスと権限を確認してください。"
 
 #. Shown after choosing a new download folder the app cannot write into --
 #. another account's folder, or a read-only disk. Nothing has been moved.
@@ -7620,12 +7628,14 @@ msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
 msgstr ""
+"このアプリからそのフォルダーに書き込みできません。あなたが所有している"
+"フォルダーを選ぶか、指定したフォルダーの権限を変更して、やり直してください。"
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
-msgstr ""
+msgstr "ダウンロードの完了処理中です。停止を待って、やり直してください。"
 
 #. Error when the disk holding the chosen folder is too small for what is
 #. already downloaded.
@@ -7634,6 +7644,8 @@ msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
 msgstr ""
+"そのドライブにはダウンロード済みの内容を収めるのに十分な容量がなく、一切移動"
+"していません。空き容量を確保してからやり直してください。"
 
 #. The same problem, discovered part way through the move rather than
 #. before it started. Past tense for that reason. Nothing was lost.
@@ -7642,6 +7654,8 @@ msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
 msgstr ""
+"このアプリはそのフォルダーに書き込みできませんでした。ダウンロード済みのもの"
+"は元の場所のままです。フォルダーの権限を確認して、やり直してください。"
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
@@ -7650,6 +7664,8 @@ msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"ダウンロードの移動に失敗。元の場所から移動しておらず、ダウンロードフォルダー"
+"も変更していません。"
 
 #. Error when the watch-together group asked for is gone.
 #: jellyfin_mpv_shim/syncplay.py
@@ -7676,10 +7692,9 @@ msgstr "SyncPlayライブラリへのアクセスが拒否されました。"
 #. started it; the possessive ending is English and should be rendered
 #. however the language marks possession.
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0}'s Group"
+#, python-brace-format
 msgid "{0}'s group"
-msgstr "{0}のグループ"
+msgstr "{0} グループ"
 
 #. Shown over the video while SyncPlay speeds playback slightly to catch up
 #. with the group. {0} is the speed multiplier. The name is SyncPlay's own
@@ -7729,10 +7744,9 @@ msgstr "{0}が出ました。"
 #. Shown over the video while somebody in the watch-together group is still
 #. loading, so everyone waits. {0} is their name.
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0}がバッファー中です。"
+msgstr "{0} はバッファー中…"
 
 #. Warning shown when no tray icon could be created on GNOME. The quoted
 #. extension name is how it appears in the GNOME extensions site; leave it
@@ -7744,6 +7758,10 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"GNOME 自身の機能ではシステムトレイを表示しません。システムトレイを表示するに"
+"は、「AppIndicator and KStatusNotifierItem Support」拡張機能をインストールす"
+"るか、設定で「バックグラウンドでの実行を許可」を有効にして、ウィンドウなしで"
+"実行するようにしてください。"
 
 #. Warning shown when no tray icon could be created. "Allow Background" is
 #. a setting on this application's Settings screen; keep it matching that
@@ -7753,6 +7771,9 @@ msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
+"このデスクトップでは、システムトレイを実行していません。設定で「"
+"バックグラウンドでの実行を許可」をオンにすると、ウィンドウを表示せずに実行で"
+"きます。"
 
 #. Entry on this application's system tray menu that brings the window up.
 #. An imperative verb phrase.
@@ -7788,44 +7809,41 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
-"MPV シム v{0} アップデートが利用可能\n"
-"詳細については、メニューを開きます (c を押します)。"
+"MPV Shim v{0} の更新がリリースされています\n"
+"「flatpak update」を実行してインストールしてください。"
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
-msgstr ""
+msgstr "(デフォルト)"
 
 #. Terminal menu entry that creates a local profile of this application.
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "新しいユーザー"
 
 #. Printed in the terminal when the profile asked to be deleted is the one
 #. in use.
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "このユーザーを削除する前に、別のユーザーに切り替えてください。"
 
 #. Printed in the terminal when deleting the last remaining local profile
 #. was refused.
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "ユーザーが 1 人は必要です。"
 
 #. Printed in the terminal when the named local profile does not exist.
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "ユーザーが見つかりません。"
 
 #. Stands in for a track's language when the file does not say.
 #. Deliberately clipped to four characters, because it sits inside a track
@@ -7858,37 +7876,37 @@ msgstr "ジェネリック 高解像度 (FSRCNNX x16)"
 #. the whole technical part as it is.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Anime4K x4 Faithful (For SD)"
-msgstr ""
+msgstr "Anime4K x4 忠実 ( Faithful) ( SD 用 )"
 
 #. Name of a video shader profile for animation. "Anime4K" and "Perceptual"
 #. are the algorithm's own names; leave the technical part as it is.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Anime4K x4 Perceptual (For SD)"
-msgstr ""
+msgstr "Anime4K x4 知覚的 (Perceptual) ( SD 用 )"
 
 #. Name of a video shader profile for animation. The technical names are
 #. the algorithm's own; leave them as they are.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Anime4K x4 Perceptual + Deblur (For SD)"
-msgstr ""
+msgstr "Anime4K x4 知覚的 (Perceptual) + シャープ化 (Deblur) ( SD 用 )"
 
 #. Name of a video shader profile for animation. HD means high definition;
 #. leave the technical part as it is.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Anime4K x2 Faithful (For HD)"
-msgstr ""
+msgstr "Anime4K x2 忠実 ( Faithful) ( HD 用 )"
 
 #. Name of a video shader profile for animation. Leave the technical part
 #. as it is.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Anime4K x2 Perceptual (For HD)"
-msgstr ""
+msgstr "Anime4K x2 知覚的 ( Perceptual ) ( HD 用 )"
 
 #. Name of a video shader profile for animation. Leave the technical part
 #. as it is.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Anime4K x2 Perceptual + Deblur (For HD)"
-msgstr ""
+msgstr "Anime4K x2 知覚的 ( Perceptual ) + シャープ化 ( Deblur ) ( HD 用 )"
 
 #. Name of a video shader profile. "ArtCNN" is the algorithm's own name;
 #. the bracketed words say what it does.
