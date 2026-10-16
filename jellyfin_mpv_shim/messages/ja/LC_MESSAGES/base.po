@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-16 06:49+0000\n"
+"PO-Revision-Date: 2026-10-16 20:21+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -7399,33 +7399,31 @@ msgstr "詳細…"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "update banner"
 msgid "Later"
-msgstr ""
+msgstr "後で"
 
 #. Button on the update banner that hides it for this version for good. An
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Ignore"
-msgstr ""
+msgstr "無視"
 
 #. Tooltip of the update banner's Ignore button.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Do not mention this version again"
-msgstr ""
+msgstr "このバージョンについては今後通知しない"
 
 #. Banner across the top of the library after something the user asked
 #. for failed because the server could not be reached. Followed by the
 #. "Retry" and "Go Offline" buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "The server isn't answering."
-msgstr ""
+msgstr "サーバーは応答しません。"
 
 #. Button on the "server isn't answering" banner: browse only what is
 #. downloaded to this computer instead.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Work Offline"
 msgid "Go Offline"
-msgstr "オフラインで動作"
+msgstr "オフライン実行"
 
 #. Banner shown when no server could be reached and only downloaded items
 #. are listed.
