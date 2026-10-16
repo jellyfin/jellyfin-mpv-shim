@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-16 13:48+0000\n"
+"PO-Revision-Date: 2026-10-16 20:21+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -6153,7 +6153,7 @@ msgstr "Esta lista de reproducción no tiene tipos de medios soportados."
 #. that queue when it is saved as a playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Play Queue"
-msgstr ""
+msgstr "Reproducir cola"
 
 #. Button on the queue and playlist editors that moves the selected rows to
 #. the start of the list. The beginning of an ordering, not a place on
@@ -6190,7 +6190,7 @@ msgstr "Inferior"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
 msgid "%d selected"
-msgstr ""
+msgstr "%d seleccionadas"
 
 # seeded from jellyfin-web: SelectAll
 #. Button on the queue and playlist editors that ticks every row. An
@@ -6203,7 +6203,7 @@ msgstr "Seleccionar todo"
 #. imperative verb; it deselects rather than deletes.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Clear"
-msgstr ""
+msgstr "Limpiar"
 
 #. Button on the queue editor that saves the queue as a playlist on the
 #. server.
@@ -6225,17 +6225,17 @@ msgstr "Eliminar"
 #. Shown on the queue editor when nothing is queued.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue is empty."
-msgstr ""
+msgstr "La cola está vacía."
 
 #. Status message when taking rows out of the queue or a playlist failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Those items could not be removed."
-msgstr ""
+msgstr "Estos elementos no se han podido eliminar."
 
 #. Status message when moving rows in the queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue could not be reordered."
-msgstr ""
+msgstr "La cola no pudo reordenarse."
 
 #. Button that changes a name: a local profile in Settings, or a playlist
 #. on its edit page. An imperative verb.
@@ -6248,7 +6248,7 @@ msgstr "Renombrar"
 #. see this playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
-msgstr ""
+msgstr "Público"
 
 #. Button on the playlist editor, and the title of the dialog it opens,
 #. removing the playlist from the server.
@@ -6281,12 +6281,12 @@ msgstr "Hora"
 #. Status message when moving rows in a playlist failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
-msgstr ""
+msgstr "La lista de reproducción no pudo reordenarse."
 
 #. Status message when removing a playlist from the server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be deleted."
-msgstr ""
+msgstr "La lista de reproducción no pudo ser eliminada."
 
 #. Message shown when the Public checkbox is used before the server has
 #. said whether the playlist is public.
@@ -6295,6 +6295,8 @@ msgid ""
 "Still reading this playlist's visibility from the server. Try again in a "
 "moment."
 msgstr ""
+"Leyendo aún la visibilidad de esta lista de reproducción desde el servidor. "
+"Inténtalo de nuevo en un rato."
 
 #. Error shown when a book file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -6305,7 +6307,7 @@ msgstr "No se pudo abrir este libro."
 #. the pointer on the clipboard. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
-msgstr ""
+msgstr "Copiar párrafo"
 
 #. Entry on the book reader's context menu that puts the whole page on the
 #. clipboard. An imperative verb phrase.
@@ -6316,12 +6318,12 @@ msgstr "Copiar página"
 #. Status message confirming a paragraph reached the clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
-msgstr ""
+msgstr "Párrafo copiado."
 
 #. Status message confirming a page reached the clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the page."
-msgstr ""
+msgstr "Página copiada."
 
 #. Status message when Copy was pressed with no text under the cursor.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -6345,7 +6347,7 @@ msgstr "No se pudo copiar"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "No clipboard available — saved to %s"
-msgstr ""
+msgstr "Ningún portapapeles disponible — guardado en %s"
 
 #. Tooltip of the book reader's dropdown listing the chapters. A noun: the
 #. table of contents.
@@ -6366,7 +6368,7 @@ msgstr "No se pudo renderizar este libro."
 #. Tooltip of the book reader's button that shrinks the type.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
-msgstr ""
+msgstr "Texto más pequeño"
 
 #. Tooltip of the book reader's button that enlarges the type.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -6378,12 +6380,12 @@ msgstr "Texto más grande"
 #. row of the same meaning is spelled the same way.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
-msgstr ""
+msgstr "Color de página"
 
 #. Shown on the search page before anything has been typed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
-msgstr ""
+msgstr "Escribe en el cuadro de búsqueda de arriba."
 
 #. Heading of the search page. %s is what was typed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -6417,13 +6419,13 @@ msgstr "Gente"
 #. because it labels a row of narrow tiles.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
-msgstr ""
+msgstr "En TV"
 
 #. Heading of the search-results row holding matches that fit none of the
 #. rows above it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Other"
-msgstr ""
+msgstr "Otros"
 
 # seeded from jellyfin-web: NoSubtitleSearchResultsFound
 #. Shown on the search page when nothing matched.
@@ -6435,7 +6437,7 @@ msgstr "No se han encontrado resultados."
 #. to.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 msgid "To Series"
-msgstr ""
+msgstr "A la serie"
 
 # seeded from jellyfin-web: HeaderSeasons
 #. Heading over a series' seasons on its page. Do not confuse with
@@ -6477,22 +6479,22 @@ msgstr "Próximos episodios"
 #. Heading of a Live TV row listing films airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Movies"
-msgstr ""
+msgstr "Próximas películas"
 
 #. Heading of a Live TV row listing sports airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Sports"
-msgstr ""
+msgstr "Próximos deportes"
 
 #. Heading of a Live TV row listing children's programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Kids"
-msgstr ""
+msgstr "Próximamente para niños"
 
 #. Heading of a Live TV row listing news programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming News"
-msgstr ""
+msgstr "Próximas noticias"
 
 #. Name of a search-results group holding film trailers.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6503,7 +6505,7 @@ msgstr "Avances"
 #. shown in the server picker when browsing offline.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
-msgstr ""
+msgstr "Descargado"
 
 # seeded from jellyfin-web: TypeOptionPluralSeries
 #. Name of the offline library holding downloaded television series.
@@ -6519,7 +6521,7 @@ msgstr "Series de televisión"
 #. the sense of "has no parent server", not "damaged".
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Orphaned Items"
-msgstr ""
+msgstr "Elementos huérfanos"
 
 # seeded from jellyfin-web: Playlists
 #. Name of the offline library holding downloaded playlists.
@@ -6537,24 +6539,24 @@ msgstr "Listas de reproducción"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "%(name)s (%(server)s)"
-msgstr ""
+msgstr "%(name)s (%(server)s)"
 
 #. Heading of the offline home-screen row listing films on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
-msgstr ""
+msgstr "Películas descargadas"
 
 #. Heading of the offline home-screen row listing standalone videos on this
 #. device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Videos"
-msgstr ""
+msgstr "Vídeos descargados"
 
 #. Heading of the offline home-screen row listing television series on this
 #. device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Shows"
-msgstr ""
+msgstr "Programas descargados"
 
 #. Heading of the offline home-screen row listing books on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6566,33 +6568,33 @@ msgstr "Libros descargados"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "Season %d"
-msgstr ""
+msgstr "Temporada %d"
 
 #. Status message confirming a setting was written. %s is that setting's
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Saved: %s"
-msgstr ""
+msgstr "Guardado: %s"
 
 #. Status message when what was typed into a settings field was not
 #. accepted. %s is that setting's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Invalid value: %s"
-msgstr ""
+msgstr "Valor inválido: %s"
 
 #. Status message when saving one setting forced another off. Both
 #. placeholders are settings' names.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Saved: %(key)s (also turned off \"%(other)s\")"
-msgstr ""
+msgstr "Guardado: %(key)s (también desactivado \"%(other)s\")"
 
 #. Shown on the Downloads page when nothing is on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
-msgstr ""
+msgstr "Nada descargado aún."
 
 #. Button beside a downloads group that deletes the items in it already
 #. watched. An imperative verb phrase.
@@ -6619,7 +6621,7 @@ msgstr "¿Eliminar las descargas vistas en %s?"
 #. that language and is not translated.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the system language"
-msgstr ""
+msgstr "Usa el idioma del sistema"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #. Checkbox at the top of Settings that reveals the rows not sorted into a
@@ -6647,6 +6649,10 @@ msgid ""
 "Hardware Decoding is the exception: set hwdec there and this app leaves it "
 "alone."
 msgstr ""
+"La configuración avanzada de MPV va en mpv.conf, en esta carpeta. MPV la lee "
+"al principio y esta configuración se aplica después, por lo que la mayoría "
+"se sobreescribe. La decodificación por hardware es la excepción: configura "
+"hwdec ahí y esta aplicación no lo modifica."
 
 #. Caption under a settings row whose change does nothing until the
 #. application is started again.
@@ -6658,7 +6664,7 @@ msgstr "Requiere reiniciar"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "No settings match \"%s\"."
-msgstr ""
+msgstr "Ninguna configuración coincide con \"%s\"."
 
 #. Explanation shown when a settings search found nothing. General, Browse
 #. and Playback are tab names on this screen; keep them matching those
@@ -6668,6 +6674,9 @@ msgid ""
 "Only the General, Browse and Playback tabs are searched. Some settings are "
 "hidden until the setting they depend on is turned on."
 msgstr ""
+"Solo se busca en las pestañas General, Explorar y Reproducción. Algunas "
+"opciones permanecen ocultas hastas que la configuración de la que dependen "
+"esté activada."
 
 #. Caption under settings search results. %d is how many were found.
 #. Phrased with a count after a colon on purpose, because this application
@@ -6675,13 +6684,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Matches: %d. Pick a tab above to stop searching."
-msgstr ""
+msgstr "Coincidencias: %d. Pulsa una pestaña de arriba para dejar de buscar."
 
 #. Button beside the download folder in Settings that relocates what is
 #. already downloaded to a new folder. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
-msgstr ""
+msgstr "Mover"
 
 #. Explanation shown under "Keep Running in Background" once it is on. The
 #. backticked text is a shell command; leave it as it is.
