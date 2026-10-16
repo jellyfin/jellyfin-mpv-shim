@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-16 06:49+0000\n"
+"PO-Revision-Date: 2026-10-16 13:48+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -5992,19 +5992,21 @@ msgstr "Programada para grabar"
 #. State of a Live TV programme: it is being recorded at this moment.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording now"
-msgstr ""
+msgstr "Grabando ahora"
 
 #. State of a Live TV programme: a rule is recording every episode of this
 #. show.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording this series"
-msgstr ""
+msgstr "Grabando esta serie"
 
 #. State of a Live TV programme: a rule records the show, but this
 #. particular airing falls outside it, for instance because it is a repeat.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "This series is set to record, but this showing is not scheduled"
 msgstr ""
+"Esta serie está configurada para grabar, pero esto muestra que no está "
+"programada"
 
 #. Button that starts playing a Live TV channel that is on air now. An
 #. imperative verb, and it must not read the same as "Watched": in one
@@ -6056,14 +6058,14 @@ msgstr "Grabar la serie"
 #. Shown on a channel's page when the server has no listings for it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
-msgstr ""
+msgstr "Ningún dato de guía disponible para este canal."
 
 #. Caption on a channel's page, saying how many upcoming programmes are
 #. listed. American spelling of "programmes".
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Showing the next %d programs."
-msgstr ""
+msgstr "Mostrando los siguientes %d programas."
 
 #. Stands in for the name of a Live TV channel the server did not name.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -6083,7 +6085,7 @@ msgstr "Álbumes"
 #. Heading of the row of musicians similar to the one being viewed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
-msgstr ""
+msgstr "Artistas similares"
 
 # seeded from jellyfin-web: HeaderInstantMix
 #. Button that starts a queue of tracks like the one chosen. Jellyfin Web
@@ -6139,13 +6141,13 @@ msgstr "Editar"
 #. Shown on a playlist's page when it has no items.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
-msgstr ""
+msgstr "Esta lista de reproducción está vacía."
 
 #. Shown on a playlist's page when everything in it is of a kind this
 #. application cannot play.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
-msgstr ""
+msgstr "Esta lista de reproducción no tiene tipos de medios soportados."
 
 #. Title of the page listing what is queued to play, and the name given to
 #. that queue when it is saved as a playlist.
