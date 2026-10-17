@@ -742,6 +742,9 @@ You can use the config file to enable and disable features.
   - Also in Settings → General → This Device. Needs PyGObject (`python-gobject`
     on most distributions); without it the setting does nothing. Takes effect
     after a restart.
+  - The player is `com.github.iwalton3.jellyfin-mpv-shim` on the bus. playerctl
+    and Waybar shorten a name to its first part, so select it with
+    `playerctl -p com.github.iwalton3.jellyfin-mpv-shim`.
 - `discord_presence` - Enable Discord rich presence support. Default: `false`
   - Also in Settings → General → This Device. Needs the optional `pypresence` package
     (`pip install jellyfin-mpv-shim[discord]`) and takes effect after a

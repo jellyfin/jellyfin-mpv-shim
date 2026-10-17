@@ -374,5 +374,29 @@ class StartTest(unittest.TestCase):
             self.assertFalse(mpris.start(FakePM()))
 
 
+class BusNameTest(unittest.TestCase):
+    """Flatpak lets an app own `org.mpris.MediaPlayer2.<app-id>.*` with no
+    permission, so naming the bus after the app id needs no `--own-name`
+    (Flathub review). The cost, accepted: playerctl and Waybar take the text
+    before the first period as the player name, so they call it `com`."""
+
+    def manifest(self):
+        import json
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(root, "flatpak",
+                               "com.github.iwalton3.jellyfin-mpv-shim.json"),
+                  encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_the_name_is_the_flatpak_app_id(self):
+        self.assertEqual(mpris.BUS_NAME,
+                         "org.mpris.MediaPlayer2." + self.manifest()["app-id"])
+
+    def test_the_manifest_does_not_ask_for_it(self):
+        own = [a for a in self.manifest()["finish-args"]
+               if a.startswith("--own-name=org.mpris.")]
+        self.assertEqual(own, [])
+
+
 if __name__ == "__main__":
     unittest.main()
