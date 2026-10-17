@@ -64,7 +64,7 @@ that failed cryptically instead of reading "not supported".
 Same fault as FriBiDi below, at the other end of the stack, and it shipped in
 3.0.0. **Flathub installs Pillow from its sdist** (`pillow-12.3.0.tar.gz`, via
 `pip3 install 'jellyfin-mpv-shim[all]'`), so Raqm is compiled in only if
-`raqm.pc` is present at build time — and **`org.gnome.Sdk` 50 has harfbuzz,
+`raqm.pc` is present at build time — and **`org.gnome.Sdk` 50 and 51 have harfbuzz,
 fribidi and freetype but no raqm at all** (verified: no `raqm.pc`, no
 `libraqm.so`). Pillow says nothing about it; it just produces an `_imagingft`
 that links freetype and nothing else.
