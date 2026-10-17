@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-17 01:29+0000\n"
+"PO-Revision-Date: 2026-10-17 13:28+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -1235,7 +1235,7 @@ msgstr "キャストができるようになりました"
 #. Instruction under the idle cast screen's heading.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Jellyfinでメディアを選択してここで再生します"
+msgstr "Jellyfin でメディアを選択し、ここで再生します。"
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #. Heading over the actors and film-makers on an item's page. Jellyfin Web
@@ -1315,7 +1315,7 @@ msgstr "動画"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Audio"
-msgstr "オーディオ"
+msgstr "音声"
 
 #. Heading over a subtitle stream's rows in the Media Info panel. A stream
 #. kind, singular.
@@ -5909,7 +5909,7 @@ msgstr "録画"
 #. future. A noun.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Schedule"
-msgstr "スケジュール"
+msgstr "予約"
 
 # seeded from jellyfin-web: Series
 #. Name of a tab on the Live TV page, listing the shows set to record every
@@ -7429,7 +7429,7 @@ msgstr "オフライン実行"
 #. are listed.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "オフライン ― 利用できるものを表示しています。"
 
 #. Button on the offline banner that opens the server settings. An
 #. imperative verb phrase.
@@ -7480,7 +7480,7 @@ msgstr "トランスコード"
 #. overriding and follow the wider setting".
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 msgid "Use the default"
-msgstr ""
+msgstr "デフォルトを使用"
 
 #. Value shown beside the SyncPlay row on the playback controls when this
 #. device is watching in sync with a group.
@@ -7491,7 +7491,7 @@ msgstr "SyncPlay 有効"
 #. Shown over the video while the next item is being opened.
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
-msgstr ""
+msgstr "お待ちください。読み込み中..."
 
 #. Warning drawn over the video when the server is re-encoding it. "c" is a
 #. keyboard key; leave the letter as it is. Keep the line break.
@@ -7508,13 +7508,13 @@ msgstr ""
 #. "Could not play this item: <title> — "; "it" is that item.
 #: jellyfin_mpv_shim/player.py
 msgid "The server stopped sending it partway through."
-msgstr ""
+msgstr "サーバーが途中で送信を停止しました。"
 
 #. Shown over the video when playback reaches the end of a downloaded
 #. episode and the one after it is not on this device.
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
+msgstr "次のエピソードをダウンロードしていません。"
 
 #. How an episode is named in what this application reports to the server
 #. and to Discord. {0} and {1} are numbers.
@@ -7715,7 +7715,7 @@ msgstr "同期が停止（試行回数の上限超過）"
 #: jellyfin_mpv_shim/syncplay.py
 #, python-brace-format
 msgid "SkipToSync (x{0})"
-msgstr "SkipToSync (x{0})"
+msgstr "スキップして同期 (x{0})"
 
 #. Shown over the video when this device joins a watch-together group.
 #: jellyfin_mpv_shim/syncplay.py
@@ -7918,33 +7918,32 @@ msgstr "ArtCNN ( ノイズ除去・Denoise + シャープ化・Sharpen)"
 #. name; leave it as it is.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN High (C4F32)"
-msgstr ""
+msgstr "ArtCNN High (C4F32)"
 
 #. Name of the widest video-profile scope: the profile used when nothing
 #. narrower is set.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Default (all media)"
-msgstr ""
+msgstr "デフォルト ( すべてのメディア )"
 
 #. Name of a video-profile scope: the profile applies to everything in the
 #. library being viewed.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "このライブラリー"
 
 # seeded from jellyfin-web: Series
 #. Name of a video-profile scope: the profile applies to every episode of
 #. this series.
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
 msgid "This Series"
-msgstr "シリーズ"
+msgstr "このシリーズ"
 
 #. Shown for a video-profile scope that has no profile of its own, so it
 #. follows a wider one.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "未設定"
 
 #. Marks which video-profile scope is actually deciding right now. {0} is
 #. that scope's name; the arrow is drawn from plain characters and should
@@ -7952,13 +7951,11 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr ""
+msgstr "{0} <-- 有効"
 
 #. Title of the in-player screen that chooses a video profile per scope. A
 #. video profile is a saved set of MPV shader and rendering options.
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Video Playback Profile"
 msgstr "動画再生プロファイル"
 
