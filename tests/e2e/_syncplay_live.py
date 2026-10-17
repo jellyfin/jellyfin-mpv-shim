@@ -134,6 +134,9 @@ class LivePlayer:
     def has_video(self):
         return self.video is not None
 
+    def replace_queue_locked(self, media, sp_items, seq):
+        return media.replace_queue(sp_items, seq)
+
     def send_timeline(self):
         pass
 

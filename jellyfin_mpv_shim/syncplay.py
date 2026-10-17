@@ -950,7 +950,8 @@ class SyncPlayManager:
             self._start_queue(data, offset, sp_items=sp_items)
         else:
             media = self.playerManager.get_video().parent
-            new_media = media.replace_queue(sp_items, data["PlayingItemIndex"])
+            new_media = self.playerManager.replace_queue_locked(
+                media, sp_items, data["PlayingItemIndex"])
             if new_media:
                 log.info("The queue update changed the video.")
                 offset = data.get("StartPositionTicks")

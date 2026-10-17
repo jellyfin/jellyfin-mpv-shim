@@ -4381,6 +4381,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         return True
 
     @synchronous("_lock")
+    def replace_queue_locked(self, media, sp_items, seq):
+        """``media.replace_queue`` under the player lock, for SyncPlay's queue
+        update. It writes the queue and seq as two stores, and the readers
+        that take this lock (get_queue, queue_reorder, queue_remove_many) read
+        them as a pair. Accepted, not covered: the progress report reads the
+        pair under ``_tl_lock`` only (owner, 2026-10-17)."""
+        return media.replace_queue(sp_items, seq)
+
+    @synchronous("_lock")
     def queue_shuffle_upcoming(self):
         """Shuffle the entries after the playing one; the playing entry and
         everything before it stay put. Decided here, from what is playing

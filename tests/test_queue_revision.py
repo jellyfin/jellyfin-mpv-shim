@@ -176,5 +176,36 @@ class PlayerShuffleTest(unittest.TestCase):
         self.assertNotEqual(self.m.queue_rev, rev)
 
 
+class SyncPlayReplaceWaitsForTheLockTest(unittest.TestCase):
+    """`Media.replace_queue` writes the queue and seq as two stores, and
+    get_queue/queue_reorder/queue_remove_many read them as a pair under the
+    player lock. SyncPlay's update ran it with no lock at all (review
+    finding F8; owner ruling 2026-10-17: "Lock SyncPlay's replace")."""
+
+    def test_it_does_not_run_while_the_player_holds_the_lock(self):
+        with mock.patch.object(media, "build_video", _video):
+            m = media.Media(None, ["a", "b"], seq=0)
+        pm = _player(m, "a")
+        new = [{"Id": "a", "PlaylistItemId": "s1"},
+               {"Id": "z", "PlaylistItemId": "s2"}]
+        held, done = threading.Event(), threading.Event()
+        release = threading.Event()
+
+        def holder():
+            with pm._lock:
+                held.set()
+                release.wait(5)
+        threading.Thread(target=holder, daemon=True).start()
+        self.assertTrue(held.wait(5))
+        threading.Thread(
+            target=lambda: (pm.replace_queue_locked(m, new, 0), done.set()),
+            daemon=True).start()
+        self.assertFalse(done.wait(0.2), "replaced while the lock was held")
+        self.assertEqual([q["Id"] for q in m.queue], ["a", "b"])
+        release.set()
+        self.assertTrue(done.wait(5))
+        self.assertEqual([q["Id"] for q in m.queue], ["a", "z"])
+
+
 if __name__ == "__main__":
     unittest.main()
