@@ -5052,13 +5052,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         the event did not. Directly, not through the library's event thread:
         that thread is stopped as soon as this returns.
 
-        Not for a handle we are tearing down ourselves, and not for one that
-        has already been replaced.
+        Not for a handle that has already been replaced, or once the event
+        itself arrived. Our own terminate() reaches here too -- the library
+        calls quit_callback for every close, and it stops mpv before its
+        reader, so nothing on the handle tells the two apart -- and that is
+        tolerated rather than filtered: the player's handler returns on an
+        idle quit and runs once per handle, and the browser's ends its render
+        loop, which ui.py takes as a window close unless it detached first.
         """
         if handle is not self._player:
-            return
-        inter = getattr(handle, "mpv_inter", None)
-        if getattr(inter, "_stopping", False):
             return
         if getattr(handle, "_jms_shutdown_seen", False):
             return
