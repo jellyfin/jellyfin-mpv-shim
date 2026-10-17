@@ -12,8 +12,6 @@ drops ``on_error`` when the epoch has moved, so navigating away mid-flight can
 leave a rejected edit in the route dict.
 """
 
-import random
-
 from ...i18n import _, _p
 from ...mpvtk.widgets import (
     Button,
@@ -189,8 +187,28 @@ class QueuePage(SelectionPage):
                  "pid": e.get("playlist_item_id")}
                 for e in q.get("items", [])]
             return {"entries": entries, "current_id": q.get("current_id"),
-                    "current_pid": q.get("current_pid")}
-        self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
+                    "queue_rev": q.get("queue_rev")}
+
+        def apply(d):
+            # A re-read replaces the rows under a selection of row numbers,
+            # and it lands after the page's own moves too (they move the
+            # revision): carry the selection across by entry, as `_move`
+            # does, rather than clear it.
+            old = (route.get("_data") or {}).get("entries") or []
+            pid_at = {e.get("pid"): i for i, e in enumerate(d["entries"])
+                      if e.get("pid")}
+
+            def remap(i):
+                pid = old[i].get("pid") if 0 <= i < len(old) else None
+                return pid_at.get(pid) if pid else None
+
+            sel = {remap(i) for i in route.get("_sel") or ()} - {None}
+            route["_sel"] = sel
+            anchor = route.get("_anchor")
+            if anchor is not None:
+                route["_anchor"] = remap(anchor)
+            route["_data"] = d
+        self.route_async(work, apply, epoch)
 
     def render(self, size):
         """The play queue, deliberately the same table + toolbar as the
@@ -298,29 +316,19 @@ class QueuePage(SelectionPage):
                               error=_("Those items could not be removed."))
 
     def _shuffle(self):
-        """Shuffle what is still to come. The playing entry is found by its
-        PlaylistItemId when the player gave one: the same track can be
-        queued twice."""
+        """Shuffle what is still to come. The player decides, from what it
+        is playing now -- this page's idea of the playing entry is only as
+        fresh as its last read -- and the rows are re-read once it has."""
         route = self.route
-        data = route.get("_data") or {}
-        entries = data.get("entries") or []
-        pid, cur = data.get("current_pid"), data.get("current_id")
-        at = next((i for i, e in enumerate(entries)
-                   if (e.get("pid") == pid if pid
-                       else e["item"].get("Id") == cur)), None)
-        if at is None or len(entries) - at < 3:
+        if self.ctx.player is None:
             return
-        was, was_sel = list(entries), set(self.selection())
-        upcoming = entries[at + 1:]
-        random.shuffle(upcoming)
-        data["entries"], route["_sel"] = entries[:at + 1] + upcoming, set()
-        order = [e["pid"] for e in data["entries"] if e.get("pid")]
-        self.ctx.invalidate()
 
-        def restore():
-            data["entries"], route["_sel"] = was, was_sel
-        self.ctx.actions.edit(lambda c: c.queue_reorder(order),
-                              on_error=restore,
+        def reread():
+            # Only while the route that asked is still on screen.
+            if self.ctx.nav.is_current(route):
+                self.ctx.nav.load(route)
+        self.ctx.actions.edit(lambda c: c.queue_shuffle_upcoming(),
+                              on_ok=reread,
                               error=_("The queue could not be reordered."))
 
     def _move(self, where):

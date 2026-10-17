@@ -1180,6 +1180,7 @@ class Media(object):
         srcid: Optional[str] = None,
         queue_override: bool = True,
         explicit_tracks: bool = False,
+        queue_rev: Optional[int] = None,
     ):
         if queue_override:
             self.queue = [
@@ -1190,6 +1191,11 @@ class Media(object):
             self.queue = queue
         self.client = client
         self.seq = seq
+        #: Moves on every write of the queue (`publish_queue`). It belongs to
+        #: the queue, not to this object: moving through the queue builds a
+        #: new Media over the same list and passes it on, or the Play Queue
+        #: page, which re-reads when it moves, would re-read on every track.
+        self.queue_rev = get_seq() if queue_rev is None else queue_rev
         self.user_id = user_id
 
         self.video = build_video(self.queue[seq]["Id"], self, aid, sid, srcid,
@@ -1216,6 +1222,7 @@ class Media(object):
                 self.seq + 1,
                 self.user_id,
                 queue_override=False,
+                queue_rev=self.queue_rev,
             )
 
     def get_prev(self):
@@ -1226,6 +1233,7 @@ class Media(object):
                 self.seq - 1,
                 self.user_id,
                 queue_override=False,
+                queue_rev=self.queue_rev,
             )
 
     def get_from_key(self, key: str):
@@ -1240,12 +1248,14 @@ class Media(object):
         for i, video in enumerate(self.queue):
             if video.get("PlaylistItemId") == key:
                 return Media(
-                    self.client, self.queue, i, self.user_id, queue_override=False
+                    self.client, self.queue, i, self.user_id,
+                    queue_override=False, queue_rev=self.queue_rev,
                 )
         for i, video in enumerate(self.queue):
             if video["Id"] == key:
                 return Media(
-                    self.client, self.queue, i, self.user_id, queue_override=False
+                    self.client, self.queue, i, self.user_id,
+                    queue_override=False, queue_rev=self.queue_rev,
                 )
         return None
 
@@ -1257,6 +1267,16 @@ class Media(object):
             return build_video(self.queue[index]["Id"], self)
 
         log.error("Media::get_video couldn't find video at index %s" % index)
+
+    def publish_queue(self, queue, seq=None):
+        """The one write of the queue after construction: the list, then
+        ``seq`` where given, then a new ``queue_rev`` -- last, so a reader
+        that sees the new revision also sees the queue it stands for.
+        has_next/has_prev stay each caller's, whose orderings differ."""
+        self.queue = queue
+        if seq is not None:
+            self.seq = seq
+        self.queue_rev = get_seq()
 
     def insert_items(self, items, append: bool = False):
         items = [
@@ -1275,7 +1295,7 @@ class Media(object):
         # then flip has_next -- any reader that observes has_next=True is then
         # guaranteed to also see the just-queued item. Never mutate self.queue in
         # place; a reader could otherwise observe a half-updated list.
-        self.queue = new_queue
+        self.publish_queue(new_queue)
         self.has_next = self.seq < len(new_queue) - 1
 
     def replace_queue(self, sp_items, seq):
@@ -1306,7 +1326,7 @@ class Media(object):
             # the published queue does not have.
             self.has_next = self.has_next and new_next
             self.has_prev = self.has_prev and new_prev
-            self.queue, self.seq = sp_items, seq
+            self.publish_queue(sp_items, seq)
             self.has_next = new_next
             self.has_prev = new_prev
             return None

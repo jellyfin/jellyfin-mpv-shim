@@ -1743,28 +1743,87 @@ class TestQueueFollowsThePlayer(unittest.TestCase):
         self.b.nav_stack = [{"kind": "queue", "server": "srv1", "_data": {
             "entries": [{"item": {"Id": "a", "Name": "One"}, "pid": "pa"},
                         {"item": {"Id": "b", "Name": "Two"}, "pid": "pb"}],
-            "current_id": "a"}}]
+            "current_id": "a", "queue_rev": 7}}]
 
     def pids(self):
         return [e["pid"] for e in self.b.route["_data"]["entries"]]
+
+    def answer(self, pids, rev):
+        """What the player hands back on the next read."""
+        def get_queue():
+            self.reads.append(1)
+            return {"items": [{"id": p[1:], "playlist_item_id": p}
+                              for p in pids],
+                    "current_id": "a", "queue_rev": rev}
+        self.ctl.get_queue = get_queue
+
+    def playing(self, rev, item="a"):
+        self.b.on_playstate({"stopped": False, "is_audio": True,
+                             "id": item, "queue_rev": rev})
 
     def test_a_stop_re_reads_the_queue(self):
         self.b.on_playstate({"stopped": True})
         self.assertTrue(self.reads, "the queue was not re-read on a stop")
         self.assertEqual(self.pids(), ["p0", "p1", "p2"])
 
-    def test_a_track_the_page_does_not_list_re_reads_it(self):
-        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "q1"})
-        self.assertTrue(self.reads)
-        self.assertEqual(self.pids(), ["p0", "p1", "p2"])
+    def test_a_queue_changed_under_the_same_item_re_reads_it(self):
+        """Play Next from a phone, or a SyncPlay update: the playing item
+        does not change, and the page used to go on showing the old rows
+        until the next track (review finding F11)."""
+        self.answer(["pa", "px", "pb"], 8)
+        self.playing(8)
+        self.assertEqual(self.pids(), ["pa", "px", "pb"])
 
     def test_steady_playstates_do_not_re_read(self):
-        """The now-playing ticker pushes one a second."""
-        for _ in range(4):
-            self.b.on_playstate({"stopped": False, "is_audio": True,
-                                 "id": "b"})
+        """The now-playing ticker pushes one a second, track changes
+        included: moving through the queue keeps its revision."""
+        for item in ("a", "b", "b", "a"):
+            self.playing(7, item)
         self.assertEqual(self.reads, [])
-        self.assertEqual(self.b.route["_data"]["current_id"], "b")
+        self.assertEqual(self.b.route["_data"]["current_id"], "a")
+
+    def test_one_change_is_one_re_read(self):
+        """After the re-read the page holds the new revision, so the ticker
+        that follows does not keep re-reading."""
+        self.answer(["pa", "pb", "py"], 8)
+        for _ in range(4):
+            self.playing(8)
+        self.assertEqual(len(self.reads), 1)
+        self.assertEqual(self.b.route["_data"]["queue_rev"], 8)
+
+    def test_a_re_read_keeps_the_selection_on_the_same_entries(self):
+        """The selection is row numbers. An entry inserted above it used to
+        leave it pointing one row up (review finding F4)."""
+        route = self.b.route
+        route["_sel"], route["_anchor"] = {1}, 1        # "pb"
+        drawn = []
+        self.b.invalidate = lambda: drawn.append(1)
+        self.answer(["px", "pa", "pb"], 8)
+        self.playing(8)
+        self.assertEqual(route["_sel"], {2})
+        self.assertEqual(route["_anchor"], 2)
+        self.assertTrue(drawn, "the re-read asked for no repaint")
+
+    def test_an_entry_that_left_drops_out_of_the_selection(self):
+        route = self.b.route
+        route["_sel"], route["_anchor"] = {0, 1}, 1
+        self.answer(["pa"], 8)
+        self.playing(8)
+        self.assertEqual(route["_sel"], {0})
+        self.assertIsNone(route["_anchor"])
+
+    def test_a_move_keeps_its_block_through_its_own_re_read(self):
+        """The page's own Up moves the revision too, so the next tick
+        re-reads it -- and must not drop the block the move kept selected."""
+        route = self.b.route
+        route["_sel"] = {1}
+        _n, h = build_scene(self.b)
+        h["q-up"]["click"]()
+        self.assertEqual(route["_sel"], {0})
+        self.answer(["pb", "pa"], 8)          # what the player now holds
+        self.playing(8)
+        self.assertEqual(self.pids(), ["pb", "pa"])
+        self.assertEqual(route["_sel"], {0})
 
     def test_a_click_after_playback_stopped_says_so(self):
         self.ctl.playing_item_id = lambda: None
@@ -1781,55 +1840,51 @@ class TestQueueFollowsThePlayer(unittest.TestCase):
 
 
 class TestQueueShuffle(unittest.TestCase):
-    """Shuffle on the queue page shuffles what is still to come: the
-    playing track and everything before it stay put."""
+    """Shuffle on the queue page shuffles what is still to come. The player
+    decides which entry is playing (`PlayerManager.queue_shuffle_upcoming`,
+    tests/test_queue_revision.py): the page's copy went stale on the first
+    track change and shuffled the playing track away (review finding F1)."""
 
     def setUp(self):
         self.ctl = FakeController()
+        self.reads = []
+        real = self.ctl.get_queue
+        self.ctl.get_queue = lambda: (self.reads.append(1) or real())
         self.b = MpvtkBrowser(app=None, source=FakeSource(),
                               controller=self.ctl)
         self.b._pool = _SyncPool()
+        self.b.server = "srv1"
         entries = [{"item": {"Id": i, "Name": i}, "pid": "p" + i}
                    for i in "abcde"]
         self.route = {"kind": "queue", "server": "srv1", "_sel": {0},
                       "_data": {"entries": entries, "current_id": "b",
-                                "current_pid": "pb"}}
+                                "queue_rev": 1}}
         self.b.nav_stack = [self.route]
 
     def shuffle(self):
-        from unittest import mock
-        from jellyfin_mpv_shim.mpvtk_browser.pages import queue_edit
-        with mock.patch.object(queue_edit.random, "shuffle",
-                               lambda xs: xs.reverse()):
-            _n, h = build_scene(self.b)
-            h["q-shuffle"]["click"]()
+        _n, h = build_scene(self.b)
+        h["q-shuffle"]["click"]()
 
-    def test_only_the_tracks_after_the_playing_one_move(self):
+    def test_the_player_shuffles_and_the_page_re_reads(self):
         self.shuffle()
-        order = ["pa", "pb", "pe", "pd", "pc"]
-        self.assertEqual([e["pid"] for e in self.route["_data"]["entries"]],
-                         order)
-        self.assertIn(("queue_reorder", (order,)), self.ctl.transport)
-        self.assertEqual(self.route["_sel"], set(),
-                         "a selection of row numbers now points elsewhere")
+        self.assertIn(("queue_shuffle_upcoming", ()), self.ctl.transport)
+        self.assertNotIn("queue_reorder", [c[0] for c in self.ctl.transport])
+        self.assertTrue(self.reads, "the shuffled order was not read back")
 
-    def test_a_refused_shuffle_puts_the_order_back(self):
-        def boom(order):
+    def test_a_refused_shuffle_says_so_and_changes_nothing(self):
+        def boom():
             raise RuntimeError("nope")
-        self.ctl.queue_reorder = boom
+        self.ctl.queue_shuffle_upcoming = boom
         self.shuffle()
         self.assertEqual([e["pid"] for e in self.route["_data"]["entries"]],
                          ["pa", "pb", "pc", "pd", "pe"])
         self.assertIn("could not", self.b.status.lower())
 
-    def test_the_playing_entry_is_found_by_its_queue_id(self):
-        """The same track can be queued twice; the item id alone would
-        pick the first copy."""
-        self.route["_data"]["entries"][3]["item"]["Id"] = "b"
-        self.route["_data"]["current_pid"] = "pd"
+    def test_no_player_no_call(self):
+        self.b.controller = None
         self.shuffle()
-        self.assertEqual([e["pid"] for e in self.route["_data"]["entries"]],
-                         ["pa", "pb", "pc", "pd", "pe"])
+        self.assertNotIn("queue_shuffle_upcoming",
+                         [c[0] for c in self.ctl.transport])
 
 
 class TestQueueLookup(unittest.TestCase):
@@ -1844,6 +1899,7 @@ class TestQueueLookup(unittest.TestCase):
         from jellyfin_mpv_shim.media import Media
 
         m = Media.__new__(Media)
+        m.queue_rev = 0   # passed on by get_next/get_prev/get_from_key
         m.client = None
         m.user_id = None
         m.seq = 0

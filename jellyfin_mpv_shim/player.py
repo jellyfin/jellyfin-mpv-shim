@@ -21,6 +21,7 @@ import re
 import sys
 import time
 import json
+import random
 
 from threading import RLock, Lock, Thread, Event
 from queue import Queue, Empty as queue_empty
@@ -4340,26 +4341,26 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     @synchronous("_lock")
     def get_queue(self):
         """The full queue for the browser's queue display: each entry's item id
-        + PlaylistItemId, plus which one is playing."""
+        + PlaylistItemId, which one is playing, and the queue's revision."""
         video = self._video
         if video is None:
-            return {"items": [], "current_id": None}
+            return {"items": [], "current_id": None, "queue_rev": None}
         m = video.parent
         return {
             "items": [{"id": q.get("Id"),
                        "playlist_item_id": q.get("PlaylistItemId")}
                       for q in m.queue if q.get("Id")],
             "current_id": video.item_id,
-            "current_pid": m.queue[m.seq].get("PlaylistItemId"),
+            "queue_rev": m.queue_rev,
         }
 
     def _publish_queue(self, m, new_queue, current_pid):
         """Publish a rebuilt queue and re-point seq/has_next/has_prev at the
         still-playing track. Never mutate the queue in place — the finished
         callback reads queue/seq/has_next lock-free on other threads."""
-        m.queue = new_queue  # atomic publish first
-        m.seq = next((i for i, q in enumerate(new_queue)
-                      if q.get("PlaylistItemId") == current_pid), 0)
+        m.publish_queue(new_queue, next(
+            (i for i, q in enumerate(new_queue)
+             if q.get("PlaylistItemId") == current_pid), 0))
         m.has_next = m.seq < len(new_queue) - 1
         m.has_prev = m.seq > 0
 
@@ -4377,6 +4378,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         new_queue = [q for q in m.queue
                      if q.get("PlaylistItemId") not in drop]
         self._publish_queue(m, new_queue, current_pid)
+        return True
+
+    @synchronous("_lock")
+    def queue_shuffle_upcoming(self):
+        """Shuffle the entries after the playing one; the playing entry and
+        everything before it stay put. Decided here, from what is playing
+        now: the queue page's own copy of the playing entry went stale on
+        the first track change. False when fewer than two are left."""
+        video = self._video
+        if video is None:
+            return False
+        m = video.parent
+        upcoming = list(m.queue[m.seq + 1:])
+        if len(upcoming) < 2:
+            return False
+        random.shuffle(upcoming)
+        current_pid = m.queue[m.seq].get("PlaylistItemId")
+        self._publish_queue(m, m.queue[:m.seq + 1] + upcoming, current_pid)
         return True
 
     @synchronous("_lock")

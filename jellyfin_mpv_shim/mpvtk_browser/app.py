@@ -2821,12 +2821,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             return _UNKNOWN
 
     def _sync_queue_highlight(self, state):
-        """Keep the queue view's "now playing" row on the right track.
+        """Keep the queue view on the player's queue.
 
-        The queue's data is fetched once when the route opens, so the
-        highlight stayed on whatever was playing then — it never moved when
-        a song ended or was skipped. Cheap: the id comes off the playstate,
-        no refetch."""
+        The highlight comes off the playstate's id, with no refetch. The
+        rows are re-read when the playstate's ``queue_rev`` differs from the
+        one they were read at -- the player moves it on every queue write,
+        including a Play Next from a phone or a SyncPlay update while the
+        same item plays -- and on a stop."""
         route = self.route
         if route.get("kind") != "queue":
             return
@@ -2837,12 +2838,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if data.get("current_id") != new:
             data["current_id"] = new
             self.invalidate()
-        # ...but the rows themselves are only right while the player still
-        # has that queue. A stop (a paused stream the server dropped) or a
-        # track the page does not list means it has moved on: re-read, or
-        # every row offers a skip into a queue that is gone.
-        if new is None or not any(e["item"].get("Id") == new
-                                  for e in data.get("entries") or ()):
+        # A stop (a paused stream the server dropped) leaves no queue at all:
+        # without a re-read every row offers a skip into a queue that is gone.
+        if new is None or state.get("queue_rev") != data.get("queue_rev"):
             self._refresh_current({"queue"})
 
     def _start_daemon(self, attr, name, body, restartable=False):
