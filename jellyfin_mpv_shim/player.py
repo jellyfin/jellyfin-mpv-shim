@@ -21,6 +21,7 @@ import re
 import sys
 import time
 import json
+import random
 
 from threading import RLock, Lock, Thread, Event
 from queue import Queue, Empty as queue_empty
@@ -229,8 +230,8 @@ if hasattr(mpv, "ShutdownError"):
 else:
     _mpv_errors = (BrokenPipeError, TimeoutError)
 
-# How long to wait for an mpv command's reply once the window is going
-# away. Only the external (jsonipc) backend needs it: a command there is a
+# How long to wait for an mpv command's reply once the app is quitting.
+# Only the external (jsonipc) backend needs it: a command there is a
 # request/response over a socket waited for with
 # python_mpv_jsonipc.TIMEOUT, which is 120s -- and mpv can accept a
 # command, run it, and exit before writing the reply back, parking the
@@ -621,6 +622,27 @@ _UNSET = object()
 
 #: Guards the once-per-handle shutdown flag (_on_shutdown_event).
 _SHUTDOWN_SEEN_LOCK = threading.Lock()
+#: Guards `_stop_owed`: ends of playback race each other across threads
+#: (a stop, the action thread's end of queue, a lost connection).
+_STOP_OWED_LOCK = threading.Lock()
+
+def _shutdown_seen(handle):
+    """Read through `__dict__`: on libmpv an unset attribute is a property
+    read, which raises on a dead core (docs/mpv-backends.md §1)."""
+    return getattr(handle, "__dict__", {}).get("_jms_shutdown_seen", False)
+
+
+def _mark_own_close(handle):
+    """Before we terminate mpv ourselves: mark the handle as already shut
+    down, with the same once-per-handle flag _on_shutdown_event sets, so the
+    "shutdown" event and _on_ipc_closed that our close causes do not run the
+    outside-shutdown path (a second terminate, the teardown, stop_cmd)."""
+    with _SHUTDOWN_SEEN_LOCK:
+        try:
+            handle._jms_shutdown_seen = True
+        except Exception:
+            pass
+
 
 class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     """
@@ -1533,11 +1555,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # hook this used to stop playback, which fired a stopped
         # playstate, which re-opened the browser window immediately.
         log.info("handle_close_win triggered")
-        # From here mpv may exit at any moment, including between
-        # accepting a command and answering it. Everything below runs
-        # on the action thread, so an unbounded reply wait blocks the
-        # whole shutdown behind it — see bound_ipc_replies.
-        bound_ipc_replies()
+        # No bound_ipc_replies here: with a tray this keeps the same mpv,
+        # and the global would cap its every later reply. See
+        # docs/mpv-backends.md section 1.
         handler = self.on_window_closed
         if self.mpvtk_active and handler is not None:
             self.put_task(handler)
@@ -1913,7 +1933,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # as mpv's event and from the socket closing (_on_ipc_closed).
         handle = self._player
         with _SHUTDOWN_SEEN_LOCK:
-            if getattr(handle, "_jms_shutdown_seen", False):
+            if _shutdown_seen(handle):
                 return
             try:
                 handle._jms_shutdown_seen = True
@@ -3327,6 +3347,43 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if settings.stop_cmd:
             os.system(settings.stop_cmd)
 
+    # stop_cmd is play_cmd's pair: once per announced playback, whatever ends
+    # it, and never when nothing was playing (owner, 2026-10-17). Every start
+    # path calls these two around play(), and every end takes the debt once
+    # through _take_stop_owed -- most through _end_playback.
+
+    def playback_starting(self):
+        """Before a new playback's play(). A start over current playback is
+        a hand-over -- the end stays owed and is paid when the new playback
+        ends -- unless ``stop_cmd_on_replace`` asks for the old one's end
+        first."""
+        if settings.stop_cmd_on_replace and self._take_stop_owed():
+            self.exec_stop_cmd()
+        if settings.pre_media_cmd:
+            os.system(settings.pre_media_cmd)
+
+    def playback_started(self):
+        """After a new playback's play(). Owes an end only if something is
+        playing: a start that failed has already ended."""
+        if self._video is not None:
+            with _STOP_OWED_LOCK:
+                self._stop_owed = True
+        if settings.play_cmd:
+            os.system(settings.play_cmd)
+
+    def _take_stop_owed(self):
+        """True once per announced playback: the caller runs stop_cmd."""
+        with _STOP_OWED_LOCK:
+            owed, self._stop_owed = self._stop_owed, False
+        return owed
+
+    def _end_playback(self):
+        """Drop the playing video. Every place playback ends by dropping it
+        goes through here, so a new one cannot miss the hook. Returns whether
+        stop_cmd is owed; the caller runs it where its teardown allows."""
+        self._video = None
+        return self._take_stop_owed()
+
     def _release_syncplay(self):
         """Stopping playback while in a SyncPlay group: halt, or leave.
 
@@ -3375,16 +3432,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         local_video = self._video
         if not local_video or not self._mpv_alive:
-            self.exec_stop_cmd()
+            if self._take_stop_owed():
+                self.exec_stop_cmd()
             return
 
         try:
             if self._player.playback_abort:
-                self.exec_stop_cmd()
+                if self._take_stop_owed():
+                    self.exec_stop_cmd()
                 return
         except _mpv_errors:
+            # Takes the debt itself, and runs the hook on the action thread.
             self._handle_mpv_disconnect()
-            self.exec_stop_cmd()
             return
 
         log.info("PlayerManager::stop stopping playback of %s" % local_video)
@@ -3392,7 +3451,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.should_send_timeline = False
         options = self.get_timeline_options(video=local_video)
         self.set_paused(False)
-        self._video = None
+        owed = self._end_playback()
         self._player.command("stop")
         # After the stop, never before it: see clear_media_title.
         self.clear_media_title()
@@ -3408,7 +3467,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             local_video.record_offline_progress(options.get("PositionTicks"))
         self.send_timeline_stopped(options=options, client=local_video.client,
                                    stopped=local_video)
-        self.exec_stop_cmd()
+        if owed:
+            self.exec_stop_cmd()
 
         if self.trickplay:
             self.trickplay.clear()
@@ -3670,6 +3730,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     #: default; `__init__` still sets the instance attribute.
     _hud_generation = 0
     _aspect_pristine = _UNSET
+    #: A playback was announced (play_cmd) and its end (stop_cmd) has not
+    #: run yet. See playback_started.
+    _stop_owed = False
 
     #: The gear menu's Auto row, in mpv's own spelling. It arrives as the
     #: property VALUE, not as None, and it means "no force" -- storing it
@@ -4170,7 +4233,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # item as playing again and the UI bounced back to the player,
         # showing the ended video paused.
         self.should_send_timeline = False
-        self._video = None
+        owed = self._end_playback()
         # _mpv_alive first, and not merely the try/except. Closing the
         # window makes mpv end the file AND shut down, so this callback
         # (queued by end-file) runs on the action thread while
@@ -4195,6 +4258,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # the library screen has no reason to wait behind.
         self.push_playstate(stopped=True)
         self.release_stream(video)
+        if owed:
+            self.exec_stop_cmd()
 
     @synchronous("_lock")
     def watched_skip(self):
@@ -4342,24 +4407,26 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     @synchronous("_lock")
     def get_queue(self):
         """The full queue for the browser's queue display: each entry's item id
-        + PlaylistItemId, plus which one is playing."""
+        + PlaylistItemId, which one is playing, and the queue's revision."""
         video = self._video
         if video is None:
-            return {"items": [], "current_id": None}
+            return {"items": [], "current_id": None, "queue_rev": None}
+        m = video.parent
         return {
             "items": [{"id": q.get("Id"),
                        "playlist_item_id": q.get("PlaylistItemId")}
-                      for q in video.parent.queue if q.get("Id")],
+                      for q in m.queue if q.get("Id")],
             "current_id": video.item_id,
+            "queue_rev": m.queue_rev,
         }
 
     def _publish_queue(self, m, new_queue, current_pid):
         """Publish a rebuilt queue and re-point seq/has_next/has_prev at the
         still-playing track. Never mutate the queue in place — the finished
         callback reads queue/seq/has_next lock-free on other threads."""
-        m.queue = new_queue  # atomic publish first
-        m.seq = next((i for i, q in enumerate(new_queue)
-                      if q.get("PlaylistItemId") == current_pid), 0)
+        m.publish_queue(new_queue, next(
+            (i for i, q in enumerate(new_queue)
+             if q.get("PlaylistItemId") == current_pid), 0))
         m.has_next = m.seq < len(new_queue) - 1
         m.has_prev = m.seq > 0
 
@@ -4377,6 +4444,33 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         new_queue = [q for q in m.queue
                      if q.get("PlaylistItemId") not in drop]
         self._publish_queue(m, new_queue, current_pid)
+        return True
+
+    @synchronous("_lock")
+    def replace_queue_locked(self, media, sp_items, seq):
+        """``media.replace_queue`` under the player lock, for SyncPlay's queue
+        update. It writes the queue and seq as two stores, and the readers
+        that take this lock (get_queue, queue_reorder, queue_remove_many) read
+        them as a pair. Accepted, not covered: the progress report reads the
+        pair under ``_tl_lock`` only (owner, 2026-10-17)."""
+        return media.replace_queue(sp_items, seq)
+
+    @synchronous("_lock")
+    def queue_shuffle_upcoming(self):
+        """Shuffle the entries after the playing one; the playing entry and
+        everything before it stay put. Decided here, from what is playing
+        now: the queue page's own copy of the playing entry went stale on
+        the first track change. False when fewer than two are left."""
+        video = self._video
+        if video is None:
+            return False
+        m = video.parent
+        upcoming = list(m.queue[m.seq + 1:])
+        if len(upcoming) < 2:
+            return False
+        random.shuffle(upcoming)
+        current_pid = m.queue[m.seq].get("PlaylistItemId")
+        self._publish_queue(m, m.queue[:m.seq + 1] + upcoming, current_pid)
         return True
 
     @synchronous("_lock")
@@ -5052,15 +5146,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         the event did not. Directly, not through the library's event thread:
         that thread is stopped as soon as this returns.
 
-        Not for a handle we are tearing down ourselves, and not for one that
-        has already been replaced.
+        Not for a handle that has already been replaced, or once the event
+        itself arrived. Our own terminate() reaches here too -- the library
+        calls quit_callback for every close, and nothing it passes tells the
+        two apart -- so every close of ours marks the handle first
+        (_mark_own_close), and only an outside close runs the handlers.
         """
         if handle is not self._player:
             return
-        inter = getattr(handle, "mpv_inter", None)
-        if getattr(inter, "_stopping", False):
-            return
-        if getattr(handle, "_jms_shutdown_seen", False):
+        if _shutdown_seen(handle):
             return
         log.info("mpv's socket closed without a shutdown event; treating it "
                  "as one")
@@ -5078,7 +5172,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._mpv_alive = False
         self.should_send_timeline = False
         video = self._video
-        self._video = None
+        if self._end_playback():
+            # Not inline: this is reached from any thread, often one holding
+            # the player lock. _handle_mpv_shutdown no longer runs for our own
+            # close (_mark_own_close), so this is the lost connection's hook.
+            self.put_task(self.exec_stop_cmd)
         # If we spawned this (now unresponsive) mpv, make sure it's gone —
         # otherwise the next play() starts a second instance on top of a
         # possibly still-running one. The next re-open joins this thread (see
@@ -5101,12 +5199,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # casts and key handling.
     def _handle_mpv_shutdown(self):
         video = self._video
+        owed = self._end_playback()
         if video:
-            self._video = None
             Thread(
                 target=self._report_stopped_offline, args=(video,), daemon=True
             ).start()
-        self.exec_stop_cmd()
+        if owed:
+            self.exec_stop_cmd()
 
 
     def _terminate_mpv(self, player=None):
@@ -5118,6 +5217,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # freshly-created player to dead.
         if player is self._player:
             self._mpv_alive = False
+        _mark_own_close(player)
         try:
             player.terminate()
         except Exception:
@@ -5147,6 +5247,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # would keep showing the session as playing.
         self._reporter.stop()
         if is_using_ext_mpv:
+            _mark_own_close(self._player)
             self._player.terminate()
 
         if self.trickplay:

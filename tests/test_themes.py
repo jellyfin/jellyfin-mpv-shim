@@ -43,6 +43,14 @@ def _contrast(a, b):
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 
 
+#: Themes whose resting buttons are meant to look transparent: the fill is
+#: the page's own colour and the button shows itself on hover, as a lighter
+#: fill (no border: renderer.lua draws one only where the node supplies it).
+#: Exempt from "buttons vanish" only -- the hover still has to register.
+#: Elegance (#805): Izzie checked it by hand, 2026-10-17, and kept it.
+TRANSPARENT_BUTTONS = {"elegance"}
+
+
 class ThemeRegistryTest(unittest.TestCase):
     def tearDown(self):
         theme.apply("default")
@@ -122,8 +130,10 @@ class ThemeRegistryTest(unittest.TestCase):
                                         1.5, "SUBTLE_FG reads as body text in "
                                         + theme_id)
                 # A button has to be findable, and its hover has to register.
-                self.assertGreaterEqual(_contrast(p["BUTTON_BG"], p["WINDOW_BG"]),
-                                        1.2, "buttons vanish in " + theme_id)
+                if theme_id not in TRANSPARENT_BUTTONS:
+                    self.assertGreaterEqual(
+                        _contrast(p["BUTTON_BG"], p["WINDOW_BG"]), 1.2,
+                        "buttons vanish in " + theme_id)
                 self.assertGreaterEqual(
                     _contrast(p["BUTTON_ACTIVE"], p["BUTTON_BG"]), 1.15,
                     "hover is invisible in " + theme_id)
@@ -135,6 +145,11 @@ class ThemeRegistryTest(unittest.TestCase):
                 # jf-web's $primary-dark instead.
                 self.assertGreaterEqual(_contrast(p["ACCENT"], p["WINDOW_BG"]),
                                         3.0, "ACCENT vanishes in " + theme_id)
+
+    def test_every_transparent_button_exemption_names_a_shipped_theme(self):
+        """A renamed theme would otherwise keep an exemption nobody uses."""
+        shipped = {theme_id for _label, theme_id in themes.choices(force=True)}
+        self.assertLessEqual(TRANSPARENT_BUTTONS, shipped)
 
     # NOTE: passing everything above is necessary and NOT sufficient. It
     # checks the palette; it cannot see that most of the browser never asks

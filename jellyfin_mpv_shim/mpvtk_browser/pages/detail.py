@@ -96,9 +96,9 @@ class DetailPage(Page):
                                          trailers=data.get("trailers")))
         blocks.append(self._detail_actions(item, server))
         blocks.extend(self._track_pickers(item))
-        if item.get("Overview"):
-            blocks.append(chrome.paragraph(item["Overview"], 18,
-                                           tiles.body_w(w)))
+        text = chrome.overview(item)
+        if text:
+            blocks.append(chrome.paragraph(text, 18, tiles.body_w(w)))
         # Under the synopsis and above the rows, which is where
         # jellyfin-web puts them: they are the tail of the metadata, not an
         # action on the item. No headless gate -- a detail page is already

@@ -862,8 +862,11 @@ class FakeController:
             {"srcid": srcid, "aid": aid, "sid": sid})
 
     def get_queue(self):
+        # queue_rev is what the queue page re-reads on (Media.publish_queue);
+        # a fake without it could not tell a changed queue from a steady one.
         return {"items": [{"id": "q%d" % i, "playlist_item_id": "p%d" % i}
-                          for i in range(3)], "current_id": "q1"}
+                          for i in range(3)], "current_id": "q1",
+                "queue_rev": 1}
 
     def get_sync_groups(self, server_uuid=None):
         return [{"id": "g1", "name": "Group 1", "server_uuid": "srv1",

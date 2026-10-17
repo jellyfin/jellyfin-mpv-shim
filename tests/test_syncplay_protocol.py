@@ -123,6 +123,15 @@ class FakePlayer:
     def has_video(self):
         return self.get_video() is not None
 
+    def replace_queue_locked(self, media, sp_items, seq):
+        return media.replace_queue(sp_items, seq)
+
+    def playback_starting(self):
+        pass
+
+    def playback_started(self):
+        pass
+
     def send_timeline(self):
         pass
 
@@ -543,6 +552,26 @@ class TestHaltingIsNotLeaving(ProtocolCase):
         sp.upd_queue(self._empty())
         self.assertEqual(replaced, [], "the queue was replaced by nothing")
         self.assertEqual(sp.playerManager.stopped, [])
+
+    def test_a_queue_update_replaces_under_the_player_lock(self):
+        """Through the player, never straight on the Media: the player's
+        lock is what keeps its queue+seq readers from seeing half of it
+        (tests/test_queue_revision.py has the lock itself)."""
+        group, sp, api = self.group_and_client()
+        through = []
+
+        class Playing(FakeQueue):
+            def replace_queue(self, sp_items, seq):
+                return None              # same item: replaced in place
+
+        video = FakeVideo()
+        video.parent = Playing()
+        sp.playerManager.get_video = lambda: video
+        real = sp.playerManager.replace_queue_locked
+        sp.playerManager.replace_queue_locked = (
+            lambda m, items, seq: (through.append(m) or real(m, items, seq)))
+        sp.upd_queue(self._queue("NewPlaylist"))
+        self.assertEqual(through, [video.parent])
 
     def test_an_empty_playlist_still_pulls_a_halted_member_back_in(self):
         """web follows the group first, then finds nothing to start."""

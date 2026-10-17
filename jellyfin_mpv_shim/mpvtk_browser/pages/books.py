@@ -224,10 +224,10 @@ class BooksPage(GridPage):
         FILE's tags, never on the directory. The *first* track's rather
         than any: they are chapters of one book (see :func:`one_book`).
         """
-        overview = (folder.get("Overview") or "").strip()
+        overview = chrome.overview(folder)
         if overview:
             return overview
-        return (tracks[0].get("Overview") or "").strip() if tracks else ""
+        return chrome.overview(tracks[0]) if tracks else ""
 
     @staticmethod
     def _resume_at(tracks):
@@ -413,8 +413,9 @@ class AudiobookPage(Page):
         blocks = [Row([art.tiles.art_cell(item, size=BOOK_ART),
                        Column(text, gap=8, flex=1, align="stretch")],
                       gap=16, align="start")]
-        if item.get("Overview"):
-            blocks.append(chrome.paragraph(item["Overview"], 17,
+        text = chrome.overview(item)
+        if text:
+            blocks.append(chrome.paragraph(text, 17,
                                            art.tiles.body_w(size[0])))
         chapters = self._chapter_rows(item, server)
         if chapters is not None:
@@ -603,8 +604,9 @@ class BookPage(Page):
         blocks = [Row([art.tiles.art_cell(item, size=BOOK_ART),
                        Column(text, gap=8, flex=1, align="stretch")],
                       gap=16, align="start")]
-        if item.get("Overview"):
-            blocks.append(chrome.paragraph(item["Overview"], 18,
+        text = chrome.overview(item)
+        if text:
+            blocks.append(chrome.paragraph(text, 18,
                                            art.tiles.body_w(size[0])))
         return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=16),
                        id="book", flex=1,

@@ -36,6 +36,7 @@ class FavoritesPage(Page):
         "shows": ("geom", "Primary", True),
         "episodes": ("geom_wide", "Thumb", False),
         "videos": ("geom_wide", "Thumb", True),
+        "collections": ("geom", "Primary", True),
         "artists": ("geom_square", "Primary", True),
         "albums": ("geom_square", "Primary", True),
         "songs": ("geom_square", "Primary", True),

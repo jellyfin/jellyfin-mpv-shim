@@ -17,7 +17,7 @@ class QueueMixin(GatewayCore):
             return playerManager.get_queue()
         except Exception:
             log.error("mpvtk get_queue failed", exc_info=True)
-            return {"items": [], "current_id": None}
+            return {"items": [], "current_id": None, "queue_rev": None}
 
     def skip_to(self, playlist_item_id):
         self._act(lambda pm: pm.skip_to(playlist_item_id))
@@ -40,6 +40,13 @@ class QueueMixin(GatewayCore):
         from ...player import playerManager
 
         playerManager.queue_reorder(list(ordered_playlist_item_ids))
+
+    def queue_shuffle_upcoming(self):
+        """Shuffle what is still to come. RAISES on failure, like
+        queue_reorder: the queue view reports it."""
+        from ...player import playerManager
+
+        playerManager.queue_shuffle_upcoming()
 
     def get_queue_ids(self):
         """Item ids of the playing queue, for "add queue to a playlist"."""

@@ -137,8 +137,18 @@ class ItemActions:
 
     def skip_to(self, playlist_item_id):
         """Jump the player to a queue entry."""
-        if playlist_item_id and self.services.controller is not None:
-            self._fire(lambda c: c.skip_to(playlist_item_id))
+        ctl = self.services.controller
+        if not playlist_item_id or ctl is None:
+            return
+        # The player answers a skip with nothing at all when it holds no
+        # queue, so a stale queue page looked broken. Its rows refresh on a
+        # stop; this covers a click that lands first.
+        holding = getattr(ctl, "playing_item_id", None)
+        if holding is not None and holding() is None:
+            self.services.set_status(
+                _("Playback has stopped, so this queue is gone."))
+            return
+        self._fire(lambda c: c.skip_to(playlist_item_id))
 
     # -- playback ----------------------------------------------------------
 

@@ -65,9 +65,9 @@ class SeriesPage(Page):
                 blocks.append(Text(meta, size="large", color=theme.SUBTLE_FG))
         blocks.append(self._series_actions(item, server, route["item_id"],
                                            trailers=data.get("trailers")))
-        if item.get("Overview"):
-            blocks.append(chrome.paragraph(item["Overview"], 18,
-                                           tiles.body_w(w)))
+        text = chrome.overview(item)
+        if text:
+            blocks.append(chrome.paragraph(text, 18, tiles.body_w(w)))
         # Same place as the detail screen: the tail of the metadata, above
         # the rows. Free here -- this page loads through `get_item`, and the
         # single-item routes fill ExternalUrls in without being asked.

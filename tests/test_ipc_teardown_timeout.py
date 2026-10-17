@@ -7,8 +7,10 @@ accept a command, run it, and exit before answering. The action thread
 then sat for two minutes inside ``PlayerManager.stop()``, and because the
 shutdown sequence joins that thread, the whole app hung with no window.
 
-``bound_ipc_replies`` lowers that wait on the teardown paths. These tests
-cover the tightening itself; the wait it bounds lives in the library.
+python-mpv-jsonipc 1.5.0 fails such a wait the moment the connection
+closes. ``bound_ipc_replies`` still lowers it on the quit paths -- and only
+there, never on the window close (see the last class). These tests cover
+the tightening itself; the wait it bounds lives in the library.
 """
 
 # Run as a script, this is what puts the repo root on sys.path -- without
@@ -90,14 +92,13 @@ class BoundIpcRepliesTest(unittest.TestCase):
             self.player.bound_ipc_replies()      # must not raise
 
 
-class WindowCloseTightensTheWaitTest(unittest.TestCase):
-    """The close path has to tighten the wait *before* it queues the stop
-    task, since that task is what issues the doomed command.
-
-    This used to assert on the *source text* of ``_init_mpv``, because the
-    handler was a closure defined inside it and there was no way to call it.
-    Now that it is a method, the ordering is checked by running it — which
-    also means renaming or moving it can no longer quietly void the test.
+class WindowCloseLeavesTheWaitAloneTest(unittest.TestCase):
+    """Closing the window is not a teardown: with a tray it only hides the
+    window, and the same mpv keeps serving the session. Bounding the wait
+    there left every later command of that mpv timing out at 5 s, which
+    reads as a disconnect (`_mpv_errors`). The reply mpv never sends because
+    it exited is python-mpv-jsonipc's to fail since 1.5.0, which answers
+    every waiting command with BrokenPipeError when the connection closes.
     """
 
     def _closer(self, **attrs):
@@ -111,40 +112,57 @@ class WindowCloseTightensTheWaitTest(unittest.TestCase):
             setattr(pm, k, v)
         return pm
 
-    def _record(self, pm):
+    def _close(self, pm):
         from jellyfin_mpv_shim import player
 
         calls = []
         pm.put_task = lambda fn, *a: calls.append(("put_task", fn))
-        return calls, mock.patch.object(
-            player, "bound_ipc_replies",
-            lambda: calls.append(("bound_ipc_replies", None)))
-
-    def test_the_wait_is_bounded_before_the_stop_task_is_queued(self):
-        pm = self._closer()
-        calls, patch = self._record(pm)
-        with patch:
+        with mock.patch.object(
+                player, "bound_ipc_replies",
+                lambda: calls.append(("bound_ipc_replies", None))):
             pm._on_close_win()
-        self.assertEqual([c[0] for c in calls],
-                         ["bound_ipc_replies", "put_task"],
-                         "the wait must be bounded before the stop task is "
-                         "queued — that task is the one that issues the "
-                         "command whose reply never arrives")
-        self.assertEqual(calls[1][1], pm.stop_and_close)
+        return calls
 
-    def test_it_is_bounded_on_the_minimize_to_tray_path_too(self):
-        # The UI's handler runs on the action thread as well, so it is behind
-        # the same doomed reply wait.
+    def test_minimizing_to_the_tray_does_not_bound_it(self):
         handler = lambda: None      # noqa: E731
-        pm = self._closer(mpvtk_active=True, on_window_closed=handler)
-        calls, patch = self._record(pm)
-        with patch:
-            pm._on_close_win()
-        self.assertEqual([c[0] for c in calls],
-                         ["bound_ipc_replies", "put_task"])
-        self.assertIs(calls[1][1], handler,
-                      "closing the window with the in-window UI up must "
-                      "minimize to tray, not stop playback")
+        calls = self._close(self._closer(mpvtk_active=True,
+                                         on_window_closed=handler))
+        self.assertEqual(calls, [("put_task", handler)],
+                         "closing the window with the in-window UI up must "
+                         "hand over to it and leave the reply wait alone")
+
+    def test_closing_without_the_ui_stops_and_leaves_it_to_the_quit(self):
+        pm = self._closer()
+        calls = self._close(pm)
+        self.assertEqual(calls, [("put_task", pm.stop_and_close)])
+
+
+class BrowserLoopLeavesTheWaitAloneTest(unittest.TestCase):
+    """The render loop finding mpv gone is not a quit either: the app stays
+    up and builds a new mpv on the next play, and `TIMEOUT` is a module
+    global that nothing restores, so a bound here outlived the mpv it was
+    meant for."""
+
+    def test_mpv_gone_under_the_loop_does_not_bound_it(self):
+        from jellyfin_mpv_shim import player
+        from jellyfin_mpv_shim.mpvtk_browser.ui import UserInterface
+
+        class GoneApp:
+            def run(self, _build):
+                raise BrokenPipeError("mpv went away")
+
+        ui = UserInterface()
+        ui._app = GoneApp()
+        ui._browser = types.SimpleNamespace(build=lambda: None)
+        stopped = []
+        ui.stop_callback = lambda: stopped.append(True)
+        calls = []
+        with mock.patch.object(player, "bound_ipc_replies",
+                               lambda *a: calls.append(a)):
+            ui._run()
+        self.assertEqual(calls, [])
+        # Still taken as a window close: the quit path bounds it from there.
+        self.assertEqual(stopped, [True])
 
 
 if __name__ == "__main__":

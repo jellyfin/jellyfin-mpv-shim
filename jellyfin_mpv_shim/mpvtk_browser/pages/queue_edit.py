@@ -186,8 +186,29 @@ class QueuePage(SelectionPage):
                                              "Name": e["id"]}),
                  "pid": e.get("playlist_item_id")}
                 for e in q.get("items", [])]
-            return {"entries": entries, "current_id": q.get("current_id")}
-        self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
+            return {"entries": entries, "current_id": q.get("current_id"),
+                    "queue_rev": q.get("queue_rev")}
+
+        def apply(d):
+            # A re-read replaces the rows under a selection of row numbers,
+            # and it lands after the page's own moves too (they move the
+            # revision): carry the selection across by entry, as `_move`
+            # does, rather than clear it.
+            old = (route.get("_data") or {}).get("entries") or []
+            pid_at = {e.get("pid"): i for i, e in enumerate(d["entries"])
+                      if e.get("pid")}
+
+            def remap(i):
+                pid = old[i].get("pid") if 0 <= i < len(old) else None
+                return pid_at.get(pid) if pid else None
+
+            sel = {remap(i) for i in route.get("_sel") or ()} - {None}
+            route["_sel"] = sel
+            anchor = route.get("_anchor")
+            if anchor is not None:
+                route["_anchor"] = remap(anchor)
+            route["_data"] = d
+        self.route_async(work, apply, epoch)
 
     def render(self, size):
         """The play queue, deliberately the same table + toolbar as the
@@ -212,6 +233,8 @@ class QueuePage(SelectionPage):
             Button(_p("list position", "Bottom"), id="q-bottom",
                    icon="vertical_align_bottom",
                    on_click=lambda: self._move("bottom")),
+            Button(_("Shuffle"), id="q-shuffle", icon="shuffle",
+                   on_click=lambda: self._shuffle()),
             Text(_("%d selected") % len(sel) if sel else "", size="small",
                  color=theme.SUBTLE_FG),
             Button(_("Select All"), id="q-all",
@@ -291,6 +314,22 @@ class QueuePage(SelectionPage):
         self.ctx.actions.edit(lambda c: c.queue_remove(pids), on_ok=reload,
                               on_error=reload,
                               error=_("Those items could not be removed."))
+
+    def _shuffle(self):
+        """Shuffle what is still to come. The player decides, from what it
+        is playing now -- this page's idea of the playing entry is only as
+        fresh as its last read -- and the rows are re-read once it has."""
+        route = self.route
+        if self.ctx.player is None:
+            return
+
+        def reread():
+            # Only while the route that asked is still on screen.
+            if self.ctx.nav.is_current(route):
+                self.ctx.nav.load(route)
+        self.ctx.actions.edit(lambda c: c.queue_shuffle_upcoming(),
+                              on_ok=reread,
+                              error=_("The queue could not be reordered."))
 
     def _move(self, where):
         route = self.route

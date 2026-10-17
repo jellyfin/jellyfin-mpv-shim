@@ -19,6 +19,7 @@ from jellyfin_mpv_shim.menu import OSDMenu
 def make_media(queue_ids, seq):
     """Build a Media without running __init__ (which would hit the network)."""
     media = Media.__new__(Media)
+    media.queue_rev = 0   # passed on by get_next/get_prev/get_from_key
     media.queue = [
         {"PlaylistItemId": "orig{0}".format(i), "Id": id_num}
         for i, id_num in enumerate(queue_ids)

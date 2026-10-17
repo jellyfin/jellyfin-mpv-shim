@@ -63,6 +63,8 @@ DECLARED = {
     ("player.py", "watched_skip"): "playback; acts on the current item",
     ("player.py", "unwatched_quit"): "playback; acts on the current item",
     ("player.py", "get_video_attr"): "playback; reads the current item",
+    ("player.py", "playback_started"): (
+        "playback; a start that failed owes no stop_cmd. Audio counts"),
     ("player.py", "_maybe_save_volume"): (
         "playback; the per-type volume bucket needs the item, and music has "
         "its own bucket -- excluding audio here would stop it saving"),

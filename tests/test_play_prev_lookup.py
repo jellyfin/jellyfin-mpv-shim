@@ -59,6 +59,7 @@ def _player(playing="e4", queue=None, item_type="Episode",
     video.client = mock.Mock(jellyfin=api) if client else None
     ids = queue if queue is not None else [playing]
     media = Media.__new__(Media)
+    media.queue_rev = 0   # passed on by get_next/get_prev/get_from_key
     media.queue = [{"PlaylistItemId": "p%d" % i, "Id": q}
                    for i, q in enumerate(ids)]
     media.seq = ids.index(playing)

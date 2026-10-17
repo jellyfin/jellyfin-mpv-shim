@@ -114,10 +114,18 @@ trickplay") but the reply never came, parking the action thread for two minutes
 with the whole shutdown queued behind it. libmpv has no equivalent — a dead
 handle raises immediately, which is why the same close is instant there.
 
-Bounding the wait is the fix rather than hunting individual calls: any command
-issued while the window is disappearing can lose its reply, and during teardown
-there is no command whose answer is worth minutes. `TIMEOUT` is a module global
-read at each wait, so lowering it takes effect immediately.
+That case is now the library's: since python-mpv-jsonipc 1.5.0 a closing
+connection answers every waiting command with `BrokenPipeError` at once. What
+`bound_ipc_replies` still bounds is the quit -- the shutdown sequence
+(`mpv_shim.py`), and nothing else -- where no reply is worth minutes, including
+one from an mpv that stops answering without closing.
+
+**Not the window close, and not the browser loop finding mpv gone.** With a
+tray, closing the window only hides it and the same mpv keeps serving the
+session; after mpv dies under the browser, the next play builds a new one. And
+`TIMEOUT` is a module global read at each wait that nothing restores: bounded at
+either, every later command timed out at 5 s, which `_mpv_errors` treats as a
+disconnect.
 
 ### Bound methods cannot be property observers on libmpv
 

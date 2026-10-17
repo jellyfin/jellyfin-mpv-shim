@@ -365,8 +365,9 @@ both — it joins every non-daemon thread before the process can die, and
   what the deadline in `arm()` catches. It happened for real: closing the window
   parked the action thread for two minutes inside an mpv command whose reply never
   came, and the shutdown sequence joins that thread. That specific cause is fixed
-  at the source (`player.bound_ipc_replies`, and `docs/mpv-backends.md` §1), and
-  this remains as the backstop.
+  at the source (python-mpv-jsonipc 1.5.0 fails a waiting command when the
+  connection closes, and `player.bound_ipc_replies` caps replies on the quit;
+  `docs/mpv-backends.md` §1), and this remains as the backstop.
 - **A thread that outlives its `stop()`** and keeps the interpreter alive after
   `main` returns. Pool workers are the usual shape: `shutdown(wait=False,
   cancel_futures=True)` drops the queue, but a worker already inside a socket read
@@ -737,8 +738,7 @@ exit_watchdog.arm()  →  bound_ipc_replies()  →  player, timeline, action thr
 sync manager, clients, user interface, instance lock  →  exit_watchdog.finish()
 ```
 
-`bound_ipc_replies()` covers the quit paths that do not start at a window close (tray
-Quit, Ctrl-C): mpv is about to go away either way and no reply is worth minutes now
-(`docs/mpv-backends.md` §1). Every step is wrapped individually — **one component failing
+`bound_ipc_replies()` covers every quit path: mpv is about to go away either way and
+no reply is worth minutes now (`docs/mpv-backends.md` §1). Every step is wrapped individually — **one component failing
 to stop must not strand the rest**, because a half-shut-down app is exactly what leaves
 the stray threads this sequence exists to clean up.

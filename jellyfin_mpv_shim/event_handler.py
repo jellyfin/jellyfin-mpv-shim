@@ -1,7 +1,5 @@
 import logging
-import os
 
-from .conf import settings
 from .media import Media
 from .player import playerManager
 from .timeline import timelineManager
@@ -117,15 +115,13 @@ def start_playback(
     if not video:
         return False
 
-    if settings.pre_media_cmd:
-        os.system(settings.pre_media_cmd)
+    playerManager.playback_starting()
     playerManager.play(video, offset, is_initial_play=True,
                        pause_stills=pause_stills)
     timelineManager.send_timeline()
     if sync_play_group is not None:
         playerManager.syncplay.join_group(sync_play_group)
-    if settings.play_cmd:
-        os.system(settings.play_cmd)
+    playerManager.playback_started()
     return True
 
 

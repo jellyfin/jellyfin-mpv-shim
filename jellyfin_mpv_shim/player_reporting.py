@@ -224,6 +224,10 @@ class ReportingMixin:
                 # number covers both, and so "is there anything else at
                 # all" is answerable without knowing which end you are at.
                 "queue_len": _queue_len(video),
+                # Moves whenever the queue is written (Media.publish_queue);
+                # the browser's queue view re-reads when it does.
+                "queue_rev": getattr(getattr(video, "parent", None),
+                                     "queue_rev", None),
                 # A still image. The HUD hides its scrubber and time
                 # readout for one: mpv reports a 5s "duration" from
                 # --image-display-duration, which is real -- that is when

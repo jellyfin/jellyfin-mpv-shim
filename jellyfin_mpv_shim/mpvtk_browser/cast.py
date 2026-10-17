@@ -31,6 +31,7 @@ from typing import Optional
 
 from ..i18n import _
 from . import theme
+from .components import chrome
 from ..imageutil import apply_dark_gradient, pil_font, scale_to_cover
 from ..mpvtk import pilfont
 
@@ -332,7 +333,7 @@ class CastMixin:
     def _build_item_data(item: dict, server: str) -> dict:
         return {
             "title": _display_name(item),
-            "overview": item.get("Overview", "") or "",
+            "overview": chrome.overview(item),
             "misc": _misc_info(item),
             "rating": _rating(item),
             "backdrop_url": _backdrop_url(item, server),

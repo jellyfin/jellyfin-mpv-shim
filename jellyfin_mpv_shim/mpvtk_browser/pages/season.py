@@ -239,10 +239,10 @@ class SeasonPage(Page):
         # tells the virtualizer which rows are near the viewport, and a
         # header that grew while the number stayed put leaves the rows you
         # are looking at un-composited.
-        if season_item.get("Overview"):
+        text = chrome.overview(season_item)
+        if text:
             header.append(chrome.paragraph(
-                season_item["Overview"], 18,
-                chrome.body_width(size[0], gpad)))
+                text, 18, chrome.body_width(size[0], gpad)))
         # Measured, not the flat 100 this used to pass: head_h is what tells
         # the virtualizer which rows are near the viewport, and a header
         # that grew by 400px of artwork while the number stayed at 100

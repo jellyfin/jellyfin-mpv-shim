@@ -895,12 +895,11 @@ class FakeMPVJsonIPC(FakeMPV):
         self._observer_ids = {}          # id -> (name, handler)
         self._next_observer_id = 1
         # python-mpv-jsonipc calls this when the IPC socket closes -- for our
-        # own terminate() too, which it tells apart only by the reader's
-        # `_stopping`. The shim routes it to the shutdown handlers (B7,
+        # own terminate() too, with nothing on the handle to tell the two
+        # apart. The shim routes it to the shutdown handlers (B7,
         # player._on_ipc_closed), because mpv's "shutdown" event is not
         # guaranteed to reach an IPC client first.
         self.quit_callback = None
-        self.mpv_inter = type("MpvInter", (), {"_stopping": False})()
 
     @property
     def event_bindings(self):
@@ -915,9 +914,8 @@ class FakeMPVJsonIPC(FakeMPV):
             self.quit_callback()
 
     def terminate(self):
-        # As the real library does: stopping marks the reader, and the
-        # reader's EOF still reaches quit_callback.
-        self.mpv_inter._stopping = True
+        # As the real library does: it stops mpv first, and the reader's EOF
+        # reaches quit_callback.
         super().terminate()
         if self.quit_callback:
             self.quit_callback()
