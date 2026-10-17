@@ -10,6 +10,9 @@ Moved from ``ViewsMixin`` / the shell. ``CONTENT_PAD`` travels with them
 because it is a layout constant, not shell state.
 """
 
+import html
+import re
+
 from ...mpvtk.widgets import Box, Busy, Column, Row, Spacer, Text
 from .. import theme
 
@@ -250,6 +253,23 @@ def prose_w(size, avail):
     from ...mpvtk.layout import measure
 
     return min(avail, measure(Text("n" * PROSE_CH, size=size))[0])
+
+
+_BREAK = re.compile(r"<\s*br\s*/?\s*>|<\s*/\s*p\s*>", re.I)
+#: A letter straight after `<` or `</`, so "x < y" and "a <-> b" survive.
+_TAG = re.compile(r"</?[a-z][a-z0-9]*(?:\s[^<>]*)?/?>", re.I)
+#: Named tags only: "[citation needed]" and "Season [1]" are text.
+_BBCODE = re.compile(r"\[/?(?:b|i|u|s|em|strong|quote|spoiler|"
+                     r"(?:url|color|size)(?:=[^\]]*)?)\]", re.I)
+
+
+def overview(item):
+    """An item's Overview as plain text. Providers leave HTML and BBCode
+    in it, and the browser draws text, not markup. Every read of the field
+    goes through here (tests/test_overview_markup.py)."""
+    text = _BREAK.sub("\n", item.get("Overview") or "")
+    text = _BBCODE.sub("", _TAG.sub("", text))
+    return html.unescape(text).strip()
 
 
 def paragraph(text, size, max_w, color=None):

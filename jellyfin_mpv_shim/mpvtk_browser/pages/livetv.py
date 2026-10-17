@@ -803,9 +803,9 @@ class ProgramPage(Page):
                             else theme.FAV_RED)),
                 Text(self.STATE_LABELS[state](), size="small",
                      color=theme.SUBTLE_FG)], gap=6, align="center"))
-        if item.get("Overview"):
-            blocks.append(chrome.paragraph(item["Overview"], 18,
-                                           tiles.body_w(w)))
+        text = chrome.overview(item)
+        if text:
+            blocks.append(chrome.paragraph(text, 18, tiles.body_w(w)))
         return VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
                                           full_bleed=full_bleed),
                        id="program", flex=1,

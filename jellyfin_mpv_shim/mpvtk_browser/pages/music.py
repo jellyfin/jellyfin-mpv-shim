@@ -99,7 +99,7 @@ class MusicPage(Page):
         if meta:
             out.append(Text("   ·   ".join(meta), size="small",
                             color=theme.SUBTLE_FG))
-        overview = (item.get("Overview") or "").strip()
+        overview = chrome.overview(item)
         if overview:
             # `pad` is the column's ACTUAL horizontal padding, which is not
             # always CONTENT_PAD: a page whose body is a grid takes its pad
