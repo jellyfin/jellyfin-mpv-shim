@@ -587,7 +587,7 @@ class UserInterface:
         return True
 
     def _run(self):
-        from ..player import _mpv_errors, bound_ipc_replies
+        from ..player import _mpv_errors
         # _attach sets both before it starts the thread this runs on, so
         # state the invariant rather than add a guard that would turn a
         # wiring bug into a loop that silently never starts.
@@ -596,13 +596,11 @@ class UserInterface:
         try:
             app.run(browser.build)
         except _mpv_errors:
-            # Not a crash: the window went away under us. This is also the
-            # earliest hard evidence that the IPC socket is dead, and the
-            # player is very likely mid-teardown on the action thread with
-            # a command whose reply will never arrive — so tighten the
-            # reply wait now rather than after it has already parked.
+            # Not a crash: the window went away under us. No reply bound
+            # here: the app may build a new mpv, and the bound is a global
+            # nothing restores. The quit path sets it (docs/mpv-backends.md
+            # section 1).
             log.info("mpvtk browser loop ended: mpv is gone")
-            bound_ipc_replies()
         except Exception:
             log.error("mpvtk browser loop crashed", exc_info=True)
         finally:

@@ -137,5 +137,33 @@ class WindowCloseLeavesTheWaitAloneTest(unittest.TestCase):
         self.assertEqual(calls, [("put_task", pm.stop_and_close)])
 
 
+class BrowserLoopLeavesTheWaitAloneTest(unittest.TestCase):
+    """The render loop finding mpv gone is not a quit either: the app stays
+    up and builds a new mpv on the next play, and `TIMEOUT` is a module
+    global that nothing restores, so a bound here outlived the mpv it was
+    meant for."""
+
+    def test_mpv_gone_under_the_loop_does_not_bound_it(self):
+        from jellyfin_mpv_shim import player
+        from jellyfin_mpv_shim.mpvtk_browser.ui import UserInterface
+
+        class GoneApp:
+            def run(self, _build):
+                raise BrokenPipeError("mpv went away")
+
+        ui = UserInterface()
+        ui._app = GoneApp()
+        ui._browser = types.SimpleNamespace(build=lambda: None)
+        stopped = []
+        ui.stop_callback = lambda: stopped.append(True)
+        calls = []
+        with mock.patch.object(player, "bound_ipc_replies",
+                               lambda *a: calls.append(a)):
+            ui._run()
+        self.assertEqual(calls, [])
+        # Still taken as a window close: the quit path bounds it from there.
+        self.assertEqual(stopped, [True])
+
+
 if __name__ == "__main__":
     unittest.main()
