@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 00:25-0400\n"
+"POT-Creation-Date: 2026-10-17 13:33-0400\n"
 "PO-Revision-Date: 2026-10-17 15:00+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
@@ -2690,6 +2690,14 @@ msgstr "すべてのシークプレビューを一度に読み込む"
 msgid "Show What You're Watching in Discord"
 msgstr "Discord に視聴中作品を表示"
 
+#. Label of the checkbox for the "mpris" setting (Settings > General > This
+#. Device). Turns on control by the desktop's media keys and media widgets.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Ask to Skip Intros"
+msgid "Desktop Media Controls"
+msgstr "イントロのスキップを尋ねる"
+
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2733,6 +2741,14 @@ msgstr "12 時間時計"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
 msgstr "グリッド余白"
+
+#. Label of the checkbox for the "remember_filters" setting (Settings >
+#. Browse > Library Browser).
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Remember Last Used Profile"
+msgid "Remember Library Filters"
+msgstr "最後に利用したプロファイルを記憶"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -2970,8 +2986,8 @@ msgstr ""
 "す。「吹き替え」はあなたの言語の音声を優先し、手話や歌の字幕も表示しますが、"
 "吹き替えがない場合は「字幕」に切り替えます。「番組のみ」の組み合わせでは、映"
 "画はサーバーが選択した設定のままになります。字幕プリセットは、オリジナルの音"
-"声が日本語であることを前提としています。あなたの音声が日本語でなければ、「"
-"カスタム」を選択し、ルールを自分で設定してください。"
+"声が日本語であることを前提としています。あなたの音声が日本語でなければ、「カ"
+"スタム」を選択し、ルールを自分で設定してください。"
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
@@ -2993,9 +3009,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
-"「自動」を選択すると、Flatpak 内ではこの機能がオフになります。Flatpak 内では"
-"、デスクトップ環境がすでに更新情報を通知し、「flatpak update」コマンドで更新"
-"をインストールするためです。それ以外では、この機能はオンのままになります。"
+"「自動」を選択すると、Flatpak 内ではこの機能がオフになります。Flatpak 内で"
+"は、デスクトップ環境がすでに更新情報を通知し、「flatpak update」コマンドで更"
+"新をインストールするためです。それ以外では、この機能はオンのままになります。"
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3145,11 +3161,11 @@ msgid ""
 "is the reference curve, and Clip is what to try if highlights look grey "
 "rather than bright."
 msgstr ""
-"HDR 映像を SDR ディスプレーにどのように表示するか。HDR 映像を HDR 対応"
-"ディスプレイにそのまま出力する場合、トーンマッピングを行わないため、この設定"
-"は影響しません。HDR 映像の表示に違和感がない限り、「自動」のままにしておいて"
-"ください。BT.2390 が基準カーブです。ハイライト部分が、明るいというより灰色っ"
-"ぽく見える場合は、「クリップ」を試してみてください。"
+"HDR 映像を SDR ディスプレーにどのように表示するか。HDR 映像を HDR 対応ディス"
+"プレイにそのまま出力する場合、トーンマッピングを行わないため、この設定は影響"
+"しません。HDR 映像の表示に違和感がない限り、「自動」のままにしておいてくださ"
+"い。BT.2390 が基準カーブです。ハイライト部分が、明るいというより灰色っぽく見"
+"える場合は、「クリップ」を試してみてください。"
 
 #. Explanation shown under the "Rendering Quality" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3163,8 +3179,21 @@ msgstr ""
 "「高品質」モードは、MPV 独自の「高品質」プリセットと同じ設定を適用します。つ"
 "まり、GPU への負荷は多少増えますが、アップスケーリングと HDR 処理の品質が向上"
 "します。シェーダーファイルは不要で、シェーダープロファイルも消費しないため、"
-"以下のシェーダーパックを試す前に、まずこちらを試してみることをおすすめします"
-"。"
+"以下のシェーダーパックを試す前に、まずこちらを試してみることをおすすめしま"
+"す。"
+
+#. Explanation shown under the "Extract Image Subtitles" setting (Settings >
+#. Playback > Transcoding). PGS and VobSub are subtitle format names; keep
+#. them as they are.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"When a video is transcoded, show its built-in Blu-ray or DVD (PGS, VobSub) "
+"subtitles as a separate track instead of burning them into the picture, so "
+"they stay sharp and can be switched without restarting. Showing one makes "
+"the server extract every subtitle track in the file first, which takes time "
+"and server disk space on a large file. Subtitles in their own file are not "
+"affected."
+msgstr ""
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3207,11 +3236,11 @@ msgid ""
 msgstr ""
 "一部のグラフィックドライバで処理が不安定なため、デフォルトでは無効にしていま"
 "す。「1080p 以上のみ」という設定で有効にするのが無難な方法です。ほとんどの"
-"ハードウェアでは、1080p は追加の処理なしにソフトウェアでデコードします。「"
-"コピー ( 詳細 )」は処理速度が遅くなりますが、映像フィルターと連携するモードの"
-"ため、SVP やその他の VapourSynth フィルターを使用する場合はこちらを選択してく"
-"ださい。動画が再生されなくなった場合は、まず --disable-hwdec を指定して起動し"
-"、その後この設定を元に戻してください。"
+"ハードウェアでは、1080p は追加の処理なしにソフトウェアでデコードします。「コ"
+"ピー ( 詳細 )」は処理速度が遅くなりますが、映像フィルターと連携するモードのた"
+"め、SVP やその他の VapourSynth フィルターを使用する場合はこちらを選択してくだ"
+"さい。動画が再生されなくなった場合は、まず --disable-hwdec を指定して起動し、"
+"その後この設定を元に戻してください。"
 
 #. Explanation shown under the "Enable GUI" setting (under Advanced on the
 #. General tab of Settings).
@@ -3236,11 +3265,11 @@ msgid ""
 "way back is to edit conf.json. This is for a shared TV nobody should be able "
 "to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
-"このデバイスにキャストしているコンテンツのみを表示します。この設定画面を含め"
-"、ライブラリーにはここからアクセスできません。また、システムトレイのアイコン"
-"がないため、戻るには conf.json を編集するしかありません。これは、だれも閲覧す"
-"べきでない共有テレビ向けです。通常のキャスト先については、「インターフェース"
-"設定」を使用してください。"
+"このデバイスにキャストしているコンテンツのみを表示します。この設定画面を含"
+"め、ライブラリーにはここからアクセスできません。また、システムトレイのアイコ"
+"ンがないため、戻るには conf.json を編集するしかありません。これは、だれも閲覧"
+"すべきでない共有テレビ向けです。通常のキャスト先については、「インターフェー"
+"ス設定」を使用してください。"
 
 #. Explanation shown under the "Window Buttons in the Top Bar" setting
 #. (Settings > General > Window).
@@ -3256,9 +3285,9 @@ msgstr ""
 "タイトルバーが表示されないため、ウィンドウを移動したり閉じたりする方法があり"
 "ません。この場合、最小化、最大化、閉じるボタンは上部のバーに配置され、その"
 "バーをドラッグすることでウィンドウを移動できるようになります。「ウィンドウに"
-"タイトルバーがない場合のみ」という設定では、MPV にそのウィンドウに"
-"タイトルバーがあるかどうかを確認するため、タイトルバーを表示するデスクトップ"
-"環境では変更しません。"
+"タイトルバーがない場合のみ」という設定では、MPV にそのウィンドウにタイトル"
+"バーがあるかどうかを確認するため、タイトルバーを表示するデスクトップ環境では"
+"変更しません。"
 
 #. Explanation shown under the "Keep Window Buttons in Full Screen" setting
 #. (Settings > General > Window).
@@ -3269,9 +3298,9 @@ msgid ""
 "full screen that is not a keyboard shortcut."
 msgstr ""
 "フルスクリーン表示では、タイトルバーがどこにも表示されず、移動や最大化を行う"
-"ための操作も必要ないため、通常、これらのボタンは非表示になっています。"
-"キーボードショートカット以外でフルスクリーン表示を終了する手段を確保するには"
-"、この機能を有効にしてください。"
+"ための操作も必要ないため、通常、これらのボタンは非表示になっています。キー"
+"ボードショートカット以外でフルスクリーン表示を終了する手段を確保するには、こ"
+"の機能を有効にしてください。"
 
 #. Explanation shown under the "Hide the Desktop Title Bar" setting
 #. (Settings > General > Window).
@@ -3300,10 +3329,10 @@ msgid ""
 "memory -- tens of MB for an episode, a few hundred for a long film."
 msgstr ""
 "シークバーをドラッグしている間、プレビューフレームを表示します。thumbfast に"
-"対応している独自の OSC スクリプトを含め、あらゆるプレ－ヤーコントロール "
-"スタイルで動作します。画像は動画ごとにサーバーから取得するため、ディスク容量"
-"とメモリを消費します。1 エピソードあたり数十 MB、長編映画の場合は数百 MB 程度"
-"かかります。"
+"対応している独自の OSC スクリプトを含め、あらゆるプレ－ヤーコントロール スタ"
+"イルで動作します。画像は動画ごとにサーバーから取得するため、ディスク容量とメ"
+"モリを消費します。1 エピソードあたり数十 MB、長編映画の場合は数百 MB 程度かか"
+"ります。"
 
 #. Explanation shown under the "Preferred Language" setting (Settings >
 #. Playback > Subtitles & Languages), which only appears when a Dubbed or
@@ -3368,9 +3397,9 @@ msgid ""
 "never leaves you a sliver of a row off."
 msgstr ""
 "マウスホイールの 1 ノッチでスクロールするピクセル数。大きくするとスクロール速"
-"度が上がり、低くするとより細かい制御ができます。グリッド上では、どの"
-"スクロールモードでも、行単位でスクロールするように値を丸めます。そのため"
-"トラックパッドやトラックボールで、行がずれてしまうようなことはありません。"
+"度が上がり、低くするとより細かい制御ができます。グリッド上では、どのスクロー"
+"ルモードでも、行単位でスクロールするように値を丸めます。そのためトラックパッ"
+"ドやトラックボールで、行がずれてしまうようなことはありません。"
 
 #. Explanation shown under the "Scroll Mode" setting (Settings > Browse >
 #. Library Browser).
@@ -3382,18 +3411,27 @@ msgid ""
 "remote display, or with an external MPV. Pick \"One row per notch\" to move "
 "a whole row, or one home-screen section, at a time."
 msgstr ""
-"「連続」を選択すると、ピクセル単位でスクロールし、ホイールをどこに動かしても"
-"、表示が追いつかない場合は自動的に列を揃えてくれます。非常に大型の"
-"ディスプレイや、処理速度の遅いディスプレイ、リモートディスプレイ、あるいは外"
-"部 MPV を使っている場合など、スクロールがカクつく場合は、「行に揃える」を選ん"
-"でください。「ノッチごとに 1 行」を選ぶと、1 行ごと、またはホーム画面の"
-"セクション単位で移動します。"
+"「連続」を選択すると、ピクセル単位でスクロールし、ホイールをどこに動かして"
+"も、表示が追いつかない場合は自動的に列を揃えてくれます。非常に大型のディスプ"
+"レイや、処理速度の遅いディスプレイ、リモートディスプレイ、あるいは外部 MPV を"
+"使っている場合など、スクロールがカクつく場合は、「行に揃える」を選んでくださ"
+"い。「ノッチごとに 1 行」を選ぶと、1 行ごと、またはホーム画面のセクション単位"
+"で移動します。"
 
 #. Explanation shown under the "Show What You're Watching in Discord"
 #. setting (Settings > General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Discord Rich Presence."
 msgstr "Discord の Rich Presence。"
+
+#. Help note under the "mpris" setting (Settings > General > This Device).
+#. MPRIS is the name of the Linux standard; leave it untranslated.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Lets keyboard media keys, headset buttons, the lock screen and desktop media "
+"widgets play, pause and skip, and shows what is playing with its cover "
+"(MPRIS, Linux only)."
+msgstr ""
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3405,10 +3443,10 @@ msgid ""
 "silence otherwise, but results may vary."
 msgstr ""
 "パススルーを設定しないのであれば、この設定はデフォルトのままにしておいてくだ"
-"さい。Pipewire などの一部のオーディオサーバーはパススルーに対応しておらず、"
-"パススルーモードで*なんらかの*音声を通過させるには、そのカードのパススルーを"
-"無効にしなくてはならない点に注意してください。私のテストでは、そうしないと無"
-"音になってしまいましたが、結果はさまざまと思われます。"
+"さい。Pipewire などの一部のオーディオサーバーはパススルーに対応しておらず、パ"
+"ススルーモードで*なんらかの*音声を通過させるには、そのカードのパススルーを無"
+"効にしなくてはならない点に注意してください。私のテストでは、そうしないと無音"
+"になってしまいましたが、結果はさまざまと思われます。"
 
 #. Explanation shown under the "Take the Device Exclusively" setting
 #. (Settings > Playback > Audio).
@@ -3430,9 +3468,19 @@ msgid ""
 "can type into. Easier than precise scrolling on a trackpad."
 msgstr ""
 "ライブラリーと音楽のタイルグリッドをスクロールではなく、ページ単位の切り替え"
-"に : 各ページは 1 画面分で、「最初」「前へ」「次へ」「最後」のコントロールと"
-"、直接入力できるページ番号を表示します。トラックパッドで正確にスクロールする"
-"よりも簡単です。"
+"に : 各ページは 1 画面分で、「最初」「前へ」「次へ」「最後」のコントロール"
+"と、直接入力できるページ番号を表示します。トラックパッドで正確にスクロールす"
+"るよりも簡単です。"
+
+#. Explanation shown under the "Remember Library Filters" setting (Settings >
+#. Browse > Library Browser). "Filters" are the choices in a library's Filter
+#. panel, such as a genre or "Unplayed".
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Reopen each library with the filters it had last time (genre, unplayed, "
+"favorites and the rest), saved to your account on the server. Off, filters "
+"only last until you leave the library."
+msgstr ""
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3460,10 +3508,10 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
-"ロゴ アートワークを描画するように設定したライブラリーにも同様の処理を行います"
-"。デフォルトではオフ : 映画やテレビシリーズのロゴは慣例的に白で、暗い背景でも"
-"十分に視認できるため、影が必要になるのはプレートの方だからです。ダークモード"
-"をお使いの場合は、この設定をオンにしてください。"
+"ロゴ アートワークを描画するように設定したライブラリーにも同様の処理を行いま"
+"す。デフォルトではオフ : 映画やテレビシリーズのロゴは慣例的に白で、暗い背景で"
+"も十分に視認できるため、影が必要になるのはプレートの方だからです。ダークモー"
+"ドをお使いの場合は、この設定をオンにしてください。"
 
 #. Explanation shown under the "Theme" setting (Settings > Browse > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3524,9 +3572,9 @@ msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
-"プレーヤー コントローラーは、どのフレームでも読みやすく保つ必要があります。「"
-"なし」を選ぶと、背後の画像に陰影をつけずに、文字にドロップシャドウを適用しま"
-"す。"
+"プレーヤー コントローラーは、どのフレームでも読みやすく保つ必要があります。"
+"「なし」を選ぶと、背後の画像に陰影をつけずに、文字にドロップシャドウを適用し"
+"ます。"
 
 #. Explanation shown under the "When the Player Controls Hide" setting
 #. (Settings > Playback > Player Controls).
@@ -3578,8 +3626,8 @@ msgstr ""
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
-"「ディスプレーに合わせる」は、デスクトップが報告する拡大・縮小率を使用します"
-"。X11 では 100% です。"
+"「ディスプレーに合わせる」は、デスクトップが報告する拡大・縮小率を使用しま"
+"す。X11 では 100% です。"
 
 #. Explanation shown under the "Text size" setting (Settings > Browse >
 #. Theme).
@@ -3592,11 +3640,11 @@ msgid ""
 "which is Interface Scale."
 msgstr ""
 "テキストのみを拡大・縮小します。「インターフェース拡大縮小」は、アートワーク"
-"や余白、コントロールなど、すべてをリサイズしますので、文字が小さすぎる場合は"
-"、インターフェース全体ではなく、こちらを使用してください。上限は 150% : それ"
-"以上では、ほとんどのタイルのキャプションが省略表示されてしまうからです。また"
-"、より大きくする必要があるのはインターフェース全体なので、その場合は「"
-"インターフェース拡大縮小」を使用してください。"
+"や余白、コントロールなど、すべてをリサイズしますので、文字が小さすぎる場合"
+"は、インターフェース全体ではなく、こちらを使用してください。上限は 150% : そ"
+"れ以上では、ほとんどのタイルのキャプションが省略表示されてしまうからです。ま"
+"た、より大きくする必要があるのはインターフェース全体なので、その場合は「イン"
+"ターフェース拡大縮小」を使用してください。"
 
 #. Explanation shown under the "Minimum Text Size" setting (Settings >
 #. Browse > Theme).
@@ -3629,8 +3677,8 @@ msgid ""
 msgstr ""
 "レシーバーに直接送信できない音声を AC3 にエンコードします。これは光ケーブル経"
 "由でサラウンド音声を伝送する唯一の方法です。エンコーダーによって音声の遅延が"
-"生じる場合は「オフ」にする必要がありますが、その場合は該当のトラックは"
-"ステレオになります。"
+"生じる場合は「オフ」にする必要がありますが、その場合は該当のトラックはステレ"
+"オになります。"
 
 #. Explanation shown under the "Profile Group" setting (Settings > Playback
 #. > Video Enhancement).
@@ -3648,10 +3696,10 @@ msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
-"デフォルトは「自動」です。プロファイルを読み込んだら映像がおかしくなった…とい"
-"った事象が現れない限り、このままにしておいてください。この設定はプロファイル"
-"が有効な場合にのみ適用され、「OpenGL」を選ぶと、HDR 出力を損なう場合がありま"
-"す。"
+"デフォルトは「自動」です。プロファイルを読み込んだら映像がおかしくなった…と"
+"いった事象が現れない限り、このままにしておいてください。この設定はプロファイ"
+"ルが有効な場合にのみ適用され、「OpenGL」を選ぶと、HDR 出力を損なう場合があり"
+"ます。"
 
 #. Explanation shown under the "Type Size" setting (Settings > Browse >
 #. Reading).
@@ -4131,9 +4179,8 @@ msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
-"「自動」を選択すると、アートワーク自体からタイルの形を生成しますが、通常"
-"ポスターのような仕上がりになります。「ポスター」を選ぶことでそれを固定します"
-"。"
+"「自動」を選択すると、アートワーク自体からタイルの形を生成しますが、通常ポス"
+"ターのような仕上がりになります。「ポスター」を選ぶことでそれを固定します。"
 
 #. Checkbox in a library's View settings. Draws each item's name under its
 #. tile.
@@ -4193,8 +4240,8 @@ msgid ""
 "colour behind them instead, with no shadows."
 msgstr ""
 "透明なロゴには、明るい色のプレートを背景として適用し、輪郭が白色のものには影"
-"を付けます。「オフ」に設定すると、代わりにテーマのカード色を背景として適用し"
-"、影は表示しません。"
+"を付けます。「オフ」に設定すると、代わりにテーマのカード色を背景として適用"
+"し、影は表示しません。"
 
 #. Default title of the plain message dialog, used when the caller supplied
 #. none.
@@ -4223,8 +4270,8 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
-"「%(package)s」パッケージをインストールする ( 例 : \"apt install %(package)"
-"s\" ) か、MPV 0.41 以降のバージョンをご利用ください。"
+"「%(package)s」パッケージをインストールする ( 例 : \"apt install "
+"%(package)s\" ) か、MPV 0.41 以降のバージョンをご利用ください。"
 
 #. Follows the message saying the clipboard is unavailable. %(package)s is
 #. a software package name and the parenthesis holds a shell command; leave
@@ -4267,9 +4314,9 @@ msgid ""
 "shows you a number for — so there is nothing meaningful to set by hand. It "
 "is still read from the server and shown above."
 msgstr ""
-"%s が電子書籍リーダーとして読んでいる場所を記録します。この数値を表示する"
-"アプリは存在しないため、手動で設定しても意味がありません。それでも、サーバー"
-"から読み込んで上に表示します。"
+"%s が電子書籍リーダーとして読んでいる場所を記録します。この数値を表示するアプ"
+"リは存在しないため、手動で設定しても意味がありません。それでも、サーバーから"
+"読み込んで上に表示します。"
 
 #. Shown in the Reading Progress dialog. %s is another application's name.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -4887,6 +4934,12 @@ msgstr "設定"
 msgid "Fullscreen"
 msgstr "全画面"
 
+#. Status message after clicking a row on the Play Queue page when playback
+#. has already ended, so there is no queue left to jump within.
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+msgid "Playback has stopped, so this queue is gone."
+msgstr ""
+
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -5075,8 +5128,8 @@ msgid ""
 "Your account is not allowed to download from this server, and a book can "
 "only be read by downloading it."
 msgstr ""
-"あなたのアカウントは、このサーバーからのダウンロードを許可されておらず、"
-"ダウンロードできなければ書籍を読むことはできません。"
+"あなたのアカウントは、このサーバーからのダウンロードを許可されておらず、ダウ"
+"ンロードできなければ書籍を読むことはできません。"
 
 #. Status message when something was asked of a download that is not on
 #. this device. %s is the item's name.
@@ -5785,6 +5838,22 @@ msgstr "ランダム"
 msgid "Date Episode Added"
 msgstr "エピソード追加日"
 
+#. Shown in place of the grid when a library's filters match nothing. The
+#. filters may have been chosen on an earlier visit and remembered, so this
+#. says the library is not empty, only filtered.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "No items match these filters."
+msgstr ""
+
+# seeded from jellyfin-web: Filters
+#. Button under "No items match these filters." on an empty library grid.
+#. Removes every filter set on the library. An imperative verb phrase.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "Filters"
+msgid "Clear Filters"
+msgstr "フィルタ"
+
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -5798,8 +5867,9 @@ msgid "Networks"
 msgstr "ネットワーク"
 
 #. Button above a library grid, and the title of the page it opens, listing
-#. groups of related items.
+#. groups of related items. Also a row heading on the Favorites page.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Collections"
 msgstr "コレクション"
 
@@ -5826,11 +5896,13 @@ msgstr "すべて再生"
 
 # seeded from jellyfin-web: Shuffle
 #. Button on a library grid, an album, a playlist, a series or a season that
-#. queues everything in it in a random order and starts playing. An imperative
-#. verb.
+#. queues everything in it in a random order and starts playing; on the Play
+#. Queue page it puts the tracks still to come in a random order. An
+#. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "Shuffle"
@@ -5842,6 +5914,15 @@ msgstr "シャッフル"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "That sort could not be saved."
 msgstr "並び順を保存できませんでした。"
+
+#. A one-line status message at the bottom of the library screen, after the
+#. server refused to remember which filters the user picked. The filters
+#. themselves have already been applied; only remembering them failed.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "Those items could not be removed."
+msgid "Those filters could not be saved."
+msgstr "アイテムを削除できませんでした。"
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
@@ -6680,9 +6761,9 @@ msgid ""
 "alone."
 msgstr ""
 "MPV 詳細設定は、このフォルダーの mpv.conf で行います。MPV は起動時にこれを読"
-"み込み、後でここでの設定を適用するため、ほとんどの設定を上書きします。"
-"ハードウェアデコードは例外 : 「hwdec」に設定すると、このアプリはその設定を変"
-"更しません。"
+"み込み、後でここでの設定を適用するため、ほとんどの設定を上書きします。ハード"
+"ウェアデコードは例外 : 「hwdec」に設定すると、このアプリはその設定を変更しま"
+"せん。"
 
 # seeded from jellyfin-web: Restart
 #. Caption under a settings row whose change does nothing until the
@@ -6844,7 +6925,8 @@ msgstr "再試行"
 #. client's product name; leave it as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These settings are stored on your server and shared with Jellyfin Web."
-msgstr "これらの設定はサーバーに保存されており、Jellyfin Web と共有しています。"
+msgstr ""
+"これらの設定はサーバーに保存されており、Jellyfin Web と共有しています。"
 
 #. Heading in the Home Screen settings, above the list of rows the home
 #. screen shows.
@@ -6858,8 +6940,8 @@ msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
 msgstr ""
-"ホーム画面に表示する行の順序。このアプリで描画できないセクションは、Web "
-"クライアントで設定するまでそのままです。"
+"ホーム画面に表示する行の順序。このアプリで描画できないセクションは、Web クラ"
+"イアントで設定するまでそのままです。"
 
 #. Shown for a home-screen row set to something this application cannot
 #. draw. %s is that section's name as Jellyfin Web calls it.
@@ -6867,8 +6949,8 @@ msgstr ""
 #, python-format
 msgid "Set to “%s” in Jellyfin Web, which this app does not display."
 msgstr ""
-"Jellyfin Web の「%s」セクションに設定しましたが、このアプリでは表示できません"
-"。"
+"Jellyfin Web の「%s」セクションに設定しましたが、このアプリでは表示できませ"
+"ん。"
 
 #. Label of one home-screen row in the settings list. %d is its position,
 #. counting from one.
@@ -7603,8 +7685,8 @@ msgstr "そのフォルダーを読み込めません。パスと権限を確認
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
 msgstr ""
-"そのフォルダーはすでにダウンロード済みファイルを保存しています。空の"
-"フォルダーを選んでください。"
+"そのフォルダーはすでにダウンロード済みファイルを保存しています。空のフォル"
+"ダーを選んでください。"
 
 #. Error when the folder chosen for downloads holds other files, which this
 #. application would take charge of.
@@ -7613,8 +7695,8 @@ msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
-"そのフォルダーは空ではありません。空のフォルダーを選んでください。"
-"ダウンロードフォルダーはアプリが管理し、内容を移動したり削除したりします。"
+"そのフォルダーは空ではありません。空のフォルダーを選んでください。ダウンロー"
+"ドフォルダーはアプリが管理し、内容を移動したり削除したりします。"
 
 #. Error when the folder chosen for downloads could not be made.
 #: jellyfin_mpv_shim/sync/manager.py
@@ -7628,8 +7710,8 @@ msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
 msgstr ""
-"このアプリからそのフォルダーに書き込みできません。あなたが所有している"
-"フォルダーを選ぶか、指定したフォルダーの権限を変更して、やり直してください。"
+"このアプリからそのフォルダーに書き込みできません。あなたが所有しているフォル"
+"ダーを選ぶか、指定したフォルダーの権限を変更して、やり直してください。"
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
@@ -7771,9 +7853,8 @@ msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
-"このデスクトップでは、システムトレイを実行していません。設定で「"
-"バックグラウンドでの実行を許可」をオンにすると、ウィンドウを表示せずに実行で"
-"きます。"
+"このデスクトップでは、システムトレイを実行していません。設定で「バックグラウ"
+"ンドでの実行を許可」をオンにすると、ウィンドウを表示せずに実行できます。"
 
 #. Entry on this application's system tray menu that brings the window up.
 #. An imperative verb phrase.
@@ -8023,9 +8104,6 @@ msgstr "シェーダープロファイルを選択"
 
 #~ msgid "Always Skip Intros"
 #~ msgstr "常にイントロをスキップする"
-
-#~ msgid "Ask to Skip Intros"
-#~ msgstr "イントロのスキップを尋ねる"
 
 #~ msgid "Always Skip Credits"
 #~ msgstr "デフォルトでクレジットタイトルをスキップする"

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 00:25-0400\n"
+"POT-Creation-Date: 2026-10-17 13:33-0400\n"
 "PO-Revision-Date: 2026-10-12 11:24+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -2660,6 +2660,14 @@ msgstr "Carica tutte le anteprime di ricerca contemporaneamente"
 msgid "Show What You're Watching in Discord"
 msgstr "Mostra cosa stai guardando su Discord"
 
+#. Label of the checkbox for the "mpris" setting (Settings > General > This
+#. Device). Turns on control by the desktop's media keys and media widgets.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Ask to Skip Intros"
+msgid "Desktop Media Controls"
+msgstr "Chiedi di saltare le introduzioni"
+
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2702,6 +2710,14 @@ msgstr "Orologio 12 ore"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
 msgstr "Spaziatura griglia"
+
+#. Label of the checkbox for the "remember_filters" setting (Settings >
+#. Browse > Library Browser).
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Remember Last Used Profile"
+msgid "Remember Library Filters"
+msgstr "Ricorda ultimo profilo utilizzato"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -3150,6 +3166,19 @@ msgstr ""
 "utilizza il profilo shader, quindi è l'opzione da provare prima del "
 "pacchetto shader descritto di seguito."
 
+#. Explanation shown under the "Extract Image Subtitles" setting (Settings >
+#. Playback > Transcoding). PGS and VobSub are subtitle format names; keep
+#. them as they are.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"When a video is transcoded, show its built-in Blu-ray or DVD (PGS, VobSub) "
+"subtitles as a separate track instead of burning them into the picture, so "
+"they stay sharp and can be switched without restarting. Showing one makes "
+"the server extract every subtitle track in the file first, which takes time "
+"and server disk space on a large file. Subtitles in their own file are not "
+"affected."
+msgstr ""
+
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3390,6 +3419,15 @@ msgstr ""
 msgid "Discord Rich Presence."
 msgstr "Presenza dettagliata Discord."
 
+#. Help note under the "mpris" setting (Settings > General > This Device).
+#. MPRIS is the name of the Linux standard; leave it untranslated.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Lets keyboard media keys, headset buttons, the lock screen and desktop media "
+"widgets play, pause and skip, and shows what is playing with its cover "
+"(MPRIS, Linux only)."
+msgstr ""
+
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3429,6 +3467,16 @@ msgstr ""
 "ogni pagina occupa una schermata intera con i controlli Prima / Precedente / "
 "Successiva / Ultima e un numero di pagina che puoi digitare. Più semplice "
 "dello scorrimento preciso su un trackpad."
+
+#. Explanation shown under the "Remember Library Filters" setting (Settings >
+#. Browse > Library Browser). "Filters" are the choices in a library's Filter
+#. panel, such as a genre or "Unplayed".
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Reopen each library with the filters it had last time (genre, unplayed, "
+"favorites and the rest), saved to your account on the server. Off, filters "
+"only last until you leave the library."
+msgstr ""
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -4233,8 +4281,8 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\")."
 msgstr ""
-"Installa il pacchetto \"%(package)s\" (ad esempio \"apt install %(package)"
-"s\")."
+"Installa il pacchetto \"%(package)s\" (ad esempio \"apt install "
+"%(package)s\")."
 
 #. Follows the clipboard message above, naming the MPV version that gained
 #. clipboard support.
@@ -4865,6 +4913,12 @@ msgstr "Impostazioni"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Fullscreen"
 msgstr "Schermo intero"
+
+#. Status message after clicking a row on the Play Queue page when playback
+#. has already ended, so there is no queue left to jump within.
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+msgid "Playback has stopped, so this queue is gone."
+msgstr ""
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5737,6 +5791,22 @@ msgstr "Casuale"
 msgid "Date Episode Added"
 msgstr "Data di aggiunta episodio"
 
+#. Shown in place of the grid when a library's filters match nothing. The
+#. filters may have been chosen on an earlier visit and remembered, so this
+#. says the library is not empty, only filtered.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "No items match these filters."
+msgstr ""
+
+# seeded from jellyfin-web: Filters
+#. Button under "No items match these filters." on an empty library grid.
+#. Removes every filter set on the library. An imperative verb phrase.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "Filters"
+msgid "Clear Filters"
+msgstr "Filtri"
+
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -5750,8 +5820,9 @@ msgid "Networks"
 msgstr "Reti"
 
 #. Button above a library grid, and the title of the page it opens, listing
-#. groups of related items.
+#. groups of related items. Also a row heading on the Favorites page.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Collections"
 msgstr "Collezioni"
 
@@ -5778,11 +5849,13 @@ msgstr "Riproduci tutto"
 
 # seeded from jellyfin-web: Shuffle
 #. Button on a library grid, an album, a playlist, a series or a season that
-#. queues everything in it in a random order and starts playing. An imperative
-#. verb.
+#. queues everything in it in a random order and starts playing; on the Play
+#. Queue page it puts the tracks still to come in a random order. An
+#. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "Shuffle"
@@ -5794,6 +5867,15 @@ msgstr "Mescola"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "That sort could not be saved."
 msgstr "Quell'ordine non può essere salvato."
+
+#. A one-line status message at the bottom of the library screen, after the
+#. server refused to remember which filters the user picked. The filters
+#. themselves have already been applied; only remembering them failed.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "Those items could not be removed."
+msgid "Those filters could not be saved."
+msgstr "Questi elementi non possono essere rimossi."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
@@ -7993,9 +8075,6 @@ msgstr "Seleziona profilo shader"
 
 #~ msgid "Always Skip Intros"
 #~ msgstr "Salta sempre le introduzioni"
-
-#~ msgid "Ask to Skip Intros"
-#~ msgstr "Chiedi di saltare le introduzioni"
 
 #~ msgid "Always Skip Credits"
 #~ msgstr "Salta sempre i riconoscimenti"
