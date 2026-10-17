@@ -229,8 +229,8 @@ if hasattr(mpv, "ShutdownError"):
 else:
     _mpv_errors = (BrokenPipeError, TimeoutError)
 
-# How long to wait for an mpv command's reply once the window is going
-# away. Only the external (jsonipc) backend needs it: a command there is a
+# How long to wait for an mpv command's reply once the app is quitting.
+# Only the external (jsonipc) backend needs it: a command there is a
 # request/response over a socket waited for with
 # python_mpv_jsonipc.TIMEOUT, which is 120s -- and mpv can accept a
 # command, run it, and exit before writing the reply back, parking the
@@ -1533,11 +1533,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # hook this used to stop playback, which fired a stopped
         # playstate, which re-opened the browser window immediately.
         log.info("handle_close_win triggered")
-        # From here mpv may exit at any moment, including between
-        # accepting a command and answering it. Everything below runs
-        # on the action thread, so an unbounded reply wait blocks the
-        # whole shutdown behind it — see bound_ipc_replies.
-        bound_ipc_replies()
+        # No bound_ipc_replies here: with a tray this keeps the same mpv,
+        # and the global would cap its every later reply. See
+        # docs/mpv-backends.md section 1.
         handler = self.on_window_closed
         if self.mpvtk_active and handler is not None:
             self.put_task(handler)
