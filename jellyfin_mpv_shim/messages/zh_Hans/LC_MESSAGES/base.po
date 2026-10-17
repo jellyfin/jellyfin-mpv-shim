@@ -5736,10 +5736,8 @@ msgstr "无法保存该排序。"
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Those items could not be removed."
 msgid "Those filters could not be saved."
-msgstr "这些项目无法移除。"
+msgstr "这些筛选条件无法保存。"
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
