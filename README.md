@@ -384,9 +384,11 @@ WHEEL_UP add volume 5
 WHEEL_DOWN add volume -5
 ```
 
-### MPRIS Plugin (#54)
+### MPRIS Media Controls (#54)
 
-Set `mpv_ext` to `true` in the config. Add `script=/path/to/mpris.so` to `mpv.conf`.
+Built in on Linux: media keys, headset buttons, the lock screen and desktop media widgets
+control playback. It is on by default (the `mpris` setting) and needs PyGObject. With
+playerctl, name the player in full: `playerctl -p com.github.iwalton3.jellyfin-mpv-shim play-pause`.
 
 ### Run Multiple Instances (#45)
 
