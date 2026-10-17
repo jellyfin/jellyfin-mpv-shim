@@ -2837,6 +2837,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if data.get("current_id") != new:
             data["current_id"] = new
             self.invalidate()
+        # ...but the rows themselves are only right while the player still
+        # has that queue. A stop (a paused stream the server dropped) or a
+        # track the page does not list means it has moved on: re-read, or
+        # every row offers a skip into a queue that is gone.
+        if new is None or not any(e["item"].get("Id") == new
+                                  for e in data.get("entries") or ()):
+            self._refresh_current({"queue"})
 
     def _start_daemon(self, attr, name, body, restartable=False):
         """Run ``body`` on a daemon thread, at most one per ``attr``.

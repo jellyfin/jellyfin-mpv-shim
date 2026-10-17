@@ -1699,6 +1699,8 @@ class TestQueueSkipAndHighlight(unittest.TestCase):
         self.assertEqual(self.b.route["_data"]["current_id"], "b")
 
     def test_the_highlight_clears_when_playback_stops(self):
+        # What the player answers once it has stopped: a stop re-reads it.
+        self.ctl.get_queue = lambda: {"items": [], "current_id": None}
         self.b.on_playstate({"stopped": True})
         self.assertIsNone(self.b.route["_data"]["current_id"])
 
@@ -1722,6 +1724,113 @@ class TestQueueSkipAndHighlight(unittest.TestCase):
         lead = icon["x"] - btn["x"]
         trail = (btn["x"] + btn["w"]) - (icon["x"] + icon["w"])
         self.assertAlmostEqual(lead, trail, delta=1.0)
+
+class TestQueueFollowsThePlayer(unittest.TestCase):
+    """The queue page is a snapshot of the player's queue, read when the
+    route opened. When playback ended underneath it -- a paused stream the
+    server dropped -- the rows stayed, and pressing one did nothing: the
+    player had no queue left to skip within (a user report)."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.reads = []
+        real = self.ctl.get_queue
+        self.ctl.get_queue = lambda: (self.reads.append(1) or real())
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+        self.b.nav_stack = [{"kind": "queue", "server": "srv1", "_data": {
+            "entries": [{"item": {"Id": "a", "Name": "One"}, "pid": "pa"},
+                        {"item": {"Id": "b", "Name": "Two"}, "pid": "pb"}],
+            "current_id": "a"}}]
+
+    def pids(self):
+        return [e["pid"] for e in self.b.route["_data"]["entries"]]
+
+    def test_a_stop_re_reads_the_queue(self):
+        self.b.on_playstate({"stopped": True})
+        self.assertTrue(self.reads, "the queue was not re-read on a stop")
+        self.assertEqual(self.pids(), ["p0", "p1", "p2"])
+
+    def test_a_track_the_page_does_not_list_re_reads_it(self):
+        self.b.on_playstate({"stopped": False, "is_audio": True, "id": "q1"})
+        self.assertTrue(self.reads)
+        self.assertEqual(self.pids(), ["p0", "p1", "p2"])
+
+    def test_steady_playstates_do_not_re_read(self):
+        """The now-playing ticker pushes one a second."""
+        for _ in range(4):
+            self.b.on_playstate({"stopped": False, "is_audio": True,
+                                 "id": "b"})
+        self.assertEqual(self.reads, [])
+        self.assertEqual(self.b.route["_data"]["current_id"], "b")
+
+    def test_a_click_after_playback_stopped_says_so(self):
+        self.ctl.playing_item_id = lambda: None
+        _n, h = build_scene(self.b)
+        h["q-play-1"]["click"]()
+        self.assertNotIn("skip_to", [c[0] for c in self.ctl.transport])
+        self.assertIn("stopped", self.b.status.lower())
+
+    def test_a_click_while_playing_skips(self):
+        self.ctl.playing_item_id = lambda: "a"
+        _n, h = build_scene(self.b)
+        h["q-play-1"]["click"]()
+        self.assertIn(("skip_to", ("pb",)), self.ctl.transport)
+
+
+class TestQueueShuffle(unittest.TestCase):
+    """Shuffle on the queue page shuffles what is still to come: the
+    playing track and everything before it stay put."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+        entries = [{"item": {"Id": i, "Name": i}, "pid": "p" + i}
+                   for i in "abcde"]
+        self.route = {"kind": "queue", "server": "srv1", "_sel": {0},
+                      "_data": {"entries": entries, "current_id": "b",
+                                "current_pid": "pb"}}
+        self.b.nav_stack = [self.route]
+
+    def shuffle(self):
+        from unittest import mock
+        from jellyfin_mpv_shim.mpvtk_browser.pages import queue_edit
+        with mock.patch.object(queue_edit.random, "shuffle",
+                               lambda xs: xs.reverse()):
+            _n, h = build_scene(self.b)
+            h["q-shuffle"]["click"]()
+
+    def test_only_the_tracks_after_the_playing_one_move(self):
+        self.shuffle()
+        order = ["pa", "pb", "pe", "pd", "pc"]
+        self.assertEqual([e["pid"] for e in self.route["_data"]["entries"]],
+                         order)
+        self.assertIn(("queue_reorder", (order,)), self.ctl.transport)
+        self.assertEqual(self.route["_sel"], set(),
+                         "a selection of row numbers now points elsewhere")
+
+    def test_a_refused_shuffle_puts_the_order_back(self):
+        def boom(order):
+            raise RuntimeError("nope")
+        self.ctl.queue_reorder = boom
+        self.shuffle()
+        self.assertEqual([e["pid"] for e in self.route["_data"]["entries"]],
+                         ["pa", "pb", "pc", "pd", "pe"])
+        self.assertIn("could not", self.b.status.lower())
+
+    def test_the_playing_entry_is_found_by_its_queue_id(self):
+        """The same track can be queued twice; the item id alone would
+        pick the first copy."""
+        self.route["_data"]["entries"][3]["item"]["Id"] = "b"
+        self.route["_data"]["current_pid"] = "pd"
+        self.shuffle()
+        self.assertEqual([e["pid"] for e in self.route["_data"]["entries"]],
+                         ["pa", "pb", "pc", "pd", "pe"])
+
 
 class TestQueueLookup(unittest.TestCase):
     """skip_to resolves a queue entry through Media.get_from_key. It

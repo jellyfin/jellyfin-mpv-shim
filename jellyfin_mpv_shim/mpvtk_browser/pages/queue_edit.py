@@ -12,6 +12,8 @@ drops ``on_error`` when the epoch has moved, so navigating away mid-flight can
 leave a rejected edit in the route dict.
 """
 
+import random
+
 from ...i18n import _, _p
 from ...mpvtk.widgets import (
     Button,
@@ -186,7 +188,8 @@ class QueuePage(SelectionPage):
                                              "Name": e["id"]}),
                  "pid": e.get("playlist_item_id")}
                 for e in q.get("items", [])]
-            return {"entries": entries, "current_id": q.get("current_id")}
+            return {"entries": entries, "current_id": q.get("current_id"),
+                    "current_pid": q.get("current_pid")}
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
     def render(self, size):
@@ -212,6 +215,8 @@ class QueuePage(SelectionPage):
             Button(_p("list position", "Bottom"), id="q-bottom",
                    icon="vertical_align_bottom",
                    on_click=lambda: self._move("bottom")),
+            Button(_("Shuffle"), id="q-shuffle", icon="shuffle",
+                   on_click=lambda: self._shuffle()),
             Text(_("%d selected") % len(sel) if sel else "", size="small",
                  color=theme.SUBTLE_FG),
             Button(_("Select All"), id="q-all",
@@ -291,6 +296,32 @@ class QueuePage(SelectionPage):
         self.ctx.actions.edit(lambda c: c.queue_remove(pids), on_ok=reload,
                               on_error=reload,
                               error=_("Those items could not be removed."))
+
+    def _shuffle(self):
+        """Shuffle what is still to come. The playing entry is found by its
+        PlaylistItemId when the player gave one: the same track can be
+        queued twice."""
+        route = self.route
+        data = route.get("_data") or {}
+        entries = data.get("entries") or []
+        pid, cur = data.get("current_pid"), data.get("current_id")
+        at = next((i for i, e in enumerate(entries)
+                   if (e.get("pid") == pid if pid
+                       else e["item"].get("Id") == cur)), None)
+        if at is None or len(entries) - at < 3:
+            return
+        was, was_sel = list(entries), set(self.selection())
+        upcoming = entries[at + 1:]
+        random.shuffle(upcoming)
+        data["entries"], route["_sel"] = entries[:at + 1] + upcoming, set()
+        order = [e["pid"] for e in data["entries"] if e.get("pid")]
+        self.ctx.invalidate()
+
+        def restore():
+            data["entries"], route["_sel"] = was, was_sel
+        self.ctx.actions.edit(lambda c: c.queue_reorder(order),
+                              on_error=restore,
+                              error=_("The queue could not be reordered."))
 
     def _move(self, where):
         route = self.route

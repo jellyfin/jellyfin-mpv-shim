@@ -4346,11 +4346,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         video = self._video
         if video is None:
             return {"items": [], "current_id": None}
+        m = video.parent
         return {
             "items": [{"id": q.get("Id"),
                        "playlist_item_id": q.get("PlaylistItemId")}
-                      for q in video.parent.queue if q.get("Id")],
+                      for q in m.queue if q.get("Id")],
             "current_id": video.item_id,
+            "current_pid": m.queue[m.seq].get("PlaylistItemId"),
         }
 
     def _publish_queue(self, m, new_queue, current_pid):
