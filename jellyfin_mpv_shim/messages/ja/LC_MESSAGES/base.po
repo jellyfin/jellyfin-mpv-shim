@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-17 13:28+0000\n"
+"PO-Revision-Date: 2026-10-17 15:00+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -4863,14 +4863,14 @@ msgstr "次へ"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #, python-brace-format
 msgid "Ends at {0}"
-msgstr "{0}に終了"
+msgstr "{0} に終了"
 
 # seeded from jellyfin-web: Mute
 #. Tooltip of the volume button on the playback controls. An imperative
 #. verb.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Mute"
-msgstr "ミュート"
+msgstr "消音"
 
 #. The application's settings screen. Used as the page title, the
 #. navigation-bar button, and the tooltip of the gear button on the
@@ -6040,7 +6040,7 @@ msgstr "このシリーズは録画予約していますが、この番組は予
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Watch"
-msgstr "再生, 視聴"
+msgstr "視聴"
 
 #. Button that starts playing the channel a programme is on, when that
 #. programme is not airing now. An imperative verb.
@@ -6446,7 +6446,7 @@ msgstr "ピープル"
 #. because it labels a row of narrow tiles.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
-msgstr "TV で"
+msgstr "テレビで"
 
 # seeded from jellyfin-web: Other
 #. Heading of the search-results row holding matches that fit none of the
