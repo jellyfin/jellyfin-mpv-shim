@@ -849,7 +849,9 @@ and the generated half measured on the 12.0 QA server:
   thumbnails, so an imported two-hour film advertises about eight previews. Upstream's
   to fix.
 
-The shim refuses a tile that does not match (`bifdecode.BadTile`), records the
+The shim accepts one cut short to the rows it fills, as long as it holds every frame
+asked for -- an imported last tile, unpadded. Any other tile that does not match it
+refuses (`bifdecode.BadTile`), records the
 window so scrubbing does not re-fetch it, and logs the sizes once, including
 whether the tile still divides into the grid — the signature of the
 two-generation case (`docs/artwork-pipeline.md` §11.5).

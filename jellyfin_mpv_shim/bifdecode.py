@@ -96,13 +96,22 @@ def decompress_tiles(width, height, tile_width, tile_height, count, tiles, fh,
         except Exception as exc:
             raise BadTile(index, None, expected, grid, exc) from exc
 
-        if image.size != expected:
+        # A last tile cut to the rows it fills, rather than padded to the
+        # grid as the server's own generator does, is fine as long as it
+        # holds every frame still asked for -- imported tiles can be
+        # (docs/jellyfin-api-notes.md, "the server trusts tiles").
+        rows = image.size[1] // height
+        if image.size != expected and not (
+                image.size[0] == expected[0]
+                and image.size[1] == rows * height and 0 < rows < tile_height):
             raise BadTile(index, image.size, expected, grid)
 
         for y in range(tile_height):
             for x in range(tile_width):
                 if image_count >= count:
                     return image_count
+                if y >= rows:
+                    raise BadTile(index, image.size, expected, grid)
                 if seen < skip:
                     seen += 1
                     continue

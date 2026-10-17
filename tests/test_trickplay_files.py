@@ -292,6 +292,36 @@ class ShortTileRunTest(unittest.TestCase):
         bifdecode.decompress_tiles(4, 4, 2, 2, 4, tiles(), io.BytesIO())
         self.assertEqual(seen, [0], "decoded tiles the window does not need")
 
+    def test_a_last_tile_cut_to_its_rows_serves_its_frames(self):
+        """A tile imported from disk may stop at the last row it fills
+        instead of being padded to the grid. Refusing it blanked the
+        previews for the whole last window of the video."""
+        from jellyfin_mpv_shim import bifdecode
+
+        tiles = [self._tile(8, 8, cells=(2, 2)), self._tile(8, 4, cells=(2, 1))]
+        fh = io.BytesIO()
+        written = bifdecode.decompress_tiles(4, 4, 2, 2, 6, tiles, fh)
+        self.assertEqual(written, 6)
+        self.assertEqual(self._first_bytes(fh.getvalue(), 4 * 4 * 4),
+                         [1, 2, 3, 4, 1, 2])
+
+    def test_a_short_tile_without_a_frame_asked_for_is_bad(self):
+        """Short is only fine when nothing asked for is missing: the
+        two-generation case (a smaller tile mid-video) stays refused."""
+        from jellyfin_mpv_shim import bifdecode
+
+        with self.assertRaises(bifdecode.BadTile):
+            bifdecode.decompress_tiles(
+                4, 4, 2, 2, 3, [self._tile(8, 4, cells=(2, 1))], io.BytesIO())
+
+    def test_a_short_tile_off_the_grid_is_bad(self):
+        from jellyfin_mpv_shim import bifdecode
+
+        for w, h in ((8, 6), (6, 4), (8, 0 + 4 * 3)):
+            with self.subTest(size=(w, h)), self.assertRaises(bifdecode.BadTile):
+                bifdecode.decompress_tiles(
+                    4, 4, 2, 2, 1, [self._tile(w, h)], io.BytesIO())
+
 
 class StripCounterRaceTest(unittest.TestCase):
     """Two threads sharing a counter value produced two live cache entries on
