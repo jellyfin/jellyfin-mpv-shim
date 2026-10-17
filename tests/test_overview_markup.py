@@ -50,7 +50,8 @@ class OverviewMarkupTest(unittest.TestCase):
 
     def test_text_that_only_looks_like_markup_survives(self):
         for text in ("x < y and y > z", "3 <4", "[citation needed]",
-                     "Season [1]", "a <-> b"):
+                     "Season [1]", "a <-> b",
+                     "if a<b and c>d then", "The <Redacted> files"):
             with self.subTest(text=text):
                 self.assertEqual(self.clean(text), text)
 

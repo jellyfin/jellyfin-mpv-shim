@@ -256,8 +256,12 @@ def prose_w(size, avail):
 
 
 _BREAK = re.compile(r"<\s*br\s*/?\s*>|<\s*/\s*p\s*>", re.I)
-#: A letter straight after `<` or `</`, so "x < y" and "a <-> b" survive.
-_TAG = re.compile(r"</?[a-z][a-z0-9]*(?:\s[^<>]*)?/?>", re.I)
+#: Named tags only, as `_BBCODE` below: "The <Redacted> files" is text. An
+#: attribute must be `name=value`, so "a<b and c>d" is not a `<b>` tag.
+_TAG = re.compile(r"</?(?:a|b|i|u|s|p|br|em|strong|span|div|font|sup|sub|"
+                  r"ul|ol|li|hr|h[1-6]|blockquote)"
+                  r"""(?:\s+[a-z-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'<>]+))*"""
+                  r"\s*/?>", re.I)
 #: Named tags only: "[citation needed]" and "Season [1]" are text.
 _BBCODE = re.compile(r"\[/?(?:b|i|u|s|em|strong|quote|spoiler|"
                      r"(?:url|color|size)(?:=[^\]]*)?)\]", re.I)
