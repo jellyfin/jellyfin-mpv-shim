@@ -44,7 +44,8 @@ def _contrast(a, b):
 
 
 #: Themes whose resting buttons are meant to look transparent: the fill is
-#: the page's own colour and the button shows itself on hover, with a border.
+#: the page's own colour and the button shows itself on hover, as a lighter
+#: fill (no border: renderer.lua draws one only where the node supplies it).
 #: Exempt from "buttons vanish" only -- the hover still has to register.
 #: Elegance (#805): Izzie checked it by hand, 2026-10-17, and kept it.
 TRANSPARENT_BUTTONS = {"elegance"}
