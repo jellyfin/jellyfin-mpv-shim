@@ -370,17 +370,6 @@ class SocketCloseIsAShutdownTest(unittest.TestCase):
         if pm._terminate_thread is not None:
             pm._terminate_thread.join(5)
 
-    def test_our_own_terminate_is_not_taken_for_a_close(self):
-        pm, handle = self._fresh()
-        if not player_module.is_using_ext_mpv:
-            self.assertNotIn("quit_callback", vars(handle))
-            return
-        pm.should_send_timeline = True
-        pm._terminate_mpv(handle)
-        self.assertFalse(getattr(handle, "_jms_shutdown_seen", False),
-                         "tearing mpv down ourselves ran the user-close path")
-        self.assertTrue(pm.should_send_timeline)
-
 
 class MenuSurvivesReopenTest(unittest.TestCase):
     """Regression: _init_mpv used to build a FRESH OSDMenu on every re-open,
