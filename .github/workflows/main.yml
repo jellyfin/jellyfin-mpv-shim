@@ -48,7 +48,7 @@ jobs:
         # verifies that the loader is really beside the DLL rather than
         # taking the allowance on trust -- so a build that stops shipping it
         # fails here instead of on a user's machine.
-        tag: '20260828'
+        tag: '20261017'
         fileName: 'mpv-dev-x86_64-v3*.7z'
     - name: Install dependencies
       timeout-minutes: 15
@@ -142,7 +142,7 @@ jobs:
         repository: 'shinchiro/mpv-winbuild-cmake'
         # Pinned, not held down -- we ship the Vulkan loader now; see
         # build-win64 above.
-        tag: '20260828'
+        tag: '20261017'
         fileName: 'mpv-dev-x86_64-[0-9]*-git-*.7z'
     - name: Install dependencies
       timeout-minutes: 15
@@ -244,7 +244,7 @@ jobs:
         repository: 'shinchiro/mpv-winbuild-cmake'
         # Pinned, not held down -- we ship the Vulkan loader now; see
         # build-win64 above.
-        tag: '20260828'
+        tag: '20261017'
         fileName: 'mpv-dev-aarch64-*.7z'
     - name: Install dependencies
       timeout-minutes: 15
