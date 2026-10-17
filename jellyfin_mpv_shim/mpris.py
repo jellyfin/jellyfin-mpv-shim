@@ -15,11 +15,13 @@ import time
 
 log = logging.getLogger("mpris")
 
-BUS_NAME = "org.mpris.MediaPlayer2.jellyfin_mpv_shim"
+DESKTOP_ENTRY = "com.github.iwalton3.jellyfin-mpv-shim"
+# The app id because Flatpak grants that name unasked. playerctl and Waybar
+# call the player `com` as a result (tests/test_mpris.py:BusNameTest).
+BUS_NAME = "org.mpris.MediaPlayer2." + DESKTOP_ENTRY
 OBJECT_PATH = "/org/mpris/MediaPlayer2"
 ROOT_IFACE = "org.mpris.MediaPlayer2"
 PLAYER_IFACE = "org.mpris.MediaPlayer2.Player"
-DESKTOP_ENTRY = "com.github.iwalton3.jellyfin-mpv-shim"
 TRACK_PREFIX = "/com/github/iwalton3/jellyfin_mpv_shim/track/"
 NO_TRACK = "/org/mpris/MediaPlayer2/TrackList/NoTrack"
 
