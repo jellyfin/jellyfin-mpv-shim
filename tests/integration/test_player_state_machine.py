@@ -412,6 +412,134 @@ class ShutdownTeardownTest(unittest.TestCase):
         self.assertEqual(ran, [True])
 
 
+class StopCmdPairTest(unittest.TestCase):
+    """stop_cmd is play_cmd's pair: it runs once whenever a playback that
+    play_cmd announced ends, whatever the reason, and never when nothing was
+    playing. Owner, 2026-10-17: "it should run once when playback ends no
+    matter the reason. It was built for stuff like home assistant
+    integration/lighting/suppressing screen lock/etc". A queue end and a lost
+    connection used to run it zero times and twice respectively, and a Stop
+    with nothing playing ran it anyway."""
+
+    def setUp(self):
+        self.stop_cmds = []
+        p = mock.patch.object(player_module.PlayerManager, "exec_stop_cmd",
+                              staticmethod(lambda: self.stop_cmds.append(1)))
+        p.start()
+        self.addCleanup(p.stop)
+        self.pm = pm = h.build_player(player_module, test=self)
+        pm.push_playstate = lambda stopped=False: None
+        pm.send_timeline_stopped = lambda *a, **k: None
+        pm.get_timeline_options = lambda *a, **k: {"PositionTicks": 0}
+        pm._report_stopped_offline = lambda video: None
+        pm.release_stream = lambda video: None
+
+    def play(self, item_id="v"):
+        """What every start path does around play(): the video is set, then
+        the start is announced."""
+        self.pm._video = FakeVideo(item_id=item_id)
+        self.pm._player.playback_abort = False
+        self.pm.playback_started()
+
+    def drain(self):
+        self.pm.update()
+        t = self.pm._terminate_thread
+        if t is not None:
+            t.join(5)
+
+    def test_a_stop_runs_it_once_per_playback(self):
+        for n in range(1, 4):
+            self.play()
+            self.pm.stop()
+            self.assertEqual(len(self.stop_cmds), n)
+
+    def test_a_stop_with_nothing_playing_does_not(self):
+        for _ in range(3):
+            self.pm.stop()
+        self.assertEqual(self.stop_cmds, [])
+
+    def test_the_queue_ending_runs_it(self):
+        for n in range(1, 4):
+            self.play()
+            self.pm.finished_callback(True, self.pm._play_epoch)
+            self.assertEqual(len(self.stop_cmds), n)
+
+    def test_a_window_close_runs_it_once(self):
+        self.play()
+        self.pm._on_shutdown_event(None)
+        self.pm._on_shutdown_event(None)     # the socket closing, after
+        self.drain()
+        self.assertEqual(len(self.stop_cmds), 1)
+
+    def test_a_lost_connection_runs_it_once(self):
+        self.play()
+        handle = self.pm._player
+        self.pm._handle_mpv_disconnect()
+        self.drain()
+        # Our own terminate closing mpv must not then read as mpv shutting
+        # down: no second teardown, no second hook.
+        self.pm._on_shutdown_event(None)
+        self.pm._on_ipc_closed(handle)
+        self.drain()
+        self.assertEqual(len(self.stop_cmds), 1)
+
+    def test_a_start_over_playback_hands_over_by_default(self):
+        """Owner, 2026-10-17: "hand over by default, make the pair
+        configurable". Measured first: a start over current playback never
+        called stop(), so this is unchanged behaviour."""
+        self.play("a")
+        self.pm.playback_starting()
+        self.play("b")
+        self.assertEqual(self.stop_cmds, [])
+        self.pm.stop()
+        self.assertEqual(len(self.stop_cmds), 1)
+
+    def test_a_start_over_playback_can_end_it_first(self):
+        with mock.patch.object(player_module.settings,
+                               "stop_cmd_on_replace", True):
+            self.play("a")
+            self.pm.playback_starting()
+            self.assertEqual(len(self.stop_cmds), 1)
+            self.play("b")
+            self.pm.stop()
+        self.assertEqual(len(self.stop_cmds), 2)
+
+    def test_app_exit_runs_it_once(self):
+        self.play()
+        self.pm._save_window_geometry = lambda: None
+        handle = self.pm._player
+        with mock.patch.object(player_module, "is_using_ext_mpv", True):
+            self.pm.terminate()
+        self.pm._on_shutdown_event(None)
+        self.pm._on_ipc_closed(handle)
+        self.drain()
+        self.assertEqual(len(self.stop_cmds), 1)
+
+
+class OwnCloseIsNotAnOutsideShutdownTest(unittest.TestCase):
+    """When the app closes mpv itself, mpv's shutdown (or its socket
+    closing) must not run the outside-shutdown path: that started a second
+    terminate thread and the shutdown teardown (review finding F5)."""
+
+    def test_our_terminate_marks_the_handle(self):
+        pm = h.build_player(player_module, test=self)
+        handle = pm._player
+        pm._terminate_mpv(handle)
+        pm._terminate_thread = None
+        pm._on_shutdown_event(None)
+        self.assertTrue(pm.evt_queue.empty(),
+                        "our own terminate queued the shutdown teardown")
+        self.assertIsNone(pm._terminate_thread,
+                          "our own terminate started a second terminate")
+
+    def test_an_outside_shutdown_still_tears_down(self):
+        """Positive control."""
+        pm = h.build_player(player_module, test=self)
+        pm._terminate_mpv = lambda player=None: None
+        pm._on_shutdown_event(None)
+        self.assertFalse(pm.evt_queue.empty())
+
+
 class TeardownDoesNotHoldTheWindowTest(unittest.TestCase):
     """The browser must get its window back before the server teardown runs.
 

@@ -6,9 +6,9 @@ signal: a window closed after a download or a playback left the app running
 with no window. `PlayerManager._on_ipc_closed` runs the handle's "shutdown"
 handlers when the socket goes. What must NOT trigger it is pinned as
 carefully as what must: a superseded handle, and an event that already
-arrived -- either of which would shut down a live session. Our own
-teardown is not filtered (see the handler's docstring): the library gives
-no signal for it.
+arrived -- either of which would shut down a live session -- and our own
+close, which marks the handle before it terminates (_mark_own_close; the
+library gives no signal of its own for it).
 
 End to end: tests/e2e/test_app_smoke (the window-close test, jsonipc leg).
 """

@@ -1,6 +1,5 @@
 import logging
 import threading
-import os
 from datetime import datetime, timedelta
 
 from .clients import clientManager
@@ -776,8 +775,7 @@ class SyncPlayManager:
 
             video = media.video
             if video:
-                if settings.pre_media_cmd:
-                    os.system(settings.pre_media_cmd)
+                self.playerManager.playback_starting()
                 self.playerManager.play(
                     video, offset, no_initial_timeline=True, is_initial_play=True
                 )
@@ -785,8 +783,7 @@ class SyncPlayManager:
                 # Really not sure why I have to call this.
                 self.join_group(group_id)
                 self.playerManager.timeline_handle()
-                if settings.play_cmd:
-                    os.system(settings.play_cmd)
+                self.playerManager.playback_started()
         elif play_command == "PlayLast":
             self.playerManager.get_video().parent.insert_items(
                 session_data.get("ItemIds"), append=True
@@ -893,11 +890,9 @@ class SyncPlayManager:
 
     def _play_video(self, video, offset):
         if video:
-            if settings.pre_media_cmd:
-                os.system(settings.pre_media_cmd)
+            self.playerManager.playback_starting()
             self.playerManager.play(video, offset, no_initial_timeline=True)
-            if settings.play_cmd:
-                os.system(settings.play_cmd)
+            self.playerManager.playback_started()
         else:
             log.error("No video from queue update.")
 

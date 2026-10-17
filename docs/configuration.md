@@ -830,9 +830,10 @@ For servers behind mutual-TLS. All three are paths, and unset by default.
 
 You can execute shell commands on media state using the config file:
 
-- `media_ended_cmd` - When all media has played.
+- `media_ended_cmd` - When all media has played. Runs in addition to `stop_cmd`.
 - `pre_media_cmd` - Before the player displays. (Will wait for finish.)
-- `stop_cmd` - After stopping the player.
+- `stop_cmd` - Once when playback ends, whatever the reason: a stop, the queue finishing, a stream failing, the window closing, the connection to mpv being lost, or quitting. Pairs with `play_cmd`; it does not run when nothing was playing.
+- `stop_cmd_on_replace` - Starting something new while something plays hands over: `stop_cmd` waits for the new playback to end. Set to `true` to run it for the old playback first. Default: `false`
 - `idle_cmd` - After no activity for `idle_cmd_delay` seconds.
 - `idle_cmd_delay` - Seconds of inactivity before `idle_cmd` fires. Default: `300`
 - `idle_when_paused` - Consider the player idle when paused. Default: `false`

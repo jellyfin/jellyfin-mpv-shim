@@ -137,6 +137,12 @@ class LivePlayer:
     def replace_queue_locked(self, media, sp_items, seq):
         return media.replace_queue(sp_items, seq)
 
+    def playback_starting(self):
+        pass
+
+    def playback_started(self):
+        pass
+
     def send_timeline(self):
         pass
 

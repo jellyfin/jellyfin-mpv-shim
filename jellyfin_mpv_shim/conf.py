@@ -140,6 +140,9 @@ class Settings(SettingsBase):
     idle_cmd: Optional[str] = None
     idle_ended_cmd: Optional[str] = None
     play_cmd: Optional[str] = None
+    # A start over current playback is a hand-over by default: stop_cmd waits
+    # for the new playback to end. True runs it for the old one first.
+    stop_cmd_on_replace: bool = False
     idle_cmd_delay: int = 60
     # Quit mpv after this many idle seconds to free the window / GPU / memory;
     # it is re-created on the next play (or when the library is reopened from
