@@ -416,6 +416,17 @@ class FavoritesTest(unittest.TestCase):
         src = OfflineLibrarySource.__new__(OfflineLibrarySource)
         self.assertEqual(src.get_favorite_sections("srv"), [])
 
+    def test_favourite_collections_get_a_row_after_videos(self):
+        """A collection can be marked as a favourite from its tile menu, so
+        it needs somewhere to show up (#816). Where web's Favorites page
+        puts it: after the videos."""
+        rows = _source(_Api()).get_favorite_sections("srv")
+        keys = [r["key"] for r in rows]
+        self.assertEqual(keys[keys.index("videos") + 1], "collections")
+        row = rows[keys.index("collections")]
+        self.assertEqual(row["types"], "BoxSet")
+        self.assertEqual(row["title"], "Collections")
+
 
 class GenresTest(unittest.TestCase):
     """A heading per genre over a random sample, each linking to the full

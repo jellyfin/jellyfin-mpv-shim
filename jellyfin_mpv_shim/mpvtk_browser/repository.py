@@ -1875,6 +1875,9 @@ class LibrarySource:
         ("shows", lambda: _("Shows"), "Series"),
         ("episodes", lambda: _("Episodes"), "Episode"),
         ("videos", lambda: _("Videos"), "Video,MusicVideo"),
+        # Not in favoriteitems.js; web's Favorites page
+        # (controllers/favorites.js) has it here (#816).
+        ("collections", lambda: _("Collections"), "BoxSet"),
         ("artists", lambda: _("Artists"), "MusicArtist"),
         ("albums", lambda: _("Albums"), "MusicAlbum"),
         ("songs", lambda: _("Songs"), "Audio"),
