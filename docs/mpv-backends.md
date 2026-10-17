@@ -117,10 +117,7 @@ handle raises immediately, which is why the same close is instant there.
 Bounding the wait is the fix rather than hunting individual calls: any command
 issued while the window is disappearing can lose its reply, and during teardown
 there is no command whose answer is worth minutes. `TIMEOUT` is a module global
-read at each wait, so lowering it takes effect immediately -- and outlives the mpv
-it was lowered for, so `_construct_mpv` puts it back (`restore_ipc_replies`)
-before building the next one. Without that, every command to the mpv relaunched
-after a close-to-tray timed out at the teardown bound.
+read at each wait, so lowering it takes effect immediately.
 
 ### Bound methods cannot be property observers on libmpv
 

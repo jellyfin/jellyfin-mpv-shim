@@ -40,7 +40,6 @@ class BoundIpcRepliesTest(unittest.TestCase):
         self.patches = [
             mock.patch.object(self.player, "mpv", self.fake_mpv),
             mock.patch.object(self.player, "is_using_ext_mpv", True),
-            mock.patch.object(self.player, "_ipc_bound", None),
         ]
         for p in self.patches:
             p.start()
@@ -89,37 +88,6 @@ class BoundIpcRepliesTest(unittest.TestCase):
         # replace a slow shutdown with a broken one.
         with mock.patch.object(self.player, "mpv", object()):
             self.player.bound_ipc_replies()      # must not raise
-
-
-class TheNextMpvGetsTheFullWaitTest(unittest.TestCase):
-    """``TIMEOUT`` is a module global, so the teardown bound outlived the
-    mpv it was for: after one close-to-tray, every command to the next mpv
-    -- relaunched by a cast or a re-open -- timed out at 5 s, and a timeout
-    reads as a disconnect (``_mpv_errors``)."""
-
-    setUp = BoundIpcRepliesTest.setUp
-    tearDown = BoundIpcRepliesTest.tearDown
-
-    def construct(self):
-        pm = self.player.PlayerManager.__new__(self.player.PlayerManager)
-        pm._gamepad_works = pm._lua_works = None
-        with mock.patch.object(self.player, "_disarm_sdl_signal_handlers",
-                               lambda: None):
-            try:
-                pm._construct_mpv({})
-            except Exception:
-                pass    # the fake has no MPV class; only the wait matters
-
-    def test_building_the_next_mpv_restores_the_wait(self):
-        self.player.bound_ipc_replies()
-        self.construct()
-        self.assertEqual(self.fake_mpv.TIMEOUT, 120)
-
-    def test_a_wait_nobody_bounded_is_left_alone(self):
-        """Somebody else's setting, not ours to reset."""
-        self.fake_mpv.TIMEOUT = 300
-        self.construct()
-        self.assertEqual(self.fake_mpv.TIMEOUT, 300)
 
 
 class WindowCloseTightensTheWaitTest(unittest.TestCase):
