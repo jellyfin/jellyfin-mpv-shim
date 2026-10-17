@@ -79,6 +79,32 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="3.2.0" date="2026-10-17">
+      <description>
+        <p>
+          Add MPRIS support, external bitmap subtitle and audio support, fix possible
+          app crash when scrolling library, and add input method support on Wayland.
+        </p>
+        <p>Changes:</p>
+        <ul>
+          <li>Add MPRIS media controls support for Linux (#129)</li>
+          <li>IME input now works in text fields on Windows and Wayland (#798).</li>
+          <li>Add external PGS, VobSub, and audio support.</li>
+          <li>Fixed possible app crash during library scrolling (#800)</li>
+          <li>Added Elegance theme, inspired by ElegantFin (#805)</li>
+          <li>Library filters are now remembered by default. (Configurable)</li>
+          <li>Collections have been added to the Favorites page (#816)</li>
+          <li>Fix resuming of audiobooks from player tiles.</li>
+          <li>Add shuffle support for music queues.</li>
+          <li>Fix volume slider in music/audiobook view.</li>
+          <li>Fix several reliability issues with image loading.</li>
+          <li>Add ICC color profile and EXIF rotation support.</li>
+          <li>Fix issue where trickplay images sometimes spam requests or refuse to load.</li>
+          <li>HTML and BBCode is now stripped from description fields.</li>
+          <li>Update Flatpak runtime to GNOME 51.</li>
+        </ul>
+      </description>
+    </release>
     <release version="3.1.0" date="2026-10-04">
       <description>
         <p>
