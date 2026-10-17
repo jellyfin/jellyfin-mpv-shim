@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-06 14:05+0000\n"
+"PO-Revision-Date: 2026-10-17 22:40+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -2653,10 +2653,8 @@ msgstr "在 Discord 展示当前播放内容"
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "询问是否跳过片头"
+msgstr "桌面媒体控件"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
@@ -2704,10 +2702,8 @@ msgstr "网格间距"
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remember Last Used Profile"
 msgid "Remember Library Filters"
-msgstr "记住上次使用的配置文件"
+msgstr "记住媒体库筛选条件"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -3132,6 +3128,10 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"视频转码后，将其内置蓝光或 DVD（PGS、VobSub）字幕显示为单独的轨道，而不是将它"
+"们刻录到图片中，这样它们就能保持清晰，并且无需重新启动即可切换。显示一个会使"
+"服务器首先提取文件中的每个字幕轨道，这会占用大文件的时间和服务器磁盘空间。其"
+"自身文件中的字幕不受影响。"
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3344,6 +3344,8 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"允许键盘媒体键、耳机按钮、锁定屏幕和桌面媒体小部件播放、暂停和跳过，并通过其"
+"封面显示正在播放的内容（MPRIS，仅限 Linux）。"
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
