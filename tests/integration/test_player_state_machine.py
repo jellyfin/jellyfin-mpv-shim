@@ -380,6 +380,9 @@ class ShutdownTeardownTest(unittest.TestCase):
         # _lock, serialized against stop/play) and the offline stop report.
         pm = h.build_player(player_module, test=self)
         pm._video = FakeVideo(item_id="v", client=None)
+        # Announced, as every start path does: stop_cmd is owed only for a
+        # playback that play_cmd announced (StopCmdPairTest).
+        pm.playback_started()
         reports = []
         pm._report_stopped_offline = lambda video: reports.append(video)
         stop_cmds = []
