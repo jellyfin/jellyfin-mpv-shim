@@ -626,6 +626,12 @@ _SHUTDOWN_SEEN_LOCK = threading.Lock()
 #: (a stop, the action thread's end of queue, a lost connection).
 _STOP_OWED_LOCK = threading.Lock()
 
+def _shutdown_seen(handle):
+    """Read through `__dict__`: on libmpv an unset attribute is a property
+    read, which raises on a dead core (docs/mpv-backends.md §1)."""
+    return getattr(handle, "__dict__", {}).get("_jms_shutdown_seen", False)
+
+
 def _mark_own_close(handle):
     """Before we terminate mpv ourselves: mark the handle as already shut
     down, with the same once-per-handle flag _on_shutdown_event sets, so the
@@ -1927,7 +1933,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # as mpv's event and from the socket closing (_on_ipc_closed).
         handle = self._player
         with _SHUTDOWN_SEEN_LOCK:
-            if getattr(handle, "_jms_shutdown_seen", False):
+            if _shutdown_seen(handle):
                 return
             try:
                 handle._jms_shutdown_seen = True
@@ -5148,7 +5154,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         if handle is not self._player:
             return
-        if getattr(handle, "_jms_shutdown_seen", False):
+        if _shutdown_seen(handle):
             return
         log.info("mpv's socket closed without a shutdown event; treating it "
                  "as one")

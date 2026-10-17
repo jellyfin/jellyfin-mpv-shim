@@ -79,5 +79,32 @@ class IpcClosedTest(unittest.TestCase):
                          % len(tasks))
 
 
+
+class _DeadLibmpvHandle:
+    """python-mpv's MPV after its core died: an attribute it does not hold
+    is a property read (`__getattr__`), and that raises ShutdownError, not
+    AttributeError -- so `getattr(h, name, default)` raises."""
+
+    def __getattr__(self, name):
+        raise RuntimeError("ShutdownError: libmpv core has been shutdown")
+
+
+class LibmpvShutdownSeenTest(unittest.TestCase):
+    """The once-per-handle flag is read from `__dict__`
+    (docs/mpv-backends.md §1); asking a dead core for it raised inside the
+    event handler and skipped the teardown and stop_cmd."""
+
+    def test_the_teardown_is_queued_once(self):
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._player = _DeadLibmpvHandle()
+        pm._idle_quit = False
+        tasks = []
+        pm.put_task = tasks.append
+        pm._terminate_mpv = lambda player=None: None
+        for _ in range(3):
+            pm._on_shutdown_event(None)
+        self.assertEqual([pm._handle_mpv_shutdown], tasks)
+
+
 if __name__ == "__main__":
     unittest.main()
