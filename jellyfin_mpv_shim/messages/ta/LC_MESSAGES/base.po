@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 00:25-0400\n"
+"POT-Creation-Date: 2026-10-17 13:33-0400\n"
 "PO-Revision-Date: 2026-10-06 14:05+0000\n"
 "Last-Translator: Oatavandi <oatavandi@gmail.com>\n"
 "Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
@@ -892,8 +892,8 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
-"தானாகவே மறுதொடக்கம் செய்ய முடியவில்லை — உங்கள் மாற்றங்களைச் செயல்படுத்த, செயலியை மூடிவிட்டு "
-"மீண்டும் தொடங்கவும்."
+"தானாகவே மறுதொடக்கம் செய்ய முடியவில்லை — உங்கள் மாற்றங்களைச் செயல்படுத்த, செயலியை "
+"மூடிவிட்டு மீண்டும் தொடங்கவும்."
 
 #. Status message when a retry after a connection failure also failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
@@ -2694,6 +2694,14 @@ msgstr "அனைத்து சீக் முன்னோட்டங்க�
 msgid "Show What You're Watching in Discord"
 msgstr "டிஸ்கார்டில் நீங்கள் பார்ப்பதைக் காட்டுங்கள்"
 
+#. Label of the checkbox for the "mpris" setting (Settings > General > This
+#. Device). Turns on control by the desktop's media keys and media widgets.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Ask to Skip Intros"
+msgid "Desktop Media Controls"
+msgstr "முன்னோட்டங்களை தவிர்க்க சொல்லி கேள்"
+
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2737,6 +2745,14 @@ msgstr "12 மணி நேர கடிகாரம்"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
 msgstr "கட்ட இடைவெளி"
+
+#. Label of the checkbox for the "remember_filters" setting (Settings >
+#. Browse > Library Browser).
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Remember Last Used Profile"
+msgid "Remember Library Filters"
+msgstr "கடைசியாகப் பயன்படுத்தப்பட்ட சுயவிவரத்தை நினைவில் கொள்க"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -2972,12 +2988,12 @@ msgid ""
 "write the rules yourself."
 msgstr ""
 "\"Subbed\" அசல் ஆடியோவை அப்படியே வைத்து, உங்கள் மொழியில் முழுமையான வசன வரிகளைச் "
-"சேர்க்கிறது. \"Dubbed\" உங்கள் மொழி ஆடியோவுடன், அறிவிப்புப் பலகைகள் மற்றும் பாடல்களுக்கான "
-"வசன வரிகளை விரும்புகிறது, மேலும் டப்பிங் இல்லாத இடங்களில் \"Subbed\" முறைக்கு "
-"மாறுகிறது. \"shows only\" ஜோடியானது, சர்வர் தேர்ந்தெடுக்கும் திரைப்படங்களை அப்படியே "
-"விட்டுவிடுகிறது. \"Subbed\" முன்னமைவுகள், அசல் ஆடியோ ஜப்பானிய மொழியில் இருப்பதாகக் "
-"கருதுகின்றன; உங்களுடையது அவ்வாறு இல்லையென்றால், Custom என்பதைத் தேர்ந்தெடுத்து நீங்களே "
-"விதிகளை எழுதவும்."
+"சேர்க்கிறது. \"Dubbed\" உங்கள் மொழி ஆடியோவுடன், அறிவிப்புப் பலகைகள் மற்றும் "
+"பாடல்களுக்கான வசன வரிகளை விரும்புகிறது, மேலும் டப்பிங் இல்லாத இடங்களில் \"Subbed\" "
+"முறைக்கு மாறுகிறது. \"shows only\" ஜோடியானது, சர்வர் தேர்ந்தெடுக்கும் திரைப்படங்களை "
+"அப்படியே விட்டுவிடுகிறது. \"Subbed\" முன்னமைவுகள், அசல் ஆடியோ ஜப்பானிய மொழியில் "
+"இருப்பதாகக் கருதுகின்றன; உங்களுடையது அவ்வாறு இல்லையென்றால், Custom என்பதைத் "
+"தேர்ந்தெடுத்து நீங்களே விதிகளை எழுதவும்."
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
@@ -3015,10 +3031,10 @@ msgid ""
 msgstr ""
 "டி-பேட் அல்லது லெஃப்ட் ஸ்டிக்கைப் பயன்படுத்தி நகரவும், ரைட் ஸ்டிக்கைப் பயன்படுத்தி தேடவும், "
 "பக்கங்களை மாற்ற ஷோல்டர் பட்டன்களையும், மெனுவிற்கு ஸ்டார்ட் பட்டனையும் பயன்படுத்தவும். ஒரு "
-"கண்ட்ரோலர் ஃபோகஸைக் கண்டறியும் திறன் கொண்டதல்ல, எனவே மற்றொரு விண்டோ முன்னால் இருந்தாலும் அது "
-"இந்த ஆப்பை அடையும். இதற்கு SDL2 கேம்பேட் ஆதரவுடன் உருவாக்கப்பட்ட ஒரு mpv தேவை; உங்களிடம் "
-"அது இல்லையென்றால், இந்த அமைப்பு புறக்கணிக்கப்படும், மேலும் லாக் அதையே குறிப்பிடும். உங்கள் "
-"input.conf கோப்பில் எந்த பட்டனையும் மீண்டும் ஒதுக்கலாம்."
+"கண்ட்ரோலர் ஃபோகஸைக் கண்டறியும் திறன் கொண்டதல்ல, எனவே மற்றொரு விண்டோ முன்னால் இருந்தாலும் "
+"அது இந்த ஆப்பை அடையும். இதற்கு SDL2 கேம்பேட் ஆதரவுடன் உருவாக்கப்பட்ட ஒரு mpv தேவை; "
+"உங்களிடம் அது இல்லையென்றால், இந்த அமைப்பு புறக்கணிக்கப்படும், மேலும் லாக் அதையே "
+"குறிப்பிடும். உங்கள் input.conf கோப்பில் எந்த பட்டனையும் மீண்டும் ஒதுக்கலாம்."
 
 #. Explanation shown under the "Swap Confirm and Back Buttons" setting
 #. (Settings > General > Input).
@@ -3040,9 +3056,9 @@ msgid ""
 "there."
 msgstr ""
 "நீங்கள் நூலகத்தில் இருக்கும்போது, அங்கு செயல்படுவதற்கு வீடியோ இல்லாததால், MPV-யின் சொந்த "
-"குறுக்குவழிகளான படச் சரிசெய்தல், ஸ்கிரீன்ஷாட்கள், வசன வரிகள் மற்றும் ஆடியோ மாற்றுதல் போன்றவை "
-"செயல்படுவதை இது தடுக்கிறது. அங்கு உங்கள் சொந்த MPV விசை அமைப்புகளைப் பயன்படுத்த, இதை "
-"அணைத்துவிடவும்."
+"குறுக்குவழிகளான படச் சரிசெய்தல், ஸ்கிரீன்ஷாட்கள், வசன வரிகள் மற்றும் ஆடியோ மாற்றுதல் "
+"போன்றவை செயல்படுவதை இது தடுக்கிறது. அங்கு உங்கள் சொந்த MPV விசை அமைப்புகளைப் "
+"பயன்படுத்த, இதை அணைத்துவிடவும்."
 
 #. Explanation shown under the "Select Key" setting (under Advanced on the
 #. General tab of Settings).
@@ -3068,9 +3084,9 @@ msgid ""
 msgstr ""
 "நீங்கள் ஒன்றைப் பார்த்து முடித்த பிறகு ஒரு சலுகைக் காலம்: அது இந்தக் காலம் வரை பதிவிறக்கம் "
 "செய்யப்பட்டிருக்கும். எனவே, அடுத்த முறை சரிபார்க்கும்போது பார்ப்பதற்குப் பதிலாக, நீங்கள் அதை "
-"மீண்டும் பார்க்கலாம் அல்லது வீட்டில் உள்ள வேறு யாராவது அதைப் பார்த்து முடிக்கலாம். இருப்பினும், "
-"சேமிப்பக இடம் தீர்ந்துவிட்டால், இந்தக் காலக்கெடு முடிவதற்குள் பார்க்கப்பட்ட பதிவிறக்கங்கள் "
-"நீக்கப்பட்டுவிடும்."
+"மீண்டும் பார்க்கலாம் அல்லது வீட்டில் உள்ள வேறு யாராவது அதைப் பார்த்து முடிக்கலாம். "
+"இருப்பினும், சேமிப்பக இடம் தீர்ந்துவிட்டால், இந்தக் காலக்கெடு முடிவதற்குள் பார்க்கப்பட்ட "
+"பதிவிறக்கங்கள் நீக்கப்பட்டுவிடும்."
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
@@ -3091,7 +3107,8 @@ msgstr ""
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
 msgstr ""
-"ஒரு அத்தியாயத்தின் சிறுபடம் என்பது, நீங்கள் இன்னும் பார்க்காத ஒரு அத்தியாயத்தின் ஒரு காட்சியாகும்."
+"ஒரு அத்தியாயத்தின் சிறுபடம் என்பது, நீங்கள் இன்னும் பார்க்காத ஒரு அத்தியாயத்தின் ஒரு "
+"காட்சியாகும்."
 
 #. Explanation shown under the "Left Click Pauses Playback" setting
 #. (Settings > Playback > Player Controls).
@@ -3119,10 +3136,10 @@ msgstr ""
 "கோப்பில் இன்டர்லேஸ்டாகக் குறிப்பிடப்பட்டுள்ள வீடியோவை டீஇன்டர்லேஸ் செய்யவும். MPV-இலேயே "
 "இருப்பது போல, இது இயல்பாகவே முடக்கப்பட்டுள்ளது: இந்தக் குறியீடு எந்தத் திசையிலும் "
 "நம்பகமானதல்ல, மேலும் புரோகிரசிவ் வீடியோவை டீஇன்டர்லேஸ் செய்வது, நன்றாக இருந்த ஒரு படத்தின் "
-"தோற்றத்தை மங்கச் செய்துவிடும். இன்டர்லேஸ்டாகக் குறிப்பிடப்படாத ஒரு கோப்பிற்கு இதை வலுக்கட்டாயமாக "
-"இயக்க, பிளேயரின் அமைப்புகள் மெனுவில் உள்ள 'டீஇன்டர்லேஸ்' (Deinterlace) என்பதைப் "
-"பயன்படுத்தவும்; இது நீங்கள் லைப்ரரிக்குத் திரும்பும் வரை நீடிக்கும். இதற்கு MPV 0.38 அல்லது "
-"அதற்குப் புதிய பதிப்பு தேவை."
+"தோற்றத்தை மங்கச் செய்துவிடும். இன்டர்லேஸ்டாகக் குறிப்பிடப்படாத ஒரு கோப்பிற்கு இதை "
+"வலுக்கட்டாயமாக இயக்க, பிளேயரின் அமைப்புகள் மெனுவில் உள்ள 'டீஇன்டர்லேஸ்' (Deinterlace) "
+"என்பதைப் பயன்படுத்தவும்; இது நீங்கள் லைப்ரரிக்குத் திரும்பும் வரை நீடிக்கும். இதற்கு MPV 0.38 "
+"அல்லது அதற்குப் புதிய பதிப்பு தேவை."
 
 #. Explanation shown under the "Debanding" setting (Settings > Playback >
 #. Video Enhancement).
@@ -3137,13 +3154,13 @@ msgid ""
 "all, so your values are left alone."
 msgstr ""
 "கிரேடியன்ட்களில் (வானம், இருண்ட காட்சிகள், மங்குதல் போன்றவை) தோன்றும் கட்டம் கட்டமான படிகளை "
-"இது மென்மையாக்குகிறது. அனிமேஷன் மற்றும் அனிமே ஆகியவை இதனால் அதிகம் பயனடைகின்றன, ஏனெனில் "
-"படத்தின் பெரும்பகுதி தட்டையான கிரேடியன்ட்களாகவே இருக்கும்; லைவ் ஆக்‌ஷன் பெரும்பாலும் எந்த "
-"வகையிலும் பாதிக்கப்படுவதில்லை, இருப்பினும் ஒரு வலுவான அமைப்பு மிக நுண்ணிய விவரங்களை "
-"மென்மையாக்கக்கூடும். உள்ளடக்கம் எதுவாக இருந்தாலும் இது GPU-வின் வேலையை எடுத்துக்கொள்ளும், இது "
-"ஒரு சிறிய அல்லது பழைய கணினியில் தெரிந்துகொள்ள வேண்டிய ஒரு விஷயமாகும். mpv.conf-இல் "
-"உள்ள deband விருப்பங்களை நீங்களே அமைத்தால், இதை Off என விட்டுவிடுங்கள் — Off என்பது "
-"எதையும் எழுதாது, எனவே உங்கள் மதிப்புகள் மாற்றப்படாது."
+"இது மென்மையாக்குகிறது. அனிமேஷன் மற்றும் அனிமே ஆகியவை இதனால் அதிகம் பயனடைகின்றன, "
+"ஏனெனில் படத்தின் பெரும்பகுதி தட்டையான கிரேடியன்ட்களாகவே இருக்கும்; லைவ் ஆக்‌ஷன் "
+"பெரும்பாலும் எந்த வகையிலும் பாதிக்கப்படுவதில்லை, இருப்பினும் ஒரு வலுவான அமைப்பு மிக "
+"நுண்ணிய விவரங்களை மென்மையாக்கக்கூடும். உள்ளடக்கம் எதுவாக இருந்தாலும் இது GPU-வின் வேலையை "
+"எடுத்துக்கொள்ளும், இது ஒரு சிறிய அல்லது பழைய கணினியில் தெரிந்துகொள்ள வேண்டிய ஒரு "
+"விஷயமாகும். mpv.conf-இல் உள்ள deband விருப்பங்களை நீங்களே அமைத்தால், இதை Off என "
+"விட்டுவிடுங்கள் — Off என்பது எதையும் எழுதாது, எனவே உங்கள் மதிப்புகள் மாற்றப்படாது."
 
 #. Explanation shown under the "HDR Tone Mapping" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3157,9 +3174,9 @@ msgid ""
 msgstr ""
 "ஒரு SDR திரையில் HDR வீடியோ எவ்வாறு பொருத்தப்படுகிறது. HDR ஒரு HDR திரைக்கு "
 "அனுப்பப்படும்போது இது எதையும் செய்யாது, ஏனெனில் மாற்றுவதற்கு எந்த டோன் மேப்பிங்கும் "
-"நடைபெறுவதில்லை. HDR திரைப்படங்கள் உங்களுக்குச் சரியாகத் தெரியாதவரை, இதை ஆட்டோமேட்டிக்கில் "
-"விட்டுவிடுங்கள்; BT.2390 என்பது ரெஃபரன்ஸ் கர்வ் ஆகும், மேலும் ஹைலைட்கள் பிரகாசமாக இல்லாமல் "
-"சாம்பல் நிறமாகத் தெரிந்தால், கிளிப் என்பதை முயற்சித்துப் பார்க்கவும்."
+"நடைபெறுவதில்லை. HDR திரைப்படங்கள் உங்களுக்குச் சரியாகத் தெரியாதவரை, இதை "
+"ஆட்டோமேட்டிக்கில் விட்டுவிடுங்கள்; BT.2390 என்பது ரெஃபரன்ஸ் கர்வ் ஆகும், மேலும் ஹைலைட்கள் "
+"பிரகாசமாக இல்லாமல் சாம்பல் நிறமாகத் தெரிந்தால், கிளிப் என்பதை முயற்சித்துப் பார்க்கவும்."
 
 #. Explanation shown under the "Rendering Quality" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3172,8 +3189,21 @@ msgid ""
 msgstr ""
 "உயர்தரம் என்பது, MPV-யின் சொந்த உயர்தர முன்னமைவைப் போன்றே, மேம்பட்ட அப்ஸ்கேலிங் மற்றும் HDR "
 "கையாளும் வசதிகளைக் கொண்டுள்ளது, ஆனால் இதற்குச் சிறிதளவு GPU செலவாகும். இதற்கு ஷேடர் "
-"கோப்புகள் தேவையில்லை, மேலும் இது உங்கள் ஷேடர் சுயவிவரத்தைப் பயன்படுத்தாது. எனவே, கீழே உள்ள "
-"ஷேடர் பேக்கிற்கு முன்பு இதை முயற்சித்துப் பார்ப்பது நல்லது."
+"கோப்புகள் தேவையில்லை, மேலும் இது உங்கள் ஷேடர் சுயவிவரத்தைப் பயன்படுத்தாது. எனவே, கீழே "
+"உள்ள ஷேடர் பேக்கிற்கு முன்பு இதை முயற்சித்துப் பார்ப்பது நல்லது."
+
+#. Explanation shown under the "Extract Image Subtitles" setting (Settings >
+#. Playback > Transcoding). PGS and VobSub are subtitle format names; keep
+#. them as they are.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"When a video is transcoded, show its built-in Blu-ray or DVD (PGS, VobSub) "
+"subtitles as a separate track instead of burning them into the picture, so "
+"they stay sharp and can be switched without restarting. Showing one makes "
+"the server extract every subtitle track in the file first, which takes time "
+"and server disk space on a large file. Subtitles in their own file are not "
+"affected."
+msgstr ""
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3201,8 +3231,8 @@ msgid ""
 msgstr ""
 "பிரேம் பிளெண்டிங் (பிரேம்களை ஒன்றாகக் கலக்கிறது, இது SVP/DLSS/பிரேம்ஜென் போன்றது அல்ல). "
 "உள்ளடக்கம் மற்றும் காட்சிக்கு இடையே பொருந்தாத பிரேம் விகிதத்தால் ஏற்படும் நடுக்கத்தைக் "
-"குறைக்கிறது. உங்கள் காட்சிகளில் பொருந்தாத பிரேம் விகிதங்கள் இருந்தால், இது பிரேம்கள் விடுபடக் "
-"காரணமாகலாம்."
+"குறைக்கிறது. உங்கள் காட்சிகளில் பொருந்தாத பிரேம் விகிதங்கள் இருந்தால், இது பிரேம்கள் "
+"விடுபடக் காரணமாகலாம்."
 
 #. Explanation shown under the "Hardware Decoding" setting (Settings >
 #. Playback > Playback).
@@ -3215,13 +3245,14 @@ msgid ""
 "another VapourSynth filter. If video stops working, start with --disable-"
 "hwdec and change this back."
 msgstr ""
-"சில கிராபிக்ஸ் டிரைவர்கள் இதைச் சரியாகக் கையாளாததால், இது இயல்பாகவே அணைக்கப்பட்டிருக்கும். "
-"\"1080p-க்கு மேல் மட்டும்\" (Only above 1080p) என்பதே இதை இயக்குவதற்கான ஒரு "
-"எச்சரிக்கையான வழியாகும்: பெரும்பாலான வன்பொருள்கள் 1080p-ஐ மென்பொருளில் உதவியின்றி டிகோட் "
-"செய்கின்றன. \"நகலெடு (மேம்பட்டது)\" (Copy (advanced)) என்பது மெதுவானது, ஆனால் இது "
-"வீடியோ ஃபில்டர்களுடன் செயல்படும் பயன்முறையாகும், எனவே நீங்கள் SVP அல்லது மற்றொரு "
-"VapourSynth ஃபில்டரைப் பயன்படுத்தினால், இதையே தேர்ந்தெடுக்க வேண்டும். வீடியோ வேலை செய்வதை "
-"நிறுத்திவிட்டால், --disable-hwdec உடன் தொடங்கி, இதை மீண்டும் பழைய நிலைக்கு மாற்றவும்."
+"சில கிராபிக்ஸ் டிரைவர்கள் இதைச் சரியாகக் கையாளாததால், இது இயல்பாகவே "
+"அணைக்கப்பட்டிருக்கும். \"1080p-க்கு மேல் மட்டும்\" (Only above 1080p) என்பதே இதை "
+"இயக்குவதற்கான ஒரு எச்சரிக்கையான வழியாகும்: பெரும்பாலான வன்பொருள்கள் 1080p-ஐ "
+"மென்பொருளில் உதவியின்றி டிகோட் செய்கின்றன. \"நகலெடு (மேம்பட்டது)\" (Copy (advanced)) "
+"என்பது மெதுவானது, ஆனால் இது வீடியோ ஃபில்டர்களுடன் செயல்படும் பயன்முறையாகும், எனவே நீங்கள் "
+"SVP அல்லது மற்றொரு VapourSynth ஃபில்டரைப் பயன்படுத்தினால், இதையே தேர்ந்தெடுக்க வேண்டும். "
+"வீடியோ வேலை செய்வதை நிறுத்திவிட்டால், --disable-hwdec உடன் தொடங்கி, இதை மீண்டும் பழைய "
+"நிலைக்கு மாற்றவும்."
 
 #. Explanation shown under the "Enable GUI" setting (under Advanced on the
 #. General tab of Settings).
@@ -3248,9 +3279,10 @@ msgid ""
 "to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
 "இந்த இயந்திரத்திற்கு ஒளிபரப்பப்படுவதை மட்டும் காண்பிக்கவும். இந்த அமைப்புகள் திரை உட்பட "
-"நூலகத்தை இங்கிருந்து அணுக முடியாது, மேலும் சிஸ்டம் ட்ரே ஐகான் இல்லாததால், conf.json கோப்பைத் "
-"திருத்துவதே திரும்பிச் செல்வதற்கான ஒரே வழியாகும். இது, யாரும் உலாவ முடியாத ஒரு பகிரப்பட்ட "
-"டிவிக்கானது; ஒரு சாதாரண ஒளிபரப்பு இலக்கிற்கு, இடைமுக அமைப்புகளைப் பயன்படுத்தவும்."
+"நூலகத்தை இங்கிருந்து அணுக முடியாது, மேலும் சிஸ்டம் ட்ரே ஐகான் இல்லாததால், conf.json "
+"கோப்பைத் திருத்துவதே திரும்பிச் செல்வதற்கான ஒரே வழியாகும். இது, யாரும் உலாவ முடியாத "
+"ஒரு பகிரப்பட்ட டிவிக்கானது; ஒரு சாதாரண ஒளிபரப்பு இலக்கிற்கு, இடைமுக அமைப்புகளைப் "
+"பயன்படுத்தவும்."
 
 #. Explanation shown under the "Window Buttons in the Top Bar" setting
 #. (Settings > General > Window).
@@ -3262,11 +3294,11 @@ msgid ""
 "it. On \"Only when the window has no title bar\", MPV is asked whether this "
 "window got one, so desktops that draw a title bar are left alone."
 msgstr ""
-"சில டெஸ்க்டாப்புகள், குறிப்பாக Wayland-இல் உள்ள GNOME, பிளேயர் விண்டோவில் தலைப்புப் பட்டையை "
-"வரைவதில்லை. இதனால், அதை நகர்த்தவோ அல்லது மூடவோ வழி இருப்பதில்லை. இது, சிறிதாக்கு, "
-"பெரிதாக்கு மற்றும் மூடு போன்ற செயல்பாடுகளை மேல் பட்டியில் வைக்கிறது, மேலும் அதன் மூலம் "
-"விண்டோவை இழுத்துச் செல்லவும் அனுமதிக்கிறது. \"விண்டோவில் தலைப்புப் பட்டை இல்லாதபோது "
-"மட்டும்\" என்ற நிலையில், இந்த விண்டோவில் தலைப்புப் பட்டை உள்ளதா என்று MPV-யிடம் "
+"சில டெஸ்க்டாப்புகள், குறிப்பாக Wayland-இல் உள்ள GNOME, பிளேயர் விண்டோவில் தலைப்புப் "
+"பட்டையை வரைவதில்லை. இதனால், அதை நகர்த்தவோ அல்லது மூடவோ வழி இருப்பதில்லை. இது, "
+"சிறிதாக்கு, பெரிதாக்கு மற்றும் மூடு போன்ற செயல்பாடுகளை மேல் பட்டியில் வைக்கிறது, மேலும் "
+"அதன் மூலம் விண்டோவை இழுத்துச் செல்லவும் அனுமதிக்கிறது. \"விண்டோவில் தலைப்புப் பட்டை "
+"இல்லாதபோது மட்டும்\" என்ற நிலையில், இந்த விண்டோவில் தலைப்புப் பட்டை உள்ளதா என்று MPV-யிடம் "
 "கேட்கப்படுகிறது. எனவே, தலைப்புப் பட்டையை வரையும் டெஸ்க்டாப்புகள் அப்படியே விடப்படுகின்றன."
 
 #. Explanation shown under the "Keep Window Buttons in Full Screen" setting
@@ -3279,7 +3311,8 @@ msgid ""
 msgstr ""
 "முழுத்திரையில் எங்கும் தலைப்புப் பட்டி இருக்காது, மேலும் நகர்த்துவதற்கோ அல்லது "
 "பெரிதாக்குவதற்கோ எதுவும் இருக்காது, அதனால் பொத்தான்கள் பொதுவாக அங்கே மறைந்திருக்கும். "
-"விசைப்பலகை குறுக்குவழி அல்லாத ஒரு வழியில் முழுத்திரையிலிருந்து வெளியேற, இதை இயக்கவும்."
+"விசைப்பலகை குறுக்குவழி அல்லாத ஒரு வழியில் முழுத்திரையிலிருந்து வெளியேற, இதை "
+"இயக்கவும்."
 
 #. Explanation shown under the "Hide the Desktop Title Bar" setting
 #. (Settings > General > Window).
@@ -3291,11 +3324,11 @@ msgid ""
 "unless you want them, since a window with neither can be awkward to move on "
 "some desktops."
 msgstr ""
-"பிளேயர் சாளரத்தில் தலைப்புப் பட்டி வேண்டாம் என டெஸ்க்டாப்பிடம் இது கேட்கிறது, அதனால் மேலே உள்ள "
-"மேல் பட்டி மட்டுமே இருக்கும். இது மேலே உள்ள அமைப்புடன் இணைகிறது: \"சாளரத்தில் தலைப்புப் "
-"பட்டி இல்லாதபோது மட்டும்\" என்பதைத் தேர்ந்தெடுத்தவுடன் பொத்தான்கள் தோன்றும். உங்களுக்கு அவை "
-"தேவைப்பட்டால் தவிர, இரண்டையும் அணைத்து வைக்கவும், ஏனெனில் அவை இரண்டும் இல்லாத ஒரு சாளரத்தை "
-"சில டெஸ்க்டாப்களில் நகர்த்துவது சிரமமாக இருக்கலாம்."
+"பிளேயர் சாளரத்தில் தலைப்புப் பட்டி வேண்டாம் என டெஸ்க்டாப்பிடம் இது கேட்கிறது, அதனால் மேலே "
+"உள்ள மேல் பட்டி மட்டுமே இருக்கும். இது மேலே உள்ள அமைப்புடன் இணைகிறது: \"சாளரத்தில் "
+"தலைப்புப் பட்டி இல்லாதபோது மட்டும்\" என்பதைத் தேர்ந்தெடுத்தவுடன் பொத்தான்கள் தோன்றும். "
+"உங்களுக்கு அவை தேவைப்பட்டால் தவிர, இரண்டையும் அணைத்து வைக்கவும், ஏனெனில் அவை இரண்டும் "
+"இல்லாத ஒரு சாளரத்தை சில டெஸ்க்டாப்களில் நகர்த்துவது சிரமமாக இருக்கலாம்."
 
 #. Explanation shown under the "Enable Trickplay Thumbnails" setting
 #. (Settings > Playback > Player Controls).
@@ -3325,9 +3358,9 @@ msgid ""
 "mileage may vary. Use a language code such as eng."
 msgstr ""
 "மொழிமாற்றம் செய்யப்பட்ட ஆடியோ அல்லது வசன வரிகளுக்குப் பயன்படுத்த வேண்டிய மொழி. விருப்பத் "
-"தேர்வுகளுக்கான வழிமுறைகள் ஆங்கிலப் பெயரிடல் மரபுகளை அடிப்படையாகக் கொண்டு உருவாக்கப்பட்டுள்ளன "
-"என்பதை நினைவில் கொள்ளவும், இதன் பயன்பாடு நபருக்கு நபர் மாறுபடலாம். eng போன்ற ஒரு மொழிக் "
-"குறியீட்டைப் பயன்படுத்தவும்."
+"தேர்வுகளுக்கான வழிமுறைகள் ஆங்கிலப் பெயரிடல் மரபுகளை அடிப்படையாகக் கொண்டு "
+"உருவாக்கப்பட்டுள்ளன என்பதை நினைவில் கொள்ளவும், இதன் பயன்பாடு நபருக்கு நபர் மாறுபடலாம். "
+"eng போன்ற ஒரு மொழிக் குறியீட்டைப் பயன்படுத்தவும்."
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
@@ -3345,7 +3378,8 @@ msgstr ""
 "வேண்டியிருக்கும். அதற்குப் பதிலாக, அனைத்தையும் ஒரே நேரத்தில் ஏற்றுவதற்கு இதை இயக்கவும்: "
 "எதுவும் காத்திருக்காது, ஆனால் ஒரு நீண்ட திரைப்படம் பல நூறு MB நினைவகத்தை "
 "எடுத்துக்கொள்ளக்கூடும். இதை இயக்குவது, நீங்கள் அடுத்த முறை புதிய இடத்தைத் தேடும்போது "
-"பார்த்துக் கொண்டிருக்கும் காணொளிக்குப் பொருந்தும்; இதை அணைப்பது அடுத்த காணொளிக்குப் பொருந்தும்."
+"பார்த்துக் கொண்டிருக்கும் காணொளிக்குப் பொருந்தும்; இதை அணைப்பது அடுத்த காணொளிக்குப் "
+"பொருந்தும்."
 
 #. Explanation shown under the "Player Controls Style" setting (Settings >
 #. Playback > Player Controls).
@@ -3363,8 +3397,8 @@ msgstr ""
 "பிளேபேக்கை வெறுமையாக விட்டுவிடும்; லைப்ரரி, விசைப்பலகை குறுக்குவழிகள் மற்றும் மெனு "
 "விசை ஆகியவை தொடர்ந்து செயல்படும். உங்கள் சொந்த OSC ஸ்கிரிப்டை நிறுவியிருக்கும்போது "
 "\"Custom OSC\" என்பதைத் தேர்ந்தெடுக்கவும்: இது MPV-யின் சொந்த OSC-ஐ அணைத்து, "
-"லைப்ரரிக்கு ஒரு திடமான பின்னணியைக் கொடுக்கும், அதனால் ஸ்கிரிப்டின் செயலற்ற திரை அதன் வழியே "
-"தெரியமாட்டாது."
+"லைப்ரரிக்கு ஒரு திடமான பின்னணியைக் கொடுக்கும், அதனால் ஸ்கிரிப்டின் செயலற்ற திரை அதன் "
+"வழியே தெரியமாட்டாது."
 
 #. Explanation shown under the "Scroll Wheel Pixels" setting (Settings >
 #. Browse > Library Browser).
@@ -3377,8 +3411,9 @@ msgid ""
 msgstr ""
 "பிக்சல்ஸ் வீல் நாட்ச் ஸ்க்ரோல் செய்கிறது. வேகமாக ஸ்க்ரோல் செய்ய அதை உயர்த்தவும், துல்லியமான "
 "கட்டுப்பாட்டிற்கு அதைக் குறைக்கவும். ஒரு கிரிட்டில், ஒவ்வொரு ஸ்க்ரோல் பயன்முறையிலும், முழு "
-"எண்ணிக்கையிலான நாட்ச்கள் ஒரு வரிசையை உள்ளடக்கும் வகையில் அதன் மதிப்பு முழுமையாக்கப்படுகிறது. "
-"எனவே, ஒரு டிராக்பேட் அல்லது டிராக்பால் உங்களை ஒரு வரிசையின் சிறு பகுதி கூட பிசக விடாது."
+"எண்ணிக்கையிலான நாட்ச்கள் ஒரு வரிசையை உள்ளடக்கும் வகையில் அதன் மதிப்பு "
+"முழுமையாக்கப்படுகிறது. எனவே, ஒரு டிராக்பேட் அல்லது டிராக்பால் உங்களை ஒரு வரிசையின் "
+"சிறு பகுதி கூட பிசக விடாது."
 
 #. Explanation shown under the "Scroll Mode" setting (Settings > Browse >
 #. Library Browser).
@@ -3404,6 +3439,15 @@ msgstr ""
 msgid "Discord Rich Presence."
 msgstr "டிஸ்கார்டின் பரந்த இருப்பு."
 
+#. Help note under the "mpris" setting (Settings > General > This Device).
+#. MPRIS is the name of the Linux standard; leave it untranslated.
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Lets keyboard media keys, headset buttons, the lock screen and desktop media "
+"widgets play, pause and skip, and shows what is playing with its cover "
+"(MPRIS, Linux only)."
+msgstr ""
+
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3416,7 +3460,8 @@ msgstr ""
 "பாஸ்-த்ரூவை அமைக்கும் வரை இதை இயல்புநிலையில் விட்டுவிடுங்கள். பைப்வயர் போன்ற சில ஆடியோ "
 "சர்வர்கள் பாஸ்-த்ரூவை விரும்புவதில்லை என்பதைக் கவனத்தில் கொள்ளவும். பாஸ்-த்ரூ பயன்முறையில் "
 "எந்தவொரு ஆடியோவையும் அனுமதிப்பதற்கு முன்பு, ஒரு கார்டில் அவற்றை முடக்க வேண்டியிருக்கும். "
-"எனது சோதனைகளில், மற்றபடி எனக்கு ஒலி கேட்கவில்லை, ஆனால் முடிவுகள் நபருக்கு நபர் மாறுபடலாம்."
+"எனது சோதனைகளில், மற்றபடி எனக்கு ஒலி கேட்கவில்லை, ஆனால் முடிவுகள் நபருக்கு நபர் "
+"மாறுபடலாம்."
 
 #. Explanation shown under the "Take the Device Exclusively" setting
 #. (Settings > Playback > Audio).
@@ -3438,8 +3483,18 @@ msgid ""
 msgstr ""
 "ஸ்க்ரோல் செய்வதற்குப் பதிலாக, லைப்ரரி மற்றும் மியூசிக் டைல் கிரிட்களைப் பக்கங்களாகப் "
 "பிரிக்கவும்: ஒவ்வொரு பக்கமும் முதல் / முந்தைய / அடுத்த / கடைசி ஆகிய கட்டுப்பாடுகளையும், "
-"நீங்கள் தட்டச்சு செய்யக்கூடிய பக்க எண்ணையும் கொண்ட ஒரு முழுத் திரையாக இருக்கும். டிராக்பேடில் "
-"துல்லியமாக ஸ்க்ரோல் செய்வதை விட இது எளிதானது."
+"நீங்கள் தட்டச்சு செய்யக்கூடிய பக்க எண்ணையும் கொண்ட ஒரு முழுத் திரையாக இருக்கும். "
+"டிராக்பேடில் துல்லியமாக ஸ்க்ரோல் செய்வதை விட இது எளிதானது."
+
+#. Explanation shown under the "Remember Library Filters" setting (Settings >
+#. Browse > Library Browser). "Filters" are the choices in a library's Filter
+#. panel, such as a genre or "Unplayed".
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Reopen each library with the filters it had last time (genre, unplayed, "
+"favorites and the rest), saved to your account on the server. Off, filters "
+"only last until you leave the library."
+msgstr ""
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3455,9 +3510,9 @@ msgstr ""
 "பின்னணியில் மையில் வரையப்படுகின்றன. அதனால், ஒரு இருண்ட பக்கத்தில் கருப்பு நிற லோகோக்கள் "
 "மறைந்துவிடும். அவை திரையில் இருக்கும்போது, ஒவ்வொரு லோகோவும் அதற்கென உருவாக்கப்பட்ட ஒளித் "
 "தகட்டைப் பெறும். மேலும், வெள்ளை வெளிப்புறக் கோடு கொண்ட சில லோகோக்களுக்கு, பின்னணியில் "
-"ஒரு கூர்மையான விளிம்பைத் தக்கவைப்பதற்காக, ஒரு நிழல் விளைவு (drop shadow) அளிக்கப்படும். "
-"அவை திரையில் இல்லாதபோது, ஜெல்லிஃபின் வெப் (Jellyfin Web) செய்வதைப் போல, தீம் கார்டின் "
-"நிறத்தைப் பெறும், ஆனால் நிழல் இருக்காது."
+"ஒரு கூர்மையான விளிம்பைத் தக்கவைப்பதற்காக, ஒரு நிழல் விளைவு (drop shadow) "
+"அளிக்கப்படும். அவை திரையில் இல்லாதபோது, ஜெல்லிஃபின் வெப் (Jellyfin Web) செய்வதைப் போல, "
+"தீம் கார்டின் நிறத்தைப் பெறும், ஆனால் நிழல் இருக்காது."
 
 #. Explanation shown under the "Make library logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3468,10 +3523,11 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
-"லோகோ கலைப்படைப்பை வரைய அமைக்கப்பட்டுள்ள ஒரு லைப்ரரிக்கும் இதே செயல்முறைதான். இயல்பாகவே இது "
-"அணைக்கப்பட்டுள்ளது: ஒரு திரைப்படம் அல்லது தொடரின் லோகோ வழக்கப்படி வெள்ளையாக இருக்கும், "
-"மேலும் அது ஏற்கெனவே ஒரு அடர் பின்னணியில் தெளிவாகத் தெரியும். அதன் பிளேட்தான் அதற்கு ஒரு "
-"நிழல் தேவைப்படக் காரணமாகிறது. உங்களுடையது அடர் நிறத்தில் இருந்தால், இதை இயக்கவும்."
+"லோகோ கலைப்படைப்பை வரைய அமைக்கப்பட்டுள்ள ஒரு லைப்ரரிக்கும் இதே செயல்முறைதான். இயல்பாகவே "
+"இது அணைக்கப்பட்டுள்ளது: ஒரு திரைப்படம் அல்லது தொடரின் லோகோ வழக்கப்படி வெள்ளையாக "
+"இருக்கும், மேலும் அது ஏற்கெனவே ஒரு அடர் பின்னணியில் தெளிவாகத் தெரியும். அதன் பிளேட்தான் "
+"அதற்கு ஒரு நிழல் தேவைப்படக் காரணமாகிறது. உங்களுடையது அடர் நிறத்தில் இருந்தால், இதை "
+"இயக்கவும்."
 
 #. Explanation shown under the "Theme" setting (Settings > Browse > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3479,8 +3535,9 @@ msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
-"வண்ணத் தட்டு, ஒளிர்வு, அட்டைப் பாணி மற்றும் இயல்புநிலை அட்டை அளவு. வண்ணங்கள் உடனடியாக மாறும்; "
-"கணினியை மறுதொடக்கம் செய்த பின்னரே அட்டை மற்றும் தலைப்பு அளவுகள் செயல்பாட்டிற்கு வரும்."
+"வண்ணத் தட்டு, ஒளிர்வு, அட்டைப் பாணி மற்றும் இயல்புநிலை அட்டை அளவு. வண்ணங்கள் உடனடியாக "
+"மாறும்; கணினியை மறுதொடக்கம் செய்த பின்னரே அட்டை மற்றும் தலைப்பு அளவுகள் செயல்பாட்டிற்கு "
+"வரும்."
 
 #. Explanation shown under the "Grid Spacing" setting (Settings > Browse >
 #. Library Browser).
@@ -3503,17 +3560,17 @@ msgid ""
 "client does. It shows more of the artwork without taking any more vertical "
 "space."
 msgstr ""
-"வலை கிளையன்ட் செய்வதைப் போலவே, ஒரு விவரப் பக்கத்தில் பின்னணியைச் சாளரத்தின் விளிம்புகள் வரை "
-"கொண்டு செல்லுங்கள். இது கூடுதல் செங்குத்து இடத்தை எடுத்துக்கொள்ளாமல், கலைப்படைப்பின் அதிகப் "
-"பகுதியைக் காட்டுகிறது."
+"வலை கிளையன்ட் செய்வதைப் போலவே, ஒரு விவரப் பக்கத்தில் பின்னணியைச் சாளரத்தின் விளிம்புகள் "
+"வரை கொண்டு செல்லுங்கள். இது கூடுதல் செங்குத்து இடத்தை எடுத்துக்கொள்ளாமல், கலைப்படைப்பின் "
+"அதிகப் பகுதியைக் காட்டுகிறது."
 
 #. Explanation shown under the "Cover Size" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
-"தீமின் முகப்பு அளவை மாற்றியமைக்கிறது. மேலும், எந்தவொரு நூலகத்தின் காட்சிப் பட்டியலிலும் இது "
-"கிடைக்கும்."
+"தீமின் முகப்பு அளவை மாற்றியமைக்கிறது. மேலும், எந்தவொரு நூலகத்தின் காட்சிப் பட்டியலிலும் "
+"இது கிடைக்கும்."
 
 #. Explanation shown under the "12-Hour Clock" setting (Settings > Browse >
 #. Library Browser).
@@ -3565,9 +3622,9 @@ msgid ""
 "the accessibility minimum, instead of dropping buttons sooner. Off keeps the "
 "older, larger floor."
 msgstr ""
-"சாளரத்தைச் சுருக்குவது, பொத்தான்களை முன்கூட்டியே நீக்குவதற்குப் பதிலாக, மிகச்சிறிய பொத்தான் "
-"அணுகல் குறைந்தபட்ச அளவை அடையும் வரை கட்டுப்பாடுகளைச் சுருக்குகிறது. 'ஆஃப்' (Off) பழைய, "
-"பெரிய தளத்தை அப்படியே வைத்திருக்கிறது."
+"சாளரத்தைச் சுருக்குவது, பொத்தான்களை முன்கூட்டியே நீக்குவதற்குப் பதிலாக, மிகச்சிறிய "
+"பொத்தான் அணுகல் குறைந்தபட்ச அளவை அடையும் வரை கட்டுப்பாடுகளைச் சுருக்குகிறது. 'ஆஃப்' "
+"(Off) பழைய, பெரிய தளத்தை அப்படியே வைத்திருக்கிறது."
 
 #. Explanation shown under the "Mouse Back/Forward Buttons Skip Chapters"
 #. setting (Settings > Playback > Player Controls).
@@ -3577,8 +3634,8 @@ msgid ""
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
 "இயக்கும்போது மட்டும்; லைப்ரரியில் அந்தப் பொத்தான்கள் 'பின்செல்' மற்றும் 'முன்செல்' எனவே "
-"இருக்கும். சில மவுஸ்களில் தற்செயலாக அவற்றை எளிதில் அழுத்திவிட வாய்ப்புள்ளதால், இயல்பாகவே அவை "
-"அணைக்கப்பட்டிருக்கும்."
+"இருக்கும். சில மவுஸ்களில் தற்செயலாக அவற்றை எளிதில் அழுத்திவிட வாய்ப்புள்ளதால், இயல்பாகவே "
+"அவை அணைக்கப்பட்டிருக்கும்."
 
 #. Explanation shown under the "Interface Scale" setting (Settings > Browse
 #. > Theme).
@@ -3587,8 +3644,8 @@ msgstr ""
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
-"\"காட்சியைப் பின்பற்று\" என்பது உங்கள் டெஸ்க்டாப் காட்டும் அளவைப் பயன்படுத்துகிறது, இது X11-இல் "
-"100% ஆகும்."
+"\"காட்சியைப் பின்பற்று\" என்பது உங்கள் டெஸ்க்டாப் காட்டும் அளவைப் பயன்படுத்துகிறது, இது X11-"
+"இல் 100% ஆகும்."
 
 #. Explanation shown under the "Text size" setting (Settings > Browse >
 #. Theme).
@@ -3602,10 +3659,10 @@ msgid ""
 msgstr ""
 "இது உரையை மட்டும் அளவிடுகிறது. மேலே உள்ள 'இடைமுக அளவு' (Interface Scale) என்பது "
 "கலைப்படைப்புகள், இடைவெளி மற்றும் கட்டுப்பாடுகள் உட்பட அனைத்தையும் மறுஅளவாக்குகிறது, எனவே "
-"முழு இடைமுகத்தையும் மாற்றுவதற்குப் பதிலாக, வார்த்தைகள் மிகவும் சிறியதாக இருக்கும்போது இதைப் "
-"பயன்படுத்தவும். இது 150% அளவில் நின்றுவிடுகிறது: அதற்கு மேல் பெரும்பாலான டைல் தலைப்புகள் "
-"நீள்வட்டமாக்கப்பட்டுவிடும், மேலும் பெரிதாக்கப்பட வேண்டியது முழு இடைமுகமுமே ஆகும், அதுவே "
-"'இடைமுக அளவு' (Interface Scale) ஆகும்."
+"முழு இடைமுகத்தையும் மாற்றுவதற்குப் பதிலாக, வார்த்தைகள் மிகவும் சிறியதாக இருக்கும்போது "
+"இதைப் பயன்படுத்தவும். இது 150% அளவில் நின்றுவிடுகிறது: அதற்கு மேல் பெரும்பாலான டைல் "
+"தலைப்புகள் நீள்வட்டமாக்கப்பட்டுவிடும், மேலும் பெரிதாக்கப்பட வேண்டியது முழு இடைமுகமுமே "
+"ஆகும், அதுவே 'இடைமுக அளவு' (Interface Scale) ஆகும்."
 
 #. Explanation shown under the "Minimum Text Size" setting (Settings >
 #. Browse > Theme).
@@ -3689,9 +3746,9 @@ msgid ""
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
-"உரத்த ஒலி விளைவுகளையும் மெல்லிய உரையாடலையும் இது சீராக்குகிறது. உங்கள் ரிசீவர் ஆடியோவைப் "
-"பெறுவதற்கு முன்பு ஒலியளவைச் சரிசெய்ய வேண்டியிருப்பதால், இது இயக்கப்பட்டிருக்கும்போது பாஸ்-"
-"த்ரூவை அணைத்துவிடுகிறது."
+"உரத்த ஒலி விளைவுகளையும் மெல்லிய உரையாடலையும் இது சீராக்குகிறது. உங்கள் ரிசீவர் "
+"ஆடியோவைப் பெறுவதற்கு முன்பு ஒலியளவைச் சரிசெய்ய வேண்டியிருப்பதால், இது "
+"இயக்கப்பட்டிருக்கும்போது பாஸ்-த்ரூவை அணைத்துவிடுகிறது."
 
 # seeded from jellyfin-web: HeaderStatus
 #. Heading of the first section of the library filter panel, above the
@@ -4165,8 +4222,7 @@ msgstr "கட்டத்திற்குப் பதிலாக பட்�
 #. as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "These are stored on your server and shared with Jellyfin Web."
-msgstr ""
-"இவை உங்கள் சேவையகத்தில் சேமிக்கப்பட்டு, ஜெல்லிஃபின் வெப்புடன் பகிரப்படுகின்றன."
+msgstr "இவை உங்கள் சேவையகத்தில் சேமிக்கப்பட்டு, ஜெல்லிஃபின் வெப்புடன் பகிரப்படுகின்றன."
 
 #. Checkbox in a library's View settings, switching the grid from scrolling
 #. to one screenful at a time with page buttons.
@@ -4181,8 +4237,8 @@ msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
 msgstr ""
-"உருட்டுவதற்குப் பதிலாக, ஒரு நேரத்தில் ஒரு பக்க டைல்களைக் காண்பிக்கவும். இந்தச் சாதனத்தில் உள்ள "
-"ஒவ்வொரு லைப்ரரிக்கும் இது பொருந்தும்."
+"உருட்டுவதற்குப் பதிலாக, ஒரு நேரத்தில் ஒரு பக்க டைல்களைக் காண்பிக்கவும். இந்தச் சாதனத்தில் "
+"உள்ள ஒவ்வொரு லைப்ரரிக்கும் இது பொருந்தும்."
 
 #. Title of the modal that chooses how one library's tiles are drawn.
 #. Sentence case in English.
@@ -4231,8 +4287,8 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
-"\"%(package)s\" தொகுப்பை நிறுவவும் (உதாரணமாக \"apt install %(package)s\"), அல்லது "
-"MPV 0.41 அல்லது அதற்குப் புதிய பதிப்பைப் பயன்படுத்தவும்."
+"\"%(package)s\" தொகுப்பை நிறுவவும் (உதாரணமாக \"apt install %(package)s\"), "
+"அல்லது MPV 0.41 அல்லது அதற்குப் புதிய பதிப்பைப் பயன்படுத்தவும்."
 
 #. Follows the message saying the clipboard is unavailable. %(package)s is
 #. a software package name and the parenthesis holds a shell command; leave
@@ -4243,7 +4299,8 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\")."
 msgstr ""
-"\"%(package)s\" தொகுப்பை நிறுவவும் (எடுத்துக்காட்டாக, \"apt install %(package)s\")."
+"\"%(package)s\" தொகுப்பை நிறுவவும் (எடுத்துக்காட்டாக, \"apt install "
+"%(package)s\")."
 
 #. Follows the clipboard message above, naming the MPV version that gained
 #. clipboard support.
@@ -4274,9 +4331,9 @@ msgid ""
 "shows you a number for — so there is nothing meaningful to set by hand. It "
 "is still read from the server and shown above."
 msgstr ""
-"%s என்பது ஒரு மின்புத்தக வாசிப்பாளராக உங்கள் இடத்தைப் பதிவு செய்கிறது, இதற்கான எண்ணை எந்தப் "
-"பயன்பாடும் உங்களுக்குக் காட்டுவதில்லை — எனவே, கைமுறையாக அர்த்தமுள்ளதாக அமைப்பதற்கு எதுவும் "
-"இல்லை. அது வழக்கம் போல் சேவையகத்திலிருந்து படிக்கப்பட்டு மேலே காட்டப்படுகிறது."
+"%s என்பது ஒரு மின்புத்தக வாசிப்பாளராக உங்கள் இடத்தைப் பதிவு செய்கிறது, இதற்கான எண்ணை "
+"எந்தப் பயன்பாடும் உங்களுக்குக் காட்டுவதில்லை — எனவே, கைமுறையாக அர்த்தமுள்ளதாக அமைப்பதற்கு "
+"எதுவும் இல்லை. அது வழக்கம் போல் சேவையகத்திலிருந்து படிக்கப்பட்டு மேலே காட்டப்படுகிறது."
 
 #. Shown in the Reading Progress dialog. %s is another application's name.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -4894,6 +4951,12 @@ msgstr "அமைப்புகள்"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Fullscreen"
 msgstr "முழுத்திரை"
+
+#. Status message after clicking a row on the Play Queue page when playback
+#. has already ended, so there is no queue left to jump within.
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+msgid "Playback has stopped, so this queue is gone."
+msgstr ""
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5793,6 +5856,22 @@ msgstr "சீரற்ற"
 msgid "Date Episode Added"
 msgstr "எபிசோட் சேர்க்கப்பட்ட தேதி"
 
+#. Shown in place of the grid when a library's filters match nothing. The
+#. filters may have been chosen on an earlier visit and remembered, so this
+#. says the library is not empty, only filtered.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "No items match these filters."
+msgstr ""
+
+# seeded from jellyfin-web: Filters
+#. Button under "No items match these filters." on an empty library grid.
+#. Removes every filter set on the library. An imperative verb phrase.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "Filters"
+msgid "Clear Filters"
+msgstr "வடிப்பான்கள்"
+
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -5806,8 +5885,9 @@ msgid "Networks"
 msgstr "நெட்வொர்க்குகள்"
 
 #. Button above a library grid, and the title of the page it opens, listing
-#. groups of related items.
+#. groups of related items. Also a row heading on the Favorites page.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Collections"
 msgstr "சேகரிப்புகள்"
 
@@ -5834,11 +5914,13 @@ msgstr "அனைத்தையும் விளையாடு"
 
 # seeded from jellyfin-web: Shuffle
 #. Button on a library grid, an album, a playlist, a series or a season that
-#. queues everything in it in a random order and starts playing. An imperative
-#. verb.
+#. queues everything in it in a random order and starts playing; on the Play
+#. Queue page it puts the tracks still to come in a random order. An
+#. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "Shuffle"
@@ -5850,6 +5932,15 @@ msgstr "கலக்கு"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "That sort could not be saved."
 msgstr "அந்த வகையைக் காப்பாற்ற முடியவில்லை."
+
+#. A one-line status message at the bottom of the library screen, after the
+#. server refused to remember which filters the user picked. The filters
+#. themselves have already been applied; only remembering them failed.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "Those items could not be removed."
+msgid "Those filters could not be saved."
+msgstr "அந்தப் பொருட்களை அகற்ற முடியவில்லை."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
@@ -6723,8 +6814,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Matches: %d. Pick a tab above to stop searching."
-msgstr ""
-"பொருத்தங்கள்: %d. தேடுவதை நிறுத்த மேலே உள்ள ஒரு தாவலைத் தேர்ந்தெடுக்கவும்."
+msgstr "பொருத்தங்கள்: %d. தேடுவதை நிறுத்த மேலே உள்ள ஒரு தாவலைத் தேர்ந்தெடுக்கவும்."
 
 #. Button beside the download folder in Settings that relocates what is
 #. already downloaded to a new folder. An imperative verb.
@@ -6798,8 +6888,7 @@ msgstr "பதிவிறக்கங்களை நகர்த்துவ�
 #. application must be started again.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Download folder moved. Restart to finish switching."
-msgstr ""
-"பதிவிறக்கக் கோப்புறை நகர்த்தப்பட்டது. மாற்றத்தை முடிக்க மறுதொடக்கம் செய்யவும்."
+msgstr "பதிவிறக்கக் கோப்புறை நகர்த்தப்பட்டது. மாற்றத்தை முடிக்க மறுதொடக்கம் செய்யவும்."
 
 #. Status message while downloaded files are being relocated, before any
 #. progress figure is known.
@@ -6867,8 +6956,8 @@ msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
 msgstr ""
-"முகப்புத் திரையில் காட்டப்படும் வரிசைகள், வரிசைப்படி காட்டப்பட்டுள்ளன. இந்தச் செயலியால் வரைய "
-"முடியாத பகுதிகள், உங்கள் வலை கிளையன்ட் அமைத்தபடியே விடப்பட்டுள்ளன."
+"முகப்புத் திரையில் காட்டப்படும் வரிசைகள், வரிசைப்படி காட்டப்பட்டுள்ளன. இந்தச் செயலியால் "
+"வரைய முடியாத பகுதிகள், உங்கள் வலை கிளையன்ட் அமைத்தபடியே விடப்பட்டுள்ளன."
 
 #. Shown for a home-screen row set to something this application cannot
 #. draw. %s is that section's name as Jellyfin Web calls it.
@@ -6901,8 +6990,8 @@ msgid ""
 "can spoil the episode you have not watched yet."
 msgstr ""
 "இயல்பாகவே முடக்கப்பட்டுள்ளது: இதற்குப் பதிலாக நிகழ்ச்சியின் கலைப்படைப்பு "
-"பயன்படுத்தப்படுகிறது, ஏனெனில் ஒரு அத்தியாயத்தின் படம், நீங்கள் இன்னும் பார்க்காத அத்தியாயத்தின் "
-"சுவாரஸ்யத்தைக் கெடுத்துவிடும்."
+"பயன்படுத்தப்படுகிறது, ஏனெனில் ஒரு அத்தியாயத்தின் படம், நீங்கள் இன்னும் பார்க்காத "
+"அத்தியாயத்தின் சுவாரஸ்யத்தைக் கெடுத்துவிடும்."
 
 #. Status message when the home screen settings would not come back from
 #. the server.
@@ -7132,8 +7221,8 @@ msgid ""
 "%s answered, but it no longer accepts the saved login. Signing in again "
 "keeps its downloads and settings."
 msgstr ""
-"%s பதிலளித்தது, ஆனால் அது சேமிக்கப்பட்ட உள்நுழைவை இனி ஏற்கவில்லை. மீண்டும் உள்நுழையும்போது "
-"அதன் பதிவிறக்கங்களும் அமைப்புகளும் அப்படியே இருக்கின்றன."
+"%s பதிலளித்தது, ஆனால் அது சேமிக்கப்பட்ட உள்நுழைவை இனி ஏற்கவில்லை. மீண்டும் "
+"உள்நுழையும்போது அதன் பதிவிறக்கங்களும் அமைப்புகளும் அப்படியே இருக்கின்றன."
 
 #. Body of the same dialog, for a server that did not respond at all. %s is
 #. the server's name.
@@ -7143,8 +7232,8 @@ msgid ""
 "%s did not answer. It may be switched off, or this machine may not be able "
 "to reach it right now."
 msgstr ""
-"%s பதிலளிக்கவில்லை. அது அணைக்கப்பட்டிருக்கலாம், அல்லது இந்த இயந்திரத்தால் தற்சமயம் அதை அணுக "
-"முடியாமல் இருக்கலாம்."
+"%s பதிலளிக்கவில்லை. அது அணைக்கப்பட்டிருக்கலாம், அல்லது இந்த இயந்திரத்தால் தற்சமயம் அதை "
+"அணுக முடியாமல் இருக்கலாம்."
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7592,8 +7681,8 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
-"பதிவிறக்கம் நடந்துகொண்டிருக்கும்போது பதிவிறக்கக் கோப்புறையை மாற்ற முடியாது. அது முடியும் "
-"வரை காத்திருந்து, பிறகு மீண்டும் முயற்சிக்கவும்."
+"பதிவிறக்கம் நடந்துகொண்டிருக்கும்போது பதிவிறக்கக் கோப்புறையை மாற்ற முடியாது. அது "
+"முடியும் வரை காத்திருந்து, பிறகு மீண்டும் முயற்சிக்கவும்."
 
 #. Error when the folder chosen for downloads sits within the present one,
 #. which the move cannot handle.
@@ -7659,8 +7748,8 @@ msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
 msgstr ""
-"பதிவிறக்கங்களை நகர்த்துவதற்கு அந்த டிரைவில் போதுமான இடம் இல்லை. சிறிது இடத்தை விடுவித்து "
-"மீண்டும் முயற்சிக்கவும் — எதுவும் நகர்த்தப்படவில்லை."
+"பதிவிறக்கங்களை நகர்த்துவதற்கு அந்த டிரைவில் போதுமான இடம் இல்லை. சிறிது இடத்தை "
+"விடுவித்து மீண்டும் முயற்சிக்கவும் — எதுவும் நகர்த்தப்படவில்லை."
 
 #. The same problem, discovered part way through the move rather than
 #. before it started. Past tense for that reason. Nothing was lost.
@@ -8036,9 +8125,6 @@ msgstr "ஷேடர் சுயவிவரத்தைத் தேர்ந�
 
 #~ msgid "Always Skip Intros"
 #~ msgstr "முன்னோட்டங்களை எப்போதும் தவிர்"
-
-#~ msgid "Ask to Skip Intros"
-#~ msgstr "முன்னோட்டங்களை தவிர்க்க சொல்லி கேள்"
 
 #~ msgid "Always Skip Credits"
 #~ msgstr "எப்போதும் கிரெடிட்களைத் தவிர்க்கவும்"
