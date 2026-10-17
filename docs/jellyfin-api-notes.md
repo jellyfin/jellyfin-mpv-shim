@@ -611,7 +611,26 @@ stores its position verbatim — see §12.
   **Transcode**. jellyfin-web's *display* vocabulary differs from Jellyfin's
   `PlayMethod` enum — it shows "Direct playing" for a `static=true` stream as
   well as for a file opened directly.
-- **Jellyfin refuses to serve PGS subtitles as external.**
+- **External streams are numbered first.** Sidecar audio and subtitles take
+  `Index` 0..n, ahead of the video and the file's own tracks (10.11.11 and
+  12.2). So index 0 is a real stream, and usually a sidecar: anything that
+  tests an index for truth drops it. jellyfin-apiclient-python did exactly
+  that in `get_play_info` until 1.20.2, which the pin requires.
+- **A selected external audio track always transcodes** (`AudioIsExternal`,
+  every version): there is no route that hands a client the sidecar raw.
+- **The server remembers each user's audio pick per item**
+  (`RememberAudioSelections`, on by default) from progress reports, and serves
+  it back as that user's `DefaultAudioStreamIndex`. While remembering is on it
+  never clears it, only overwrites it — so one test that ends on a sidecar
+  track makes every later start of that item a transcode for that account.
+- **PGS sidecars are served raw from 10.10**, given an `External` `pgssub`
+  profile; without one they are `Encode`. 12.2 answers with ranges, 10.11
+  sends the whole file. The old "refuses to serve PGS as external" was true
+  only before 10.10.
+- **`SubtitleProfile.Container` is ignored before 12.0.** 12.0 added
+  `{dvdsub, External, Container: mks}` for VobSub as an `.mks`; 10.11 matches
+  that entry on the format alone and hands out sidecar urls for VobSub `.mks`
+  (404) and `.idx/.sub` (400). `utils.get_profile` offers it to 12+ only.
 - **`IsExternalUrl` is set exactly when a subtitle's `Path` is an absolute
   http(s) URI** (`StreamInfo.cs:1264-1274`).
 - **A Photo has no MediaSources, so `PlaybackInfo` is skipped entirely** —

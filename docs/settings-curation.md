@@ -130,6 +130,7 @@ two directions differ (`trickplay_fast_mode`) or which splits (`theme`).
 | `deinterlace_auto` | `_apply_deinterlace`, per item |
 | `motion_interpolation`, `deband`, `tone_mapping`, `render_quality` | `_apply_render_presets`, per item |
 | `network_buffer` | per item, and it could not be sooner — the demuxer reads those options when it opens a file |
+| `extract_image_subtitles` | read when a stream is negotiated, and when a subtitle is switched mid-transcode |
 
 ### Needs a restart
 

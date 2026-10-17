@@ -270,6 +270,10 @@ You can adjust the basic transcoder settings via the menu.
       the bandwidth setting to force a transcode.
 - `transcode_hdr` - Force transcode HDR videos to SDR. Default: `false`
 - `transcode_dolby_vision` - Force transcode Dolby Vision videos to SDR. Default: `false`
+- `extract_image_subtitles` - During a transcode, show a video's built-in image subtitles (PGS,
+  and VobSub on Jellyfin 12+) as a separate track rather than burning them in. Default: `true`
+  - Fetching one makes the server extract every subtitle stream in the file into its cache.
+    Turn this off to have them burnt in instead. External `.sup` / `.mks` files are not affected.
   - MPV plays Dolby Vision natively now, so this is off by default. Existing configs are
     migrated off it once, on the first launch after upgrading; re-enable it if your setup
     still needs the SDR transcode.

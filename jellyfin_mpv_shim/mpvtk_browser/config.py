@@ -293,6 +293,7 @@ TAB_SECTIONS = {
                             "transcode_hevc", "transcode_av1",
                             "transcode_4k", "transcode_hdr",
                             "transcode_hi10p", "transcode_dolby_vision",
+                            "extract_image_subtitles",
                             "force_video_codec", "force_audio_codec"]),
         # Debanding and rendering quality lead, ahead of the shader pack:
         # they are the two answers that cost nothing to try and do not
@@ -918,6 +919,13 @@ NOTES = {
         "preset: better upscaling and HDR handling, at some GPU cost. It "
         "needs no shader files and does not use up your shader profile, so "
         "it is the thing to try before the shader pack below."),
+    "extract_image_subtitles": _(
+        "When a video is transcoded, show its built-in Blu-ray or DVD (PGS, "
+        "VobSub) subtitles as a separate track instead of burning them into "
+        "the picture, so they stay sharp and can be switched without "
+        "restarting. Showing one makes the server extract every subtitle "
+        "track in the file first, which takes time and server disk space on "
+        "a large file. Subtitles in their own file are not affected."),
     "network_buffer": _(
         "How far ahead of playback to read. MPV's default is one second, "
         "which is short for a server reached over the internet or a slow "

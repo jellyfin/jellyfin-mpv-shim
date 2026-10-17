@@ -186,6 +186,7 @@ PER_BACKEND = [
     "tests.e2e.test_playback_failure",
     "tests.e2e.test_strm_playback",
     "tests.e2e.test_track_selection",
+    "tests.e2e.test_stream_parity_live",
     # Chapter navigation, which the fast suite covers only as a pure
     # function. The list comes out of MPV and the answer goes back through
     # seek(), and both ends are where the two chapter bugs lived -- the

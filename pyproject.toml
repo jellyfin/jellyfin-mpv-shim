@@ -17,13 +17,15 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "python-mpv>=1.0.8",
-    # >=1.20.1: a retried download no longer appends to its partial first
-    # attempt (trickplay tiles, chapter images, audio). 1.19.0 brought
+    # >=1.20.2: get_play_info sends stream index 0, which is the first
+    # sidecar track (docs/jellyfin-api-notes.md section 11). 1.20.1 stopped a
+    # retried download appending to its partial first attempt. 1.19.0 brought
     # `discovery`, whose import is still guarded: a build that pins its own
     # wheel (the Flathub manifest) can be older than this line says.
-    "jellyfin-apiclient-python>=1.20.1",
-    # >=1.4.0 for MPV(discard_output=...); see mpv_options.build_mpv_options.
-    "python-mpv-jsonipc>=1.4.0",
+    "jellyfin-apiclient-python>=1.20.2",
+    # >=1.5.0 for MPV.command_async (docs/track-selection.md section 7);
+    # 1.4.0 brought MPV(discard_output=...), see mpv_options.build_mpv_options.
+    "python-mpv-jsonipc>=1.5.0",
     "requests",
     # Not optional since the in-player library browser replaced the Tk one:
     # every tile, the playback HUD and the cast screen are rasterized with

@@ -57,6 +57,11 @@ server agree. Resolving it client-side and posting it would be a behaviour
 change. This is the one place where "what PlaybackInfo was asked for" and
 "what `video.aid` ends at" legitimately differ, and only in that direction.
 
+**An external audio track is never mpv's to select.** The server delivers one
+only by transcoding it in (`AudioIsExternal`), so `map_streams` gives it no
+mpv id and `set_streams` restarts to renegotiate when one is picked. Offline
+the sidecar was never downloaded, so it is simply not selectable there.
+
 ## 3. Subtitles
 
 The same chain with one extra row, and that row is the whole difference.
@@ -176,3 +181,36 @@ re-match that drifts one position per episode is invisible in one step.
   table set it `False`, which is why row 2 was untested for the life of the
   feature — the setting that exposes it was off in every test that could have.
 - **Both implementations.** See section 4.
+
+## 7. Sidecars load asynchronously
+
+A subtitle sidecar reaches mpv through `command_async("sub-add", url, "auto")`
+(`PlayerManager._add_external_sub`), never a synchronous `sub_add`. The server
+answers an embedded sidecar only after extracting **every** subtitle stream of
+the file -- one ffmpeg pass over the whole file, cached afterwards, capped at
+`SubtitleExtractionTimeoutMinutes` (30) -- and mpv's `network-timeout` does not
+bound that wait (measured: a synchronous add blocked the full 200 s of a stalled
+server). Synchronously, that held a playback start paused on its first frame
+under `_lock` for as long as the server took (libmpv), or raised `TimeoutError`
+out of `play()` at 120 s (python-mpv-jsonipc).
+
+So *which* track to show is decided when the add lands, not when it was asked
+for -- `_external_sub_added`, on the action thread, against what the video wants
+by then:
+
+- **Selected only if still wanted.** The user may have switched track, or
+  switched subtitles off, while it loaded; a late sidecar is remembered in
+  `external_subtitles` (so going back does not fetch it again) and nothing more.
+- **Nothing is shown meanwhile** -- `sub = "no"`, not mpv's own default track,
+  which would be a subtitle nobody picked.
+- **One add per sidecar.** `_pending_subs` holds what is in flight, so picking it
+  again, or as the secondary, waits for the same load.
+- **A reply from an earlier play is ignored** (`_play_epoch`). mpv itself aborts
+  an add still pending when the next file loads, measured on both backends, so
+  it normally arrives as an error.
+- **The reply only queues a task.** mpv delivers it on its own event thread,
+  where player work would race `_lock`.
+
+`command_async` needs python-mpv-jsonipc 1.5.0, which also fixed async commands
+killing the connection on Windows (mpv answers them with a zero-length pipe
+message).

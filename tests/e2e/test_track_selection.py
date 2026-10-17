@@ -30,12 +30,9 @@ language and title, read back off `track-list` — rather than on the number
 that was sent. And two of them go the other way: the server has to be told
 which track is playing, or every other client shows the wrong one.
 
-**Not covered:** the counter's "do not advance for an external stream" rule.
-It only bites on a file that mixes external and embedded streams *of the same
-type*, and no fixture here has one — the sidecar file's subtitles are all
-external, so the embedded map stays empty either way, and the audio loop never
-sees an external stream at all. Mutating that branch away leaves this file
-green. It wants a fixture with an embedded subtitle *and* a sidecar.
+**Not covered here:** a file mixing external and embedded streams *of the
+same type*. For audio that is `test_stream_parity_live.ExternalAudioTest`; for
+subtitles it still wants a fixture with an embedded subtitle *and* a sidecar.
 """
 
 import os
@@ -83,6 +80,16 @@ class _TrackTest(_e2e.E2ETestCase):
     def _streams(self, kind):
         return {s["Index"]: s for s in self.video.media_source["MediaStreams"]
                 if s["Type"] == kind}
+
+    def _settle_on_sidecar(self, uid, timeout=30):
+        """A sidecar loads asynchronously and is selected on the action
+        thread (docs/track-selection.md section 7), so pump that, as the real
+        ActionThread would, until sidecar `uid` is loaded and selected."""
+        def shown():
+            track = self._selected("sub")
+            return (uid in self.pm.external_subtitles and track is not None
+                    and track.get("id") == self.pm.external_subtitles[uid])
+        return _e2e.pump_until(self.pm, shown, timeout=timeout)
 
     def _selected(self, kind):
         """The track mpv is actually playing, as mpv describes it."""
@@ -255,7 +262,7 @@ class ExternalSubtitleTest(_TrackTest):
                     "this fixture's subtitle %d is no longer delivered as an "
                     "external file" % uid)
                 self.pm.set_streams(None, uid)
-                time.sleep(SETTLE)
+                self._settle_on_sidecar(uid)
                 track = self._selected("sub")
                 self.assertIsNotNone(
                     track, "sidecar %d (%s) was never loaded into mpv"
@@ -275,13 +282,13 @@ class ExternalSubtitleTest(_TrackTest):
         uids = sorted(self._streams("Subtitle"))
         first, second = uids[0], uids[1]
         self.pm.set_streams(None, first)
-        time.sleep(SETTLE)
+        self.assertTrue(self._settle_on_sidecar(first))
         was = self.pm._player.sid
         self.pm.set_streams(None, second)
-        time.sleep(SETTLE)
+        self.assertTrue(self._settle_on_sidecar(second))
         before = len(self._mpv_tracks("sub"))
         self.pm.set_streams(None, first)
-        time.sleep(SETTLE)
+        self._settle_on_sidecar(first)
         self.assertEqual(
             len(self._mpv_tracks("sub")), before,
             "going back to a sidecar added another copy of it to mpv")

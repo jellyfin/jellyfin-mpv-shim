@@ -7392,7 +7392,7 @@ msgstr "إعدادات الخوادم"
 #. Bar along the bottom while items are being fetched. %(name)s is what is
 #. downloading now and %(n)d how many are still queued.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, python-format
+#, python-format, fuzzy
 msgid "Downloading %(name)s — %(n)d remaining"
 msgstr "تحميل %(name)ات — %(n)d باقي"
 

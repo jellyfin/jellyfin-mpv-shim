@@ -16,6 +16,7 @@ import sqlite3
 import shutil
 import threading
 import time
+import urllib.parse
 
 import requests
 
@@ -26,7 +27,7 @@ from ..conf import settings
 from ..conffile import confdir
 from ..constants import APP_NAME, OFFLINE_SERVER_UUID
 from ..i18n import _
-from ..utils import get_profile
+from ..utils import answering_server, get_profile
 from .auto import AutoDownloader
 from .db import (ANY_SERVER, NO_ACTOR, STORE_DIR, SyncDB, STATUS_PENDING,
                  STATUS_DOWNLOADING, STATUS_COMPLETE, STATUS_ERROR,
@@ -384,6 +385,11 @@ def _sub_format(codec):
     if c in ("sub", "subviewer", "microdvd"):
         return "sub"
     return "srt"  # subrip and unknowns -> srt
+
+
+#: What the server serves a bitmap sidecar as, by the DeliveryUrl's
+#: extension, and the name mpv will recognise it by on disk.
+_BITMAP_SIDECARS = {"pgssub": "sup", "dvdsub": "mks"}
 
 
 def _requested_user_id(server_uuid):
@@ -4385,7 +4391,10 @@ class SyncManager:
         """Resolve the full MediaSource via PlaybackInfo (metadata only)."""
         try:
             info = client.jellyfin.get_play_info(
-                item_id, get_profile(is_remote=False), is_playback=False,
+                item_id, get_profile(
+                    is_remote=False,
+                    server_version=answering_server(client).get("Version")),
+                is_playback=False,
                 media_source_id=row.get("media_source_id"))
         except Exception:
             log.debug("PlaybackInfo failed for %s; using item manifest.",
@@ -4462,6 +4471,8 @@ class SyncManager:
             external = bool(stream.get("IsExternalUrl"))
             if delivery:
                 url = delivery if external else (server + delivery)
+                served = urllib.parse.urlsplit(delivery).path.rpartition(".")[2]
+                fmt = _BITMAP_SIDECARS.get(served.lower(), fmt)
             else:
                 url = client.jellyfin.subtitle_url(
                     item_id, media_source_id, index, fmt,
