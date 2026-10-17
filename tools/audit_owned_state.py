@@ -47,8 +47,8 @@ that are a different object's state. Scope to the file unless the name is
 distinctive.
 
 **`obj` is for state that does not hang off `self`.** `mpv.TIMEOUT` is a
-module global of the backend library, lowered for teardown and never
-restored; it has the same one-writer property and none of the `self.` shape.
+module global of the backend library, lowered for teardown and restored
+before the next mpv is built; it has the same one-writer property and none of the `self.` shape.
 """
 
 import ast
@@ -218,13 +218,15 @@ OWNED = [
         scope=".",
         attr="TIMEOUT",
         obj="mpv",
-        owners=("player.py:bound_ipc_replies",),
+        owners=("player.py:bound_ipc_replies",
+                "player.py:restore_ipc_replies"),
         why="The jsonipc backend's reply wait, a module global of the "
             "library rather than state of ours. `bound_ipc_replies` lowers "
-            "it 120s->5s for teardown and nothing restores it -- and its "
-            "call sites include the MINIMIZE path, which is not a teardown, "
-            "so a long-running session can end up with every IPC reply "
-            "bounded at 5s. Scoped to the package: any module can reach a "
+            "it 120s->5s for teardown; `restore_ipc_replies` puts it back "
+            "when `_construct_mpv` builds the next mpv. Its call sites still "
+            "include the MINIMIZE path, which is not a teardown and keeps "
+            "the same mpv, so until that mpv is replaced its IPC replies "
+            "stay bounded at 5s. Scoped to the package: any module can reach a "
             "global, so a second writer is not confined to `player.py`.",
     ),
 ]

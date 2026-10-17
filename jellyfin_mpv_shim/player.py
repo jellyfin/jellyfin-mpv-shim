@@ -240,6 +240,10 @@ else:
 # See docs/mpv-backends.md section 1.
 IPC_TEARDOWN_TIMEOUT = 5
 
+#: (what TIMEOUT was, what bound_ipc_replies set it to), until the next mpv
+#: is built -- see restore_ipc_replies.
+_ipc_bound = None
+
 def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
     """Stop waiting minutes for replies from an mpv that is going away.
 
@@ -249,15 +253,33 @@ def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
     failing to tighten a timeout must not become the thing that breaks the
     shutdown.
     """
+    global _ipc_bound
     if not is_using_ext_mpv:
         return
     try:
         if mpv.TIMEOUT > seconds:
             log.debug("Bounding mpv IPC reply wait to %ss for teardown.",
                       seconds)
+            _ipc_bound = (mpv.TIMEOUT, seconds)
             mpv.TIMEOUT = seconds
     except Exception:
         log.debug("Could not bound the mpv IPC reply wait.", exc_info=True)
+
+
+def restore_ipc_replies():
+    """Undo bound_ipc_replies for the next mpv. The global outlives the mpv
+    it was lowered for, and a close-to-tray is followed by a relaunch, whose
+    every command then timed out at the teardown bound. Only while TIMEOUT
+    still holds the value we set."""
+    global _ipc_bound
+    bound, _ipc_bound = _ipc_bound, None
+    if bound is None:
+        return
+    try:
+        if mpv.TIMEOUT == bound[1]:
+            mpv.TIMEOUT = bound[0]
+    except Exception:
+        log.debug("Could not restore the mpv IPC reply wait.", exc_info=True)
 
 
 
@@ -990,6 +1012,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         from .mpv_options import GAMEPAD_OPTION, OSC_OPTION
 
+        restore_ipc_replies()
         options = dict(mpv_options)
 
         # Already discovered, on a previous mpv. Re-learning either costs a
