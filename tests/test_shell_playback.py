@@ -1533,6 +1533,21 @@ class TestNowPlaying(unittest.TestCase):
         for n in ("seek", "set_volume", "set_repeat", "toggle_favorite"):
             self.assertIn(n, names)
 
+    def test_the_volume_bar_follows_the_player(self):
+        """The renderer keeps a slider's first value per id unless the node
+        is `force` (jellyfin_mpv_shim/mpvtk/GUIDE.md). The bar is first
+        drawn from the "Loading..." placeholder, which has no volume, so an
+        unforced bar stayed at 100 over the saved music volume, and never
+        followed a volume key or MPRIS either."""
+        self.b._start(audio=True)
+        for vol in (40, 70, 25):
+            self.b.on_playstate({"stopped": False, "is_audio": True,
+                                 "title": "S", "position": 1,
+                                 "duration": 100, "volume": vol})
+            nodes, _h = build_scene(self.b)
+            bar = [n for n in nodes if n.get("id") == "np-vol"][0]
+            self.assertEqual((bar["value"], bar.get("force")), (vol, True))
+
     def test_dragging_the_volume_does_not_notify_until_release(self):
         """set_volume wakes the timeline thread, which posts progress to the
         server. on_change fires per mouse-move, so a single drag across the

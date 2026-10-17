@@ -455,8 +455,10 @@ class MusicMixin:
                 # Live for audible feedback, but only the release notifies:
                 # on_change fires per mouse-move, and a notifying set_volume
                 # wakes the timeline thread, which posts to the server.
+                # force: the bar is first drawn from the Loading placeholder,
+                # and an unforced slider keeps that first value.
                 Slider("np-vol", value=np.get("volume", 100), min=0, max=100,
-                       w=110, tip=_("Volume"),
+                       w=110, tip=_("Volume"), force=True,
                        on_change=lambda v: self._ctl(
                            lambda c: c.set_volume(v, notify=False)),
                        on_commit=lambda v: self._ctl(
