@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-06 00:25-0400\n"
-"PO-Revision-Date: 2026-10-16 06:50+0000\n"
-"Last-Translator: z33k90 <z33k@protonmail.com>\n"
+"PO-Revision-Date: 2026-10-17 13:28+0000\n"
+"Last-Translator: Bjørn Kromann Johansen <bkj+weblate@bjornsen.dk>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
 "Language: da\n"
@@ -2668,7 +2668,7 @@ msgstr "Behold vindue knapper i fuldskærm"
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "Skjul skrivebordets titellinje"
 
 #. Label of the dropdown for the "osc_style" setting (Settings > Playback >
 #. Player Controls).
@@ -2797,7 +2797,7 @@ msgstr "Maksimeret biblioteksbrowser"
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "Bloker afspillerens genvejstaster under browsing"
 
 #. Label of the checkbox for the "hud_grab_keys" setting (Settings >
 #. Playback > Player Controls).
@@ -2951,6 +2951,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"Denne liste gør ingenting i sig selv – tænd for en af de to knapper under "
+"den. Det ændrer, hvilke spor lyd- og undertekstmenuerne tilbyder dig, ikke "
+"hvilket spor der vælges automatisk; det er forudindstillingen ovenfor, der "
+"afgør det. \"und\" betyder umærket, så hvis du fjerner det, skjules umærkede "
+"spor også."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -2966,6 +2971,13 @@ msgid ""
 "assume the original audio is Japanese; if yours is not, choose Custom and "
 "write the rules yourself."
 msgstr ""
+"\"Subbed\" beholder originallyden og tilføjer konplette undertekster på dit "
+"sprog. \"Dubbed\" foretrækker lyd på dit sprog med undertekster til skilte "
+"og sange, og falder tilbage på \"subbed\", hvis der ikke findes en "
+"eftersynkronisering. \"Kun serier\"-parret lader serveren bestemme over "
+"filmene. \"Subbed\"-forudindstillingerne antager, at originallyden er på "
+"japansk; hvis dit ikke er det, skal du vælge Brugerdefineret og selv skrive "
+"reglerne."
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
