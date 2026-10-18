@@ -984,8 +984,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # finished_callbacks onto evt_queue; if they survive into the re-opened
         # session the pump runs them against the NEW video — _handle_mpv_shutdown
         # nulls self._video, after which the new player's eof is ignored and
-        # auto-advance silently stops. The terminate join above guarantees the
-        # old event thread is dead, so nothing re-queues after this drain.
+        # auto-advance silently stops. Unless the join above timed out, the
+        # old event thread is dead and nothing re-queues after this drain;
+        # a timeout is given up on (docs/do-not-fix.md F53).
         while True:
             try:
                 self.evt_queue.get_nowait()
