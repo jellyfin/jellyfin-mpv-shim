@@ -2615,6 +2615,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._minimized = False
         self.hud.shown = False
         self._tell_controller("on_browse_enter")
+        if not self._browsing:
+            # A video yielded to while the controller waited for mpv: the
+            # last word is the truth, as in _yield.
+            return
         # Whatever just finished may have moved the resume rows, and this is
         # the moment they are about to be looked at. go_back has re-read Home
         # for this reason all along; coming back from PLAYBACK does not go

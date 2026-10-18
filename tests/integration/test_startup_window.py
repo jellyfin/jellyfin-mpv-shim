@@ -18,6 +18,7 @@ import linecache
 import sys
 import threading
 import time
+import types
 import unittest
 from unittest import mock
 
@@ -617,6 +618,66 @@ class CreateLogTest(_ReopenCase):
         create = [r for r in cm.output if "CREATE mpv" in r]
         self.assertEqual(len(create), 1, cm.output)
         self.assertIn(".force_window:", create[0])
+
+
+class StaleRequestTest(_ReopenCase):
+    """A window request that waited on `_lock` behind a cast's playback
+    start, into a closed window, finds a video on screen when it gets the
+    lock. The video wins (docs/mpv-backends.md section 8): stretched film,
+    hidden controls and a logo over it were what applying it did."""
+
+    FILM = types.SimpleNamespace(
+        item={"Type": "Movie", "MediaType": "Video", "Id": "film"})
+
+    def behind_a_start(self, request, succeeds=True):
+        """Run `request` on a thread while this one plays a start under
+        `_lock`; the request is parked on the lock before the start runs."""
+        pm = self.pm
+        with pm._lock:
+            waiter = self.spawn(request)
+            self.assertTrue(wait_parked(waiter),
+                            "the request did not wait for the lock")
+            pm._ensure_mpv()
+            if succeeds:
+                pm._video = self.FILM
+                pm._player.play("film.mkv")
+                pm.browse_yield()
+        self.join_all()
+        self.raise_spawned()
+        self.assertEqual(len(self.built), 1)
+        return waiter.box.get("result")
+
+    def test_the_browse_window_leaves_the_film_alone(self):
+        pm = self.pm
+        result = self.behind_a_start(lambda: pm.set_browse_window(True))
+        self.assertIs(result, False)
+        self.assertTrue(pm._player.keepaspect,
+                        "the film plays stretched: keepaspect turned off")
+        self.assertNotEqual(getattr(pm._player, "background", None), "color")
+
+    def test_the_browse_window_applies_when_the_start_failed(self):
+        pm = self.pm
+        self.behind_a_start(lambda: pm.set_browse_window(True),
+                            succeeds=False)
+        self.assertFalse(pm._player.keepaspect)
+        self.assertEqual(pm._player.background, "color")
+
+    def test_the_gateway_leaves_the_films_controls_alone(self):
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.playback import \
+            PlaybackMixin
+
+        pm = self.pm
+        with mock.patch("jellyfin_mpv_shim.player.playerManager", pm):
+            self.behind_a_start(lambda: PlaybackMixin.on_browse_enter(None))
+        self.assertTrue(pm._player.keepaspect)
+        self.assertFalse(pm._osc_suppressed,
+                         "the film's controls hidden by a stale browse enter")
+
+    def test_the_menu_window_does_not_replace_the_film(self):
+        pm = self.pm
+        self.behind_a_start(lambda: pm.force_window(True))
+        self.assertEqual(pm._player.played, ["film.mkv"],
+                         "the menu's logo replaced the film")
 
 
 class VersionGateTest(unittest.TestCase):

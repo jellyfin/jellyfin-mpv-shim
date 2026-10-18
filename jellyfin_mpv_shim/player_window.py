@@ -682,7 +682,10 @@ class WindowMixin:
         Differs from force_window() (used by the OSD menu) in two ways the
         browser needs: no Jellyfin logo splash (the browser paints its own
         background) and free resizing (keepaspect-window=no, like the mpvtk
-        demo) so the window doesn't snap to a media aspect ratio."""
+        demo) so the window doesn't snap to a media aspect ratio.
+
+        Returns False when it declined: mpv had to be built, and a video
+        started while this waited for it. None otherwise."""
         from .player import _mpv_errors
 
         # getattr throughout: a trace that raises is worse than no trace, and
@@ -706,6 +709,12 @@ class WindowMixin:
             wlog.info("browse=on with no mpv: building a new one")
             if not self._reopen_mpv():
                 return      # asked for from inside its own build
+            if not self._library_showing():
+                # A video started while this waited for the build, and it
+                # keeps the window. docs/mpv-backends.md section 8.
+                wlog.info("browse=on declined: a video started meanwhile "
+                          "<- %s", _caller())
+                return False
         release_failed = False
         try:
             if enabled:
@@ -1049,6 +1058,14 @@ class WindowMixin:
                       _caller())
             if not self._reopen_mpv():
                 return      # asked for from inside its own build
+            try:
+                if not self._player.playback_abort:
+                    # A video started while this waited for the build: the
+                    # menu opens over it. docs/mpv-backends.md section 8.
+                    return
+            except _mpv_errors:
+                self._handle_mpv_disconnect()
+                return
         try:
             if enabled:
                 self._player.force_window = True
