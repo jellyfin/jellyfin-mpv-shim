@@ -115,9 +115,10 @@ class ReportingMixin:
 
     def push_playstate(self, stopped=False):
         """Feed the browser's now-playing bar a compact snapshot on each
-        playback state change. Never raises and never re-enters MPV's lock — a
-        bar refresh must never disturb playback. A ``stopped`` payload tells the
-        bar to hide."""
+        playback state change. Never raises and never takes MPV's lock itself —
+        a bar refresh must never disturb playback. During a re-open its callback
+        can wait on `_lock` for the build (docs/mpv-backends.md section 8). A
+        ``stopped`` payload tells the bar to hide."""
         from .player import _mpv_errors
 
         bar = self.on_playstate

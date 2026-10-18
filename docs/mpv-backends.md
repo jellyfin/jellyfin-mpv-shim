@@ -602,11 +602,22 @@ builds a second mpv that nobody owns (#828).
   `_bind_mpv_handlers` takes `_lock`. Deadlock.
 - **The builder must never wait on a thread that can be a caller**: the new
   handle's event thread, the tray, the browser's render loop. That caller is
-  parked on `_lock` until the build is done. Nothing in the build waits on
-  them today -- after `_construct_mpv` every step is a synchronous command,
-  answered by jsonipc's reader thread (not its event thread) or by the libmpv
-  C API -- and there is no line to put that warning on. A `wait_property` or
-  a `command_async` future added to the build would break it.
+  parked on `_lock` until the build is done. Inside `_init_mpv` nothing
+  waits on them -- after `_construct_mpv` every step is a synchronous
+  command, answered by jsonipc's reader thread (not its event thread) or by
+  the libmpv C API, and the shim registers no mpv hooks, the one way
+  libmpv's core waits on Python -- and there is no line to put that warning
+  on. A `wait_property` or a `command_async` future added to the build would
+  break it. Measured 2026-10-18 on a tray re-open: the event thread's
+  `push_playstate` reaches `set_browse_window` mid-build and waits on
+  `_lock` until the publish, then continues on the built mpv. jsonipc does
+  this unprompted; on libmpv the first callback lands after the publish,
+  so it was forced with a 1 s sleep after `_bind_mpv_handlers`. **One exception, after it:** on the play path the caller already
+  holds `_lock`, so `on_mpv_recreated` runs under it, and the browser's
+  re-attach joins the old render loop for up to 2 s (`ui.py`
+  `_join_render_loop`). A render loop parked on `_lock` makes that join time
+  out, the re-attach is skipped, and the library stays dead until the next
+  one. Measured clean and left as is: do-not-fix F55.
 - **A caller re-checks its intent after the wait.** A cast starting into a
   closed window can hold `_lock` for the whole start, and the video wins:
   `set_browse_window(True)` declines when `_library_showing()` is false,
