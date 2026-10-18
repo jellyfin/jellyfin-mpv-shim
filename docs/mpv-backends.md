@@ -612,7 +612,11 @@ builds a second mpv that nobody owns (#828).
   `set_browse_window(True)` declines when `_library_showing()` is false,
   `force_window(True)` leaves a playing video alone (the menu opens over
   it), and the browser's `enter_browse` stops if a yield landed while its
-  controller call waited.
+  controller call waited. It also reads the gateway's decline as a value
+  (`on_browse_enter` returns False): a yield that landed while the app was
+  still minimized was a no-op, so only the value says the film won. Both
+  are needed -- the value is decided when the gateway gets `_lock`, the
+  yield check sees a playstate that lands after the gateway accepted.
 - **A failed build terminates the mpv it made and re-raises** -- to the
   builder and to every caller that was waiting on it; none builds another.
   Any failure counts, construction included: `_reopen_mpv` records it, not

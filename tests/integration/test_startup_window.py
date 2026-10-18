@@ -844,7 +844,10 @@ class StaleRequestTest(_ReopenCase):
 
         pm = self.pm
         with mock.patch("jellyfin_mpv_shim.player.playerManager", pm):
-            self.behind_a_start(lambda: PlaybackMixin.on_browse_enter(None))
+            result = self.behind_a_start(
+                lambda: PlaybackMixin.on_browse_enter(None))
+        # The browser's enter_browse reads the decline as this value.
+        self.assertIs(result, False)
         self.assertTrue(pm._player.keepaspect)
         self.assertFalse(pm._osc_suppressed,
                          "the film's controls hidden by a stale browse enter")
