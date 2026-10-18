@@ -1562,14 +1562,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._key_claims["fullscreen"] = {keysweep.FULLSCREEN}
         if self._seek_is_ours():
             self._key_claims["seek"] = {keysweep.SEEK}
-        # Under the lock, which _refresh_key_section's contract requires and
-        # this path did not hold: _bind_mpv_handlers is reachable from
-        # set_browse_window / force_window, neither of which is
-        # @synchronous, on the browser loop thread -- so a GroupJoined
-        # landing on the websocket thread could mutate _key_claims while
-        # this iterated it ("dictionary changed size during iteration",
-        # out of _init_mpv, aborting the window rebuild), or simply lose
-        # the race and install a section without the group's claim in it.
+        # Under the lock, which _refresh_key_section's contract requires. A
+        # re-open holds it already (_reopen_mpv); the first init, from
+        # __init__, does not. Without it a GroupJoined on the websocket
+        # thread could mutate _key_claims while this iterated it.
         with self._lock:
             self._refresh_key_section()
         p.on_key_press("i")(self._on_stats_oneshot)

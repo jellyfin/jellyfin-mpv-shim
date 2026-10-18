@@ -9,8 +9,8 @@ it, without mpv helpfully resizing it to each video.
 lifecycle.** ``set_browse_window`` and ``force_window`` can call ``_reopen_mpv``
 -- taking the window back may mean building a new mpv, because a version that
 cannot give up its window on request has to be restarted instead (see
-``runtime_force_window_works``). ``set_browse_window`` also calls
-``idle_quit``, which is the one outbound call that takes ``_lock``.
+``runtime_force_window_works``). Both take ``_lock`` that way, and so does
+``set_browse_window``'s call to ``idle_quit``.
 
 **Fullscreen is here and it is ``_lock``-synchronized**, unlike everything
 else in this module. It is a window property, so it belongs here, but the

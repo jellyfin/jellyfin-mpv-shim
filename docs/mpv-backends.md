@@ -583,13 +583,46 @@ explicit hooks.
 
 `on_mpv_recreated` fires once a fresh handle is ready.
 
+### Re-opening: one build, and everyone waits for it
+
 **A re-open goes through `_reopen_mpv`, never straight to `_init_mpv`.** The new
 handle's own event thread delivers its first observed values while the build is
 still running, and through `push_playstate` the browser asks for the window
 again -- a second caller that sees `_mpv_alive` still False and, unguarded,
-builds a second mpv that nobody owns (#828). `_reopen_mpv` builds under `_lock`
-and drops a caller that arrives mid-build from another thread; it never makes
-one wait for the builder, because the build takes `_lock` itself.
+builds a second mpv that nobody owns (#828).
+
+- **The build holds `_lock`, and every caller that finds mpv dead waits on
+  `_lock`**, then continues on the mpv that was built. None is dropped: a
+  dropped caller carried on as if it had a window, and the OSD menu then
+  claimed its keys on the outgoing handle -- a command after terminate, which
+  libmpv answers with a segfault.
+- **Wait *on* `_lock`; never wait for a build *while holding* it.** The first
+  version of the #828 fix had a play, which holds `_lock` across
+  `_ensure_mpv`, wait for another thread's build -- whose
+  `_bind_mpv_handlers` takes `_lock`. Deadlock.
+- **The builder must never wait on a thread that can be a caller**: the new
+  handle's event thread, the tray, the browser's render loop. That caller is
+  parked on `_lock` until the build is done. Nothing in the build waits on
+  them today -- after `_construct_mpv` every step is a synchronous command,
+  answered by jsonipc's reader thread (not its event thread) or by the libmpv
+  C API -- and there is no line to put that warning on. A `wait_property` or
+  a `command_async` future added to the build would break it.
+- **A caller re-checks its intent after the wait.** A cast starting into a
+  closed window can hold `_lock` for the whole start, and the video wins:
+  `set_browse_window(True)` declines when `_library_showing()` is false,
+  `force_window(True)` leaves a playing video alone (the menu opens over
+  it), and the browser's `enter_browse` stops if a yield landed while its
+  controller call waited.
+- **A failed build terminates the mpv it made and re-raises** -- to the
+  builder and to every caller that was waiting on it; none builds another.
+  A request made after the failure builds normally.
+- **The previous mpv's terminate is joined before `_lock` is taken** on the
+  tray and menu paths. A play reaches `_reopen_mpv` already holding `_lock`
+  (`_play_media` is `@synchronous`), so its join happens under it, as it
+  always has.
+
+`_lock` is an RLock, so the builder's own thread is the one caller that would
+get past it; `_reopen_mpv` refuses that call rather than build recursively.
 
 ### Discovered capabilities must outlive the mpv they were discovered on
 
