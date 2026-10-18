@@ -615,7 +615,8 @@ builds a second mpv that nobody owns (#828).
   controller call waited.
 - **A failed build terminates the mpv it made and re-raises** -- to the
   builder and to every caller that was waiting on it; none builds another.
-  A request made after the failure builds normally.
+  Any failure counts, construction included: `_reopen_mpv` records it, not
+  the step that failed. A request made after the failure builds normally.
 - **The previous mpv's terminate is joined before `_lock` is taken** on the
   tray and menu paths. A play reaches `_reopen_mpv` already holding `_lock`
   (`_play_media` is `@synchronous`), so its join happens under it, as it

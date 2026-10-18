@@ -572,6 +572,34 @@ class FailedBuildTest(_ReopenCase):
         pm._ensure_mpv()
         self.assertTrue(pm._mpv_alive)
 
+    def test_a_construct_failure_reaches_the_waiter_too(self):
+        """Any failure out of the build, not only one past `_construct_mpv`:
+        a waiter that missed it constructed an mpv of its own."""
+        pm = self.pm
+        constructs = []
+        inner = pm._construct_mpv
+
+        def construct(*a, **kw):
+            constructs.append(1)
+            if len(constructs) == 1:
+                self.assertTrue(wait_parked(self.spawn(pm._ensure_mpv)))
+                raise RuntimeError("simulated: mpv would not construct")
+            return inner(*a, **kw)
+
+        pm._construct_mpv = construct
+        builder = self.spawn(pm._ensure_mpv)
+        self.join_all(20)
+        waiter = self.spawned[1]
+        self.assertIsInstance(builder.box.get("error"), RuntimeError)
+        self.assertIsInstance(waiter.box.get("error"), RuntimeError,
+                              "the waiter did not get the failure: %r"
+                              % waiter.box)
+        self.assertEqual(len(constructs), 1,
+                         "the waiter constructed another mpv itself")
+        # A request made after the failure builds normally.
+        pm._ensure_mpv()
+        self.assertTrue(pm._mpv_alive)
+
 
 class TerminateJoinTest(_ReopenCase):
 

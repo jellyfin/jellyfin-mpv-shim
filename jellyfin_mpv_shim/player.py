@@ -654,7 +654,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # The thread re-creating mpv, or None. Class-level so players built with
     # __new__ (the test harness) have it too. See _reopen_mpv.
     _mpv_build = None
-    # Builds that failed (`_abandon_build`), and the last one's error.
+    # Re-opens that failed (`_reopen_mpv`), and the last one's error.
     _mpv_build_failures = 0
     _mpv_build_error = None
 
@@ -1178,17 +1178,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         try:
             self._configure_new_mpv(osc_style)
-        except BaseException as error:
-            self._abandon_build(error)
+        except BaseException:
+            self._abandon_build()
             raise
         return reopen
 
-    def _abandon_build(self, error):
+    def _abandon_build(self):
         """A build failed past `_construct_mpv`: the new mpv is running and
         nothing drives it. Terminate it the way `idle_quit` does, minus
         `on_mpv_gone` (no UI was attached to it yet), so the next re-open
-        joins the terminate rather than building on top of it. Recorded for
-        `_reopen_mpv`'s waiters."""
+        joins the terminate rather than building on top of it."""
         wlog.error("mpv build failed; terminating the half-built mpv")
         player = self._player
         try:
@@ -1196,8 +1195,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except Exception:
             log.debug("teardown after a failed build failed", exc_info=True)
         self._mpv_alive = False
-        self._mpv_build_error = error
-        self._mpv_build_failures += 1
         self._terminate_thread = Thread(
             target=self._terminate_mpv, args=(player,), daemon=True
         )
@@ -1417,6 +1414,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self._mpv_build = threading.current_thread()
             try:
                 reopen = self._init_mpv(caller=caller)
+            except BaseException as error:
+                # Any failure, construction included: a waiter that missed
+                # it would build an mpv of its own.
+                self._mpv_build_error = error
+                self._mpv_build_failures += 1
+                raise
             finally:
                 self._mpv_build = None
 
