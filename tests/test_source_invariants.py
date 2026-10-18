@@ -602,5 +602,40 @@ class TestApiCallsMatchTheClient(unittest.TestCase):
             + "\n  ".join(offenders))
 
 
+class TestMpvAliveHasOneWriter(unittest.TestCase):
+    """`_mpv_alive` is written under the lifecycle lock, through the two
+    methods that hold it, so a new flip site cannot forget the lock: the
+    disconnect's test-and-set and the publish's check-then-set are only
+    atomic there (docs/mpv-backends.md section 8)."""
+
+    ALLOWED = {"__init__", "_mark_mpv_dead", "_publish_mpv"}
+
+    def test_only_the_lifecycle_methods_write_it(self):
+        offenders = []
+        for rel, tree in _parsed():
+            for fn in ast.walk(tree):
+                if not isinstance(fn, (ast.FunctionDef,
+                                       ast.AsyncFunctionDef)):
+                    continue
+                for node in ast.walk(fn):
+                    if isinstance(node, ast.Assign):
+                        targets = node.targets
+                    elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+                        targets = [node.target]
+                    else:
+                        continue
+                    flat = []
+                    for t in targets:
+                        flat.extend(t.elts if isinstance(t, ast.Tuple)
+                                    else [t])
+                    if any(isinstance(t, ast.Attribute)
+                           and t.attr == "_mpv_alive" for t in flat) \
+                            and fn.name not in self.ALLOWED:
+                        offenders.append("%s:%d in %s()"
+                                         % (rel, node.lineno, fn.name))
+        self.assertEqual(sorted(set(offenders)), [],
+                         "_mpv_alive written outside the lifecycle methods")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -617,6 +617,23 @@ builds a second mpv that nobody owns (#828).
   builder and to every caller that was waiting on it; none builds another.
   Any failure counts, construction included: `_reopen_mpv` records it, not
   the step that failed. A request made after the failure builds normally.
+- **A handle that shuts down mid-build is a failed build**, and its
+  terminate is the builder's: the shutdown handler only marks it, the
+  publish (`_publish_mpv`) finds the mark and raises, and `_abandon_build`
+  terminates it once nothing is writing to it any more. The handler is bound
+  to its own handle, so a replaced mpv's late shutdown cannot mark its
+  successor. The mark, the "still being built" handle and `_mpv_alive` sit
+  under `_LIFECYCLE_LOCK`, a leaf lock held only around reading and writing
+  them -- never across a terminate, a join, a property read or a thread
+  start, and never taking `_lock`. `_mpv_alive` is written only by
+  `_publish_mpv` and `_mark_mpv_dead`
+  (`tests/test_source_invariants.py:TestMpvAliveHasOneWriter`). Two gaps:
+  the instant before the handler is bound (do-not-fix F54), and every
+  re-open that is not a play. The handler returns first thing while
+  `_idle_quit` is set, and only `_ensure_mpv` clears it, so after a tray or
+  menu re-open the new mpv's shutdown is ignored, during the build and
+  after it. In GUI mode the app quits anyway, through the browser's own
+  shutdown path (measured 2026-10-18, both backends).
 - **The previous mpv's terminate is joined before `_lock` is taken** on the
   tray and menu paths. A play reaches `_reopen_mpv` already holding `_lock`
   (`_play_media` is `@synchronous`), so its join happens under it, as it

@@ -620,8 +620,13 @@ def chapter_target(chapters, pos, direction):
 _UNSET = object()
 
 
-#: Guards the once-per-handle shutdown flag (_on_shutdown_event).
-_SHUTDOWN_SEEN_LOCK = threading.Lock()
+#: Leaf lock for mpv's lifecycle facts: a handle's shutdown mark, which
+#: handle is still being built, and `_mpv_alive`. Held only around reads and
+#: writes of those -- never across terminate(), a join, a property read or a
+#: Thread.start() -- and never takes `_lock`. docs/mpv-backends.md section 8.
+#: No "_lock" in the name: test_startup_window.wait_parked reads any
+#: `with ..._lock` line as a thread parked on the player's `_lock`.
+_LIFECYCLE_LOCK = threading.Lock()
 #: Guards `_stop_owed`: ends of playback race each other across threads
 #: (a stop, the action thread's end of queue, a lost connection).
 _STOP_OWED_LOCK = threading.Lock()
@@ -632,16 +637,25 @@ def _shutdown_seen(handle):
     return getattr(handle, "__dict__", {}).get("_jms_shutdown_seen", False)
 
 
+def _set_shutdown_seen(handle):
+    """Hold `_LIFECYCLE_LOCK`."""
+    try:
+        handle._jms_shutdown_seen = True
+    except Exception:
+        pass
+
+
 def _mark_own_close(handle):
     """Before we terminate mpv ourselves: mark the handle as already shut
     down, with the same once-per-handle flag _on_shutdown_event sets, so the
     "shutdown" event and _on_ipc_closed that our close causes do not run the
     outside-shutdown path (a second terminate, the teardown, stop_cmd)."""
-    with _SHUTDOWN_SEEN_LOCK:
-        try:
-            handle._jms_shutdown_seen = True
-        except Exception:
-            pass
+    with _LIFECYCLE_LOCK:
+        _set_shutdown_seen(handle)
+
+
+class MpvShutDownDuringBuild(RuntimeError):
+    """The mpv being built shut down before the build published it."""
 
 
 class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
@@ -654,6 +668,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # The thread re-creating mpv, or None. Class-level so players built with
     # __new__ (the test harness) have it too. See _reopen_mpv.
     _mpv_build = None
+    # The handle `_init_mpv` constructed and has not yet published or
+    # abandoned. Under `_LIFECYCLE_LOCK`.
+    _mpv_building = None
     # Re-opens that failed (`_reopen_mpv`), and the last one's error.
     _mpv_build_failures = 0
     _mpv_build_error = None
@@ -1168,7 +1185,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._geometry_armed = mpv_options["geometry"]
 
-        self._player = self._construct_mpv(
+        player = self._construct_mpv(
             mpv_options,
             input_default_bindings=True,
             input_vo_keyboard=True,
@@ -1176,6 +1193,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             log_handler=mpv_log_handler,
             loglevel=mpv_loglevel_for(settings.mpv_log_level),
         )
+        with _LIFECYCLE_LOCK:
+            self._player = player
+            self._mpv_building = player
         try:
             self._configure_new_mpv(osc_style)
         except BaseException:
@@ -1194,7 +1214,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self._teardown_player()
         except Exception:
             log.debug("teardown after a failed build failed", exc_info=True)
-        self._mpv_alive = False
+        # Ours to terminate, even when it shut down mid-build: its shutdown
+        # handler left it to us (_on_shutdown_event).
+        with _LIFECYCLE_LOCK:
+            _set_shutdown_seen(player)
+            self._mpv_building = None
+        self._mark_mpv_dead()
         self._terminate_thread = Thread(
             target=self._terminate_mpv, args=(player,), daemon=True
         )
@@ -1379,7 +1404,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     log.debug("%s unsupported by this mpv", prop,
                               exc_info=True)
 
-        self._mpv_alive = True
+        self._publish_mpv(self._player)
+
+    def _publish_mpv(self, player):
+        """The one place `_mpv_alive` goes True. A handle that shut down
+        while it was being built is a failed build, not a live mpv."""
+        with _LIFECYCLE_LOCK:
+            if _shutdown_seen(player):
+                raise MpvShutDownDuringBuild(
+                    "mpv shut down before its build finished")
+            self._mpv_building = None
+            self._mpv_alive = True
+
+    def _mark_mpv_dead(self, player=None):
+        """The one place `_mpv_alive` goes False. With `player`, only while
+        it is still the current handle: a superseded handle's late terminate
+        must not mark its successor dead. Returns whether it flipped."""
+        with _LIFECYCLE_LOCK:
+            if player is not None and player is not self._player:
+                return False
+            was_alive = self._mpv_alive
+            self._mpv_alive = False
+            return was_alive
 
     def _reopen_mpv(self):
         """Re-create a dead mpv. Every re-open comes through here, never
@@ -1606,7 +1652,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         p.event_callback("file-loaded")(self._on_file_loaded)
         self._observe("current-tracks/audio/codec", self._on_audio_codec_change)
         p.event_callback("end-file")(self._on_end_file)
-        p.event_callback("shutdown")(self._on_shutdown_event)
+        # Bound to this handle, like quit_callback: a replaced handle's late
+        # shutdown must not mark or terminate its successor.
+        p.event_callback("shutdown")(
+            functools.partial(self._on_shutdown_event, handle=p))
         p.event_callback("client-message")(self._on_client_message)
 
     # -- key handlers ------------------------------------------------------
@@ -2000,22 +2049,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._load_error_detail = detail
         self._load_failed.set()
 
-    def _on_shutdown_event(self, event):
+    def _on_shutdown_event(self, event, handle=None):
         # We quit mpv ourselves to save resources — idle_quit already tore
         # down and there is no session to report. Don't run the stop hook
         # or re-terminate.
         if self._idle_quit:
             return
+        if handle is None:
+            handle = self._player
         # Once per handle: on the external backend this can arrive twice,
         # as mpv's event and from the socket closing (_on_ipc_closed).
-        handle = self._player
-        with _SHUTDOWN_SEEN_LOCK:
+        with _LIFECYCLE_LOCK:
             if _shutdown_seen(handle):
                 return
-            try:
-                handle._jms_shutdown_seen = True
-            except Exception:
-                pass
+            _set_shutdown_seen(handle)
+            if handle is not self._player:
+                return
+            # Mid-build the mark fails the build's publish, and the builder
+            # terminates it once it has stopped writing to it.
+            building = handle is self._mpv_building
+        if building:
+            log.warning("mpv shut down while it was being built")
+            return
         log.info("mpv shutdown event received")
         # Only flip the flag here; the real teardown does network I/O and
         # swaps self._video, neither of which belongs on MPV's event
@@ -2028,7 +2083,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # landing right after a user-close can't build the new instance
         # while this one is still tearing down.
         self._terminate_thread = Thread(
-            target=self._terminate_mpv, args=(self._player,), daemon=True
+            target=self._terminate_mpv, args=(handle,), daemon=True
         )
         self._terminate_thread.start()
 
@@ -5200,7 +5255,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.should_send_timeline = False
         player = self._player
         self._teardown_player()
-        self._mpv_alive = False
+        self._mark_mpv_dead()
         self._terminate_thread = Thread(
             target=self._terminate_mpv, args=(player,), daemon=True
         )
@@ -5243,10 +5298,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 log.debug("a shutdown handler raised", exc_info=True)
 
     def _handle_mpv_disconnect(self):
-        if not self._mpv_alive:
+        if not self._mark_mpv_dead():
             return
         wlog.info("connection LOST; dead until the next play")
-        self._mpv_alive = False
         self.should_send_timeline = False
         video = self._video
         if self._end_playback():
@@ -5289,11 +5343,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         wlog.info("terminating the mpv instance")
         if player is None:
             player = self._player
-        # Only mark dead if this is still the current instance. A terminate of
-        # a superseded player that finishes after a re-open must not flip the
-        # freshly-created player to dead.
-        if player is self._player:
-            self._mpv_alive = False
+        self._mark_mpv_dead(player)
         _mark_own_close(player)
         try:
             player.terminate()

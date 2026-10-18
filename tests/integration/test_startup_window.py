@@ -601,6 +601,109 @@ class FailedBuildTest(_ReopenCase):
         self.assertTrue(pm._mpv_alive)
 
 
+class ShutdownMidBuildTest(_ReopenCase):
+    """mpv shutting down after its handlers are bound and before the build
+    publishes it -- a crash, a kill, a `quit` -- is a failed build, and the
+    terminate is the builder's (docs/mpv-backends.md section 8)."""
+
+    def shut_down_during_bind(self, on_thread):
+        """Fire the new handle's shutdown from inside `_bind_mpv_handlers`,
+        with a waiter parked on `_lock`. Returns the state the hook saw."""
+        pm = self.pm
+        real_bind = pm._bind_mpv_handlers
+        real_conf = pm._configure_new_mpv
+        state = {"configuring": False, "terms": []}
+
+        def conf(*a, **kw):
+            state["configuring"] = True
+            try:
+                return real_conf(*a, **kw)
+            finally:
+                state["configuring"] = False
+
+        def bind():
+            real_bind()
+            if "handle" in state:
+                return
+            state["handle"] = pm._player
+            self.assertTrue(wait_parked(self.spawn(pm._ensure_mpv)))
+            # As mpv delivers it: whatever handler the build bound.
+            fire = lambda: [cb(None) for cb in  # noqa: E731
+                            pm._player._event_callbacks["shutdown"]]
+            if on_thread:
+                t = threading.Thread(target=fire, daemon=True)
+                t.start()
+                t.join(5)
+            else:
+                fire()
+            # Room for a terminate started by the handler to run while the
+            # build is still configuring the handle.
+            if pm._terminate_thread is not None:
+                pm._terminate_thread.join(2)
+
+        pm._bind_mpv_handlers = bind
+        pm._configure_new_mpv = conf
+        real_term = h.FakeMPV.terminate
+
+        def count_term(fake):
+            state["terms"].append((fake, state["configuring"]))
+            return real_term(fake)
+
+        with mock.patch.object(h.FakeMPV, "terminate", count_term):
+            state["builder"] = self.spawn(pm._ensure_mpv)
+            self.join_all(20)
+            if pm._terminate_thread is not None:
+                pm._terminate_thread.join(10)
+        return state
+
+    def test_the_build_and_its_waiter_get_the_failure(self):
+        for on_thread in (False, True):
+            with self.subTest(on_thread=on_thread):
+                if on_thread:
+                    self.setUp()
+                pm = self.pm
+                state = self.shut_down_during_bind(on_thread)
+                waiter = self.spawned[1]
+                self.assertIsInstance(
+                    state["builder"].box.get("error"), Exception,
+                    "the build published a handle that shut down mid-build:"
+                    " alive=%r" % pm._mpv_alive)
+                self.assertIsInstance(waiter.box.get("error"), Exception,
+                                      "the waiter did not get the failure")
+                self.assertFalse(pm._mpv_alive)
+                self.assertEqual(len(self.built), 1)
+                mine = [t for t, _ in state["terms"]
+                        if t is state["handle"]]
+                self.assertEqual(len(mine), 1,
+                                 "the handle was terminated %d times"
+                                 % len(mine))
+
+    def test_no_terminate_while_the_build_is_configuring(self):
+        """No command after terminate: libmpv answers one with a segfault."""
+        state = self.shut_down_during_bind(on_thread=False)
+        mine = [c for t, c in state["terms"] if t is state["handle"]]
+        self.assertEqual(mine, [False],
+                         "terminates of the half-built handle, True = while "
+                         "the build was still configuring it: %r" % mine)
+
+    def test_an_old_handles_late_shutdown_leaves_the_new_one_alone(self):
+        """The outgoing mpv's shutdown arriving after the new one is built
+        (its terminate outlived the join) must not fail or kill the new."""
+        pm = self.pm
+        pm._ensure_mpv()
+        old = pm._player
+        pm._handle_mpv_disconnect()     # lost; recovery is the next play
+        pm._terminate_thread.join(10)
+        pm._ensure_mpv()
+        self.assertIsNot(pm._player, old)
+        for cb in old._event_callbacks["shutdown"]:
+            cb(None)
+        if pm._terminate_thread is not None:
+            pm._terminate_thread.join(10)
+        self.assertTrue(pm._mpv_alive)
+        self.assertFalse(pm._player.terminated)
+
+
 class TerminateJoinTest(_ReopenCase):
 
     def test_lock_is_free_while_the_previous_terminate_finishes(self):
