@@ -654,13 +654,9 @@ builds a second mpv that nobody owns (#828).
   them -- never across a terminate, a join, a property read or a thread
   start, and never taking `_lock`. `_mpv_alive` is written only by
   `_publish_mpv` and `_mark_mpv_dead`
-  (`tests/test_source_invariants.py:TestMpvAliveHasOneWriter`). Two gaps:
-  the instant before the handler is bound (do-not-fix F54), and every
-  re-open that is not a play. The handler returns first thing while
-  `_idle_quit` is set, and only `_ensure_mpv` clears it, so after a tray or
-  menu re-open the new mpv's shutdown is ignored, during the build and
-  after it. In GUI mode the app quits anyway, through the browser's own
-  shutdown path (measured 2026-10-18, both backends).
+  (`tests/test_source_invariants.py:TestMpvAliveHasOneWriter`). This holds
+  for every re-open, the tray's and the menu's as well as a play's. One gap:
+  the instant before the handler is bound (do-not-fix F54).
 - **The previous mpv's terminate is joined before `_lock` is taken** on the
   tray and menu paths. A play reaches `_reopen_mpv` already holding `_lock`
   (`_play_media` is `@synchronous`), so its join happens under it, as it

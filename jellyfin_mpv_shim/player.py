@@ -755,11 +755,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._hud_skip = None
         self._osc_script_loaded = False
         self._mpv_alive = False
-        # True when mpv was terminated intentionally to save resources while
-        # idle (mpv_idle_quit), as opposed to a crash / user-close. Lets the
-        # shutdown path stay silent — there's no session to report. Cleared
-        # when the process is re-created on the next play.
-        self._idle_quit = False
         # The thread tearing down a previous mpv instance. A re-open joins it
         # before rebuilding: the old event thread must be dead before we drain
         # its leftover queued tasks (so none re-queue after the drain — see
@@ -2079,11 +2074,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._load_failed.set()
 
     def _on_shutdown_event(self, event, handle=None):
-        # We quit mpv ourselves to save resources — idle_quit already tore
-        # down and there is no session to report. Don't run the stop hook
-        # or re-terminate.
-        if self._idle_quit:
-            return
         if handle is None:
             handle = self._player
         # Once per handle: on the external backend this can arrive twice,
@@ -5244,13 +5234,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def _ensure_mpv(self):
         """Re-create the mpv process if it is not running — closed by the user,
-        crashed, or quit while idle (mpv_idle_quit). Called by the play path so
-        a cast/remote Play transparently re-opens a fresh window. There is no
-        local input while the window is gone, so play() is the only re-open
-        trigger."""
+        crashed, or quit while idle (mpv_idle_quit). The play path's way in,
+        so a cast/remote Play transparently re-opens a fresh window; the tray
+        and the OSD menu come in through `set_browse_window` and
+        `force_window`. Every re-open goes through `_reopen_mpv`."""
         if not self._mpv_alive:
             wlog.info("mpv is not running; re-creating it for playback")
-            self._idle_quit = False
             self._reopen_mpv()
 
     @synchronous("_lock")
@@ -5280,7 +5269,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         wlog.info("QUIT: %s (video=%d mpvtk=%d)", reason,
                   getattr(self, "_video", None) is not None,
                   bool(getattr(self, "mpvtk_active", False)))
-        self._idle_quit = True
         self.should_send_timeline = False
         player = self._player
         self._teardown_player()

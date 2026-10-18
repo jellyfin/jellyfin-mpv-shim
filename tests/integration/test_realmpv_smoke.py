@@ -474,8 +474,6 @@ class RealMpvSmokeTest(unittest.TestCase):
 
             # Drive the idle path directly (the timeline thread's role).
             self.pm.idle_quit()
-            self.assertTrue(self.pm._idle_quit,
-                            "idle_quit did not mark the termination intentional")
             self.assertFalse(self.pm._mpv_alive,
                              "real mpv not marked down after idle_quit")
 
@@ -483,8 +481,6 @@ class RealMpvSmokeTest(unittest.TestCase):
             second = RealVideo(clip, client, item_id="idle-2")
             self.pm.play(second, is_initial_play=True)
             self.assertIs(self.pm._video, second)
-            self.assertFalse(self.pm._idle_quit,
-                             "_idle_quit not cleared on re-open")
             self.assertTrue(self.pm._mpv_alive)
             self.assertTrue(self.pm._player.duration and
                             self.pm._player.duration > 0,
@@ -516,8 +512,6 @@ class RealMpvSmokeTest(unittest.TestCase):
 
             # idle_quit fires on in-process libmpv now.
             self.pm.idle_quit()
-            self.assertTrue(self.pm._idle_quit,
-                            "idle_quit did not fire on in-process libmpv")
             self.assertFalse(self.pm._mpv_alive,
                              "libmpv not marked down after idle_quit")
 
@@ -528,8 +522,6 @@ class RealMpvSmokeTest(unittest.TestCase):
                               next_video=second)
             self.pm.play(first, is_initial_play=True)
             self.assertIs(self.pm._video, first)
-            self.assertFalse(self.pm._idle_quit,
-                             "_idle_quit not cleared on re-open")
             self.assertTrue(self.pm._mpv_alive)
             self.assertTrue(self.pm._player.duration and
                             self.pm._player.duration > 0,

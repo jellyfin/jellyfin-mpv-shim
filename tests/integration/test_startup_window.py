@@ -629,10 +629,12 @@ class ShutdownMidBuildTest(_ReopenCase):
     publishes it -- a crash, a kill, a `quit` -- is a failed build, and the
     terminate is the builder's (docs/mpv-backends.md section 8)."""
 
-    def shut_down_during_bind(self, on_thread):
+    def shut_down_during_bind(self, on_thread, entry=None):
         """Fire the new handle's shutdown from inside `_bind_mpv_handlers`,
-        with a waiter parked on `_lock`. Returns the state the hook saw."""
+        with a waiter parked on `_lock`, both entering by `entry` (default
+        the play path's `_ensure_mpv`). Returns the state the hook saw."""
         pm = self.pm
+        entry = entry or pm._ensure_mpv
         real_bind = pm._bind_mpv_handlers
         real_conf = pm._configure_new_mpv
         state = {"configuring": False, "terms": []}
@@ -649,7 +651,7 @@ class ShutdownMidBuildTest(_ReopenCase):
             if "handle" in state:
                 return
             state["handle"] = pm._player
-            self.assertTrue(wait_parked(self.spawn(pm._ensure_mpv)))
+            self.assertTrue(wait_parked(self.spawn(entry)))
             # As mpv delivers it: whatever handler the build bound.
             fire = lambda: [cb(None) for cb in  # noqa: E731
                             pm._player._event_callbacks["shutdown"]]
@@ -673,35 +675,44 @@ class ShutdownMidBuildTest(_ReopenCase):
             return real_term(fake)
 
         with mock.patch.object(h.FakeMPV, "terminate", count_term):
-            state["builder"] = self.spawn(pm._ensure_mpv)
+            state["builder"] = self.spawn(entry)
             self.join_all(20)
             if pm._terminate_thread is not None:
                 pm._terminate_thread.join(10)
         return state
 
+    def assert_build_failed(self, on_thread, entry=None):
+        pm = self.pm
+        state = self.shut_down_during_bind(on_thread, entry)
+        waiter = self.spawned[1]
+        self.assertIsInstance(
+            state["builder"].box.get("error"), Exception,
+            "the build published a handle that shut down mid-build:"
+            " alive=%r" % pm._mpv_alive)
+        self.assertIsInstance(waiter.box.get("error"), Exception,
+                              "the waiter did not get the failure")
+        self.assertFalse(pm._mpv_alive)
+        self.assertEqual(len(self.built), 1)
+        self.assertEqual(len(self.exits), 1,
+                         "exit hook calls: %r" % self.exits)
+        mine = [t for t, _ in state["terms"] if t is state["handle"]]
+        self.assertEqual(len(mine), 1,
+                         "the handle was terminated %d times" % len(mine))
+
     def test_the_build_and_its_waiter_get_the_failure(self):
-        for on_thread in (False, True):
-            with self.subTest(on_thread=on_thread):
-                if on_thread:
-                    self.setUp()
-                pm = self.pm
-                state = self.shut_down_during_bind(on_thread)
-                waiter = self.spawned[1]
-                self.assertIsInstance(
-                    state["builder"].box.get("error"), Exception,
-                    "the build published a handle that shut down mid-build:"
-                    " alive=%r" % pm._mpv_alive)
-                self.assertIsInstance(waiter.box.get("error"), Exception,
-                                      "the waiter did not get the failure")
-                self.assertFalse(pm._mpv_alive)
-                self.assertEqual(len(self.built), 1)
-                self.assertEqual(len(self.exits), 1,
-                                 "exit hook calls: %r" % self.exits)
-                mine = [t for t, _ in state["terms"]
-                        if t is state["handle"]]
-                self.assertEqual(len(mine), 1,
-                                 "the handle was terminated %d times"
-                                 % len(mine))
+        self.assert_build_failed(on_thread=False)
+
+    def test_the_same_from_mpvs_event_thread(self):
+        self.assert_build_failed(on_thread=True)
+
+    def test_the_same_through_the_trays_open_library(self):
+        """Every re-open, not only a play's (docs/mpv-backends.md
+        section 8)."""
+        self.assert_build_failed(
+            False, lambda: self.pm.set_browse_window(True))
+
+    def test_the_same_through_the_osd_menus_window(self):
+        self.assert_build_failed(False, lambda: self.pm.force_window(True))
 
     def test_no_terminate_while_the_build_is_configuring(self):
         """No command after terminate: libmpv answers one with a segfault."""
