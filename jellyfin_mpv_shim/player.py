@@ -651,6 +651,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     violates assumptions.
     """
 
+    # The thread re-creating mpv, or None. Class-level so players built with
+    # __new__ (the test harness) have it too. See _reopen_mpv.
+    _mpv_build = None
+
     def __init__(self):
         self._video = None
         self.timeline_trigger = None
@@ -1344,14 +1348,52 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         self._mpv_alive = True
 
+    def _reopen_mpv(self):
+        """Re-create a dead mpv. Returns whether mpv is alive on return.
+
+        Every re-open goes through here, never straight to `_init_mpv`: two
+        callers that each see `_mpv_alive` False build two mpvs, and the
+        first is then owned by nobody -- an empty window left on screen
+        (#828). The caller that reliably races the tray's re-open is the new
+        handle's OWN event thread, delivering the initial `volume` value into
+        `push_playstate` -> the browser -> `set_browse_window(True)` before
+        `_init_mpv` has finished.
+
+        So the build runs under `_lock`, and a caller arriving mid-build from
+        another thread returns False rather than block -- that event thread
+        must not wait on a build it may be delivering for. A play already
+        holds `_lock`, so it can never meet a half-built mpv. Never make a
+        caller wait for another thread's build instead: the build itself
+        takes `_lock` (`_bind_mpv_handlers`), and a play waiting while
+        holding it deadlocks the two.
+        """
+        if self._mpv_build not in (None, threading.current_thread()):
+            wlog.info("mpv re-open already in progress; not building "
+                      "another <- %s", player_window._caller())
+            return False
+        with self._lock:
+            if self._mpv_alive:
+                return True
+            if self._mpv_build is not None:
+                # This thread, from inside its own build.
+                return False
+            reopen = getattr(self, "_player", None) is not None
+            self._mpv_build = threading.current_thread()
+            try:
+                self._init_mpv()
+            finally:
+                self._mpv_build = None
+
         # Anything attached to the *previous* handle has to move over. Only on
         # a re-open: on first init there is nothing attached yet (the UI
-        # attaches after the player is constructed).
+        # attaches after the player is constructed). Outside `_lock` where
+        # the caller allows it: this reaches the browser.
         if reopen and self.on_mpv_recreated is not None:
             try:
                 self.on_mpv_recreated()
             except Exception:
                 log.error("on_mpv_recreated handler failed", exc_info=True)
+        return self._mpv_alive
 
     # -- mpv key bindings and event handlers -------------------------------
     #
@@ -5090,7 +5132,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if not self._mpv_alive:
             wlog.info("mpv is not running; re-creating it for playback")
             self._idle_quit = False
-            self._init_mpv()
+            self._reopen_mpv()
 
     @synchronous("_lock")
     def idle_quit(self, reason="Idle timeout reached"):

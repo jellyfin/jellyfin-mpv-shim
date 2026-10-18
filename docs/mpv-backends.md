@@ -583,6 +583,14 @@ explicit hooks.
 
 `on_mpv_recreated` fires once a fresh handle is ready.
 
+**A re-open goes through `_reopen_mpv`, never straight to `_init_mpv`.** The new
+handle's own event thread delivers its first observed values while the build is
+still running, and through `push_playstate` the browser asks for the window
+again -- a second caller that sees `_mpv_alive` still False and, unguarded,
+builds a second mpv that nobody owns (#828). `_reopen_mpv` builds under `_lock`
+and drops a caller that arrives mid-build from another thread; it never makes
+one wait for the builder, because the build takes `_lock` itself.
+
 ### Discovered capabilities must outlive the mpv they were discovered on
 
 `_init_mpv` runs again on every re-creation — an idle-quit then a cast,

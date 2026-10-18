@@ -100,7 +100,7 @@ def _import_real_player():
         # process it does have a reader -- us -- and it says "alive" about a
         # process that is gone, which is why only the jsonipc leg broke.
         manager._mpv_alive = False
-        manager._init_mpv()
+        manager._reopen_mpv()
     return player_module
 
 

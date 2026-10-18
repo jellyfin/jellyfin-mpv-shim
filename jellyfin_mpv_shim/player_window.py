@@ -6,7 +6,7 @@ no file loaded; playback needs the same window back, at the size the user left
 it, without mpv helpfully resizing it to each video.
 
 **Three calls leave this module, and they are real coupling to the player's
-lifecycle.** ``set_browse_window`` and ``force_window`` can call ``_init_mpv``
+lifecycle.** ``set_browse_window`` and ``force_window`` can call ``_reopen_mpv``
 -- taking the window back may mean building a new mpv, because a version that
 cannot give up its window on request has to be restarted instead (see
 ``runtime_force_window_works``). ``set_browse_window`` also calls
@@ -101,7 +101,7 @@ class WindowMixin:
         # Provided by siblings on the composed PlayerManager. Four, and the
         # count is the point: if it grows, the window concern is drifting back
         # into the lifecycle it was separated from.
-        def _init_mpv(self) -> None: ...
+        def _reopen_mpv(self) -> bool: ...
 
         # Grown deliberately, for `apply_browser_fullscreen`: "is the library
         # on screen" is a question about what is PLAYING, which this mixin
@@ -704,7 +704,10 @@ class WindowMixin:
             # flag immediately after a minimize -- which is what an
             # unexplained blank re-open looks like from here.
             wlog.info("browse=on with no mpv: building a new one")
-            self._init_mpv()
+            if not self._reopen_mpv():
+                # Another thread is building it, and its on_mpv_recreated
+                # re-asserts the browser's window state when done.
+                return
         release_failed = False
         try:
             if enabled:
@@ -1045,7 +1048,8 @@ class WindowMixin:
             if not enabled:
                 return
             log.info("mpv is dead, reinitializing for menu window")
-            self._init_mpv()
+            if not self._reopen_mpv():
+                return
         try:
             if enabled:
                 self._player.force_window = True

@@ -15,6 +15,8 @@ being a cast target with the library closed).
 """
 
 import sys
+import threading
+import time
 import unittest
 from unittest import mock
 
@@ -175,6 +177,150 @@ class StartupForceWindowTest(unittest.TestCase):
         """osc_style 'jellyfin' is the retired name for the mpvtk HUD; a
         config carrying it must not lose its window."""
         self.assertTrue(self._init_options("jellyfin").get("force_window"))
+
+
+class ConcurrentReopenTest(unittest.TestCase):
+    """A re-open asked for while another is still building must not build a
+    second mpv (#828).
+
+    The real trigger: the browser re-opens mpv from the tray, and the NEW
+    handle's initial `volume` observation arrives on its event thread while
+    `_init_mpv` is still running -- `push_playstate` -> `on_playstate` ->
+    `enter_browse` -> `set_browse_window(True)`, which saw `_mpv_alive` still
+    False and built another. Two windows; the first mpv owned by nobody.
+    Measured on jsonipc, where the rest of `_init_mpv` is ~300 ms of IPC round
+    trips; libmpv only wins the race on timing.
+
+    The second request is made from another thread, from inside
+    `_construct_mpv`, which is where the real one lands."""
+
+    ROUNDS = 3
+
+    def _player(self):
+        pm = h.build_player(player_module, test=self)
+        pm.menu.is_menu_shown = False
+        pm.mpvtk_active = False
+        self.recreated = []
+        pm.on_mpv_recreated = lambda: self.recreated.append(pm._player)
+        self.built = []
+        self.hook_errors = []
+        inner = pm._construct_mpv
+
+        def construct(*a, **kw):
+            nested = bool(self.built) and self.built[-1] is None
+            self.built.append(None)        # "a build is in progress"
+            if not nested and self.during is not None:
+                try:
+                    self.during(pm)
+                except BaseException as e:   # on the tray thread
+                    self.hook_errors.append(e)
+            player = inner(*a, **kw)
+            self.built[-1] = player
+            return player
+
+        pm._construct_mpv = construct
+        return pm
+
+    def _rounds(self, during):
+        """Idle-quit, then re-open from the tray with `during` running in the
+        middle of the build. Returns the player."""
+        self.during = None
+        tray = None
+        pm = self._player()
+        # mpv_ext_start: the harness turns it off so the fake spawns nothing,
+        # and idle_quit leaves alone an external mpv the shim did not start.
+        with mock.patch.object(settings, "enable_gui", True), \
+                mock.patch.object(settings, "osc_style", "mpvtk"), \
+                mock.patch.object(settings, "thumbnail_enable", False), \
+                mock.patch.object(settings, "mpv_ext_start", True):
+            for round_no in range(1, self.ROUNDS + 1):
+                if tray is not None and tray.is_alive():
+                    # Deadlocked, and holding _lock: the next idle_quit
+                    # would hang the run rather than fail it.
+                    break
+                with self.subTest(round=round_no):
+                    pm.mpvtk_active = False
+                    pm.idle_quit("test")
+                    self.assertFalse(pm._mpv_alive)
+                    del self.built[:], self.recreated[:]
+                    self.during = during
+                    pm.mpvtk_active = True
+                    # On a thread, so a deadlock fails the test, not the run.
+                    tray = threading.Thread(
+                        target=pm.set_browse_window, args=(True,), daemon=True)
+                    tray.start()
+                    tray.join(10)
+                    self.assertFalse(tray.is_alive(),
+                                     "round %d: the re-open deadlocked"
+                                     % round_no)
+                    self.during = None
+                    if self.hook_errors:
+                        raise self.hook_errors[0]
+                    self._join_others()
+                    self.assertEqual(
+                        len(self.built), 1,
+                        "round %d built %d mpvs for one re-open"
+                        % (round_no, len(self.built)))
+                    self.assertIs(pm._player, self.built[0])
+                    self.assertTrue(pm._mpv_alive)
+                    self.assertEqual(self.recreated, [pm._player],
+                                     "the UI must follow exactly one handle")
+        return pm
+
+    def _join_others(self):
+        for t in getattr(self, "_threads", ()):
+            t.join(10)
+            self.assertFalse(t.is_alive(), "the second caller never returned")
+        self._threads = []
+
+    def _spawn(self, target):
+        t = threading.Thread(target=target, daemon=True)
+        self._threads = getattr(self, "_threads", []) + [t]
+        t.start()
+        return t
+
+    def test_the_browser_asking_again_mid_build_is_dropped(self):
+        """It has to return without waiting, too: the real caller is mpv's
+        own event thread, which the build may need."""
+        def during(pm):
+            t = self._spawn(lambda: pm.set_browse_window(True))
+            t.join(5)
+            self.assertFalse(t.is_alive(),
+                             "set_browse_window blocked on a build in flight")
+
+        self._rounds(during)
+
+    def test_the_osd_menu_asking_mid_build_is_dropped(self):
+        def during(pm):
+            t = self._spawn(lambda: pm.force_window(True))
+            t.join(5)
+            self.assertFalse(t.is_alive(),
+                             "force_window blocked on a build in flight")
+
+        self._rounds(during)
+
+    def test_a_play_mid_build_gets_the_built_mpv(self):
+        """The play path needs a handle when it returns. `_play_media` holds
+        `_lock` around `_ensure_mpv`, as here, and the build takes `_lock`
+        itself (`_bind_mpv_handlers`), so a play that waits for another
+        thread's build while holding it deadlocks the pair."""
+        seen = []
+
+        def during(pm):
+            started = threading.Event()
+
+            def play_path():
+                started.set()
+                with pm._lock:
+                    pm._ensure_mpv()
+                    seen.append(pm._mpv_alive)
+
+            self._spawn(play_path)
+            started.wait(5)
+            time.sleep(0.05)   # let it reach the lock
+
+        self._rounds(during)
+        self.assertEqual(seen, [True] * self.ROUNDS)
 
 
 class VersionGateTest(unittest.TestCase):
