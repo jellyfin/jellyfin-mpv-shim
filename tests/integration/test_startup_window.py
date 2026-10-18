@@ -420,6 +420,47 @@ class OptionalWritesTest(_ReopenCase):
         self._build_with_failing_write("resume_playback")
 
 
+class FailedBuildTest(_ReopenCase):
+    """A build that fails past `_construct_mpv` terminates the mpv it made
+    and re-raises, rather than leaving it running and owned by nobody."""
+
+    def fail_first_bind(self):
+        real = self.pm._bind_mpv_handlers
+        calls = []
+
+        def bind():
+            calls.append(1)
+            if len(calls) == 1:
+                raise RuntimeError("simulated failure binding handlers")
+            return real()
+
+        self.pm._bind_mpv_handlers = bind
+
+    def test_the_half_built_mpv_is_terminated(self):
+        pm = self.pm
+        self.fail_first_bind()
+        with self.assertRaises(RuntimeError), \
+                self.assertLogs("window", "ERROR"):
+            pm._ensure_mpv()
+        failed = self.built[-1]
+        pm._terminate_thread.join(10)
+        self.assertTrue(failed.terminated,
+                        "the half-built mpv was left running")
+        self.assertFalse(pm._mpv_alive)
+        # ...and nothing is wedged: the lock is free to another thread, and
+        # the next re-open builds exactly one.
+        got = []
+        t = threading.Thread(target=lambda: got.append(
+            pm._lock.acquire(timeout=2) and (pm._lock.release() or True)))
+        t.start()
+        t.join(5)
+        self.assertEqual(got, [True], "_lock left held after a failed build")
+        pm._ensure_mpv()
+        self.assertTrue(pm._mpv_alive)
+        self.assertEqual(len(self.built), 2)
+        self.assertIs(pm._player, self.built[-1])
+
+
 class VersionGateTest(unittest.TestCase):
     """Which mpv acts on a force-window change made while idle."""
 

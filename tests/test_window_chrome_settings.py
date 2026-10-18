@@ -168,8 +168,11 @@ class ClassicOscTest(unittest.TestCase):
     def _init_mpv_body(self):
         src = ROOT.joinpath("jellyfin_mpv_shim", "player.py").read_text(
             encoding="utf-8")
-        body = src[src.index("    def _init_mpv(self):"):]
-        return body[:body.index("\n    def ")]
+        # _init_mpv hands the new handle to _configure_new_mpv.
+        def method(name):
+            body = src[src.index("    def %s(" % name):]
+            return body[:body.index("\n    def ")]
+        return method("_init_mpv") + method("_configure_new_mpv")
 
     def test_the_options_are_pushed_by_appending(self):
         """One place that knows how to hand an option to a classic OSC, and

@@ -770,7 +770,12 @@ class PristineSnapshotOrderTest(unittest.TestCase):
 
         from jellyfin_mpv_shim import player
 
-        return ast.parse(textwrap.dedent(inspect.getsource(player.PlayerManager._init_mpv)))
+        # _init_mpv hands the new handle to _configure_new_mpv; parsed as
+        # one, in the order they run.
+        return ast.parse("".join(
+            textwrap.dedent(inspect.getsource(method))
+            for method in (player.PlayerManager._init_mpv,
+                           player.PlayerManager._configure_new_mpv)))
 
     def _first_line(self, tree, predicate):
         return min((n.lineno for n in ast.walk(tree)
