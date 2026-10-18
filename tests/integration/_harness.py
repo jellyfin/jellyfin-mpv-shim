@@ -1378,6 +1378,7 @@ def build_player(player_module, video=None, test=None):
     pm.on_window_closed = None
     pm.on_mpv_gone = None
     pm.on_mpv_recreated = None
+    pm.on_reopen_failed = None
     pm.on_nav_back = None
     pm.on_nav_command = None
     pm.on_hud_menu = None

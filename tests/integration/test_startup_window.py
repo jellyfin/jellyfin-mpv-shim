@@ -427,6 +427,8 @@ class _ReopenCase(unittest.TestCase):
         pm.menu.is_menu_shown = False
         pm.mpvtk_active = False
         pm.on_mpv_recreated = None
+        self.exits = []
+        pm.on_reopen_failed = self.exits.append
         self.built = []
         self.during = None
         self.spawned = []
@@ -466,6 +468,17 @@ class _ReopenCase(unittest.TestCase):
         for t in self.spawned:
             t.join(timeout)
             self.assertFalse(t.is_alive(), "a caller never returned")
+
+    def assert_shut_down(self):
+        """A failed re-open shuts the app down: the hook fired once, and a
+        request after it is refused rather than built."""
+        self.assertEqual(len(self.exits), 1,
+                         "exit hook calls: %r" % self.exits)
+        built = len(self.built)
+        with self.assertRaises(RuntimeError):
+            self.pm._ensure_mpv()
+        self.assertEqual(len(self.built), built,
+                         "built another mpv while shutting down")
 
     def raise_spawned(self):
         for t in self.spawned:
@@ -510,7 +523,8 @@ class OptionalWritesTest(_ReopenCase):
 
 class FailedBuildTest(_ReopenCase):
     """A build that fails past `_construct_mpv` terminates the mpv it made
-    and re-raises, rather than leaving it running and owned by nobody."""
+    and re-raises, rather than leaving it running and owned by nobody. A
+    failed re-open shuts the app down: all UI goes through mpv."""
 
     def fail_first_bind(self):
         real = self.pm._bind_mpv_handlers
@@ -543,10 +557,7 @@ class FailedBuildTest(_ReopenCase):
         t.start()
         t.join(5)
         self.assertEqual(got, [True], "_lock left held after a failed build")
-        pm._ensure_mpv()
-        self.assertTrue(pm._mpv_alive)
-        self.assertEqual(len(self.built), 2)
-        self.assertIs(pm._player, self.built[-1])
+        self.assert_shut_down()
 
 
     def test_a_caller_waiting_behind_it_gets_the_failure(self):
@@ -568,9 +579,7 @@ class FailedBuildTest(_ReopenCase):
                               "the waiter did not get the failure")
         self.assertEqual(len(self.built), 1,
                          "the waiter built another mpv itself")
-        # A request made after the failure builds normally.
-        pm._ensure_mpv()
-        self.assertTrue(pm._mpv_alive)
+        self.assert_shut_down()
 
     def test_a_construct_failure_reaches_the_waiter_too(self):
         """Any failure out of the build, not only one past `_construct_mpv`:
@@ -596,9 +605,23 @@ class FailedBuildTest(_ReopenCase):
                               % waiter.box)
         self.assertEqual(len(constructs), 1,
                          "the waiter constructed another mpv itself")
-        # A request made after the failure builds normally.
-        pm._ensure_mpv()
-        self.assertTrue(pm._mpv_alive)
+        self.assertEqual(len(self.exits), 1,
+                         "exit hook calls: %r" % self.exits)
+        with self.assertRaises(RuntimeError):
+            pm._ensure_mpv()
+        self.assertEqual(len(constructs), 1,
+                         "constructed another mpv while shutting down")
+
+    def test_unwired_it_logs_and_exits_nothing(self):
+        """No hook (tests, embedding): logged, and nothing else happens."""
+        pm = self.pm
+        pm.on_reopen_failed = None
+        self.fail_first_bind()
+        with self.assertRaises(RuntimeError), \
+                self.assertLogs(player_module.log, "ERROR") as cm:
+            pm._ensure_mpv()
+        self.assertTrue(any("could not be re-created" in r
+                            for r in cm.output), cm.output)
 
 
 class ShutdownMidBuildTest(_ReopenCase):
@@ -672,6 +695,8 @@ class ShutdownMidBuildTest(_ReopenCase):
                                       "the waiter did not get the failure")
                 self.assertFalse(pm._mpv_alive)
                 self.assertEqual(len(self.built), 1)
+                self.assertEqual(len(self.exits), 1,
+                                 "exit hook calls: %r" % self.exits)
                 mine = [t for t, _ in state["terms"]
                         if t is state["handle"]]
                 self.assertEqual(len(mine), 1,
@@ -685,6 +710,26 @@ class ShutdownMidBuildTest(_ReopenCase):
         self.assertEqual(mine, [False],
                          "terminates of the half-built handle, True = while "
                          "the build was still configuring it: %r" % mine)
+
+    def test_a_window_close_mid_build_is_a_close(self):
+        """Not a failed build: once bound, CLOSE_WIN is a key, queued for
+        after the build, and mpv does not shut down."""
+        pm = self.pm
+        real_bind = pm._bind_mpv_handlers
+
+        def bind():
+            real_bind()
+            pm._on_close_win()
+
+        pm._bind_mpv_handlers = bind
+        builder = self.spawn(pm._ensure_mpv)
+        self.join_all(20)
+        self.assertNotIn("error", builder.box, builder.box)
+        self.assertTrue(pm._mpv_alive, "a window close failed the build")
+        self.assertEqual(self.exits, [], "a window close exited the app")
+        self.assertEqual(len(self.built), 1)
+        self.assertFalse(pm.evt_queue.empty(),
+                         "the close was not queued for after the build")
 
     def test_an_old_handles_late_shutdown_leaves_the_new_one_alone(self):
         """The outgoing mpv's shutdown arriving after the new one is built

@@ -616,7 +616,19 @@ builds a second mpv that nobody owns (#828).
 - **A failed build terminates the mpv it made and re-raises** -- to the
   builder and to every caller that was waiting on it; none builds another.
   Any failure counts, construction included: `_reopen_mpv` records it, not
-  the step that failed. A request made after the failure builds normally.
+  the step that failed.
+- **A failed re-open shuts the application down** -- orderly and logged,
+  through `on_reopen_failed`, which `main` wires to the same `halt` SIGTERM
+  sets, in every UI mode. Every UI goes through mpv, so without one the app
+  is a cast slot and a tray icon that cannot show anything ([iw]: "If MPV
+  fails to relaunch it should probably terminate the application"). No retry
+  is added: jsonipc's launch already retries inside construction. Nothing
+  builds another: a request after the failure is refused. First launch is
+  not a re-open and fails as it always has. This is about mpv failing to
+  *create*, not a playback failure.
+- **A window closed during a re-open is a close, not a failed build.** Once
+  the handlers are bound it arrives as `CLOSE_WIN`, which is queued and runs
+  after the build; mpv does not shut down.
 - **A handle that shuts down mid-build is a failed build**, and its
   terminate is the builder's: the shutdown handler only marks it, the
   publish (`_publish_mpv`) finds the mark and raises, and `_abandon_build`

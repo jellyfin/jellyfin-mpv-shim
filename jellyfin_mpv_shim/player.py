@@ -674,6 +674,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # Re-opens that failed (`_reopen_mpv`), and the last one's error.
     _mpv_build_failures = 0
     _mpv_build_error = None
+    # A re-open failed and the app is shutting down: nothing builds again.
+    _mpv_exiting = False
+    # Called with the error when mpv cannot be re-created; main() wires it
+    # to its orderly exit. Class-level for players built with __new__.
+    on_reopen_failed = None
 
     def __init__(self):
         self._video = None
@@ -915,6 +920,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.on_mpv_gone = None
         self.on_mpv_terminated = None
         self.on_mpv_recreated = None
+        self.on_reopen_failed = None
         # BACK/ESC handler for the in-window UI. Returns True when it
         # consumed the press; at the root of its nav stack it declines and
         # ESC keeps its old meaning (leave fullscreen).
@@ -1458,6 +1464,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             if self._mpv_build_failures != failures:
                 raise RuntimeError("mpv re-open failed on another thread") \
                     from self._mpv_build_error
+            if self._mpv_exiting:
+                raise RuntimeError("mpv could not be re-created; the app "
+                                   "is shutting down") \
+                    from self._mpv_build_error
             self._mpv_build = threading.current_thread()
             try:
                 reopen = self._init_mpv(caller=caller)
@@ -1466,6 +1476,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 # it would build an mpv of its own.
                 self._mpv_build_error = error
                 self._mpv_build_failures += 1
+                self._reopen_failed(error)
                 raise
             finally:
                 self._mpv_build = None
@@ -1480,6 +1491,23 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             except Exception:
                 log.error("on_mpv_recreated handler failed", exc_info=True)
         return True
+
+    def _reopen_failed(self, error):
+        """mpv could not be re-created: shut the app down, orderly, with no
+        retry (jsonipc's launch already retries). Every UI goes through mpv,
+        so without one the app is a cast target and a tray icon that cannot
+        show anything. docs/mpv-backends.md section 8."""
+        with _LIFECYCLE_LOCK:
+            self._mpv_exiting = True
+        log.error("mpv could not be re-created; shutting down",
+                  exc_info=error)
+        hook = self.on_reopen_failed
+        if hook is None:
+            return
+        try:
+            hook(error)
+        except Exception:
+            log.error("on_reopen_failed handler failed", exc_info=True)
 
     # -- mpv key bindings and event handlers -------------------------------
     #
