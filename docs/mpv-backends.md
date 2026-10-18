@@ -645,7 +645,7 @@ builds a second mpv that nobody owns (#828).
   builds another: a request after the failure is refused. First launch is
   not a re-open and does not go through `on_reopen_failed`: any build
   failure raises out of `PlayerManager()` at import, a mid-build shutdown
-  included (since `15374c0a`), as a construct failure always has. This is
+  included (a failed build, below), as a construct failure always has. This is
   about mpv failing to *create*, not a playback failure.
 - **A window closed during a re-open is a close, not a failed build.** Once
   the handlers are bound it arrives as `CLOSE_WIN`, which is queued and runs
