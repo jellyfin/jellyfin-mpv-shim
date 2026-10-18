@@ -1381,12 +1381,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         try:
             self.apply_audio_settings()
         except Exception:
-            # Never abort _init_mpv over audio config. We are past mpv's
-            # construction but before _mpv_alive and the event/key bindings,
-            # so escaping here would leave a live mpv window the shim does
-            # not drive and _ensure_mpv would later start a second one on top
-            # of it. Every other optional property write here is guarded the
-            # same way.
+            # Never abort _init_mpv over audio config: an escape fails the
+            # build, and a failed re-open quits the app. Optional setup is
+            # tolerated, so every other optional property write here is
+            # guarded the same way. docs/mpv-backends.md section 8.
             log.error("Could not apply audio settings at startup.", exc_info=True)
 
         self._bind_mpv_handlers()
