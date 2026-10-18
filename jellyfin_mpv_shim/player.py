@@ -1280,22 +1280,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     log.error("Could not register Discord join callback.",
                               exc_info=True)
 
-        if hasattr(self._player, "osc"):
-            self.enable_osc(self.osc_enabled)
-        else:
-            log.warning("This mpv version doesn't support on-screen controller.")
+        # Guarded: on jsonipc even the hasattr is an IPC read that can raise.
+        try:
+            if settings.screenshot_dir is not None:
+                if hasattr(self._player, "screenshot_directory"):
+                    self._player.screenshot_directory = settings.screenshot_dir
+                else:
+                    log.warning(
+                        "This mpv version doesn't support setting the screenshot directory."
+                    )
+        except Exception:
+            log.error("Could not set the screenshot directory.", exc_info=True)
 
-        if settings.screenshot_dir is not None:
-            if hasattr(self._player, "screenshot_directory"):
-                self._player.screenshot_directory = settings.screenshot_dir
-            else:
-                log.warning(
-                    "This mpv version doesn't support setting the screenshot directory."
-                )
-
-        if hasattr(self._player, "resume_playback"):
-            # This can lead to unwanted skipping of videos
-            self._player.resume_playback = False
+        try:
+            if hasattr(self._player, "resume_playback"):
+                # This can lead to unwanted skipping of videos
+                self._player.resume_playback = False
+        except Exception:
+            log.error("Could not turn off resume_playback.", exc_info=True)
 
         # Fresh mpv instance: nothing has been applied to it yet, and the
         # previous instance's snapshot describes a player that no longer
@@ -5421,9 +5423,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # So this is the whole of what "No player controls" and the
             # library browser can say to an OSC that is not ours.
             #
-            # The idle logo goes unconditionally, in both directions and
-            # from _init_mpv -- it has to land BEFORE the OSC's first draw,
-            # not merely before the library appears. Once a fork has drawn
+            # The idle logo goes unconditionally, in both directions -- it
+            # has to land BEFORE the OSC's first draw, not merely before the
+            # library appears (_init_mpv's `script-opts` is what does that). Once a fork has drawn
             # it, asking again does nothing: ModernZ parks it on a second
             # overlay that its hide path never wipes, so the mpv logo sits
             # over the library for the rest of the session (measured: an

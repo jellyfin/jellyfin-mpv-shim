@@ -323,6 +323,103 @@ class ConcurrentReopenTest(unittest.TestCase):
         self.assertEqual(seen, [True] * self.ROUNDS)
 
 
+class _ReopenCase(unittest.TestCase):
+    """An idle-quit player, with `_construct_mpv` recording every mpv built
+    and running `self.during` (once) inside the first build."""
+
+    def setUp(self):
+        for p in (mock.patch.object(settings, "enable_gui", True),
+                  mock.patch.object(settings, "osc_style", "mpvtk"),
+                  mock.patch.object(settings, "thumbnail_enable", False),
+                  # idle_quit leaves alone an external mpv it did not start.
+                  mock.patch.object(settings, "mpv_ext_start", True)):
+            p.start()
+            self.addCleanup(p.stop)
+        self.pm = pm = h.build_player(player_module, test=self)
+        pm.menu.is_menu_shown = False
+        pm.mpvtk_active = False
+        pm.on_mpv_recreated = None
+        self.built = []
+        self.during = None
+        self.spawned = []
+        inner = pm._construct_mpv
+
+        def construct(*a, **kw):
+            hook, self.during = self.during, None
+            if hook is not None:
+                hook(pm)
+            player = inner(*a, **kw)
+            self.built.append(player)
+            return player
+
+        pm._construct_mpv = construct
+        pm.idle_quit("test")
+        self.assertFalse(pm._mpv_alive)
+        self.outgoing = pm._player
+
+    def spawn(self, target):
+        """`target` on a daemon thread; its return or exception lands in
+        `thread.box`."""
+        box = {}
+
+        def run():
+            try:
+                box["result"] = target()
+            except BaseException as e:
+                box["error"] = e
+
+        t = threading.Thread(target=run, daemon=True)
+        t.box = box
+        self.spawned.append(t)
+        t.start()
+        return t
+
+    def join_all(self, timeout=10):
+        for t in self.spawned:
+            t.join(timeout)
+            self.assertFalse(t.is_alive(), "a caller never returned")
+
+    def raise_spawned(self):
+        for t in self.spawned:
+            if "error" in t.box:
+                raise t.box["error"]
+
+
+class OptionalWritesTest(_ReopenCase):
+    """An optional property write that fails must not abort the build: past
+    `_construct_mpv` that leaves a running mpv the shim does not drive."""
+
+    def _build_with_failing_write(self, prop):
+        real = h.FakeMPV.__setattr__
+
+        def write(fake, name, value):
+            if name == prop and fake.__dict__.get("_armed_to_fail"):
+                raise RuntimeError("simulated IPC failure on %s" % prop)
+            return real(fake, name, value)
+
+        inner = self.pm._construct_mpv
+
+        def construct(*a, **kw):
+            player = inner(*a, **kw)
+            object.__setattr__(player, "_armed_to_fail", True)
+            return player
+
+        self.pm._construct_mpv = construct
+        with mock.patch.object(h.FakeMPV, "__setattr__", write), \
+                mock.patch.object(settings, "screenshot_dir", "/tmp/shots"), \
+                self.assertLogs(player_module.log, "ERROR"):
+            self.pm._ensure_mpv()
+        self.assertTrue(self.pm._mpv_alive,
+                        "a failed %s write aborted the build" % prop)
+        self.assertEqual(len(self.built), 1)
+
+    def test_screenshot_directory(self):
+        self._build_with_failing_write("screenshot_directory")
+
+    def test_resume_playback(self):
+        self._build_with_failing_write("resume_playback")
+
+
 class VersionGateTest(unittest.TestCase):
     """Which mpv acts on a force-window change made while idle."""
 
