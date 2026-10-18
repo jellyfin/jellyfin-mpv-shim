@@ -705,9 +705,7 @@ class WindowMixin:
             # unexplained blank re-open looks like from here.
             wlog.info("browse=on with no mpv: building a new one")
             if not self._reopen_mpv():
-                # Another thread is building it, and its on_mpv_recreated
-                # re-asserts the browser's window state when done.
-                return
+                return      # asked for from inside its own build
         release_failed = False
         try:
             if enabled:
@@ -1047,9 +1045,10 @@ class WindowMixin:
         if not self._mpv_alive:
             if not enabled:
                 return
-            log.info("mpv is dead, reinitializing for menu window")
+            wlog.info("menu window with no mpv: building a new one <- %s",
+                      _caller())
             if not self._reopen_mpv():
-                return
+                return      # asked for from inside its own build
         try:
             if enabled:
                 self._player.force_window = True

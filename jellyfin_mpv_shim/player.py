@@ -1112,13 +1112,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             mpv_guard.arm(player)
             return player
 
-    def _init_mpv(self):
+    def _init_mpv(self, caller=None):
+        """Build mpv. Returns whether this was a re-open. `caller` is who
+        asked, for the log; a re-open passes its own."""
         # Re-open reuses this method; drop the previous instance's trickplay
         # thread first so recovery/idle cycles don't leak it.
         # getattr: _player isn't bound until the first init finishes.
         reopen = getattr(self, "_player", None) is not None
-        wlog.info("CREATE mpv (%s) <- %s",
-                  "re-open" if reopen else "first", player_window._caller())
+        wlog.info("CREATE mpv (%s) <- %s", "re-open" if reopen else "first",
+                  caller or player_window._caller())
         self._teardown_player()
 
         osc_style = self._effective_osc_style()
@@ -1179,6 +1181,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except BaseException as error:
             self._abandon_build(error)
             raise
+        return reopen
 
     def _abandon_build(self, error):
         """A build failed past `_construct_mpv`: the new mpv is running and
@@ -1382,38 +1385,38 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._mpv_alive = True
 
     def _reopen_mpv(self):
-        """Re-create a dead mpv. Returns whether mpv is alive on return.
+        """Re-create a dead mpv. Every re-open comes through here, never
+        straight to `_init_mpv` (#828).
 
-        Every re-open goes through here, never straight to `_init_mpv`: two
-        callers that each see `_mpv_alive` False build two mpvs, and the
-        first is then owned by nobody -- an empty window left on screen
-        (#828). The caller that reliably races the tray's re-open is the new
-        handle's OWN event thread, delivering the initial `volume` value into
-        `push_playstate` -> the browser -> `set_browse_window(True)` before
-        `_init_mpv` has finished.
-
-        So the build runs under `_lock`, and a caller arriving mid-build from
-        another thread returns False rather than block -- that event thread
-        must not wait on a build it may be delivering for. A play already
-        holds `_lock`, so it can never meet a half-built mpv. Never make a
-        caller wait for another thread's build instead: the build itself
-        takes `_lock` (`_bind_mpv_handlers`), and a play waiting while
-        holding it deadlocks the two.
+        A caller that finds a build in progress waits for it on `_lock` and
+        returns True on the mpv it built; if that build failed, it gets the
+        failure instead of building another. Returns False only to a call
+        from inside this thread's own build. docs/mpv-backends.md section 8.
         """
-        if self._mpv_build not in (None, threading.current_thread()):
-            wlog.info("mpv re-open already in progress; not building "
-                      "another <- %s", player_window._caller())
-            return False
+        caller = player_window._caller()
+        failures = self._mpv_build_failures
+        # The previous mpv's terminate, outside `_lock`, so nothing else that
+        # takes it waits on a dying mpv too. `_teardown_player` joins it again,
+        # which is then instant. A play arrives here holding `_lock` already.
+        term = self._terminate_thread
+        if (term is not None and term is not threading.current_thread()
+                and not self._mpv_alive):
+            term.join(timeout=10)
         with self._lock:
             if self._mpv_alive:
                 return True
             if self._mpv_build is not None:
-                # This thread, from inside its own build.
+                # Only the builder's own thread gets past an RLock mid-build.
+                # Building again from inside the build would orphan the first.
+                wlog.error("mpv re-open asked for from inside its own build "
+                           "<- %s", caller)
                 return False
-            reopen = getattr(self, "_player", None) is not None
+            if self._mpv_build_failures != failures:
+                raise RuntimeError("mpv re-open failed on another thread") \
+                    from self._mpv_build_error
             self._mpv_build = threading.current_thread()
             try:
-                self._init_mpv()
+                reopen = self._init_mpv(caller=caller)
             finally:
                 self._mpv_build = None
 
@@ -1426,7 +1429,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self.on_mpv_recreated()
             except Exception:
                 log.error("on_mpv_recreated handler failed", exc_info=True)
-        return self._mpv_alive
+        return True
 
     # -- mpv key bindings and event handlers -------------------------------
     #
