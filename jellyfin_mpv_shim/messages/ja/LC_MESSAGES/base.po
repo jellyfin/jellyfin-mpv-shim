@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-18 11:07+0000\n"
+"PO-Revision-Date: 2026-10-18 11:16+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -5852,16 +5852,14 @@ msgstr "エピソード追加日"
 #. says the library is not empty, only filtered.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "No items match these filters."
-msgstr ""
+msgstr "これらのフィルターに一致するものはありません。"
 
 # seeded from jellyfin-web: Filters
 #. Button under "No items match these filters." on an empty library grid.
 #. Removes every filter set on the library. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Filters"
 msgid "Clear Filters"
-msgstr "フィルタ"
+msgstr "フィルターをクリアー"
 
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
@@ -5928,10 +5926,8 @@ msgstr "並び順を保存できませんでした。"
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Those items could not be removed."
 msgid "Those filters could not be saved."
-msgstr "アイテムを削除できませんでした。"
+msgstr "フィルターを保存できませんでした。"
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
