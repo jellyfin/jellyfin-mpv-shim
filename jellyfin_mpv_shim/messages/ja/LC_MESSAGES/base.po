@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-17 15:00+0000\n"
+"PO-Revision-Date: 2026-10-18 11:07+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -2693,10 +2693,8 @@ msgstr "Discord に視聴中作品を表示"
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "イントロのスキップを尋ねる"
+msgstr "デスクトップのメディアコントロール キー"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
@@ -2745,10 +2743,8 @@ msgstr "グリッド余白"
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remember Last Used Profile"
 msgid "Remember Library Filters"
-msgstr "最後に利用したプロファイルを記憶"
+msgstr "ライブラリーフィルターを記憶する"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -3194,6 +3190,12 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"動画をトランスコードする際、内蔵の Blu-ray や DVD の（PGS、VobSub）字幕を映像"
+"に焼き付けるのではなく、別のトラックにて表示します。これにより、字幕の鮮明さ"
+"が保たれ、再生を再開することなく切り替えが可能になります。字幕を表示すると、"
+"サーバーは初回にファイル内のすべての字幕トラックを抽出する必要があり、"
+"ファイルが大きい場合は時間がかかります。またサーバーのディスク容量も消費され"
+"ます。字幕が独自ファイルの場合は、この処理の影響を受けません。"
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3432,6 +3434,9 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"キーボードのメディアキー、ヘッドセットのボタン、ロック画面、デスクトップの"
+"メディアウィジェットを使って、再生、一時停止、スキップを行えるほか、再生中の"
+"曲のジャケットを表示します（MPRIS、Linuxのみ）。"
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3481,6 +3486,10 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"各ライブラリーの表示を、前回設定したフィルター（ジャンル、未再生、お気に入り"
+"など）を適用した状態で再開します。これらのフィルター設定は、サーバー上の"
+"アカウントに保存しています。この設定をオフにすると、フィルターはライブラリー"
+"を離れるまでしか有効になりません。"
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -4938,7 +4947,7 @@ msgstr "全画面"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr ""
+msgstr "再生を停止したため、このキューを削除しました。"
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
