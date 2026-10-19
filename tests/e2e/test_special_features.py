@@ -42,6 +42,14 @@ FILM = "Movie With Extras"
 SHOW = "The Standard Show"
 #: Tall enough that no row is virtualized away, so every tile has a handler.
 TALL = (1280, 3000)
+
+
+def extras_tiles(nodes, row_id):
+    """The extras row's tile ids, without the scroll arrows it draws when
+    it overflows -- those share its prefix (`row_id + "-pl"` / `"-pr"`)."""
+    ids = [n.get("id") or "" for n in nodes]
+    return [i for i in ids if i.startswith(row_id + "-")
+            and not i.endswith(("-pl", "-pr"))]
 #: Per kind, from the fixture's folders and suffixes.
 KINDS = {"Unknown": 1, "BehindTheScenes": 1, "DeletedScene": 2,
          "Interview": 2, "Featurette": 2, "Short": 1, "Clip": 1, "Scene": 1}
@@ -189,6 +197,9 @@ class _Contract:
         b._pool = _SyncPool()
         self.addCleanup(self._shutdown, b)
         b._load_route(b.route)
+        self.assertEqual(
+            trap.describe(), [],
+            "the home screen failed to load before the test even started")
         trap.drain()
         return b, trap
 
@@ -216,15 +227,12 @@ class _Contract:
 
     def test_the_films_page_draws_the_row_and_plays_its_trailers(self):
         b, trap = self._browser()
-        _nodes, handlers = self._go(b, trap, {
+        nodes, handlers = self._go(b, trap, {
             "kind": "detail", "item_id": self.film["Id"], "title": FILM})
-        # Eleven extras overflow the row, so it also draws its scroll arrows.
-        arrows = {"detail-extras-pl", "detail-extras-pr"}
-        tiles = [n.get("id") for n in _nodes
-                 if (n.get("id") or "").startswith("detail-extras-")
-                 and n.get("id") not in arrows]
-        self.assertEqual(tiles, ["detail-extras-" + e["Id"]
-                                 for e in self.extras])
+        self.assertEqual(extras_tiles(nodes, "detail-extras"),
+                         ["detail-extras-" + e["Id"] for e in self.extras])
+        # The control for the extra's page below: a film offers Download.
+        self.assertIn("act-download", [n.get("id") for n in nodes])
 
         played = []
         b._actions.play_list = lambda ids, srv, i, **kw: played.append(
@@ -246,8 +254,7 @@ class _Contract:
         nodes, _h = self._go(b, trap, {
             "kind": "season", "item_id": season["Id"],
             "series_id": series["Id"], "title": season.get("Name", "")})
-        tiles = [n.get("id") for n in nodes
-                 if (n.get("id") or "").startswith("season-extras-")]
+        tiles = extras_tiles(nodes, "season-extras")
         self.assertEqual(len(tiles), 1, tiles)
 
 

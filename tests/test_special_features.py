@@ -83,6 +83,13 @@ def order(nodes):
     return [n.get("id") for n in nodes if n.get("id")]
 
 
+def extras_tiles(ids, row_id):
+    """The extras row's tile ids, without the scroll arrows it draws when
+    it overflows -- those share its prefix (`row_id + "-pl"` / `"-pr"`)."""
+    return [i for i in ids if i and i.startswith(row_id + "-")
+            and not i.endswith(("-pl", "-pr"))]
+
+
 DETAIL = {"kind": "detail", "item_id": "m1"}
 TALL = (1280, 3000)     # every row on one screen, so none is virtualized away
 
@@ -90,8 +97,16 @@ TALL = (1280, 3000)     # every row on one screen, so none is virtualized away
 class TheRowTest(unittest.TestCase):
     def test_a_counted_item_draws_its_extras_in_the_servers_order(self):
         b = browser(DETAIL, with_counts("m1", extras=3), {"m1": EXTRAS})
-        tiles = [i for i in order(build_scene(b, TALL)[0])
-                 if i.startswith("detail-extras-")]
+        tiles = extras_tiles(order(build_scene(b, TALL)[0]), "detail-extras")
+        self.assertEqual(tiles, ["detail-extras-x1", "detail-extras-x2",
+                                 "detail-extras-x3"])
+
+    def test_an_overflowing_row_still_reads_as_its_tiles(self):
+        """A row too wide for the window draws its scroll arrows, whose ids
+        share the tiles' prefix (`row_id + "-pl"`)."""
+        b = browser(DETAIL, with_counts("m1", extras=3), {"m1": EXTRAS})
+        tiles = extras_tiles(order(build_scene(b, (500, 3000))[0]),
+                             "detail-extras")
         self.assertEqual(tiles, ["detail-extras-x1", "detail-extras-x2",
                                  "detail-extras-x3"])
 
@@ -162,8 +177,8 @@ class TheRowTest(unittest.TestCase):
                     self.assertEqual([e["Id"] for e in data],
                                      ["x1", "x2", "x3"])
                     self.assertEqual(data[0]["UserData"]["Played"], n >= 1)
-                tiles = [i for i in order(build_scene(b, TALL)[0])
-                         if i.startswith(route["kind"] + "-extras-")]
+                tiles = extras_tiles(order(build_scene(b, TALL)[0]),
+                                     route["kind"] + "-extras")
                 self.assertEqual(len(tiles), 3)
 
 
