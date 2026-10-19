@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 07:40+0000\n"
+"PO-Revision-Date: 2026-10-19 08:01+0000\n"
 "Last-Translator: EKO MARYONO <koyexmgt@gmail.com>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/id/>\n"
@@ -134,17 +134,13 @@ msgstr "Akun sudah terdaftar. Memperbarui kredensial."
 
 #. Printed in the terminal after a saved login was replaced.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Berhasil menambahkan server."
+msgstr "Kredensial server berhasil diperbarui."
 
 #. Printed in the terminal when replacing a saved login failed.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Penambahan server gagal."
+msgstr "Kredensial server gagal diperbarui."
 
 #. Terminal prompt asking for the Jellyfin server's web address. The
 #. trailing space separates it from what is typed; keep it.
@@ -171,14 +167,8 @@ msgstr "Tambahkan server lain?"
 
 #. Printed in the terminal when the Jellyfin server could not be reached.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Tidak dapat menambahkan server.\n"
-"Harap cek kembali koneksi Anda."
+msgstr "Gagal terhubung ke penyedia layanan"
 
 #. Printed in the terminal when the server administrator has turned the
 #. Quick Connect feature off.
