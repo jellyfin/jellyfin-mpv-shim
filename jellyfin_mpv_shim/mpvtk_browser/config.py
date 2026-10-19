@@ -793,13 +793,14 @@ NOTES = {
         "translated so far; the rest stays in English. Translations are "
         "contributed at translate.jellyfin.org."),
     # Says what "Automatic" resolves to here rather than in general: a
-    # Flatpak user reading "Automatic" has no way to know it means off, and
-    # this app is a client whose compatibility depends on a moving server,
-    # so the answer is worth stating rather than hiding.
+    # Flatpak or Store user reading "Automatic" has no way to know it means
+    # off, and this app is a client whose compatibility depends on a moving
+    # server, so the answer is worth stating rather than hiding.
     "notify_updates": _(
         "\"Automatic\" turns this off inside a Flatpak, where your desktop "
         "already announces updates and \"flatpak update\" installs them, "
-        "and leaves it on everywhere else."),
+        "and in a Microsoft Store install, which the Store keeps up to "
+        "date. It leaves it on everywhere else."),
     # Both caveats are ones a user would otherwise report as bugs: input
     # arriving while another window is focused, and the setting appearing to
     # do nothing at all on an mpv that cannot do it.

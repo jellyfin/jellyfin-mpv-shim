@@ -557,10 +557,10 @@ class Settings(SettingsBase):
     #:
     #: **"default" is not a guess about the platform, it is what installed
     #: this copy.** Inside a Flatpak the desktop's own updater already
-    #: announces updates and `flatpak update` is what installs them, so an
-    #: extra banner duplicates a notification the user already gets --
-    #: against the platform convention that applications do not notify about
-    #: their own updates. Everywhere else the app IS the only thing that
+    #: announces updates and `flatpak update` is what installs them, and a
+    #: Microsoft Store install is updated by the Store, so an extra banner
+    #: duplicates what the user already gets -- against the platform
+    #: convention that applications do not notify about their own updates. Everywhere else the app IS the only thing that
     #: knows, and this client's compatibility depends on a moving server, so
     #: "you are out of date" is information rather than nagging.
     #:
@@ -856,7 +856,7 @@ class Settings(SettingsBase):
             return True
         if self.notify_updates == "disabled":
             return False
-        return not hostinfo.flatpak_managed()
+        return not hostinfo.updates_managed()
 
     def _migrate(self, data=None):
         """Apply one-time upgrades for configs written by older versions.

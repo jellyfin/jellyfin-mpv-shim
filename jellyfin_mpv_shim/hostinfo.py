@@ -1,10 +1,11 @@
 """What kind of install this is, asked of the host rather than guessed.
 
-Two questions, one file between them. **Is this a Flatpak that updates
-itself**, which decides whether an update notice can say anything useful (a
-Flathub install is updated by ``flatpak update`` or by the desktop's own
-updater, not from our releases page). And **is the host SteamOS**, where the
-gamepad is the only pointing device most users have.
+Two questions, one file between them. **Does something else deliver this
+install's updates** -- a Flatpak remote or the Microsoft Store -- which
+decides whether an update notice can say anything useful (a Flathub install
+is updated by ``flatpak update`` or by the desktop's own updater, a Store
+install by the Store, neither from our releases page). And **is the host
+SteamOS**, where the gamepad is the only pointing device most users have.
 
 **Inside a Flatpak, ``/etc/os-release`` describes the runtime and not the
 machine.** The host's identity is only at ``/run/host/os-release``, which is
@@ -24,6 +25,7 @@ is set by us.
 
 import logging
 import os
+import sys
 
 log = logging.getLogger("hostinfo")
 
@@ -38,6 +40,10 @@ HOST_OS_RELEASE = "/run/host/os-release"
 #: bundle -- which is exactly the build that cannot update itself and whose
 #: user was given it deliberately.
 UPDATE_MARKER_ENV = "JMS_UPDATE_CHECK"
+
+#: What GetCurrentPackageFamilyName answers a packaged process asked with a
+#: zero-length buffer. An unpackaged one gets APPMODEL_ERROR_NO_PACKAGE (15700).
+_ERROR_INSUFFICIENT_BUFFER = 122
 
 
 def is_flatpak():
@@ -54,6 +60,79 @@ def flatpak_managed():
     would be wrong.
     """
     return is_flatpak() and not os.environ.get(UPDATE_MARKER_ENV)
+
+
+def is_msix():
+    """Whether this process runs with an MSIX package identity.
+
+    In practice that is a Microsoft Store install: an MSIX cannot be
+    installed without a signature Windows trusts, and the Store is what signs
+    ours. Asked of Windows rather than read off the install path, which
+    package volumes can move.
+    """
+    return package_family_name() is not None
+
+
+def package_family_name():
+    """This process's MSIX package family name, or None when unpackaged."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+
+        get = ctypes.windll.kernel32.GetCurrentPackageFamilyName
+        length = ctypes.c_uint32(0)
+        if get(ctypes.byref(length), None) != _ERROR_INSUFFICIENT_BUFFER:
+            return None
+        buf = ctypes.create_unicode_buffer(length.value)
+        if get(ctypes.byref(length), buf) != 0:
+            return None
+        return buf.value
+    except (AttributeError, OSError):
+        # Windows 7 has no such function, and nothing there is packaged.
+        return None
+
+
+def outside_path(path):
+    """Where ``path`` is for a process outside this package.
+
+    A packaged app's *new* files under ``%APPDATA%`` and ``%LOCALAPPDATA%``
+    are redirected to the package's ``LocalCache``, and only the app itself
+    sees them at the path it asked for; Explorer, or a reader handed a
+    downloaded book, looks at the real path and finds nothing. Files that
+    existed before the install are used in place and not redirected
+    (docs/packaging.md §6), so the redirected copy is used only if it exists.
+    Every path handed to another program, or shown to the user, goes through
+    here.
+    """
+    family = package_family_name()
+    local = os.environ.get("LOCALAPPDATA")
+    if not family or not local or not path:
+        return path
+    for env, sub in (("APPDATA", "Roaming"), ("LOCALAPPDATA", "Local")):
+        base = os.environ.get(env)
+        if not base:
+            continue
+        try:
+            rel = os.path.relpath(path, base)
+        except ValueError:  # another drive
+            continue
+        if rel == os.curdir or rel.startswith(os.pardir):
+            continue
+        redirected = os.path.join(local, "Packages", family, "LocalCache",
+                                  sub, rel)
+        return redirected if os.path.exists(redirected) else path
+    return path
+
+
+def updates_managed():
+    """Whether something other than this app delivers its updates.
+
+    What decides the update notice's default. The wording is a separate
+    question -- only a Flatpak has a command to tell the user to run -- so
+    callers choosing words ask `flatpak_managed` instead.
+    """
+    return flatpak_managed() or is_msix()
 
 
 def os_release():

@@ -123,5 +123,117 @@ class Probe(unittest.TestCase):
         self.assertTrue(hostinfo.is_steamos())
 
 
+class MsixProbe(unittest.TestCase):
+    """Package identity, asked of a stand-in kernel32 answering with the
+    codes Windows gives: asked with a zero-length buffer, a packaged process
+    gets ERROR_INSUFFICIENT_BUFFER and the length, an unpackaged one
+    APPMODEL_ERROR_NO_PACKAGE."""
+
+    def _probe(self, kernel32, platform="win32"):
+        import ctypes
+
+        windll = mock.Mock(kernel32=kernel32)
+        with mock.patch.object(sys, "platform", platform), \
+                mock.patch.object(ctypes, "windll", windll, create=True):
+            return hostinfo.package_family_name(), hostinfo.is_msix()
+
+    def _packaged(self, family):
+        def get(length_ref, buf):
+            if buf is None:
+                length_ref._obj.value = len(family) + 1
+                return 122
+            buf.value = family
+            return 0
+        return mock.Mock(GetCurrentPackageFamilyName=mock.Mock(side_effect=get))
+
+    def _answering(self, rc):
+        return mock.Mock(
+            GetCurrentPackageFamilyName=mock.Mock(return_value=rc))
+
+    def test_a_packaged_process_reports_its_family(self):
+        self.assertEqual(self._probe(self._packaged("Jms_abc123")),
+                         ("Jms_abc123", True))
+
+    def test_an_unpackaged_process_is_not(self):
+        self.assertEqual(self._probe(self._answering(15700)), (None, False))
+
+    def test_windows_without_the_function_is_not(self):
+        """Windows 7: kernel32 has no GetCurrentPackageFamilyName."""
+        self.assertEqual(self._probe(mock.Mock(spec=[])), (None, False))
+
+    def test_only_windows_is_asked(self):
+        kernel32 = self._packaged("Jms_abc123")
+        self.assertEqual(self._probe(kernel32, platform="linux"),
+                         (None, False))
+        kernel32.GetCurrentPackageFamilyName.assert_not_called()
+
+    def test_either_updater_manages_updates(self):
+        for flatpak, msix in ((True, False), (False, True), (False, False)):
+            with mock.patch.object(hostinfo, "flatpak_managed",
+                                   lambda: flatpak), \
+                    mock.patch.object(hostinfo, "is_msix", lambda: msix):
+                self.assertEqual(hostinfo.updates_managed(), flatpak or msix)
+
+
+class OutsidePath(unittest.TestCase):
+    """What another program sees of a path under a packaged app's AppData.
+    Real directories stand in for %APPDATA% and %LOCALAPPDATA%, because the
+    rule turns on which copy exists."""
+
+    FAMILY = "Jms_abc123"
+
+    def setUp(self):
+        import shutil
+
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.roaming = os.path.join(self.root, "Roaming")
+        self.local = os.path.join(self.root, "Local")
+        self.cache = os.path.join(self.local, "Packages", self.FAMILY,
+                                  "LocalCache")
+        env = mock.patch.dict(os.environ, {"APPDATA": self.roaming,
+                                           "LOCALAPPDATA": self.local})
+        env.start()
+        self.addCleanup(env.stop)
+        self.family = self.FAMILY
+        fam = mock.patch.object(hostinfo, "package_family_name",
+                                lambda: self.family)
+        fam.start()
+        self.addCleanup(fam.stop)
+
+    def _mkdir(self, *parts):
+        path = os.path.join(*parts)
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def test_a_fresh_install_config_is_found_in_the_package_cache(self):
+        redirected = self._mkdir(self.cache, "Roaming", "jellyfin-mpv-shim")
+        asked = os.path.join(self.roaming, "jellyfin-mpv-shim")
+        self.assertEqual(hostinfo.outside_path(asked), redirected)
+
+    def test_the_local_side_maps_to_its_own_folder(self):
+        redirected = self._mkdir(self.cache, "Local", "jellyfin-mpv-shim",
+                                 "cache")
+        asked = os.path.join(self.local, "jellyfin-mpv-shim", "cache")
+        self.assertEqual(hostinfo.outside_path(asked), redirected)
+
+    def test_a_config_from_before_the_install_stays_where_it_is(self):
+        """Measured on the VM: pre-existing folders are used in place, so
+        there is no redirected copy, and the real path is the answer."""
+        asked = self._mkdir(self.roaming, "jellyfin-mpv-shim")
+        self.assertEqual(hostinfo.outside_path(asked), asked)
+
+    def test_paths_elsewhere_are_untouched(self):
+        self._mkdir(self.cache, "Roaming", "x")
+        elsewhere = os.path.join(self.root, "Videos", "x")
+        self.assertEqual(hostinfo.outside_path(elsewhere), elsewhere)
+        self.assertEqual(hostinfo.outside_path(self.roaming), self.roaming)
+
+    def test_an_unpackaged_process_is_untouched(self):
+        self._mkdir(self.cache, "Roaming", "jellyfin-mpv-shim")
+        self.family = None
+        asked = os.path.join(self.roaming, "jellyfin-mpv-shim")
+        self.assertEqual(hostinfo.outside_path(asked), asked)
+
 if __name__ == "__main__":
     unittest.main()
