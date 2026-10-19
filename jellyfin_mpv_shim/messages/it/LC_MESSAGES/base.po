@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 06:28+0000\n"
+"PO-Revision-Date: 2026-10-19 06:32+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -2663,10 +2663,8 @@ msgstr "Mostra cosa stai guardando su Discord"
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "Chiedi di saltare le introduzioni"
+msgstr "Controlli multimediali desktop"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
@@ -2714,10 +2712,8 @@ msgstr "Spaziatura griglia"
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remember Last Used Profile"
 msgid "Remember Library Filters"
-msgstr "Ricorda ultimo profilo utilizzato"
+msgstr "Ricorda filtri della raccolta"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -5813,7 +5809,7 @@ msgstr "Data di aggiunta episodio"
 #. says the library is not empty, only filtered.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "No items match these filters."
-msgstr ""
+msgstr "Nessun elemento corrisponde a questi filtri."
 
 # seeded from jellyfin-web: Filters
 #. Button under "No items match these filters." on an empty library grid.
