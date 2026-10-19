@@ -230,8 +230,8 @@ class TileGeom:
         :data:`TITLE_GAP`. Folding them into one signed method got that
         wrong in the obvious way.
 
-        Only from two. A three-line band belongs to a Live TV listing, which
-        by construction has the lines to fill it, and one is already there.
+        Only from two. A three-line band was asked for by its row (who asks:
+        ``caption_lines``) and is kept even where a tile leaves a line empty.
 
         Reclaims the gap and the subtitle, keeping whatever slack the band
         carries under its last line -- so a one-line caption sits in the
@@ -356,11 +356,9 @@ class Tile:
     key: str
     title: str = ""
     subtitle: str = ""
-    #: A THIRD caption line, drawn under ``subtitle``. Empty everywhere
-    #: except a Live TV listing on a tile too narrow to carry "BBC Two ·
-    #: 20:00 - 20:30" on one line -- see ``TileRenderer.caption_geom``. The
-    #: geometry has to agree (``TileGeom.caption_lines``); this alone does
-    #: not make room for it.
+    #: A THIRD caption line, drawn under ``subtitle``, on the rows that ask
+    #: for three (``TileGeom.caption_lines`` says which). The geometry has
+    #: to agree; this alone does not make room for it.
     subtitle2: str = ""
     poster: Optional[object] = None
     poster_tag: str = ""
@@ -1485,9 +1483,10 @@ class StripStore:
         # Third line, and ONLY where the geometry was widened for it. A tile
         # carrying one in a two-line band would draw it over the row below --
         # nothing crops a caption back to caption_h, the band is a promise
-        # this painter keeps rather than a clip. The two are set together by
-        # TileRenderer.caption_geom / _tile, so this is a belt-and-braces
-        # guard against a Tile built for one geometry and drawn in another.
+        # this painter keeps rather than a clip. The row that asks for three
+        # lines sets both (see TileGeom.caption_lines), so this is a
+        # belt-and-braces guard against a Tile built for one geometry and
+        # drawn in another.
         if t.subtitle2 and g.caption_lines >= 3:
             fnt = _font(g.sub_size, text=t.subtitle2)
             sub = self._ellipsize(dr, t.subtitle2, fnt, g.tile_w)
