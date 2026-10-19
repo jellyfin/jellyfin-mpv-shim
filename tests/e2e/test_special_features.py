@@ -10,7 +10,10 @@ on was read in the server source, and these are the measurements:
   download door (`extras.is_extra`, docs/offline-sync.md §6);
 * extras never surface in a library query;
 * a season owns the extras in its own folder, on both versions;
-* the trailers route answers both trailers, and an extra plays and reports.
+* the trailers route answers both trailers, and an extra plays and reports;
+* the row and the Trailer button, rendered by a real browser on real DTOs,
+  on the film's page and on Season 1's (`_InTheBrowser`);
+* the auto-download lookahead's own query holds no extras.
 
 The fixture is stdjflib's `Movie With Extras (2020)`: one extra of every
 listed kind, by folder and by suffix, plus `extras/` (Unknown) and two
@@ -32,7 +35,13 @@ if REPO_ROOT not in sys.path:
 from jellyfin_mpv_shim.extras import is_extra  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser import components  # noqa: E402
 
+from test_route_walk import (  # noqa: E402
+    ROUTE_ERROR_KEY, _LogTrap, _SyncPool)
+
 FILM = "Movie With Extras"
+SHOW = "The Standard Show"
+#: Tall enough that no row is virtualized away, so every tile has a handler.
+TALL = (1280, 3000)
 #: Per kind, from the fixture's folders and suffixes.
 KINDS = {"Unknown": 1, "BehindTheScenes": 1, "DeletedScene": 2,
          "Interview": 2, "Featurette": 2, "Short": 1, "Clip": 1, "Scene": 1}
@@ -121,6 +130,122 @@ class _Contract:
         names = [e.get("Name") for e in self.source.get_special_features(
             _e2e.SOURCE_UUID, season["Id"])]
         self.assertEqual(len(names), 1, names)
+
+    def test_the_sibling_list_carries_the_seasons_counts(self):
+        """What the season page gates on: `get_seasons` names the fields,
+        and a list route omits them otherwise (api-notes §15)."""
+        season = self._season_one()[1]
+        self.assertEqual(season.get("SpecialFeatureCount"), 1)
+
+    def test_the_lookahead_query_holds_no_extras(self):
+        """The auto-download lookahead's own request (sync/auto.py, the
+        `api.get_episodes(..., start_item_id=anchor)` call), cross-season.
+        Not `get_episodes` (the SeasonId listing) and not
+        `get_series_queue`, which adds filters and fields to the same
+        route: the guard is on the request the sync loop makes."""
+        from jellyfin_mpv_shim.sync.auto import _FIELDS
+
+        series, season = self._season_one()
+        first = self.source.get_episodes(
+            _e2e.SOURCE_UUID, series["Id"], season["Id"])[0]
+        api = self.source._conn(_e2e.SOURCE_UUID).api
+        items = (api.get_episodes(series["Id"], start_item_id=first["Id"],
+                                  limit=100, fields=_FIELDS) or {}
+                 ).get("Items", [])
+        self.assertTrue(items)
+        for i in items:
+            self.assertEqual(i.get("Type"), "Episode", i.get("Name"))
+            self.assertFalse(is_extra(i), i.get("Name"))
+
+    def _season_one(self):
+        series = self.session.find(SHOW, library="Shows", item_type="Series")
+        season = next(
+            s for s in self.source.get_seasons(_e2e.SOURCE_UUID, series["Id"])
+            if s.get("IndexNumber") == 1)
+        return series, season
+
+    # -- in the browser ---------------------------------------------------
+    #
+    # Shaped like test_route_walk.py: a real browser over this class's
+    # source -- not a new Session, whose login would revoke this one's --
+    # loaded inline, built and laid out for real, and failed on a route
+    # error or a logged failure as well as on a raise.
+
+    def _browser(self):
+        import logging
+
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+        trap = _LogTrap()
+        root = logging.getLogger()
+        root.addHandler(trap)
+        self.addCleanup(root.removeHandler, trap)
+        self.session.register_source_login(self)
+        b = MpvtkBrowser(app=None, source=self.source,
+                         server_uuid=_e2e.SOURCE_UUID)
+        # The home load is already on the real pool; drain it before going
+        # inline, or it lands after the class has logged out.
+        b._async._pool.shutdown(wait=True, cancel_futures=True)
+        b._pool = _SyncPool()
+        self.addCleanup(self._shutdown, b)
+        b._load_route(b.route)
+        trap.drain()
+        return b, trap
+
+    @staticmethod
+    def _shutdown(b):
+        try:
+            b.shutdown()
+        except Exception:
+            pass
+
+    def _render(self, b, trap, label):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+
+        self.assertFalse(b.route.get("_loading"), label)
+        nodes, handlers = layout(b.build(TALL), *TALL)
+        self.assertIsNone(b.route.get(ROUTE_ERROR_KEY), label)
+        self.assertEqual(trap.describe(), [], label)
+        trap.drain()
+        return nodes, handlers
+
+    def _go(self, b, trap, route):
+        b.navigate(dict(route, server=_e2e.SOURCE_UUID))
+        self.assertEqual(b.route.get("kind"), route["kind"])
+        return self._render(b, trap, "%(kind)s %(item_id)s" % route)
+
+    def test_the_films_page_draws_the_row_and_plays_its_trailers(self):
+        b, trap = self._browser()
+        _nodes, handlers = self._go(b, trap, {
+            "kind": "detail", "item_id": self.film["Id"], "title": FILM})
+        tiles = [n.get("id") for n in _nodes
+                 if (n.get("id") or "").startswith("detail-extras-")]
+        self.assertEqual(tiles, ["detail-extras-" + e["Id"]
+                                 for e in self.extras])
+
+        played = []
+        b._actions.play_list = lambda ids, srv, i, **kw: played.append(
+            list(ids))
+        handlers["btn-trailer"]["click"]()
+        self.assertEqual(played, [[t["Id"] for t in self.source.get_trailers(
+            _e2e.SOURCE_UUID, self.film["Id"])]])
+
+        second = self.extras[1]["Id"]
+        handlers["detail-extras-" + second]["click"]()
+        self.assertEqual((b.route["kind"], b.route["item_id"]),
+                         ("detail", second))
+        nodes, _h = self._render(b, trap, "the extra's own page")
+        self.assertNotIn("act-download", [n.get("id") for n in nodes])
+
+    def test_season_ones_page_draws_its_row(self):
+        b, trap = self._browser()
+        series, season = self._season_one()
+        nodes, _h = self._go(b, trap, {
+            "kind": "season", "item_id": season["Id"],
+            "series_id": series["Id"], "title": season.get("Name", "")})
+        tiles = [n.get("id") for n in nodes
+                 if (n.get("id") or "").startswith("season-extras-")]
+        self.assertEqual(len(tiles), 1, tiles)
 
 
 @_e2e.require_server
