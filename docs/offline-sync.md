@@ -1253,7 +1253,9 @@ Special Features and trailers are never downloaded (owner, 2026-10-18:
 downloaded today would sit alone in the offline "Videos" library, and a film's
 download would not bring its extras.
 
-**The door is `_expand`**, and every branch of it applies `extras.is_extra`:
+**The door is `_expand`**, and the branches that can be handed an extra apply
+`extras.is_extra` (the Series and Season branches list episodes through
+`/Shows/{id}/Episodes` and filter nothing):
 the playlist and folder listings drop an extra like an unsupported type (an
 extra can be added to a playlist, as on web), and a single extra raises
 `NotDownloadable` — not `[]`, which the dialog reads as "Nothing left to
