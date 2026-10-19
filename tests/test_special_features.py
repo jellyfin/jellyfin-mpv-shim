@@ -187,6 +187,59 @@ class TheCaptionTest(unittest.TestCase):
         self.assertEqual(components.tile_lines(item)[1], "2020")
 
 
+class ThreeLineCaptionTest(unittest.TestCase):
+    """The row draws name / kind / runtime in every shape (owner, #759)."""
+
+    def _row_geom(self, ratio):
+        b = browser(DETAIL)
+        seen = {}
+        real = b.tiles.tile_row
+
+        def spy(title, items, row_id, geom=None, **kw):
+            seen["geom"] = geom
+            return real(title, items, row_id, geom=geom, **kw)
+        b.tiles.tile_row = spy
+        detail_components.special_features_row(
+            b.tiles, [dict(e, PrimaryImageAspectRatio=ratio)
+                      for e in EXTRAS], "x")
+        return b, seen["geom"]
+
+    def lines(self, item):
+        b, geom = self._row_geom(1.777)
+        tile = b.tiles._tile(item, geom)
+        return tile.title, tile.subtitle, tile.subtitle2
+
+    def test_poster_and_landscape_rows_both_get_three(self):
+        for ratio in (0.667, 1.777):
+            with self.subTest(ratio):
+                self.assertEqual(self._row_geom(ratio)[1].caption_lines, 3)
+
+    def test_kind_then_runtime(self):
+        self.assertEqual(self.lines(extra("x", "Featurette")),
+                         ("Extra x", "Featurette", "5:00"))
+
+    def test_unknown_moves_the_runtime_up(self):
+        self.assertEqual(self.lines(extra("x", "Unknown")),
+                         ("Extra x", "5:00", ""))
+
+    def test_no_runtime_is_blank_not_zero(self):
+        item = dict(extra("x", "Featurette"), RunTimeTicks=None)
+        self.assertEqual(self.lines(item), ("Extra x", "Featurette", ""))
+        item = dict(extra("x", "Unknown"), RunTimeTicks=0)
+        self.assertEqual(self.lines(item), ("Extra x", "", ""))
+
+    def test_an_extra_elsewhere_keeps_two_lines(self):
+        """A playlist or grid holding an extra keeps its pitch: the runtime
+        is the row's, not the extra's."""
+        b = browser(DETAIL)
+        items = [extra("x", "Featurette"),
+                 {"Id": "f1", "Name": "F", "Type": "Movie"},
+                 {"Id": "f2", "Name": "G", "Type": "Movie"}]
+        geom = b.tiles.caption_geom(items, b.tiles.art.geom)
+        self.assertEqual(geom.caption_lines, 2)
+        self.assertEqual(b.tiles._tile(items[0], geom).subtitle2, "")
+
+
 class OtherPagesTest(unittest.TestCase):
     def test_series(self):
         b = browser({"kind": "series", "item_id": "sh1", "title": "Show"},

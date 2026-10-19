@@ -167,12 +167,17 @@ def special_features_row(tiles, items, row_id):
     Hidden when empty where web draws a bare heading: on 12.x the count is
     not parental-filtered and the list is, so a count of 3 can fetch none.
     The default click opens the extra's own page, like every other tile.
+
+    Three caption lines in every shape, for the runtime: web's row asks for
+    it (``showRuntime``, itemDetails/index.js:1843), so it belongs to this
+    row and not to an extra wherever it appears.
     """
     if not items:
         return None
     geom, image_type = tiles.auto_geom(items, default=tiles.art.geom_wide,
                                        default_type="Primary")
-    return tiles.tile_row(_("Special Features"), items, row_id, geom=geom,
+    return tiles.tile_row(_("Special Features"), items, row_id,
+                          geom=geom.with_caption_lines(3),
                           image_type=image_type)
 
 

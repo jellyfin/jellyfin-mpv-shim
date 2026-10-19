@@ -184,8 +184,11 @@ class TileGeom:
     sub_size: int = 13
     badge_size: int = 14
     #: How many lines ``_paint_caption`` may draw, and how much room
-    #: ``caption_h`` was sized for. Two everywhere except a Live TV listing
-    #: drawn at poster width -- see :meth:`with_caption_lines`.
+    #: ``caption_h`` was sized for. **The one statement of who asks for
+    #: three:** a Live TV listing at ``tile_w <= THIRD_LINE_MAX_W``, through
+    #: ``TileRenderer.caption_geom``, and the Special Features row at every
+    #: width, through ``components.detail.special_features_row``. Two
+    #: everywhere else.
     caption_lines: int = 2
 
     #: Baseline-to-baseline slack under the third caption line. Tighter than
@@ -204,10 +207,9 @@ class TileGeom:
         """A copy with room for ``n`` caption lines instead of two.
 
         **Idempotent** -- ``caption_lines`` is stored, so a geometry that
-        already has three is returned unchanged. That is what lets the
-        decision be made in more than one place (``auto_geom`` for a row that
-        shapes itself, ``GridPage._grid_shape`` for one told what shape to
-        be) without the band growing once per caller.
+        already has three is returned unchanged. That is what lets more than
+        one caller ask (see ``caption_lines``) without the band growing once
+        per caller.
 
         The band, not just the permission: ``_paint_caption`` lays out inside
         a fixed ``caption_h`` and nothing clips it back, so a third line
