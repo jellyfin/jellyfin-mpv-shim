@@ -123,5 +123,45 @@ class Probe(unittest.TestCase):
         self.assertTrue(hostinfo.is_steamos())
 
 
+class MsixProbe(unittest.TestCase):
+    """Package identity, asked of a stand-in kernel32 answering with the
+    codes Windows gives: a packaged process asked with a zero-length buffer
+    gets ERROR_INSUFFICIENT_BUFFER, an unpackaged one
+    APPMODEL_ERROR_NO_PACKAGE."""
+
+    def _probe(self, kernel32, platform="win32"):
+        import ctypes
+
+        windll = mock.Mock(kernel32=kernel32)
+        with mock.patch.object(sys, "platform", platform), \
+                mock.patch.object(ctypes, "windll", windll, create=True):
+            return hostinfo.is_msix()
+
+    def _answering(self, rc):
+        return mock.Mock(GetCurrentPackageFullName=mock.Mock(return_value=rc))
+
+    def test_a_packaged_process_is_msix(self):
+        self.assertTrue(self._probe(self._answering(122)))
+
+    def test_an_unpackaged_process_is_not(self):
+        self.assertFalse(self._probe(self._answering(15700)))
+
+    def test_windows_without_the_function_is_not(self):
+        """Windows 7: kernel32 has no GetCurrentPackageFullName."""
+        self.assertFalse(self._probe(mock.Mock(spec=[])))
+
+    def test_only_windows_is_asked(self):
+        kernel32 = self._answering(122)
+        self.assertFalse(self._probe(kernel32, platform="linux"))
+        kernel32.GetCurrentPackageFullName.assert_not_called()
+
+    def test_either_updater_manages_updates(self):
+        for flatpak, msix in ((True, False), (False, True), (False, False)):
+            with mock.patch.object(hostinfo, "flatpak_managed",
+                                   lambda: flatpak), \
+                    mock.patch.object(hostinfo, "is_msix", lambda: msix):
+                self.assertEqual(hostinfo.updates_managed(), flatpak or msix)
+
+
 if __name__ == "__main__":
     unittest.main()

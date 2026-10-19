@@ -1,10 +1,11 @@
 """What kind of install this is, asked of the host rather than guessed.
 
-Two questions, one file between them. **Is this a Flatpak that updates
-itself**, which decides whether an update notice can say anything useful (a
-Flathub install is updated by ``flatpak update`` or by the desktop's own
-updater, not from our releases page). And **is the host SteamOS**, where the
-gamepad is the only pointing device most users have.
+Two questions, one file between them. **Does something else deliver this
+install's updates** -- a Flatpak remote or the Microsoft Store -- which
+decides whether an update notice can say anything useful (a Flathub install
+is updated by ``flatpak update`` or by the desktop's own updater, a Store
+install by the Store, neither from our releases page). And **is the host
+SteamOS**, where the gamepad is the only pointing device most users have.
 
 **Inside a Flatpak, ``/etc/os-release`` describes the runtime and not the
 machine.** The host's identity is only at ``/run/host/os-release``, which is
@@ -24,6 +25,7 @@ is set by us.
 
 import logging
 import os
+import sys
 
 log = logging.getLogger("hostinfo")
 
@@ -38,6 +40,10 @@ HOST_OS_RELEASE = "/run/host/os-release"
 #: bundle -- which is exactly the build that cannot update itself and whose
 #: user was given it deliberately.
 UPDATE_MARKER_ENV = "JMS_UPDATE_CHECK"
+
+#: What GetCurrentPackageFullName answers a packaged process asked with a
+#: zero-length buffer. An unpackaged one gets APPMODEL_ERROR_NO_PACKAGE (15700).
+_ERROR_INSUFFICIENT_BUFFER = 122
 
 
 def is_flatpak():
@@ -54,6 +60,38 @@ def flatpak_managed():
     would be wrong.
     """
     return is_flatpak() and not os.environ.get(UPDATE_MARKER_ENV)
+
+
+def is_msix():
+    """Whether this process runs with an MSIX package identity.
+
+    In practice that is a Microsoft Store install: an MSIX cannot be
+    installed without a signature Windows trusts, and the Store is what signs
+    ours. Asked of Windows rather than read off the install path, which
+    package volumes can move.
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        length = ctypes.c_uint32(0)
+        rc = ctypes.windll.kernel32.GetCurrentPackageFullName(
+            ctypes.byref(length), None)
+    except (AttributeError, OSError):
+        # Windows 7 has no such function, and nothing there is packaged.
+        return False
+    return rc == _ERROR_INSUFFICIENT_BUFFER
+
+
+def updates_managed():
+    """Whether something other than this app delivers its updates.
+
+    What decides the update notice's default. The wording is a separate
+    question -- only a Flatpak has a command to tell the user to run -- so
+    callers choosing words ask `flatpak_managed` instead.
+    """
+    return flatpak_managed() or is_msix()
 
 
 def os_release():

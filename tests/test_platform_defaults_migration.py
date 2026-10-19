@@ -103,6 +103,18 @@ class Resolution(unittest.TestCase):
         self.assertFalse(self._wanted("default", True))
         self.assertTrue(self._wanted("default", False))
 
+    def test_default_is_off_in_a_store_install(self):
+        """The Store updates its own installs, so the notice would only
+        repeat it -- and point at a releases page whose installer is not
+        how this copy gets updated."""
+        s = Settings()
+        s.notify_updates = "default"
+        with mock.patch.object(hostinfo, "flatpak_managed", lambda: False), \
+                mock.patch.object(hostinfo, "is_msix", lambda: True):
+            self.assertFalse(s.notify_updates_wanted())
+            s.notify_updates = "enabled"
+            self.assertTrue(s.notify_updates_wanted())
+
     def test_an_explicit_answer_is_never_overridden(self):
         for managed in (True, False):
             self.assertTrue(self._wanted("enabled", managed),

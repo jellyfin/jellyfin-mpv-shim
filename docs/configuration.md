@@ -11,6 +11,7 @@ configuration folder using the systray icon if you are using the shim version. W
 on Linux or macOS from the terminal, the location of the config file will be printed. The locations are:
 
 - Windows - `%appdata%\jellyfin-mpv-shim\conf.json`
+- Windows (Microsoft Store, first installed fresh) - `%localappdata%\Packages\<package folder>\LocalCache\Roaming\jellyfin-mpv-shim\conf.json`. If you used the installer version before, the Store version keeps using `%appdata%`.
 - Linux - `~/.config/jellyfin-mpv-shim/conf.json`
 - Linux (Flatpak) - `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json`
 - macOS - `~/Library/Application Support/jellyfin-mpv-shim/conf.json`
@@ -723,8 +724,10 @@ You can use the config file to enable and disable features.
   - Notification will only display once until the application is restarted.
   - `default` answers by how the app was installed: **off inside a Flatpak**,
     where your desktop's software centre already announces updates and
-    `flatpak update` is what installs them, and **on everywhere else** (pip,
-    Windows, macOS), where this app is the only thing that knows.
+    `flatpak update` is what installs them, **off in a Microsoft Store
+    install**, which the Store keeps up to date, and **on everywhere else**
+    (pip, the Windows installer, macOS), where this app is the only thing
+    that knows.
   - `enabled` and `disabled` are your answer and are never overridden.
   - Inside a Flatpak the notice tells you to run `flatpak update`, since the
     releases page cannot install anything there. It still links to the page,
