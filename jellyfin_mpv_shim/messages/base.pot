@@ -2987,8 +2987,9 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"Automatic\" turns this off inside a Flatpak, where your desktop already "
-"announces updates and \"flatpak update\" installs them, and leaves it on "
-"everywhere else."
+"announces updates and \"flatpak update\" installs them, and in a Microsoft "
+"Store install, which the Store keeps up to date. It leaves it on everywhere "
+"else."
 msgstr ""
 
 #. Explanation shown under the "Game Controller" setting (Settings >

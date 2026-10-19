@@ -17,6 +17,7 @@ printed at startup when launched from a terminal on Linux or macOS.
 | Platform | Location |
 |---|---|
 | Windows | `%appdata%\jellyfin-mpv-shim\conf.json` |
+| Windows (Microsoft Store, first installed fresh) | `%localappdata%\Packages\<package folder>\LocalCache\Roaming\jellyfin-mpv-shim\conf.json`. If you used the installer version before, the Store version keeps using `%appdata%`. |
 | Linux | `~/.config/jellyfin-mpv-shim/conf.json` |
 | Linux (Flatpak) | `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json` |
 | macOS | `~/Library/Application Support/jellyfin-mpv-shim/conf.json` |
@@ -57,8 +58,8 @@ for you when one changes.
 - `check_updates` - Check GitHub for a new release, at most once a day. Default: `true`
 - `notify_updates` - Show a notice when an update is available. One of `default`, `enabled`,
   `disabled`. Default: `default`
-  - `default` is off in the Flatpak (your software centre announces updates there) and on
-    everywhere else.
+  - `default` is off in the Flatpak (your software centre announces updates there) and in a
+    Microsoft Store install (the Store keeps it up to date), and on everywhere else.
 
 ### Input
 
