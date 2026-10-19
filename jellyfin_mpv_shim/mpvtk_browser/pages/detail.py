@@ -14,7 +14,7 @@ import logging
 
 from ...i18n import _
 from ...mpvtk.scaling import px
-from ...mpvtk.widgets import Dropdown, Row, Text, VScroll
+from ...mpvtk.widgets import Column, Dropdown, Row, Text, VScroll
 from .. import components, theme, timefmt
 from ..components import (chrome, controls, detail as detail_components,
                           media_info)
@@ -31,6 +31,7 @@ class DetailPage(Page):
     def load(self, epoch):
         route = self.route
         source = self.ctx.source
+        actions = self.ctx.actions
         srv = route.get("server") or self.ctx.server
         iid = route["item_id"]
 
@@ -42,6 +43,7 @@ class DetailPage(Page):
             except Exception:
                 pass
             return {"item": item, "similar": similar,
+                    "may_refresh": actions.can_refresh_metadata(srv),
                     "trailers": detail_components.local_trailers(
                         source, srv, item),
                     "extras": detail_components.special_features(
@@ -92,7 +94,10 @@ class DetailPage(Page):
             blocks.append(Text(info, size="small", color=theme.SUBTLE_FG))
         blocks.append(self._play_buttons(item, server,
                                          trailers=data.get("trailers")))
-        blocks.append(self._detail_actions(item, server))
+        more = detail_components.more_entries(
+            self.ctx.actions, item, server, data.get("may_refresh"),
+            on_deleted=self._left_after_delete)
+        blocks.append(self._detail_actions(item, server, more))
         blocks.extend(self._track_pickers(item))
         text = chrome.overview(item)
         if text:
@@ -129,15 +134,21 @@ class DetailPage(Page):
             blocks.append(tiles.tile_row(
                 _("More Like This"), data["similar"], "detail-similar",
                 geom=sim_geom, image_type=sim_type))
-        return VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
-                                          full_bleed=full_bleed),
-                       id="detail", flex=1,
-                       offset=self.parked_scroll("detail"))
+        children = [VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
+                                               full_bleed=full_bleed),
+                            id="detail", flex=1,
+                            offset=self.parked_scroll("detail"))]
+        menu = detail_components.more_menu(
+            route, self.ctx.invalidate, self.ctx.art, more, "act-more",
+            "detail")
+        if menu is not None:
+            children.append(menu)
+        return Column(children, flex=1, align="stretch")
 
     # -- actions -----------------------------------------------------------
 
 
-    def _detail_actions(self, item, server):
+    def _detail_actions(self, item, server, more=()):
         btns = detail_components.common_actions(
             self.ctx.actions, self.ctx.art.tiles, item, server, "act")
         if item.get("MediaSources"):
@@ -149,17 +160,8 @@ class DetailPage(Page):
             btns.append(controls.action_btn(
                 "info", _("Media Info"), "act-minfo",
                 lambda: self.ctx.dialogs.media_info(item, server)))
-        # `actions.offline` as well as CanDelete, like the tile menu: the
-        # flag comes off a DTO the *catalog* stored, so offline it can still
-        # say True -- and pressing it would reach for a server that is not
-        # there. The local copy has its own Remove Download.
-        if not self.ctx.actions.offline and self.ctx.actions.can_delete(item):
-            # Last in the row, like the tile menu, and for the same reason:
-            # it is the only control here that destroys anything.
-            btns.append(controls.action_btn(
-                "delete", _("Delete from Disk"), "act-delete",
-                lambda: self.ctx.actions.confirm_delete_item(
-                    item, server, on_done=self._left_after_delete)))
+        more_btn = detail_components.more_button(
+            self.route, self.ctx.invalidate, more, "act-more")
         if item.get("Type") == "Episode" and item.get("SeriesId"):
             # A gap has neither Play nor Resume (`_play_buttons`), and those
             # two carried the page's ONLY `autofocus` -- so suppressing them
@@ -183,6 +185,8 @@ class DetailPage(Page):
                 btns.insert(0, series_btn)
             else:
                 btns.append(series_btn)
+        if more_btn is not None:
+            btns.append(more_btn)
         return Row(btns, gap=8, align="center")
 
     def _left_after_delete(self):

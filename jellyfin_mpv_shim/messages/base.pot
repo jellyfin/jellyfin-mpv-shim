@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-18 22:27-0400\n"
+"POT-Creation-Date: 2026-10-19 17:53-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1253,6 +1253,30 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Favorite"
+msgstr ""
+
+#. An entry in the right-click menu on a library tile, shown only to server
+#. administrators: it asks the server to look again for this item's metadata
+#. and artwork. Sentence case, like the other entries in that menu.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Refresh metadata"
+msgstr ""
+
+#. Deletes the media file from the server itself, not just the entry. Used
+#. as the action on an item's menu and as the title and confirming button
+#. of the dialog it opens. An imperative verb phrase.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Delete from Disk"
+msgstr ""
+
+#. Button on a film's, episode's, show's or season's page that opens a short
+#. menu of less common actions (refresh metadata, delete from disk). Means
+#. "more options", not "more of this item"; Jellyfin Web uses the same word.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+msgid "More"
 msgstr ""
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
@@ -4727,15 +4751,6 @@ msgstr ""
 msgid "%s could not be refreshed."
 msgstr ""
 
-#. Deletes the media file from the server itself, not just the entry. Used
-#. as the action on an item's menu and as the title and confirming button
-#. of the dialog it opens. An imperative verb phrase.
-#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Delete from Disk"
-msgstr ""
-
 #. Warning in the dialog that deletes media from the server. This removes
 #. the actual file, not just the library entry.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -6837,13 +6852,6 @@ msgstr ""
 #. verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to playlist"
-msgstr ""
-
-#. An entry in the right-click menu on a library tile, shown only to server
-#. administrators: it asks the server to look again for this item's metadata
-#. and artwork. Sentence case, like the other entries in that menu.
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Refresh metadata"
 msgstr ""
 
 #. Action on an item's menu, and the title of the dialog it opens, taking

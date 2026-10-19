@@ -3,7 +3,7 @@
 import logging
 
 from ...i18n import _
-from ...mpvtk.widgets import Column, Dropdown, Row, Text, VScroll
+from ...mpvtk.widgets import Column, Dropdown, Text, VScroll
 from ..components import chrome, controls, detail as detail_components
 from ..tile_renderer import GRID_GAP
 from .base import Page
@@ -44,6 +44,7 @@ class SeasonPage(Page):
     def load(self, epoch):
         route = self.route
         source = self.ctx.source
+        actions = self.ctx.actions
         srv = route.get("server") or self.ctx.server
 
         def work():
@@ -67,6 +68,7 @@ class SeasonPage(Page):
                     srv, series_id, route["item_id"]),
                 "seasons": seasons,
                 "next_up": next_up,
+                "may_refresh": actions.can_refresh_metadata(srv),
                 "trailers": detail_components.local_trailers(
                     source, srv, item),
                 "extras": detail_components.special_features(
@@ -208,6 +210,12 @@ class SeasonPage(Page):
             actions, tiles,
             season_item or {"Id": route["item_id"], "Type": "Season"},
             server, "se")
+        more = detail_components.more_entries(
+            actions, season_item, server, data.get("may_refresh"))
+        more_btn = detail_components.more_button(
+            route, self.ctx.invalidate, more, "se-more")
+        if more_btn is not None:
+            acts.append(more_btn)
         # The provider links join that same button group, on the end of the
         # title row rather than a row of their own. This screen has two
         # bands above the grid already and the links would be a third, and a
@@ -233,7 +241,8 @@ class SeasonPage(Page):
             # centres its grid, so `gpad` can be 94px at a 1200px window.
             header.append(chrome.wrap_row(
                 title_row, size[0] - 2 * gpad, gap=12, align="center"))
-        header.append(Row(acts, gap=8, align="center"))
+        header.append(chrome.wrap_row(acts, size[0] - 2 * gpad, gap=8,
+                                      align="center"))
         # The season's own synopsis, which this page has never drawn -- and
         # the data has been on the wire the whole time: `get_seasons` asks for
         # `info()`, and the apiclient's `info()` includes `Overview`. So this
@@ -302,11 +311,16 @@ class SeasonPage(Page):
                                       gap=GRID_GAP)
         else:
             body = Column(rows, gap=GRID_GAP, pad=(gpad, chrome.CONTENT_PAD))
-        return VScroll(body,
-                       id="season", flex=1,
-                       offset=self.parked_scroll("season"),
-                       on_scroll=lambda off, mx: art.scroll.on_scroll(
-                           "season", off, mx))
+        children = [VScroll(body,
+                            id="season", flex=1,
+                            offset=self.parked_scroll("season"),
+                            on_scroll=lambda off, mx: art.scroll.on_scroll(
+                                "season", off, mx))]
+        menu = detail_components.more_menu(
+            route, self.ctx.invalidate, art, more, "se-more", "season")
+        if menu is not None:
+            children.append(menu)
+        return Column(children, flex=1, align="stretch")
 
     def _switch_season(self, season):
         self.ctx.nav.navigate({

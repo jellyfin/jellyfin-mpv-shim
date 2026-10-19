@@ -713,6 +713,26 @@ def menu_pick(browser, action):
     raise AssertionError("no %r entry for this item: %r"
                          % (action, [e[2] for e in entries]))
 
+def more_rows(browser, prefix):
+    """Open a page's More menu (``<prefix>-more``) and return its rows;
+    ``[]`` when the page draws no More button at all."""
+    _n, handlers = build_scene(browser)
+    if prefix + "-more" not in handlers:
+        return []
+    handlers[prefix + "-more"]["click"]()
+    nodes, _h = build_scene(browser)
+    menu = next(n for n in nodes if n.get("id") == prefix + "-more-menu")
+    return menu["items"]
+
+def pick_more(browser, prefix, label):
+    """Choose ``label`` from a page's More menu. By label, like
+    ``menu_pick``: which rows are present depends on the item."""
+    rows = more_rows(browser, prefix)
+    if label not in rows:
+        raise AssertionError("no %r in the More menu: %r" % (label, rows))
+    _n, handlers = build_scene(browser)
+    handlers[prefix + "-more-menu"]["select"](rows.index(label), label)
+
 def ids(nodes):
     return {n.get("id") for n in nodes}
 

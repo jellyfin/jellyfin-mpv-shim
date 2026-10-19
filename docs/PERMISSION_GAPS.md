@@ -385,8 +385,9 @@ what it destroys without truncating the sentence.
 
 `POST /Items/{id}/Refresh` is **administrator-only by construction**: there is
 no per-library grant and no user-level permission that opens it, which is where
-jellyfin-web draws the line too. The tile menu's *Refresh metadata* entry is
-therefore gated on `IsAdministrator`, through
+jellyfin-web draws the line too. The *Refresh metadata* entry — on the tile
+menu, and in the More menu on detail, series and season pages — is therefore
+gated on `IsAdministrator`, through
 `user_policy.may_refresh_metadata` → `LibrarySource.can_refresh_metadata` →
 `ItemActions.can_refresh_metadata`, the same three-step shape as every other
 gate here.

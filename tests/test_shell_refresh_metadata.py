@@ -36,7 +36,15 @@ import unittest
 from jellyfin_mpv_shim import user_policy
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
-from tests._shell_harness import FakeController, FakeSource, _SyncPool
+from tests._shell_harness import (
+    FakeController,
+    FakeSource,
+    _SyncPool,
+    build_scene,
+    ids,
+    more_rows,
+    pick_more,
+)
 
 MOVIE = {"Id": "x", "Type": "Movie", "Name": "A Film"}
 
@@ -262,6 +270,147 @@ class RefreshCallTest(unittest.TestCase):
         # sending it proved nothing and documented a mechanism that does not
         # exist. The recursion happens anyway; see `refresh_item`.
         self.assertNotIn("Recursive", sent["params"])
+
+
+
+class _CountingSource(_Source):
+    """Counts the admin question: it can reach the server (`policy_for`
+    does not cache a failure), so where it is asked matters."""
+
+    def __init__(self, admin=True):
+        super().__init__(admin)
+        self.asked = 0
+
+    def can_refresh_metadata(self, server_uuid):
+        self.asked += 1
+        return self.admin
+
+
+class RefreshFromThePagesTest(unittest.TestCase):
+    """The More menu on detail, series and season pages (#764): refreshing
+    one episode used to mean finding its tile in the season grid."""
+
+    ROUTES = {
+        "act": {"kind": "detail", "server": "srv", "item_id": "m1",
+                "title": "The Film"},
+        "sa": {"kind": "series", "server": "srv", "item_id": "sh1",
+               "title": "A Show"},
+        "se": {"kind": "season", "server": "srv", "item_id": "se1",
+               "series_id": "sh1", "title": "Season 1"},
+    }
+
+    def _browser(self, prefix, admin=True, can_delete=True):
+        src = _CountingSource(admin)
+        src.items["m1"] = {"Id": "m1", "Type": "Movie", "Name": "The Film",
+                           "CanDelete": can_delete}
+        src.items["sh1"] = {"Id": "sh1", "Type": "Series", "Name": "A Show",
+                            "CanDelete": can_delete}
+        src.season_fields["se1"] = {"CanDelete": can_delete}
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.nav_stack = [{"kind": "grid", "server": "srv"},
+                       dict(self.ROUTES[prefix])]
+        b._load_route(b.route)
+        return b
+
+    def test_every_page_offers_it_to_an_admin(self):
+        for prefix in self.ROUTES:
+            with self.subTest(prefix):
+                self.assertIn("Refresh metadata",
+                              more_rows(self._browser(prefix), prefix))
+
+    def test_it_sits_above_delete(self):
+        self.assertEqual(["Refresh metadata", "Delete from Disk"],
+                         more_rows(self._browser("act"), "act"))
+
+    def test_series_and_season_do_not_offer_delete(self):
+        """Decided, not missed: Delete stays where it was, on the detail
+        page, which is the one that knows how to leave itself after."""
+        for prefix in ("sa", "se"):
+            with self.subTest(prefix):
+                self.assertEqual(["Refresh metadata"],
+                                 more_rows(self._browser(prefix), prefix))
+
+    def test_no_button_when_there_is_nothing_behind_it(self):
+        for prefix in self.ROUTES:
+            with self.subTest(prefix):
+                b = self._browser(prefix, admin=False, can_delete=False)
+                nodes, _h = build_scene(b)
+                self.assertNotIn(prefix + "-more", ids(nodes))
+
+    def test_offline_has_no_button(self):
+        for prefix in self.ROUTES:
+            with self.subTest(prefix):
+                b = self._browser(prefix)
+                b._offline = True
+                nodes, _h = build_scene(b)
+                self.assertNotIn(prefix + "-more", ids(nodes))
+
+    def test_picking_it_refreshes_that_item(self):
+        expect = {"act": "m1", "sa": "sh1", "se": "se1"}
+        for prefix, iid in expect.items():
+            with self.subTest(prefix):
+                b = self._browser(prefix)
+                pick_more(b, prefix, "Refresh metadata")
+                calls = [a for n, a in b.controller.transport
+                         if n == "refresh_item"]
+                self.assertEqual([("srv", iid)], calls)
+
+    def test_picking_closes_the_menu(self):
+        b = self._browser("act")
+        pick_more(b, "act", "Refresh metadata")
+        nodes, _h = build_scene(b)
+        self.assertNotIn("act-more-menu", ids(nodes))
+
+    def test_opening_and_dismissing_ask_for_a_repaint(self):
+        """The half a rebuilt scene cannot see (docs/browser-shell.md §3).
+        Patched before the build: the page context binds `invalidate` when
+        it is made, and the handlers close over that one."""
+        b = self._browser("act")
+        calls = []
+        real = b.invalidate
+        b.invalidate = lambda *a, **kw: (calls.append(1), real(*a, **kw))
+        _n, h = build_scene(b)
+        h["act-more"]["click"]()
+        self.assertTrue(calls, "opening More redrew nothing")
+        calls.clear()
+        _n, h = build_scene(b)
+        h["act-more-menu"]["dismiss"]()
+        self.assertTrue(calls, "dismissing More redrew nothing")
+        nodes, _h = build_scene(b)
+        self.assertNotIn("act-more-menu", ids(nodes))
+
+    def test_the_admin_question_is_asked_per_load_not_per_repaint(self):
+        """A failed policy fetch is not cached, so asked in `render` it
+        would go to the server on every frame, on the loop thread."""
+        for prefix in self.ROUTES:
+            with self.subTest(prefix):
+                b = self._browser(prefix)
+                for _ in range(3):
+                    build_scene(b)
+                more_rows(b, prefix)
+                self.assertEqual(1, b.source.asked)
+
+
+class MoreMenuPlacementTest(unittest.TestCase):
+    """`node_rect` answers in content space inside a scroll, so a page
+    scrolled down would otherwise drop the menu that far below its button."""
+
+    def _menu(self, offset):
+        from types import SimpleNamespace
+
+        from jellyfin_mpv_shim.mpvtk_browser.components import detail
+
+        art = SimpleNamespace(
+            node_rect=lambda nid: {"x": 40, "y": 500, "w": 90, "h": 36},
+            scroll=SimpleNamespace(offset=lambda sid: offset))
+        return detail.more_menu({detail.MORE_KEY: True}, lambda: None, art,
+                                [("Refresh metadata", "refresh", None)],
+                                "act-more", "detail")
+
+    def test_it_hangs_below_the_button_where_it_is_drawn(self):
+        self.assertEqual((40, 540), (self._menu(0).x, self._menu(0).y))
+        self.assertEqual((40, 240), (self._menu(300).x, self._menu(300).y))
 
 
 if __name__ == "__main__":
