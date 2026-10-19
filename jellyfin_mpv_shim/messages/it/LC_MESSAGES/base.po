@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 06:25+0000\n"
+"PO-Revision-Date: 2026-10-19 06:28+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -3436,6 +3436,10 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"Consente ai tasti multimediali della tastiera, ai pulsanti delle cuffie, "
+"alla schermata di blocco e ai widget multimediali sul desktop di gestire la "
+"riproduzione (avvio, pausa, salto traccia) e mostra il contenuto in "
+"riproduzione insieme alla relativa copertina (tramite MPRIS; solo su Linux)."
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3486,6 +3490,10 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"Ogni raccolta viene riaperta mantenendo i filtri applicati in precedenza "
+"(genere, non riprodotti, preferiti e altri), salvati sul tuo account nel "
+"server. Se disattivati, i filtri rimangono attivi solo fino all'uscita dalla "
+"raccolta."
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -4927,7 +4935,7 @@ msgstr "Schermo intero"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr ""
+msgstr "La riproduzione si è interrotta, quindi questa coda non esiste più."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
