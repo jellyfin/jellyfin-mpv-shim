@@ -69,7 +69,6 @@ class IpcClosedTest(unittest.TestCase):
         """Both routes can fire: the event, and then the socket closing."""
         h = _Handle()
         pm = self._pm(h)
-        pm._idle_quit = False
         tasks = []
         pm.put_task = tasks.append
         pm._terminate_mpv = lambda player=None: None
@@ -97,7 +96,6 @@ class LibmpvShutdownSeenTest(unittest.TestCase):
     def test_the_teardown_is_queued_once(self):
         pm = PlayerManager.__new__(PlayerManager)
         pm._player = _DeadLibmpvHandle()
-        pm._idle_quit = False
         tasks = []
         pm.put_task = tasks.append
         pm._terminate_mpv = lambda player=None: None

@@ -103,11 +103,11 @@ class ItReachesEveryOscTest(OscCase):
                 self.assertEqual(self.messages(p, "osc-idlescreen"), ["no"])
 
     def test_the_idle_logo_goes_even_when_the_controls_stay(self):
-        """`_init_mpv` calls enable_osc(True) under `default`, and that is
-        the only send that happens before the OSC's first draw. Waiting for
-        the library to open is too late -- ModernZ parks the logo on an
+        """The idle logo goes whichever way `enable_osc` is asked. Waiting
+        for the library to open is too late -- ModernZ parks the logo on an
         overlay its hide path never wipes, so it sits over the library for
-        the rest of the session."""
+        the rest of the session. (What lands before the OSC's first draw is
+        `_init_mpv`'s `script-opts`, not this message.)"""
         for style in self.STYLES:
             with self.subTest(style):
                 p = self.pm(style)

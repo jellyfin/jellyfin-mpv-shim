@@ -171,8 +171,11 @@ class IdleScreenTest(unittest.TestCase):
 
     def _init_mpv_body(self):
         src = self._src()
-        body = src[src.index("    def _init_mpv(self):"):]
-        return body[:body.index("\n    def ")]
+        # _init_mpv hands the new handle to _configure_new_mpv.
+        def method(name):
+            body = src[src.index("    def %s(" % name):]
+            return body[:body.index("\n    def ")]
+        return method("_init_mpv") + method("_configure_new_mpv")
 
     def test_the_option_is_set_before_any_osc_is_chosen(self):
         body = self._init_mpv_body()

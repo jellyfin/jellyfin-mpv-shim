@@ -620,8 +620,13 @@ def chapter_target(chapters, pos, direction):
 _UNSET = object()
 
 
-#: Guards the once-per-handle shutdown flag (_on_shutdown_event).
-_SHUTDOWN_SEEN_LOCK = threading.Lock()
+#: Leaf lock for mpv's lifecycle facts: a handle's shutdown mark, which
+#: handle is still being built, and `_mpv_alive`. Held only around reads and
+#: writes of those -- never across terminate(), a join, a property read or a
+#: Thread.start() -- and never takes `_lock`. docs/mpv-backends.md section 8.
+#: No "_lock" in the name: test_startup_window.wait_parked reads any
+#: `with ..._lock` line as a thread parked on the player's `_lock`.
+_LIFECYCLE_LOCK = threading.Lock()
 #: Guards `_stop_owed`: ends of playback race each other across threads
 #: (a stop, the action thread's end of queue, a lost connection).
 _STOP_OWED_LOCK = threading.Lock()
@@ -632,16 +637,25 @@ def _shutdown_seen(handle):
     return getattr(handle, "__dict__", {}).get("_jms_shutdown_seen", False)
 
 
+def _set_shutdown_seen(handle):
+    """Hold `_LIFECYCLE_LOCK`."""
+    try:
+        handle._jms_shutdown_seen = True
+    except Exception:
+        pass
+
+
 def _mark_own_close(handle):
     """Before we terminate mpv ourselves: mark the handle as already shut
     down, with the same once-per-handle flag _on_shutdown_event sets, so the
     "shutdown" event and _on_ipc_closed that our close causes do not run the
     outside-shutdown path (a second terminate, the teardown, stop_cmd)."""
-    with _SHUTDOWN_SEEN_LOCK:
-        try:
-            handle._jms_shutdown_seen = True
-        except Exception:
-            pass
+    with _LIFECYCLE_LOCK:
+        _set_shutdown_seen(handle)
+
+
+class MpvShutDownDuringBuild(RuntimeError):
+    """The mpv being built shut down before the build published it."""
 
 
 class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
@@ -650,6 +664,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     class to prevent concurrent control events hitting the player, which
     violates assumptions.
     """
+
+    # The thread re-creating mpv, or None. Class-level so players built with
+    # __new__ (the test harness) have it too. See _reopen_mpv.
+    _mpv_build = None
+    # The handle `_init_mpv` constructed and has not yet published or
+    # abandoned. Under `_LIFECYCLE_LOCK`.
+    _mpv_building = None
+    # Re-opens that failed (`_reopen_mpv`), and the last one's error.
+    _mpv_build_failures = 0
+    _mpv_build_error = None
+    # A re-open failed and the app is shutting down: nothing builds again.
+    _mpv_exiting = False
+    # Called with the error when mpv cannot be re-created; main() wires it
+    # to its orderly exit. Class-level for players built with __new__.
+    on_reopen_failed = None
 
     def __init__(self):
         self._video = None
@@ -726,11 +755,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._hud_skip = None
         self._osc_script_loaded = False
         self._mpv_alive = False
-        # True when mpv was terminated intentionally to save resources while
-        # idle (mpv_idle_quit), as opposed to a crash / user-close. Lets the
-        # shutdown path stay silent — there's no session to report. Cleared
-        # when the process is re-created on the next play.
-        self._idle_quit = False
         # The thread tearing down a previous mpv instance. A re-open joins it
         # before rebuilding: the old event thread must be dead before we drain
         # its leftover queued tasks (so none re-queue after the drain — see
@@ -891,6 +915,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.on_mpv_gone = None
         self.on_mpv_terminated = None
         self.on_mpv_recreated = None
+        self.on_reopen_failed = None
         # BACK/ESC handler for the in-window UI. Returns True when it
         # consumed the press; at the root of its nav stack it declines and
         # ESC keeps its old meaning (leave fullscreen).
@@ -960,8 +985,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # finished_callbacks onto evt_queue; if they survive into the re-opened
         # session the pump runs them against the NEW video — _handle_mpv_shutdown
         # nulls self._video, after which the new player's eof is ignored and
-        # auto-advance silently stops. The terminate join above guarantees the
-        # old event thread is dead, so nothing re-queues after this drain.
+        # auto-advance silently stops. Unless the join above timed out, the
+        # old event thread is dead and nothing re-queues after this drain;
+        # a timeout is given up on (docs/do-not-fix.md F53).
         while True:
             try:
                 self.evt_queue.get_nowait()
@@ -1105,13 +1131,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             mpv_guard.arm(player)
             return player
 
-    def _init_mpv(self):
+    def _init_mpv(self, caller=None):
+        """Build mpv. Returns whether this was a re-open. `caller` is who
+        asked, for the log; a re-open passes its own."""
         # Re-open reuses this method; drop the previous instance's trickplay
         # thread first so recovery/idle cycles don't leak it.
         # getattr: _player isn't bound until the first init finishes.
         reopen = getattr(self, "_player", None) is not None
-        wlog.info("CREATE mpv (%s) <- %s",
-                  "re-open" if reopen else "first", player_window._caller())
+        wlog.info("CREATE mpv (%s) <- %s", "re-open" if reopen else "first",
+                  caller or player_window._caller())
         self._teardown_player()
 
         osc_style = self._effective_osc_style()
@@ -1159,7 +1187,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._geometry_armed = mpv_options["geometry"]
 
-        self._player = self._construct_mpv(
+        player = self._construct_mpv(
             mpv_options,
             input_default_bindings=True,
             input_vo_keyboard=True,
@@ -1167,6 +1195,40 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             log_handler=mpv_log_handler,
             loglevel=mpv_loglevel_for(settings.mpv_log_level),
         )
+        with _LIFECYCLE_LOCK:
+            self._player = player
+            self._mpv_building = player
+        try:
+            self._configure_new_mpv(osc_style)
+        except BaseException:
+            self._abandon_build()
+            raise
+        return reopen
+
+    def _abandon_build(self):
+        """A build failed past `_construct_mpv`: the new mpv is running and
+        nothing drives it. Terminate it the way `idle_quit` does, minus
+        `on_mpv_gone` (no UI was attached to it yet), so the next re-open
+        joins the terminate rather than building on top of it."""
+        wlog.error("mpv build failed; terminating the half-built mpv")
+        player = self._player
+        try:
+            self._teardown_player()
+        except Exception:
+            log.debug("teardown after a failed build failed", exc_info=True)
+        # Ours to terminate, even when it shut down mid-build: its shutdown
+        # handler left it to us (_on_shutdown_event).
+        with _LIFECYCLE_LOCK:
+            _set_shutdown_seen(player)
+            self._mpv_building = None
+        self._mark_mpv_dead()
+        self._terminate_thread = Thread(
+            target=self._terminate_mpv, args=(player,), daemon=True
+        )
+        self._terminate_thread.start()
+
+    def _configure_new_mpv(self, osc_style):
+        """Everything `_init_mpv` does to a handle once it exists."""
         if is_using_ext_mpv:
             # Read at call time by python-mpv-jsonipc, so bound to THIS
             # handle: a replaced handle closing must not shut down its
@@ -1276,22 +1338,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     log.error("Could not register Discord join callback.",
                               exc_info=True)
 
-        if hasattr(self._player, "osc"):
-            self.enable_osc(self.osc_enabled)
-        else:
-            log.warning("This mpv version doesn't support on-screen controller.")
+        # Guarded: on jsonipc even the hasattr is an IPC read that can raise.
+        try:
+            if settings.screenshot_dir is not None:
+                if hasattr(self._player, "screenshot_directory"):
+                    self._player.screenshot_directory = settings.screenshot_dir
+                else:
+                    log.warning(
+                        "This mpv version doesn't support setting the screenshot directory."
+                    )
+        except Exception:
+            log.error("Could not set the screenshot directory.", exc_info=True)
 
-        if settings.screenshot_dir is not None:
-            if hasattr(self._player, "screenshot_directory"):
-                self._player.screenshot_directory = settings.screenshot_dir
-            else:
-                log.warning(
-                    "This mpv version doesn't support setting the screenshot directory."
-                )
-
-        if hasattr(self._player, "resume_playback"):
-            # This can lead to unwanted skipping of videos
-            self._player.resume_playback = False
+        try:
+            if hasattr(self._player, "resume_playback"):
+                # This can lead to unwanted skipping of videos
+                self._player.resume_playback = False
+        except Exception:
+            log.error("Could not turn off resume_playback.", exc_info=True)
 
         # Fresh mpv instance: nothing has been applied to it yet, and the
         # previous instance's snapshot describes a player that no longer
@@ -1317,12 +1381,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         try:
             self.apply_audio_settings()
         except Exception:
-            # Never abort _init_mpv over audio config. We are past mpv's
-            # construction but before _mpv_alive and the event/key bindings,
-            # so escaping here would leave a live mpv window the shim does
-            # not drive and _ensure_mpv would later start a second one on top
-            # of it. Every other optional property write here is guarded the
-            # same way.
+            # Never abort _init_mpv over audio config: an escape fails the
+            # build, and a failed re-open quits the app. Optional setup is
+            # tolerated, so every other optional property write here is
+            # guarded the same way. docs/mpv-backends.md section 8.
             log.error("Could not apply audio settings at startup.", exc_info=True)
 
         self._bind_mpv_handlers()
@@ -1342,16 +1404,103 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     log.debug("%s unsupported by this mpv", prop,
                               exc_info=True)
 
-        self._mpv_alive = True
+        self._publish_mpv(self._player)
+
+    def _publish_mpv(self, player):
+        """The one place `_mpv_alive` goes True. A handle that shut down
+        while it was being built is a failed build, not a live mpv."""
+        with _LIFECYCLE_LOCK:
+            if _shutdown_seen(player):
+                raise MpvShutDownDuringBuild(
+                    "mpv shut down before its build finished")
+            self._mpv_building = None
+            self._mpv_alive = True
+
+    def _mark_mpv_dead(self, player=None):
+        """The one place `_mpv_alive` goes False. With `player`, only while
+        it is still the current handle: a superseded handle's late terminate
+        must not mark its successor dead. Returns whether it flipped."""
+        with _LIFECYCLE_LOCK:
+            if player is not None and player is not self._player:
+                return False
+            was_alive = self._mpv_alive
+            self._mpv_alive = False
+            return was_alive
+
+    def _reopen_mpv(self):
+        """Re-create a dead mpv. Every re-open comes through here, never
+        straight to `_init_mpv` (#828).
+
+        A caller that finds a build in progress waits for it on `_lock` and
+        returns True on the mpv it built; if that build failed, it gets the
+        failure instead of building another. Returns False only to a call
+        from inside this thread's own build. docs/mpv-backends.md section 8.
+        """
+        caller = player_window._caller()
+        failures = self._mpv_build_failures
+        # The previous mpv's terminate, outside `_lock`, so nothing else that
+        # takes it waits on a dying mpv too. `_teardown_player` joins it again,
+        # which is then instant. A play arrives here holding `_lock` already.
+        term = self._terminate_thread
+        if (term is not None and term is not threading.current_thread()
+                and not self._mpv_alive):
+            term.join(timeout=10)
+        with self._lock:
+            if self._mpv_alive:
+                return True
+            if self._mpv_build is not None:
+                # Only the builder's own thread gets past an RLock mid-build.
+                # Building again from inside the build would orphan the first.
+                wlog.error("mpv re-open asked for from inside its own build "
+                           "<- %s", caller)
+                return False
+            if self._mpv_build_failures != failures:
+                raise RuntimeError("mpv re-open failed on another thread") \
+                    from self._mpv_build_error
+            if self._mpv_exiting:
+                raise RuntimeError("mpv could not be re-created; the app "
+                                   "is shutting down") \
+                    from self._mpv_build_error
+            self._mpv_build = threading.current_thread()
+            try:
+                reopen = self._init_mpv(caller=caller)
+            except BaseException as error:
+                # Any failure, construction included: a waiter that missed
+                # it would build an mpv of its own.
+                self._mpv_build_error = error
+                self._mpv_build_failures += 1
+                self._reopen_failed(error)
+                raise
+            finally:
+                self._mpv_build = None
 
         # Anything attached to the *previous* handle has to move over. Only on
         # a re-open: on first init there is nothing attached yet (the UI
-        # attaches after the player is constructed).
+        # attaches after the player is constructed). Outside `_lock` where
+        # the caller allows it: this reaches the browser.
         if reopen and self.on_mpv_recreated is not None:
             try:
                 self.on_mpv_recreated()
             except Exception:
                 log.error("on_mpv_recreated handler failed", exc_info=True)
+        return True
+
+    def _reopen_failed(self, error):
+        """mpv could not be re-created: shut the app down, orderly, with no
+        retry (jsonipc's launch already retries). Every UI goes through mpv,
+        so without one the app is a cast target and a tray icon that cannot
+        show anything. docs/mpv-backends.md section 8."""
+        with _LIFECYCLE_LOCK:
+            self._mpv_exiting = True
+        log.error("mpv could not be re-created; shutting down",
+                  exc_info=error)
+        hook = self.on_reopen_failed
+        if hook is None:
+            return
+        try:
+            hook(error)
+        except Exception:
+            log.error("on_reopen_failed handler failed", exc_info=True)
 
     # -- mpv key bindings and event handlers -------------------------------
     #
@@ -1484,14 +1633,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._key_claims["fullscreen"] = {keysweep.FULLSCREEN}
         if self._seek_is_ours():
             self._key_claims["seek"] = {keysweep.SEEK}
-        # Under the lock, which _refresh_key_section's contract requires and
-        # this path did not hold: _bind_mpv_handlers is reachable from
-        # set_browse_window / force_window, neither of which is
-        # @synchronous, on the browser loop thread -- so a GroupJoined
-        # landing on the websocket thread could mutate _key_claims while
-        # this iterated it ("dictionary changed size during iteration",
-        # out of _init_mpv, aborting the window rebuild), or simply lose
-        # the race and install a section without the group's claim in it.
+        # Under the lock, which _refresh_key_section's contract requires. A
+        # re-open holds it already (_reopen_mpv); the first init, from
+        # __init__, does not. Without it a GroupJoined on the websocket
+        # thread could mutate _key_claims while this iterated it.
         with self._lock:
             self._refresh_key_section()
         p.on_key_press("i")(self._on_stats_oneshot)
@@ -1529,7 +1674,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         p.event_callback("file-loaded")(self._on_file_loaded)
         self._observe("current-tracks/audio/codec", self._on_audio_codec_change)
         p.event_callback("end-file")(self._on_end_file)
-        p.event_callback("shutdown")(self._on_shutdown_event)
+        # Bound to this handle, like quit_callback: a replaced handle's late
+        # shutdown must not mark or terminate its successor.
+        p.event_callback("shutdown")(
+            functools.partial(self._on_shutdown_event, handle=p))
         p.event_callback("client-message")(self._on_client_message)
 
     # -- key handlers ------------------------------------------------------
@@ -1923,22 +2071,23 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._load_error_detail = detail
         self._load_failed.set()
 
-    def _on_shutdown_event(self, event):
-        # We quit mpv ourselves to save resources — idle_quit already tore
-        # down and there is no session to report. Don't run the stop hook
-        # or re-terminate.
-        if self._idle_quit:
-            return
+    def _on_shutdown_event(self, event, handle=None):
+        if handle is None:
+            handle = self._player
         # Once per handle: on the external backend this can arrive twice,
         # as mpv's event and from the socket closing (_on_ipc_closed).
-        handle = self._player
-        with _SHUTDOWN_SEEN_LOCK:
+        with _LIFECYCLE_LOCK:
             if _shutdown_seen(handle):
                 return
-            try:
-                handle._jms_shutdown_seen = True
-            except Exception:
-                pass
+            _set_shutdown_seen(handle)
+            if handle is not self._player:
+                return
+            # Mid-build the mark fails the build's publish, and the builder
+            # terminates it once it has stopped writing to it.
+            building = handle is self._mpv_building
+        if building:
+            log.warning("mpv shut down while it was being built")
+            return
         log.info("mpv shutdown event received")
         # Only flip the flag here; the real teardown does network I/O and
         # swaps self._video, neither of which belongs on MPV's event
@@ -1951,7 +2100,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # landing right after a user-close can't build the new instance
         # while this one is still tearing down.
         self._terminate_thread = Thread(
-            target=self._terminate_mpv, args=(self._player,), daemon=True
+            target=self._terminate_mpv, args=(handle,), daemon=True
         )
         self._terminate_thread.start()
 
@@ -5083,14 +5232,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def _ensure_mpv(self):
         """Re-create the mpv process if it is not running — closed by the user,
-        crashed, or quit while idle (mpv_idle_quit). Called by the play path so
-        a cast/remote Play transparently re-opens a fresh window. There is no
-        local input while the window is gone, so play() is the only re-open
-        trigger."""
+        crashed, or quit while idle (mpv_idle_quit). The play path's way in,
+        so a cast/remote Play transparently re-opens a fresh window; the tray
+        and the OSD menu come in through `set_browse_window` and
+        `force_window`. Every re-open goes through `_reopen_mpv`."""
         if not self._mpv_alive:
             wlog.info("mpv is not running; re-creating it for playback")
-            self._idle_quit = False
-            self._init_mpv()
+            self._reopen_mpv()
 
     @synchronous("_lock")
     def idle_quit(self, reason="Idle timeout reached"):
@@ -5119,11 +5267,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         wlog.info("QUIT: %s (video=%d mpvtk=%d)", reason,
                   getattr(self, "_video", None) is not None,
                   bool(getattr(self, "mpvtk_active", False)))
-        self._idle_quit = True
         self.should_send_timeline = False
         player = self._player
         self._teardown_player()
-        self._mpv_alive = False
+        self._mark_mpv_dead()
         self._terminate_thread = Thread(
             target=self._terminate_mpv, args=(player,), daemon=True
         )
@@ -5166,10 +5313,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 log.debug("a shutdown handler raised", exc_info=True)
 
     def _handle_mpv_disconnect(self):
-        if not self._mpv_alive:
+        if not self._mark_mpv_dead():
             return
         wlog.info("connection LOST; dead until the next play")
-        self._mpv_alive = False
         self.should_send_timeline = False
         video = self._video
         if self._end_playback():
@@ -5212,11 +5358,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         wlog.info("terminating the mpv instance")
         if player is None:
             player = self._player
-        # Only mark dead if this is still the current instance. A terminate of
-        # a superseded player that finishes after a re-open must not flip the
-        # freshly-created player to dead.
-        if player is self._player:
-            self._mpv_alive = False
+        self._mark_mpv_dead(player)
         _mark_own_close(player)
         try:
             player.terminate()
@@ -5379,9 +5521,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # So this is the whole of what "No player controls" and the
             # library browser can say to an OSC that is not ours.
             #
-            # The idle logo goes unconditionally, in both directions and
-            # from _init_mpv -- it has to land BEFORE the OSC's first draw,
-            # not merely before the library appears. Once a fork has drawn
+            # The idle logo goes unconditionally, in both directions -- it
+            # has to land BEFORE the OSC's first draw, not merely before the
+            # library appears (_init_mpv's `script-opts` is what does that). Once a fork has drawn
             # it, asking again does nothing: ModernZ parks it on a second
             # overlay that its hide path never wipes, so the mpv logo sits
             # over the library for the rest of the session (measured: an

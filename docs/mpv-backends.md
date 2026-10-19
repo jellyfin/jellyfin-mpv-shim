@@ -583,6 +583,94 @@ explicit hooks.
 
 `on_mpv_recreated` fires once a fresh handle is ready.
 
+### Re-opening: one build, and everyone waits for it
+
+**A re-open goes through `_reopen_mpv`, never straight to `_init_mpv`.** The new
+handle's own event thread delivers its first observed values while the build is
+still running, and through `push_playstate` the browser asks for the window
+again -- a second caller that sees `_mpv_alive` still False and, unguarded,
+builds a second mpv that nobody owns (#828).
+
+- **The build holds `_lock`, and every caller that finds mpv dead waits on
+  `_lock`**, then continues on the mpv that was built. None is dropped: a
+  dropped caller carried on as if it had a window, and the OSD menu then
+  claimed its keys on the outgoing handle -- a command after terminate, which
+  libmpv answers with a segfault.
+- **Wait *on* `_lock`; never wait for a build *while holding* it.** The first
+  version of the #828 fix had a play, which holds `_lock` across
+  `_ensure_mpv`, wait for another thread's build -- whose
+  `_bind_mpv_handlers` takes `_lock`. Deadlock.
+- **The builder must never wait on a thread that can be a caller**: the new
+  handle's event thread, the tray, the browser's render loop. That caller is
+  parked on `_lock` until the build is done. Inside `_init_mpv` nothing
+  waits on them -- after `_construct_mpv` every step is a synchronous
+  command, answered by jsonipc's reader thread (not its event thread) or by
+  the libmpv C API, and the shim registers no mpv hooks, the one way
+  libmpv's core waits on Python -- and there is no line to put that warning
+  on. A `wait_property` or a `command_async` future added to the build would
+  break it. Measured 2026-10-18 on a tray re-open: the event thread's
+  `push_playstate` reaches `set_browse_window` mid-build and waits on
+  `_lock` until the publish, then continues on the built mpv. jsonipc does
+  this unprompted; on libmpv the first callback lands after the publish,
+  so it was forced with a 1 s sleep after `_bind_mpv_handlers`. **One exception, after it:** on the play path the caller already
+  holds `_lock`, so `on_mpv_recreated` runs under it, and the browser's
+  re-attach joins the old render loop for up to 2 s (`ui.py`
+  `_join_render_loop`). A render loop parked on `_lock` makes that join time
+  out, the re-attach is skipped, and the library stays dead until the next
+  one. Measured clean and left as is: do-not-fix F55.
+- **A caller re-checks its intent after the wait.** A cast starting into a
+  closed window can hold `_lock` for the whole start, and the video wins:
+  `set_browse_window(True)` declines when `_library_showing()` is false,
+  `force_window(True)` leaves a playing video alone (the menu opens over
+  it), and the browser's `enter_browse` stops if a yield landed while its
+  controller call waited. It also reads the gateway's decline as a value
+  (`on_browse_enter` returns False): a yield that landed while the app was
+  still minimized was a no-op, so only the value says the film won. Both
+  are needed -- the value is decided when the gateway gets `_lock`, the
+  yield check sees a playstate that lands after the gateway accepted.
+- **A failed build terminates the mpv it made and re-raises** -- to the
+  builder and to every caller that was waiting on it; none builds another.
+  On a re-open a build fails when mpv cannot be built or driven: what is
+  left unguarded is construction, the pristine snapshot read,
+  `_load_classic_osc`, `_bind_mpv_handlers` and `_publish_mpv`. The shim's
+  optional setup is guarded and a failure there is tolerated (`OSDMenu` and
+  `SyncPlayManager` are built on first launch only, unguarded; first launch
+  is below). `_reopen_mpv` records the failure, not the step that failed.
+- **A failed re-open shuts the application down** -- orderly and logged,
+  through `on_reopen_failed`, which `main` wires to the same `halt` SIGTERM
+  sets, in every UI mode. Every UI goes through mpv, so without one the app
+  is a cast slot and a tray icon that cannot show anything ([iw]: "If MPV
+  fails to relaunch it should probably terminate the application"). No retry
+  is added: jsonipc's launch already retries inside construction. Nothing
+  builds another: a request after the failure is refused. First launch is
+  not a re-open and does not go through `on_reopen_failed`: any build
+  failure raises out of `PlayerManager()` at import, a mid-build shutdown
+  included (a failed build, below), as a construct failure always has. This is
+  about mpv failing to *create*, not a playback failure.
+- **A window closed during a re-open is a close, not a failed build.** Once
+  the handlers are bound it arrives as `CLOSE_WIN`, which is queued and runs
+  after the build; mpv does not shut down.
+- **A handle that shuts down mid-build is a failed build**, and its
+  terminate is the builder's: the shutdown handler only marks it, the
+  publish (`_publish_mpv`) finds the mark and raises, and `_abandon_build`
+  terminates it once nothing is writing to it any more. The handler is bound
+  to its own handle, so a replaced mpv's late shutdown cannot mark its
+  successor. The mark, the "still being built" handle and `_mpv_alive` sit
+  under `_LIFECYCLE_LOCK`, a leaf lock held only around reading and writing
+  them -- never across a terminate, a join, a property read or a thread
+  start, and never taking `_lock`. `_mpv_alive` is written only by
+  `_publish_mpv` and `_mark_mpv_dead`
+  (`tests/test_source_invariants.py:TestMpvAliveHasOneWriter`). This holds
+  for every re-open, the tray's and the menu's as well as a play's. One gap:
+  the instant before the handler is bound (do-not-fix F54).
+- **The previous mpv's terminate is joined before `_lock` is taken** on the
+  tray and menu paths. A play reaches `_reopen_mpv` already holding `_lock`
+  (`_play_media` is `@synchronous`), so its join happens under it, as it
+  always has.
+
+`_lock` is an RLock, so the builder's own thread is the one caller that would
+get past it; `_reopen_mpv` refuses that call rather than build recursively.
+
 ### Discovered capabilities must outlive the mpv they were discovered on
 
 `_init_mpv` runs again on every re-creation — an idle-quit then a cast,

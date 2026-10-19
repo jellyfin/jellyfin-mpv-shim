@@ -26,7 +26,10 @@ class PlaybackMixin(GatewayCore):
         playerManager.mpvtk_active = True
         # Logo-free, free-resizing browse window (not force_window()'s menu
         # splash) — removes the Jellyfin icon and stops aspect-ratio snapping.
-        playerManager.set_browse_window(True)
+        if playerManager.set_browse_window(True) is False:
+            # A video started while it waited for mpv, and keeps the window.
+            # The browser's enter_browse reads this as the decline.
+            return False
         playerManager.enable_osc(False)
         # Put away the Playback Data overlay if playback left it up: it is ASS
         # OSD and would linger behind the library otherwise.

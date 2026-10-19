@@ -7,8 +7,7 @@ Backed by :class:`FakeMPV`, so these import player.py and run once per backend
 * ``_teardown_player`` — stops the previous trickplay worker *without joining*
   (it takes the player ``_lock`` in ``script_message``, so joining under the
   lock ``_teardown_player`` holds would deadlock).
-* ``_ensure_mpv`` — the single re-open seam on the play path; clears
-  ``_idle_quit`` and re-inits.
+* ``_ensure_mpv`` — the play path's re-open seam; re-inits.
 * ``idle_quit`` — hard-gated opt-in quit; must never fire while anything still
   needs the window.
 * the ``handle_shutdown`` guard — an intentional idle-quit must stay silent.
@@ -109,7 +108,6 @@ class TeardownLeakTest(unittest.TestCase):
                          "re-open leaked the previous trickplay worker")
         self.assertIsNot(pm.trickplay, old, "trickplay not replaced on re-open")
         self.assertTrue(pm._mpv_alive, "re-open left mpv marked dead")
-        self.assertFalse(pm._idle_quit, "re-open did not clear _idle_quit")
 
     def test_trickplay_is_daemon(self):
         from jellyfin_mpv_shim.trickplay import TrickPlay
@@ -177,7 +175,7 @@ class _IdleMixin:
         single gate on to prove it becomes a no-op."""
         pm = h.build_player(player_module, test=self)
         pm._mpv_alive = True
-        # _idle_quit / _terminate_thread are seeded by build_player.
+        # _terminate_thread is seeded by build_player.
         pm._video = None
         pm.menu.is_menu_shown = False
         pm.syncplay._enabled = False
@@ -189,7 +187,6 @@ class _IdleMixin:
         player = pm._player
         pm.idle_quit()
         self.assertTrue(pm._mpv_alive, "idle_quit wrongly killed a needed mpv")
-        self.assertFalse(pm._idle_quit, "idle_quit set the intentional flag")
         self.assertFalse(player.terminated, "idle_quit terminated the player")
 
     def _assert_gated_noop(self, pm):
@@ -205,7 +202,6 @@ class _IdleMixin:
         tp = pm.trickplay
         player = pm._player
         pm.idle_quit()
-        self.assertTrue(pm._idle_quit, "intentional-quit flag not set")
         self.assertFalse(pm._mpv_alive, "mpv still marked alive after idle_quit")
         if tp is not None:
             self.assertEqual(
@@ -228,7 +224,7 @@ class IdleQuitGatingTest(_IdleMixin, unittest.TestCase):
         pm = self._idle_player()
         pm._mpv_alive = False
         pm.idle_quit()
-        self.assertFalse(pm._idle_quit)
+        self.assertFalse(pm._player.terminated)
 
     def test_noop_when_video_playing(self):
         pm = self._idle_player()
@@ -298,11 +294,20 @@ class ShutdownGuardTest(unittest.TestCase):
 
     def test_intentional_quit_shutdown_is_silent(self):
         pm = self._player_with_observers()
-        pm._idle_quit = True
+        handle = pm._player
+        pm.menu.is_menu_shown = False
+        pm.syncplay._enabled = False
+        pm.mpvtk_active = False
         stop_cmds = []
         with mock.patch.object(player_module.PlayerManager, "exec_stop_cmd",
-                               staticmethod(lambda: stop_cmds.append(True))):
-            pm._player.fire_event("shutdown")
+                               staticmethod(lambda: stop_cmds.append(True))), \
+                mock.patch.object(player_module.settings, "mpv_ext_start",
+                                  True):
+            pm.idle_quit()
+            self.assertFalse(pm._mpv_alive, "idle_quit did not fire")
+            pm._terminate_thread.join(10)
+            # What the terminate causes: the old handle's own shutdown.
+            handle.fire_event("shutdown")
         self.assertTrue(pm.evt_queue.empty(),
                         "intentional idle-quit shutdown queued a teardown task")
         self.assertEqual(stop_cmds, [],
@@ -312,7 +317,6 @@ class ShutdownGuardTest(unittest.TestCase):
         # Positive control: a genuine (non-idle) mpv shutdown still queues the
         # teardown task so the session is reported / the stop hook runs.
         pm = self._player_with_observers()
-        pm._idle_quit = False
         pm._player.fire_event("shutdown")
         queued = [item[0] for item in list(pm.evt_queue.queue)]
         self.assertIn(pm._handle_mpv_shutdown, queued,
@@ -320,21 +324,19 @@ class ShutdownGuardTest(unittest.TestCase):
 
 
 class ReopenAfterIdleQuitTest(unittest.TestCase):
-    """A play after an idle-quit re-creates mpv via _ensure_mpv, clearing the
-    intentional-quit flag. (The real clip actually playing is covered by the
-    xvfb real-mpv leg.)"""
+    """A play after an idle-quit re-creates mpv via _ensure_mpv. (The real
+    clip actually playing is covered by the xvfb real-mpv leg; a re-opened
+    mpv's shutdown mid-build, on every route, by test_startup_window's
+    ShutdownMidBuildTest.)"""
 
-    def test_ensure_mpv_reopens_and_clears_idle_flag(self):
+    def test_ensure_mpv_reopens_after_idle_quit(self):
         pm = h.build_player(player_module, test=self)
-        # Simulate the post-idle-quit state: process gone, flag set.
         pm._mpv_alive = False
-        pm._idle_quit = True
         old_player = pm._player
 
         pm._ensure_mpv()
 
         self.assertTrue(pm._mpv_alive, "mpv was not re-opened")
-        self.assertFalse(pm._idle_quit, "_idle_quit not cleared on re-open")
         self.assertIsNot(pm._player, old_player, "mpv process was not re-created")
 
 
@@ -349,7 +351,6 @@ class SocketCloseIsAShutdownTest(unittest.TestCase):
     def _fresh(self):
         pm = h.build_player(player_module, test=self)
         pm._mpv_alive = False
-        pm._idle_quit = True
         pm._ensure_mpv()
         return pm, pm._player
 

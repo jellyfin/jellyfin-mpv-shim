@@ -1293,7 +1293,6 @@ def build_player(player_module, video=None, test=None):
     pm.playback_time_before_seek = None
     pm.trickplay = None
     pm._mpv_alive = True
-    pm._idle_quit = False
     pm._terminate_thread = None
     pm._last_offline_record = float("-inf")
     pm._play_epoch = 0
@@ -1378,6 +1377,7 @@ def build_player(player_module, video=None, test=None):
     pm.on_window_closed = None
     pm.on_mpv_gone = None
     pm.on_mpv_recreated = None
+    pm.on_reopen_failed = None
     pm.on_nav_back = None
     pm.on_nav_command = None
     pm.on_hud_menu = None

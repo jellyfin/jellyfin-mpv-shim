@@ -313,6 +313,8 @@ def main():
     playerManager.timeline_trigger = timelineManager.trigger
     actionThread.start()
     playerManager.action_trigger = actionThread.trigger
+    # mpv failing to re-create quits the app, in every UI mode.
+    playerManager.on_reopen_failed = lambda _error: halt.set()
     if settings.mpris:
         from . import mpris
 

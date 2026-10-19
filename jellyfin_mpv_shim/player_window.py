@@ -6,11 +6,11 @@ no file loaded; playback needs the same window back, at the size the user left
 it, without mpv helpfully resizing it to each video.
 
 **Three calls leave this module, and they are real coupling to the player's
-lifecycle.** ``set_browse_window`` and ``force_window`` can call ``_init_mpv``
+lifecycle.** ``set_browse_window`` and ``force_window`` can call ``_reopen_mpv``
 -- taking the window back may mean building a new mpv, because a version that
 cannot give up its window on request has to be restarted instead (see
-``runtime_force_window_works``). ``set_browse_window`` also calls
-``idle_quit``, which is the one outbound call that takes ``_lock``.
+``runtime_force_window_works``). Both take ``_lock`` that way, and so does
+``set_browse_window``'s call to ``idle_quit``.
 
 **Fullscreen is here and it is ``_lock``-synchronized**, unlike everything
 else in this module. It is a window property, so it belongs here, but the
@@ -101,7 +101,7 @@ class WindowMixin:
         # Provided by siblings on the composed PlayerManager. Four, and the
         # count is the point: if it grows, the window concern is drifting back
         # into the lifecycle it was separated from.
-        def _init_mpv(self) -> None: ...
+        def _reopen_mpv(self) -> bool: ...
 
         # Grown deliberately, for `apply_browser_fullscreen`: "is the library
         # on screen" is a question about what is PLAYING, which this mixin
@@ -682,7 +682,10 @@ class WindowMixin:
         Differs from force_window() (used by the OSD menu) in two ways the
         browser needs: no Jellyfin logo splash (the browser paints its own
         background) and free resizing (keepaspect-window=no, like the mpvtk
-        demo) so the window doesn't snap to a media aspect ratio."""
+        demo) so the window doesn't snap to a media aspect ratio.
+
+        Returns False when it declined: mpv had to be built, and a video
+        started while this waited for it. None otherwise."""
         from .player import _mpv_errors
 
         # getattr throughout: a trace that raises is worse than no trace, and
@@ -704,7 +707,14 @@ class WindowMixin:
             # flag immediately after a minimize -- which is what an
             # unexplained blank re-open looks like from here.
             wlog.info("browse=on with no mpv: building a new one")
-            self._init_mpv()
+            if not self._reopen_mpv():
+                return      # asked for from inside its own build
+            if not self._library_showing():
+                # A video started while this waited for the build, and it
+                # keeps the window. docs/mpv-backends.md section 8.
+                wlog.info("browse=on declined: a video started meanwhile "
+                          "<- %s", _caller())
+                return False
         release_failed = False
         try:
             if enabled:
@@ -1044,8 +1054,18 @@ class WindowMixin:
         if not self._mpv_alive:
             if not enabled:
                 return
-            log.info("mpv is dead, reinitializing for menu window")
-            self._init_mpv()
+            wlog.info("menu window with no mpv: building a new one <- %s",
+                      _caller())
+            if not self._reopen_mpv():
+                return      # asked for from inside its own build
+            try:
+                if not self._player.playback_abort:
+                    # A video started while this waited for the build: the
+                    # menu opens over it. docs/mpv-backends.md section 8.
+                    return
+            except _mpv_errors:
+                self._handle_mpv_disconnect()
+                return
         try:
             if enabled:
                 self._player.force_window = True

@@ -2398,7 +2398,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
     def _tell_controller(self, name):
         """Fire one of the browse/playback transition callbacks, and survive
-        it raising.
+        it raising. Returns its result, or None if it raised.
 
         These three run in the MIDDLE of a transition -- ``_yield`` has
         already cleared ``_browsing`` and still has to engage the HUD;
@@ -2417,9 +2417,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if fn is None:
             return
         try:
-            fn()
+            return fn()
         except Exception:
             log.exception("controller.%s failed", name)
+            return None
 
     def _park_on_leaving_browse(self):
         """Park the scroll offsets on the way out of the browser.
@@ -2614,7 +2615,30 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._browsing = True
         self._minimized = False
         self.hud.shown = False
-        self._tell_controller("on_browse_enter")
+        if self._tell_controller("on_browse_enter") is False:
+            # The gateway got mpv's lock behind a video's start and left the
+            # window to it -- a yield that landed before this call never
+            # reached us (minimized, it was a no-op). So yield here: HUD or
+            # renderer off, and the key claim dropped last, as _yield does.
+            # Only the claim: minimize() already released the page's grabs,
+            # and a claim is what can land again meanwhile. _minimized stays
+            # False, so the library opens when the film ends.
+            # docs/mpv-backends.md section 8.
+            self._browsing = False
+            if self.hud.available():
+                try:
+                    self.hud.engage(reset=True)
+                except Exception:
+                    log.debug("set_hud failed", exc_info=True)
+            else:
+                self._set_renderer_active(False)
+            self._drop_key_claims()
+            self.invalidate()
+            return
+        if not self._browsing:
+            # A video yielded to while the controller waited for mpv: the
+            # last word is the truth, as in _yield.
+            return
         # Whatever just finished may have moved the resume rows, and this is
         # the moment they are about to be looked at. go_back has re-read Home
         # for this reason all along; coming back from PLAYBACK does not go

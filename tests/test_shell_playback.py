@@ -1206,6 +1206,111 @@ class TestPlaybackLifecycle(unittest.TestCase):
         self.assertFalse(self.b.minimized)
         self.assertTrue(self.b._browsing)
 
+    def test_a_yield_landing_mid_enter_browse_wins(self):
+        """Opened from the tray while a cast starts into the closed window,
+        the controller call waits for mpv to be built -- behind the start --
+        and the film's first playstate yields the window meanwhile.
+        Re-activating the renderer after that put its forced mouse bindings
+        over the film. docs/mpv-backends.md section 8."""
+        class FakeApp:
+            def __init__(self):
+                self.active = []
+
+            def invalidate(self):
+                pass
+
+            def set_active(self, on):
+                self.active.append(on)
+
+        app = FakeApp()
+        self.ctl.playing_item_id = lambda: "m1"
+        b = MpvtkBrowser(app=app, source=FakeSource(), controller=self.ctl)
+        b.minimize()
+        film = {"stopped": False, "is_audio": False, "id": "m1",
+                "position": 0, "duration": 10}
+        self.ctl.on_browse_enter = lambda: b.on_playstate(film)
+        b.enter_browse()
+        self.assertFalse(b._browsing)
+        self.assertEqual(app.active[-1], False,
+                         "renderer re-activated over the film: %r"
+                         % app.active)
+
+    def _declined_over_a_film(self):
+        """Minimized, a cast's first playstate lands (a no-op yield, the
+        window is not ours), THEN Open Library: the gateway finds the film
+        when it gets mpv's lock and declines, with no yield inside the
+        call."""
+        class FakeApp:
+            def __init__(self):
+                self.active = []
+
+            def invalidate(self):
+                pass
+
+            def set_active(self, on):
+                self.active.append(on)
+
+        app = FakeApp()
+        self.ctl.playing_item_id = lambda: "m1"
+        b = MpvtkBrowser(app=app, source=FakeSource(), controller=self.ctl)
+        b.minimize()
+        b.on_playstate({"stopped": False, "is_audio": False, "id": "m1",
+                        "position": 0, "duration": 10})
+        self.ctl.on_browse_enter = lambda: False
+        b.enter_browse()
+        return b, app
+
+    def test_a_declined_enter_browse_leaves_the_film_alone(self):
+        b, app = self._declined_over_a_film()
+        self.assertFalse(b._browsing,
+                         "the browser thinks it is browsing over the film")
+        self.assertNotEqual(app.active[-1:], [True],
+                            "renderer re-activated over the film: %r"
+                            % app.active)
+
+    def test_a_declined_enter_browse_opens_the_library_after_the_film(self):
+        """Remembered, not forgotten ([iw]: a preference, not a ruling to
+        work around): when the film ends the library opens rather than the
+        app going back to the tray."""
+        b, _app = self._declined_over_a_film()
+        self.assertFalse(b.minimized)
+        entered = []
+        b.enter_browse = lambda: entered.append(1)
+        b.on_playstate({"stopped": True})
+        self.assertEqual(entered, [1])
+
+    def test_a_declined_enter_browse_leaves_no_key_claimed(self):
+        """A claim that landed while the gateway waited outlives the decline
+        otherwise: a forced binding over the film's own, as in _yield."""
+        class FakeApp:
+            claimed = ()
+
+            def invalidate(self):
+                pass
+
+            def set_active(self, on):
+                pass
+
+            def claim_keys(self, keys=()):
+                self.claimed = tuple(keys)
+
+        app = FakeApp()
+        self.ctl.playing_item_id = lambda: "m1"
+        b = MpvtkBrowser(app=app, source=FakeSource(), controller=self.ctl)
+        b.minimize()
+        b.on_playstate({"stopped": False, "is_audio": False, "id": "m1",
+                        "position": 0, "duration": 10})
+
+        def declined():
+            app.claim_keys(("SPACE",))
+            return False
+
+        self.ctl.on_browse_enter = declined
+        b.enter_browse()
+        self.assertFalse(b._browsing)
+        self.assertEqual(app.claimed, (),
+                         "a page key stayed claimed over the film")
+
     def test_stop_while_not_minimized_still_opens_the_browser(self):
         self.b._browsing = False
         self.b.on_playstate({"stopped": True})
