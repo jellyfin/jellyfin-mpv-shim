@@ -1,7 +1,7 @@
 """What makes an item a Jellyfin extra (a Special Feature, a local trailer).
 
-Its own module because both ``sync/`` and ``mpvtk_browser/`` ask, and
-neither may import the other's half of the app.
+Its own module because both ``sync/`` and ``mpvtk_browser/`` ask: the one
+definition both use. ``sync/`` must not import the browser.
 """
 
 

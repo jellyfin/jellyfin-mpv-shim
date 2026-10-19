@@ -328,10 +328,42 @@ class DownloadIsNotOfferedTest(unittest.TestCase):
             raise NotDownloadable(item_id)
         b.controller.download_estimate = refuse
         b._open_download(extra("x1", "Featurette"))
-        texts = [n.get("text") for n in build_scene(b)[0]
-                 if n.get("t") == "text"]
+        texts = self.texts(b)
         self.assertIn("Special features cannot be downloaded.", texts)
         self.assertNotIn("Nothing left to download.", texts)
+        self.assertNotIn("Estimating…", texts)
+
+    @staticmethod
+    def texts(b):
+        return [n.get("text") for n in build_scene(b)[0]
+                if n.get("t") == "text"]
+
+    def test_the_message_follows_the_refusal_not_the_dto(self):
+        """A DTO without ExtraType that the door refuses is not a fault
+        worth retrying; `_expand` decides on a DTO it fetched itself."""
+        from jellyfin_mpv_shim.sync.manager import NotDownloadable
+
+        b = browser(DETAIL)
+
+        def refuse(server, item_id, item_type):
+            raise NotDownloadable(item_id)
+        b.controller.download_estimate = refuse
+        b._open_download({"Id": "v1", "Name": "V", "Type": "Video"})
+        texts = self.texts(b)
+        self.assertIn("Special features cannot be downloaded.", texts)
+        self.assertNotIn("Estimating…", texts)
+
+    def test_a_network_fault_on_an_extra_is_not_a_refusal(self):
+        b = browser(DETAIL)
+
+        def boom(server, item_id, item_type):
+            raise RuntimeError("network")
+        b.controller.download_estimate = boom
+        b._open_download(extra("x1", "Featurette"))
+        texts = self.texts(b)
+        self.assertIn("Could not check what needs downloading.", texts)
+        self.assertNotIn("Special features cannot be downloaded.", texts)
+        self.assertNotIn("Estimating…", texts)
 
 
 class TrailerTargetTest(unittest.TestCase):

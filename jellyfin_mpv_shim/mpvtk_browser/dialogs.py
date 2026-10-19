@@ -12,7 +12,6 @@ book reading-position dialog) and ``_minfo``/``_minfo_src`` (the media
 info dialog). All are loop-thread only.
 """
 
-from ..extras import is_extra
 from ..i18n import _, _p
 from ..mpvtk.widgets import (
     Box,
@@ -553,18 +552,21 @@ class DialogsMixin:
                     self._dl["watched"] = bool((est or {}).get("audio_only"))
             self._show_download()
 
-        def failed(_exc):
+        def failed(exc):
             # Say the estimate failed rather than leaving the dialog on its
             # "estimating…" state forever. The controller used to return a
             # zero estimate here, which the dialog rendered as "Nothing left
             # to download." — a server error reported as success, with the
             # Download button withheld.
+            from ..sync.manager import NotDownloadable
+
             if self._dl is not None:
-                # The menus offer no Download on an extra; this is for a
-                # door they missed, which the sync manager refuses.
+                # The sync code's verdict, not this DTO's: `_expand` decides
+                # on a DTO it fetched itself, and a network fault on an
+                # extra is still worth a retry.
                 self._dl["error"] = (
                     _("Special features cannot be downloaded.")
-                    if is_extra(item) else
+                    if isinstance(exc, NotDownloadable) else
                     _("Could not check what needs downloading."))
             self._show_download()
 
@@ -617,6 +619,7 @@ class DialogsMixin:
                 self._dialog_buttons([
                     Button(_("Cancel"), id="dl-cancel",
                            on_click=self._close_download),
+                ] + ([] if dl.get("error") else [
                     # Confirming before the estimate lands loses the
                     # audio_only default and skips played tracks. And an
                     # estimate of nothing means there is nothing to fetch —
@@ -627,7 +630,7 @@ class DialogsMixin:
                     if est is not None and est.get("count", 0) else
                     Text(_("Estimating…") if est is None
                          else _("Nothing left to download."),
-                         size="small", color=theme.SUBTLE_FG)]),
+                         size="small", color=theme.SUBTLE_FG)])),
             ], w=460), on_dismiss=self._close_download)
         self._show_dialog(build)
 
