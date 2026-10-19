@@ -44,9 +44,19 @@ EXTRAS = [extra("x1", "BehindTheScenes"), extra("x2", "DeletedScene"),
           extra("x3", "Unknown")]
 
 
+COUNT_FIELDS = ("SpecialFeatureCount", "LocalTrailerCount", "RemoteTrailers")
+
+
 def browser(route, items=None, extras=None, trailers=None):
+    """A browser on ``route``. On a season route the counts in ``items`` go
+    on the sibling list instead, which is where that page reads them."""
     src = FakeSource()
-    src.items.update(items or {})
+    if route["kind"] == "season":
+        src.season_fields = {
+            iid: {f: dto[f] for f in COUNT_FIELDS if f in dto}
+            for iid, dto in (items or {}).items()}
+    else:
+        src.items.update(items or {})
     src.special_features = extras or {}
     src.trailers = trailers or {}
     b = MpvtkBrowser(app=None, source=src, controller=FakeController())
@@ -170,14 +180,27 @@ class OtherPagesTest(unittest.TestCase):
                     {"sh1": EXTRAS[:1]})
         self.assertIn("series-extras-x1", ids(build_scene(b, TALL)[0]))
 
+    SEASON = {"kind": "season", "item_id": "se1", "series_id": "sh1",
+              "title": "Season 1"}
+
     def test_season(self):
-        """The season page loads its own item for this: its sibling list
-        carries no counts."""
-        b = browser({"kind": "season", "item_id": "se1", "series_id": "sh1",
-                     "title": "Season 1"},
-                    with_counts("se1", "Season", extras=1),
+        """Gated on the sibling list's counts, with no `get_item` of its
+        own: `get_seasons` names the fields. `items` answering no counts
+        for se1 is what makes a regression to `get_item` fail here."""
+        b = browser(self.SEASON, with_counts("se1", "Season", extras=1),
                     {"se1": EXTRAS[:1]})
         self.assertIn("season-extras-x1", ids(build_scene(b, TALL)[0]))
+        self.assertNotIn("se1", getattr(b.source, "item_calls", []))
+
+    def test_season_trailer_from_the_sibling_list(self):
+        b = browser(self.SEASON, with_counts("se1", "Season", trailers=1),
+                    trailers={"se1": [{"Id": "tr-se1"}]})
+        played = []
+        b._actions.play_list = lambda ids_, srv, i, **kw: played.append(
+            list(ids_))
+        build_scene(b, TALL)[1]["se-trailer"]["click"]()
+        self.assertEqual(played, [["tr-se1"]])
+        self.assertNotIn("se1", getattr(b.source, "item_calls", []))
 
     def test_album(self):
         b = browser({"kind": "album", "item_id": "al1", "title": "Album"},

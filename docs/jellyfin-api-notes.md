@@ -877,7 +877,11 @@ the shim relies on against both QA servers.
   `UserLibraryController.cs:490`), so a count of 3 can fetch none. On 10.11
   neither filters. The shim hides an empty row; web draws a bare heading.
 - **The counts come free on the single-item route** and are absent from list
-  queries unless named. `DETAIL_FIELDS` names them anyway.
+  queries unless named. `DETAIL_FIELDS` names them anyway. `get_seasons` names
+  them (and `RemoteTrailers`), and the season page reads them there rather
+  than making a `get_item` of its own — measured on both QA servers,
+  2026-10-18: `/Shows/{id}/Seasons` returns all three on every season when
+  asked.
 - **An extra is a `Video` with `ExtraType` set and a null `ParentId`.** No
   `OwnerId` in the DTO, so nothing on it leads back to its film. `ExtraType` is
   the only reliable signal (`extras.is_extra`): a home video is a `Video` too,

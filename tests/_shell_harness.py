@@ -145,6 +145,10 @@ class FakeSource:
         #: book screens are the first to care what get_item returns for
         #: something that is not a movie.
         self.items = {}
+        #: season id -> fields merged into that season's `get_seasons` DTO.
+        #: The season page reads its extras and trailer counts there, so a
+        #: test of that gate seeds them here, not on `items`.
+        self.season_fields = {}
         #: Whether an item is treated as HAVING backdrop artwork. This
         #: answered None unconditionally, which did not leave the
         #: has-artwork header untested -- it made it *unreachable* while
@@ -306,6 +310,8 @@ class FakeSource:
         return "http://s/backdrop" if self.has_backdrop else None
 
     def get_item(self, server_uuid, item_id):
+        self.item_calls = getattr(self, "item_calls", [])
+        self.item_calls.append(item_id)
         if item_id in self.items:
             return dict(self.items[item_id])
         return {"Id": item_id, "Name": "Detail %s" % item_id, "Type": "Movie",
@@ -403,19 +409,21 @@ class FakeSource:
         # library really is like this -- seasons are described unevenly. It
         # is also the field this fixture did not model, which is what left
         # the season page's missing synopsis unobservable.
-        return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
-                 "SeriesId": series_id, "SeriesName": "A Show",
-                 "ServerId": "SRVID",
-                 "Overview": "Where the show finds its feet.",
-                 "ExternalUrls": [
-                     {"Name": "TheTVDB",
-                      "Url": "https://thetvdb.example/series/1/seasons/1"}]},
-                {"Id": "se2", "Name": "Season 2", "Type": "Season",
-                 "SeriesId": series_id, "SeriesName": "A Show",
-                 "ServerId": "SRVID",
-                 "ExternalUrls": [
-                     {"Name": "TheTVDB",
-                      "Url": "https://thetvdb.example/series/1/seasons/2"}]}]
+        seasons = [{"Id": "se1", "Name": "Season 1", "Type": "Season",
+                    "SeriesId": series_id, "SeriesName": "A Show",
+                    "ServerId": "SRVID",
+                    "Overview": "Where the show finds its feet.",
+                    "ExternalUrls": [
+                        {"Name": "TheTVDB",
+                         "Url": "https://thetvdb.example/series/1/seasons/1"}]},
+                   {"Id": "se2", "Name": "Season 2", "Type": "Season",
+                    "SeriesId": series_id, "SeriesName": "A Show",
+                    "ServerId": "SRVID",
+                    "ExternalUrls": [
+                        {"Name": "TheTVDB",
+                         "Url": "https://thetvdb.example/series/1/seasons/2"}]}]
+        return [dict(s, **self.season_fields.get(s["Id"], {}))
+                for s in seasons]
 
     def get_episodes(self, server_uuid, series_id, season_id):
         return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",

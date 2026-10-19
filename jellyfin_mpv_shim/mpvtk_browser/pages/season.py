@@ -57,24 +57,20 @@ class SeasonPage(Page):
                     next_up = source.get_next_up(srv, series_id)
                 except Exception:
                     log.debug("next up lookup failed", exc_info=True)
-            # The season's own DTO, for the server's extras and trailer
-            # counts only -- the sibling list `get_seasons` answers does not
-            # carry them. Optional like Next Up: it costs those, not the page.
-            item = None
-            try:
-                item = source.get_item(srv, route["item_id"])
-            except Exception:
-                log.debug("season item lookup failed", exc_info=True)
+            seasons = source.get_seasons(srv, series_id)
+            # The extras and trailer counts come off this season's entry in
+            # the sibling list, which `get_seasons` asks to carry them.
+            item = next((s for s in seasons
+                         if s.get("Id") == route["item_id"]), None)
             return {
                 "episodes": source.get_episodes(
                     srv, series_id, route["item_id"]),
-                "seasons": source.get_seasons(srv, series_id),
+                "seasons": seasons,
                 "next_up": next_up,
                 "trailers": detail_components.local_trailers(
                     source, srv, item),
                 "extras": detail_components.special_features(
                     source, srv, item),
-                "item": item,
             }
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
@@ -95,7 +91,7 @@ class SeasonPage(Page):
             (s for s in seasons if s.get("Id") == route["item_id"]), {})
         # A season carries no backdrop of its own but does carry its
         # series' (ParentBackdropImageTags + ParentBackdropItemId, measured
-        # against a real server -- `get_seasons` asks for no `Fields` and
+        # against a real server -- no `Fields` entry asks for them and
         # they are on the DTO regardless), which `backdrop_spec` already
         # follows. So the header a series page draws is available here for
         # the asking, and the screen this one leads to -- the episode grid
@@ -204,7 +200,7 @@ class SeasonPage(Page):
                 lambda: actions.shuffle_season(
                     route["series_id"], route["item_id"], server)))
         trailer = detail_components.trailer_button(
-            actions, data.get("item"), data.get("trailers"), server,
+            actions, season_item, data.get("trailers"), server,
             "se-trailer", self.open_link)
         if trailer is not None:
             acts.append(trailer)

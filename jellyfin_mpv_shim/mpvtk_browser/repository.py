@@ -2522,13 +2522,14 @@ class LibrarySource:
             return {}
 
     def get_seasons(self, server_uuid, series_id):
-        """A show's seasons, with the field the season screen's provider
-        links need.
+        """A show's seasons, with the fields the season screen's provider
+        links and its extras and trailer gates need.
 
         Issued here rather than through ``api.get_seasons``, which hardcodes
         ``Fields=info()`` and takes no override. The alternative was a whole
         extra ``get_item`` round trip on a screen that already makes two,
-        for one row of links -- this is the same request with one more field.
+        for one row of links and two counts -- this is the same request with
+        more fields.
 
         ``info()`` is kept and added to rather than replaced: the season
         screen reads UserData, artwork tags and item counts off these DTOs,
@@ -2536,10 +2537,13 @@ class LibrarySource:
         away. ``ExternalUrls`` is absent from list queries unless asked for
         (measured on 10.11 and 12.0 -- the single-item routes fill it in
         unconditionally, list routes do not), which is why this is needed at
-        all and why the series and detail screens need nothing.
+        all and why the series and detail screens need nothing. The counts
+        and ``RemoteTrailers`` behave the same way (jellyfin-api-notes.md
+        §15).
 
         Falls back to the plain call if this apiclient does not expose the
-        helper. An older one costs the links, not the screen.
+        helper. An older one costs the links, the extras row and the
+        Trailer button, not the screen.
         """
         api = self._conn(server_uuid).api
         try:
@@ -2548,7 +2552,8 @@ class LibrarySource:
             result = api.shows("/%s/Seasons" % series_id, params={
                 "UserId": "{UserId}",
                 "EnableImages": True,
-                "Fields": info() + ",ExternalUrls",
+                "Fields": info() + (",ExternalUrls,SpecialFeatureCount,"
+                                    "LocalTrailerCount,RemoteTrailers"),
             }) or {}
         except Exception:
             log.debug("falling back to the stock seasons query", exc_info=True)

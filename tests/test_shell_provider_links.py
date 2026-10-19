@@ -508,6 +508,14 @@ class SeasonsQueryTest(unittest.TestCase):
         self._source(api).get_seasons("srv1", "sh1")
         self.assertIn("ExternalUrls", api.params["Fields"])
 
+    def test_the_extras_and_trailer_gates_are_requested(self):
+        """The season page reads its counts here and nowhere else (#759)."""
+        api = self._Api()
+        self._source(api).get_seasons("srv1", "sh1")
+        for field in ("SpecialFeatureCount", "LocalTrailerCount",
+                      "RemoteTrailers"):
+            self.assertIn(field, api.params["Fields"].split(","))
+
     def test_the_stock_field_set_is_kept(self):
         """Added to, not replaced: the screen reads UserData, artwork tags
         and item counts off these same DTOs."""
