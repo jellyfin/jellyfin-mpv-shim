@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 10:29+0000\n"
+"PO-Revision-Date: 2026-10-19 10:31+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -1037,20 +1037,20 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Sinu salvestatud sisselogimine serveris %s aegus. Uuesti sisselogimisel "
+"jäävad allalaadimised ja seaded alles."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Ühendu Jellyfiniga"
 
 #. Heading above the list of servers already signed in to, on the sign-in
 #. page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Server edukalt lisatud."
+msgstr "Varem lisatud serverid"
 
 #. Button beside a remembered server on the sign-in page, choosing that
 #. server. An imperative verb.
