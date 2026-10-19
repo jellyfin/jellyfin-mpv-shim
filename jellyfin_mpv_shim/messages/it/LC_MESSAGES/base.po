@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-12 11:24+0000\n"
+"PO-Revision-Date: 2026-10-19 06:25+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -3178,6 +3178,15 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"Quando un video viene transcodificato, i sottotitoli integrati di tipo Blu-"
+"ray o DVD (PGS, VobSub) vengono visualizzati come traccia separata anziché "
+"essere impressi direttamente nell'immagine; in questo modo, si mantengono "
+"nitidi e possono essere attivati o disattivati senza dover riavviare la "
+"riproduzione. La visualizzazione di una di queste tracce richiede che il "
+"server estragga preventivamente tutti i sottotitoli presenti nel file, "
+"un'operazione che, nel caso di file di grandi dimensioni, comporta un "
+"dispendio di tempo e occupa spazio sul disco del server. I sottotitoli "
+"contenuti in un file separato non sono soggetti a questo processo."
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -5872,10 +5881,8 @@ msgstr "Quell'ordine non può essere salvato."
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Those items could not be removed."
 msgid "Those filters could not be saved."
-msgstr "Questi elementi non possono essere rimossi."
+msgstr "Impossibile salvare tali filtri."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
