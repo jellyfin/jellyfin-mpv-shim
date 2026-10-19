@@ -7,7 +7,7 @@ is the whole reason that base exists.
 from ...i18n import _
 from ...mpvtk.widgets import Column, Row, Spacer, Text, VScroll
 from .. import pagination
-from ..components import chrome
+from ..components import chrome, detail as detail_components
 from ..tile_renderer import GRID_GAP
 from .music import HEADER_ART, HEADER_GAP, MusicPage
 
@@ -22,8 +22,13 @@ class AlbumPage(MusicPage):
         iid = route["item_id"]
 
         def work():
-            return {"item": source.get_item(srv, iid),
-                    "tracks": source.get_album_tracks(srv, iid)}
+            item = source.get_item(srv, iid)
+            return {"item": item,
+                    "tracks": source.get_album_tracks(srv, iid),
+                    "trailers": detail_components.local_trailers(
+                        source, srv, item),
+                    "extras": detail_components.special_features(
+                        source, srv, item)}
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
@@ -43,7 +48,11 @@ class AlbumPage(MusicPage):
                                     indent=HEADER_ART + HEADER_GAP) + [
                 self.action_bar(server, ids, route["item_id"], "album",
                                 items=tracks,
-                                avail=self._beside_art(size[0])),
+                                avail=self._beside_art(size[0]),
+                                extra=[detail_components.trailer_button(
+                                    self.ctx.actions, item,
+                                    data.get("trailers"), server,
+                                    "album-trailer", self.open_link)]),
             ], gap=8, flex=1, align="stretch"),
         ], gap=16, align="start")
         body = art.tiles.track_list(
@@ -55,8 +64,15 @@ class AlbumPage(MusicPage):
         # mpv < 0.36 that property does not exist and the throttled on_scroll
         # copy is the ONLY source. Without it the window stayed at offset 0
         # and everything past the first screenful drew blank.
-        return VScroll(Column([header, body], pad=chrome.CONTENT_PAD, gap=12,
-                              align="stretch"),
+        extras = detail_components.special_features_row(
+            art.tiles, data.get("extras"), "album-extras")
+        # `padded_body` only with a carousel to let out of the padding, so an
+        # album without extras keeps its old tree.
+        content = (Column([header, body], pad=chrome.CONTENT_PAD, gap=12,
+                          align="stretch") if extras is None else
+                   chrome.padded_body([header, body, extras], gap=12,
+                                      align="stretch"))
+        return VScroll(content,
                        id="album", flex=1,
                        offset=self.parked_scroll("album"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
@@ -90,7 +106,11 @@ class ArtistPage(MusicPage):
                 pass   # older server / offline: header degrades to the title
             return {"item": item,
                     "albums": source.get_artist_albums(srv, iid),
-                    "songs": songs, "similar": similar}
+                    "songs": songs, "similar": similar,
+                    "trailers": detail_components.local_trailers(
+                        source, srv, item),
+                    "extras": detail_components.special_features(
+                        source, srv, item)}
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
@@ -116,7 +136,11 @@ class ArtistPage(MusicPage):
                 self.action_bar(server, ids, route["item_id"], "art",
                                 items=songs,
                                 avail=self._beside_art(
-                                    size[0], art=bool(item))),
+                                    size[0], art=bool(item)),
+                                extra=[detail_components.trailer_button(
+                                    self.ctx.actions, item,
+                                    data.get("trailers"), server,
+                                    "art-trailer", self.open_link)]),
             ], gap=8, flex=1, align="stretch"),
         ], gap=16, align="start")]
         # (`gpad`/`geom` above.) Justified/centred like every other tile
@@ -134,6 +158,11 @@ class ArtistPage(MusicPage):
         rows.append(Text(_("Albums"), size="heading", bold=True))
         rows += art.tiles.grid_of(albums, "artist", size, geom=geom,
                                   scroll_id="artist", head_h=110)
+        extras = detail_components.special_features_row(
+            art.tiles, data.get("extras"), "artist-extras")
+        if extras is not None:
+            rows.append(Spacer(h=8))
+            rows.append(extras)
         similar = data.get("similar") or []
         if similar:
             rows.append(Spacer(h=8))

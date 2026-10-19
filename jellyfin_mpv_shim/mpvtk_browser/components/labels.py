@@ -10,7 +10,8 @@ import datetime
 import ipaddress
 import urllib.parse
 
-from ...i18n import _
+from ...extras import is_extra
+from ...i18n import _, _p
 
 
 #: Types whose caption is a LISTING -- "which channel, and when" rather
@@ -56,6 +57,10 @@ def episode_subtitle(item, show_year=True, air_time=True):
     """
     if item.get("_subtitle") is not None:
         return item["_subtitle"]      # pseudo-items (chapters)
+    if is_extra(item):
+        # The kind of extra and nothing else, as web's card does
+        # (cardBuilder.js:456): its year, where it has one, is the film's.
+        return extra_type_label(item)
     if item.get("Type") == "Episode":
         # Lead with the series. A bare "S1E1" on a Continue Watching or
         # Next Up tile does not say which show it belongs to, which is
@@ -97,6 +102,25 @@ def episode_subtitle(item, show_year=True, air_time=True):
     # "showYear off" must still say which channel and when, because that is
     # not a year and switching it off was not a request to blank the line.
     return str(item.get("ProductionYear") or "") if show_year else ""
+
+
+def extra_type_label(item):
+    """An extra's translated ``ExtraType``, or "" -- for ``Unknown`` (an
+    ``extras/`` folder says nothing about what is in it), and for the types
+    a Special Features list never holds. Wording is jellyfin-web's
+    (en-us.json:1858-1869)."""
+    # The context is spelled out at every call: xgettext extracts only a
+    # literal, and a variable here drops the string from the template.
+    return {
+        "Featurette": _p("kind of special feature", "Featurette"),
+        "BehindTheScenes": _p("kind of special feature", "Behind the Scenes"),
+        "DeletedScene": _p("kind of special feature", "Deleted Scene"),
+        "Interview": _p("kind of special feature", "Interview"),
+        "Scene": _p("kind of special feature", "Scene"),
+        "Sample": _p("kind of special feature", "Sample"),
+        "Clip": _p("kind of special feature", "Clip"),
+        "Short": _p("kind of special feature", "Short"),
+    }.get((item or {}).get("ExtraType"), "")
 
 
 #: Item types whose tile caption is structurally one line: they are not

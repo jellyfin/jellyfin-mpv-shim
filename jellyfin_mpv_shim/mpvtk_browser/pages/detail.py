@@ -41,13 +41,11 @@ class DetailPage(Page):
                 similar = source.get_similar(srv, iid)
             except Exception:
                 pass
-            trailers: list = []
-            if (item or {}).get("Type") in ("Movie", "Series"):
-                try:
-                    trailers = source.get_trailers(srv, iid) or []
-                except Exception:
-                    pass  # older servers / no trailers: just no button
-            return {"item": item, "similar": similar, "trailers": trailers}
+            return {"item": item, "similar": similar,
+                    "trailers": detail_components.local_trailers(
+                        source, srv, item),
+                    "extras": detail_components.special_features(
+                        source, srv, item)}
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
@@ -114,6 +112,10 @@ class DetailPage(Page):
         people = detail_components.people_row(tiles, item.get("People") or [])
         if people is not None:
             blocks.append(people)
+        extras = detail_components.special_features_row(
+            tiles, data.get("extras"), "detail-extras")
+        if extras is not None:
+            blocks.append(extras)
         if data.get("similar"):
             # Shaped by its own artwork, like jellyfin-web
             # (shape: autooverflow, itemDetails/index.js:1245).
@@ -250,11 +252,11 @@ class DetailPage(Page):
                 lambda: self._start(item, server),
                 primary=(pos <= 0), size=controls.PRIMARY_ROW,
                 autofocus=(pos <= 0)))
-        tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
-        if tids:
-            buttons.append(controls.action_btn(
-                "movie", _("Trailer"), "btn-trailer",
-                lambda: actions.play_list(tids, server, 0), size=controls.PRIMARY_ROW))
+        trailer = detail_components.trailer_button(
+            actions, item, trailers, server, "btn-trailer", self.open_link,
+            size=controls.PRIMARY_ROW)
+        if trailer is not None:
+            buttons.append(trailer)
         return Row(buttons, gap=10)
 
     def _scenes_row(self, item, server):

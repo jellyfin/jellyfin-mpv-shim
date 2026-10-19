@@ -348,6 +348,23 @@ class FakeSource:
     def get_similar(self, server_uuid, item_id, limit=12):
         return [{"Id": "s1", "Name": "Similar", "Type": "Movie"}]
 
+    def get_trailers(self, server_uuid, item_id):
+        """Answers from ``self.trailers`` (item id -> list) and records the
+        ask: the pages gate this on ``LocalTrailerCount``, and whether the
+        request was made at all is half of what the gate tests assert."""
+        self.trailer_calls = getattr(self, "trailer_calls", [])
+        self.trailer_calls.append(item_id)
+        return list(getattr(self, "trailers", {}).get(item_id, []))
+
+    def get_special_features(self, server_uuid, item_id):
+        """``self.special_features`` (item id -> list), recorded like
+        ``get_trailers``. A fake extra should carry what the real one does --
+        ``ExtraType``, ``UserData``, ``RunTimeTicks`` -- since those are what
+        the row's tests are about."""
+        self.extras_calls = getattr(self, "extras_calls", [])
+        self.extras_calls.append(item_id)
+        return list(getattr(self, "special_features", {}).get(item_id, []))
+
     def get_person_items(self, server_uuid, person_id, start_index=0, **kw):
         # Record the sort the caller asked for: the repository has always
         # accepted sort_by/sort_order and _load_person never passed them.

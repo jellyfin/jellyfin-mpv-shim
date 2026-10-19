@@ -38,7 +38,7 @@ class MusicPage(Page):
                    - (HEADER_ART if art else 0) - HEADER_GAP)
 
     def action_bar(self, server, ids, seed_id, prefix="ma", items=None,
-                   avail=None):
+                   avail=None, extra=()):
         """Play / Shuffle / Add to play queue / Instant mix for track ids.
 
         The first three are dropped when there are no ids: the artist page
@@ -50,7 +50,10 @@ class MusicPage(Page):
         artist pages is the column beside the cover rather than the whole
         page. Given it, the bar wraps instead of running off the window —
         reachable at 100% by making the window small, and at 200% without
-        touching the window at all."""
+        touching the window at all.
+
+        ``extra`` are buttons appended at the end (the album and artist
+        pages' Trailer)."""
         actions = self.ctx.actions
         btns = []
         if ids:
@@ -71,6 +74,7 @@ class MusicPage(Page):
             btns.append(controls.action_btn(
                 "queue_music", _("Instant mix"), prefix + "-mix",
                 lambda: actions.instant_mix(seed_id, server)))
+        btns += [b for b in extra if b is not None]
         if not avail:
             return Row(btns, gap=8, align="center")
         return chrome.wrap_row(btns, avail, gap=8)

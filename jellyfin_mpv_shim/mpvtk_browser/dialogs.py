@@ -12,6 +12,7 @@ book reading-position dialog) and ``_minfo``/``_minfo_src`` (the media
 info dialog). All are loop-thread only.
 """
 
+from ..extras import is_extra
 from ..i18n import _, _p
 from ..mpvtk.widgets import (
     Box,
@@ -559,8 +560,12 @@ class DialogsMixin:
             # to download." — a server error reported as success, with the
             # Download button withheld.
             if self._dl is not None:
-                self._dl["error"] = _("Could not check what needs "
-                                      "downloading.")
+                # The menus offer no Download on an extra; this is for a
+                # door they missed, which the sync manager refuses.
+                self._dl["error"] = (
+                    _("Special features cannot be downloaded.")
+                    if is_extra(item) else
+                    _("Could not check what needs downloading."))
             self._show_download()
 
         self.run_async(work, done, ep, on_error=failed)

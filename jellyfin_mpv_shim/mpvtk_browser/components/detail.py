@@ -7,9 +7,14 @@ rather than methods on a page.
 See ``docs/archive/ARCHITECTURE_TARGET.md`` §1.4 for the line being drawn.
 """
 
+import logging
+
+from ...extras import is_extra
 from ...i18n import _
 from . import controls
 from .labels import is_watched
+
+log = logging.getLogger("mpvtk_browser.components.detail")
 
 
 def fmt_ticks(ticks):
@@ -108,6 +113,10 @@ def download_button(actions, tiles, item, server, prefix,
             # Nothing to fetch from. Tk swapped the button out rather
             # than offering a download with no server behind it.
             return None
+        if is_extra(item):
+            # Extras are online-only by decision; the sync door refuses
+            # them too (docs/offline-sync.md §6).
+            return None
         return controls.action_btn(
             "file_download", _("Download"), prefix + "-download",
             lambda: actions.open_download(item), size=size)
@@ -134,6 +143,89 @@ def common_actions(actions, tiles, item, server, prefix):
             on=bool(ud.get("IsFavorite"))),
         download_button(actions, tiles, item, server, prefix),
     ]
+
+
+def special_features(source, server, item):
+    """The item's Special Features, for a page's ``work()``.
+
+    Fetched only when the server counts some, which is jellyfin-web's gate
+    (itemDetails/index.js:862) and is type-agnostic: any item that can own
+    extras says so here. A failure costs the row, never the page.
+    """
+    if not (item or {}).get("SpecialFeatureCount"):
+        return []
+    try:
+        return source.get_special_features(server, item["Id"]) or []
+    except Exception:
+        log.debug("special features failed", exc_info=True)
+        return []
+
+
+def special_features_row(tiles, items, row_id):
+    """The Special Features carousel, or None for an empty list.
+
+    Hidden when empty where web draws a bare heading: on 12.x the count is
+    not parental-filtered and the list is, so a count of 3 can fetch none.
+    The default click opens the extra's own page, like every other tile.
+    """
+    if not items:
+        return None
+    geom, image_type = tiles.auto_geom(items, default=tiles.art.geom_wide,
+                                       default_type="Primary")
+    return tiles.tile_row(_("Special Features"), items, row_id, geom=geom,
+                          image_type=image_type)
+
+
+def local_trailers(source, server, item):
+    """The item's local trailers for ``work()``, gated on the server's count
+    like :func:`special_features`."""
+    if not (item or {}).get("LocalTrailerCount"):
+        return []
+    try:
+        return source.get_trailers(server, item["Id"]) or []
+    except Exception:
+        log.debug("local trailers failed", exc_info=True)
+        return []
+
+
+def trailer_target(item, trailers, offline):
+    """What the Trailer button does: ``("local", ids)``, ``("remote", url)``
+    or None for no button.
+
+    Local first, as web (index.js:508-514); otherwise the first remote URL
+    in the desktop's browser -- never offline, where it would leave for a
+    page the user may not be able to reach either.
+    """
+    ids = [t.get("Id") for t in trailers or () if t.get("Id")]
+    if ids:
+        return "local", ids
+    if offline:
+        return None
+    for entry in (item or {}).get("RemoteTrailers") or ():
+        url = entry.get("Url") if isinstance(entry, dict) else None
+        if url:
+            return "remote", url
+    return None
+
+
+def trailer_button(actions, item, trailers, server, node_id, open_link,
+                   size=controls.ROW):
+    """The Trailer button per :func:`trailer_target`, or None.
+
+    A remote trailer wears ``open_in_new`` like the provider links: the one
+    thing to know before pressing is that it leaves the application.
+    """
+    target = trailer_target(item, trailers, actions.offline)
+    if target is None:
+        return None
+    kind, what = target
+    if kind == "local":
+        return controls.action_btn(
+            "movie", _("Trailer"), node_id,
+            lambda: actions.play_list(what, server, 0), size=size)
+    return controls.action_btn(
+        "open_in_new", _("Trailer"), node_id, lambda: open_link(what),
+        size=size)
 
 
 #: Most links we will draw for one item. Anime in particular is tagged by

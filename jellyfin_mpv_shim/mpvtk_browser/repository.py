@@ -198,10 +198,14 @@ MUSIC_FIELDS = "PrimaryImageAspectRatio,ItemCounts,CanDelete"
 # MediaStreams, People, ...) so cached DTOs are already complete for the eventual
 # offline-sync feature. The ratings, premiere date and production year the view
 # also shows are unconditional properties and need no field — see LIST_FIELDS.
+# The single-item route fills the last three in unasked; they are named so the
+# Special Features and Trailer gates still hold if this set is ever reused on a
+# list query, where they are absent unless asked for.
 DETAIL_FIELDS = (
     "Path,Overview,Genres,Studios,People,Taglines,SortName,"
     "MediaSources,MediaStreams,Chapters,ProviderIds,"
-    "PrimaryImageAspectRatio,DateCreated,CanDelete"
+    "PrimaryImageAspectRatio,DateCreated,CanDelete,"
+    "SpecialFeatureCount,LocalTrailerCount,RemoteTrailers"
 )
 
 # CollectionTypes we do not surface (video-only browser, phase 1). Playlists
@@ -2368,12 +2372,34 @@ class LibrarySource:
         return result.get("Items", [])
 
     def get_trailers(self, server_uuid, item_id):
-        """Local trailer items for an item (playable like any other item)."""
+        """Local trailer items for an item (playable like any other item).
+
+        ``/Items/{id}/LocalTrailers``: the apiclient's ``get_local_trailers``
+        calls the ``[Obsolete]`` ``/Users/{u}/Items/{id}/LocalTrailers``.
+        """
         api = self._conn(server_uuid).api
         try:
-            result = api.get_local_trailers(item_id) or []
+            result = api.items("/%s/LocalTrailers" % item_id,
+                               params={"userId": "{UserId}"}) or []
         except Exception:
             log.debug("Local trailers unavailable for %s", item_id,
+                      exc_info=True)
+            return []
+        return result.get("Items", []) if isinstance(result, dict) else result
+
+    def get_special_features(self, server_uuid, item_id):
+        """The item's Special Features, in the server's order (SortName).
+
+        A bare array with no paging and no ``Fields``: the server sends full
+        DTOs, ``ExtraType`` and ``UserData`` included. Trailers and theme
+        media are never in it. docs/jellyfin-api-notes.md §15.
+        """
+        api = self._conn(server_uuid).api
+        try:
+            result = api.items("/%s/SpecialFeatures" % item_id,
+                               params={"userId": "{UserId}"}) or []
+        except Exception:
+            log.debug("Special features unavailable for %s", item_id,
                       exc_info=True)
             return []
         return result.get("Items", []) if isinstance(result, dict) else result
@@ -3592,6 +3618,9 @@ class OfflineLibrarySource:
 
     def get_trailers(self, server_uuid, item_id):
         return []  # trailers aren't downloaded
+
+    def get_special_features(self, server_uuid, item_id):
+        return []  # extras are online-only (docs/offline-sync.md §6)
 
     def search_people(self, server_uuid, term, limit=PEOPLE_SEARCH_LIMIT):
         return []  # people aren't cached offline

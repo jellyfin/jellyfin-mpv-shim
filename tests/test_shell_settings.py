@@ -1630,7 +1630,10 @@ class TestSeriesTrailerAndSettingsSafety(unittest.TestCase):
         Series routes to _render_series, which had no button — one wasted API
         call per load for a feature nobody could reach."""
         src = FakeSource()
-        src.get_trailers = lambda srv, iid: [{"Id": "tr1"}]
+        # The server's count is the gate now (web's rule), not the type.
+        src.items["sh1"] = dict(src.get_item("srv1", "sh1"), Type="Series",
+                                LocalTrailerCount=1)
+        src.trailers = {"sh1": [{"Id": "tr1"}]}
         b = MpvtkBrowser(app=None, source=src, controller=FakeController())
         b._pool = _SyncPool()
         b.server = "srv1"
@@ -1651,7 +1654,9 @@ class TestSeriesTrailerAndSettingsSafety(unittest.TestCase):
                          controller=FakeController())
         b._pool = _SyncPool()
         b.server = "srv1"
-        b.source.get_trailers = lambda srv, iid: []
+        b.source.items["sh1"] = dict(b.source.get_item("srv1", "sh1"),
+                                     Type="Series", LocalTrailerCount=1)
+        b.source.trailers = {"sh1": []}
         b.navigate({"kind": "series", "server": "srv1", "item_id": "sh1",
                     "title": "Show"})
         self.assertNotIn("sa-trailer", ids(build_scene(b)[0]))

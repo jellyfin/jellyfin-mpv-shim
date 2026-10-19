@@ -855,3 +855,39 @@ refuses (`bifdecode.BadTile`), records the
 window so scrubbing does not re-fetch it, and logs the sizes once, including
 whether the tile still divides into the grid — the signature of the
 two-generation case (`docs/artwork-pipeline.md` §11.5).
+
+## 15. Special Features and trailers
+
+Read in the server source (12.2 `ca0f16eb7c` and `v10.11.9`) and in jellyfin-web
+`ee8efb41`; the e2e in `tests/e2e/test_special_features.py` measures the parts
+the shim relies on against both QA servers.
+
+- **`GET /Items/{id}/SpecialFeatures?userId=` is a bare array** — no paging, no
+  `Fields`, no sort. The DTOs are full: `ExtraType`, `UserData`, `ImageTags`,
+  `RunTimeTicks` are all there (`UserLibraryController.cs:466-492`). The
+  `/Users/{u}/Items/{id}/SpecialFeatures` spelling is `[Obsolete]`, as is the
+  apiclient's `LocalTrailers` route; both have an `/Items/{id}/…` form in 10.11.
+- **It never holds a trailer or theme media.** Only the display extra types
+  come back (`BaseItem.cs:82-93`): Unknown, BehindTheScenes, Clip, DeletedScene,
+  Interview, Sample, Scene, Featurette, Short. Trailers are their own route and
+  web's Trailer button.
+- **SortName order, one list.** Web draws it as one row with no grouping.
+- **On 12.x the count and the list disagree.** `SpecialFeatureCount` is not
+  parental-filtered and the list is (`DtoService.cs:1497-1515` vs
+  `UserLibraryController.cs:490`), so a count of 3 can fetch none. On 10.11
+  neither filters. The shim hides an empty row; web draws a bare heading.
+- **The counts come free on the single-item route** and are absent from list
+  queries unless named. `DETAIL_FIELDS` names them anyway.
+- **An extra is a `Video` with `ExtraType` set and a null `ParentId`.** No
+  `OwnerId` in the DTO, so nothing on it leads back to its film. `ExtraType` is
+  the only reliable signal (`extras.is_extra`): a home video is a `Video` too,
+  and a null `ParentId` is not unique to extras.
+- **Extras are never in a library query** — not lists, search, resume, latest
+  or next up (their `TopParentId` is null) — but `/Items/{id}` and `Ids=` reach
+  them, and a playlist can hold one.
+- **`hasSpecialFeature=true` on 12.x drops films whose only extras are
+  `Unknown`** (an `extras/` folder), so the "Has Special Features" filter can
+  miss one the detail page shows a row for. The server's wart, not ours.
+- **An extra has its own UserData.** The server copies the owner's overview,
+  ratings and genres onto it, and on 12.2 renames an owner-named extra to its
+  localized type ("Featurette 2"); 10.11 keeps the file name.

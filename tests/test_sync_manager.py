@@ -2262,6 +2262,67 @@ class ExpandFolderTest(TmpTest):
                          ["1", "3"])
 
 
+class ExtrasAreRefusedTest(TmpTest):
+    """Extras are online-only (docs/offline-sync.md §6), and `_expand` is
+    the door every estimate and enqueue goes through."""
+
+    FILM = {"Id": "film", "Type": "Movie", "Name": "Film",
+            "ServerId": CONTENT_SERVER,
+            "MediaSources": [{"Id": "s", "Container": "mkv", "Size": 10}]}
+    EXTRA = {"Id": "extra", "Type": "Video", "Name": "Making Of",
+             "ExtraType": "BehindTheScenes", "ServerId": CONTENT_SERVER,
+             "MediaSources": [{"Id": "s2", "Container": "mkv", "Size": 5}]}
+
+    class Api:
+        def __init__(self, items):
+            self._items = items
+
+        def get_item(self, iid, fields=None):
+            return next((i for i in self._items if i["Id"] == iid), None)
+
+        def get_playlist_items(self, pid, fields=None):
+            return {"Items": list(self._items)}
+
+        def items(self, handler="", action="GET", params=None, **_kw):
+            return {"Items": list(self._items)}
+
+    def _manager(self, items):
+        m = make_manager(self.tmp, self.addCleanup)
+        api = self.Api(items)
+
+        class C:
+            jellyfin = api
+        m.get_client = lambda uuid: C()
+        return m, api
+
+    def test_a_single_extra_is_refused_with_its_own_verdict(self):
+        """Not `[]` -- the dialog reads that as "Nothing left to download"
+        -- and not `ExpandFailed`, which is a network fault."""
+        m, api = self._manager([self.EXTRA])
+        with self.assertRaises(manager_module.NotDownloadable):
+            m._expand(api, "extra", "Video")
+        with self.assertRaises(manager_module.NotDownloadable):
+            m.estimate("uuid", "extra", "Video")
+        with self.assertRaises(manager_module.NotDownloadable):
+            m.enqueue("uuid", "extra", "Video", include_watched=True)
+        self.assertIsNone(m.db.get("extra"))
+
+    def test_a_playlist_holding_an_extra_downloads_the_film_only(self):
+        m, api = self._manager([self.FILM, self.EXTRA])
+        self.assertEqual([i["Id"] for i in m._expand(api, "p", "Playlist")],
+                         ["film"])
+
+    def test_a_folder_drops_an_extra_like_an_unsupported_type(self):
+        m, api = self._manager([self.FILM, self.EXTRA])
+        self.assertEqual([i["Id"] for i in m._expand(api, "f", "Folder")],
+                         ["film"])
+
+    def test_the_control_an_ordinary_item_still_expands(self):
+        m, api = self._manager([self.FILM])
+        self.assertEqual([i["Id"] for i in m._expand(api, "film", "Movie")],
+                         ["film"])
+
+
 class BookEstimateTest(TmpTest):
 
     class Api:
