@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 10:02+0000\n"
+"PO-Revision-Date: 2026-10-19 10:07+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -423,8 +423,6 @@ msgstr "Muuda video taasesituse profiili"
 #. settings menu of the playback controls.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
 msgstr "Lõpeta ja märgi mittevaadatuks"
 
@@ -605,10 +603,9 @@ msgstr "Keskel"
 #. placeholder including the colon and the formatting after it, or the app
 #. raises when it draws this line.
 #: jellyfin_mpv_shim/menu.py
-#, fuzzy, python-brace-format
-#| msgid "Remote Transcode Quality: {0:0.1f} Mbps"
+#, python-brace-format
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Kaug transkoodimise kvaliteet: {0: 0,1f} Mbps"
+msgstr "Välise transkoodimise kvaliteet: {0: 0,1f} Mbps"
 
 #. Entry on the in-player Video Preferences menu, showing the current
 #. setting. {0} is one of Tiny, Small, Normal, Large, Huge.
@@ -715,21 +712,17 @@ msgstr "Discord Rich Presence"
 #. A toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Sissejuhatus vahele jäetud"
+msgstr "Jäta intro vahele"
 
 #. Toggle on the in-player Player Preferences menu, and a settings
 #. dropdown: what to do when an episode's closing credits start. Set to
 #. Never, Ask or Always. Carries a context because "Skip Credits" is also
 #. the name of a button on the video itself.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Tiitrid vahele jäetud"
+msgstr "Jäta lõputiitrid vahele"
 
 #. What to do at an advertisement break: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
