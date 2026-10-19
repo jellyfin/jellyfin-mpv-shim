@@ -81,6 +81,8 @@ ICON_NAMES = [
     # the Media Info dialog, on the tile menu and the detail page --
     # jellyfin-web's own icon for MoreMediaInfo (itemContextMenu.js).
     "info",
+    # the detail pages' More menu (Refresh metadata, Delete from Disk).
+    "more_horiz",
     # the metadata-provider links on the detail page. jellyfin-web draws
     # those as bare text links, which is fine in a browser and not here:
     # the one thing the user has to know before pressing is that it LEAVES,

@@ -6,7 +6,7 @@ playlist, so it lives in ``components/detail.py``.
 """
 
 from ...i18n import _
-from ...mpvtk.widgets import Row, Text, VScroll
+from ...mpvtk.widgets import Column, Text, VScroll
 from .. import theme
 from ..components import chrome, controls, detail as detail_components
 from .base import Page
@@ -18,6 +18,7 @@ class SeriesPage(Page):
     def load(self, epoch):
         route = self.route
         source = self.ctx.source
+        actions = self.ctx.actions
         srv = route.get("server") or self.ctx.server
         iid = route["item_id"]
 
@@ -32,6 +33,7 @@ class SeriesPage(Page):
                 "item": item,
                 "seasons": source.get_seasons(srv, iid),
                 "similar": similar,
+                "may_refresh": actions.can_refresh_metadata(srv),
                 "trailers": detail_components.local_trailers(
                     source, srv, item),
                 "extras": detail_components.special_features(
@@ -63,8 +65,11 @@ class SeriesPage(Page):
             blocks.append(Text(item.get("Name", ""), size="hero", bold=True))
             if meta:
                 blocks.append(Text(meta, size="large", color=theme.SUBTLE_FG))
+        more = detail_components.more_entries(
+            self.ctx.actions, item, server, data.get("may_refresh"))
         blocks.append(self._series_actions(item, server, route["item_id"],
-                                           trailers=data.get("trailers")))
+                                           trailers=data.get("trailers"),
+                                           more=more, avail=tiles.body_w(w)))
         text = chrome.overview(item)
         if text:
             blocks.append(chrome.paragraph(text, 18, tiles.body_w(w)))
@@ -100,12 +105,19 @@ class SeriesPage(Page):
             blocks.append(tiles.tile_row(
                 _("More Like This"), data["similar"], "series-similar",
                 geom=sim_geom, image_type=sim_type))
-        return VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
-                                          full_bleed=full_bleed),
-                       id="series", flex=1,
-                       offset=self.parked_scroll("series"))
+        children = [VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
+                                               full_bleed=full_bleed),
+                            id="series", flex=1,
+                            offset=self.parked_scroll("series"))]
+        menu = detail_components.more_menu(
+            route, self.ctx.invalidate, self.ctx.art, more, "sa-more",
+            "series")
+        if menu is not None:
+            children.append(menu)
+        return Column(children, flex=1, align="stretch")
 
-    def _series_actions(self, item, server, series_id, trailers=None):
+    def _series_actions(self, item, server, series_id, trailers=None,
+                        more=(), avail=0):
         actions = self.ctx.actions
         btns = [controls.action_btn(
             "play_arrow", _("Next Up"), "sa-nextup",
@@ -119,4 +131,9 @@ class SeriesPage(Page):
             btns.append(trailer)
         btns += detail_components.common_actions(
             actions, self.ctx.art.tiles, item, server, "sa")
-        return Row(btns, gap=8, align="center")
+        more_btn = detail_components.more_button(
+            self.route, self.ctx.invalidate, more, "sa-more")
+        if more_btn is not None:
+            btns.append(more_btn)
+        # Wraps: with More this row runs off a 1280 window at 200%.
+        return chrome.wrap_row(btns, avail, gap=8, align="center")

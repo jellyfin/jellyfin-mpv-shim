@@ -35,6 +35,8 @@ from tests._shell_harness import (
     _SyncPool,
     build_scene,
     ids,
+    more_rows,
+    pick_more,
 )
 
 
@@ -200,9 +202,10 @@ if __name__ == "__main__":
 
 
 class DeleteFromTheDetailPageTest(unittest.TestCase):
-    """The other door. It differs from the tile menu in what happens
-    *after*: a grid re-reads its list, but this screen IS the deleted item,
-    so re-reading it would fetch a 404 and show an error where a film was."""
+    """The other door, behind the page's More menu (#764). It differs from
+    the tile menu in what happens *after*: a grid re-reads its list, but
+    this screen IS the deleted item, so re-reading it would fetch a 404 and
+    show an error where a film was."""
 
     def _browser(self, can_delete=True):
         src = FakeSource()
@@ -217,9 +220,12 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
         b._load_route(b.route)
         return b
 
-    def test_the_button_is_offered_when_the_server_allows_it(self):
+    def test_it_is_offered_when_the_server_allows_it(self):
+        self.assertIn("Delete from Disk", more_rows(self._browser(), "act"))
+
+    def test_it_is_in_the_menu_not_the_row(self):
         nodes, _h = build_scene(self._browser(), (1280, 720))
-        self.assertIn("act-delete", ids(nodes))
+        self.assertNotIn("act-delete", ids(nodes))
 
     def test_it_is_absent_offline(self):
         """Same gate as the tile menu. `CanDelete` comes off a DTO the
@@ -227,17 +233,15 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
         it reaches for a server that is not there."""
         b = self._browser()
         b._offline = True
-        nodes, _h = build_scene(b, (1280, 720))
-        self.assertNotIn("act-delete", ids(nodes))
+        self.assertNotIn("Delete from Disk", more_rows(b, "act"))
 
     def test_and_absent_when_it_does_not(self):
-        nodes, _h = build_scene(self._browser(can_delete=False), (1280, 720))
-        self.assertNotIn("act-delete", ids(nodes))
+        self.assertNotIn("Delete from Disk",
+                         more_rows(self._browser(can_delete=False), "act"))
 
     def test_pressing_it_asks_first(self):
         b = self._browser()
-        _nodes, handlers = build_scene(b, (1280, 720))
-        handlers["act-delete"]["click"]()
+        pick_more(b, "act", "Delete from Disk")
         nodes, _h = build_scene(b, (1280, 720))
         self.assertIn("confirm", ids(nodes))
 
@@ -251,7 +255,6 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
         passed against the bug.
         """
         b = self._browser()
-        _nodes, handlers = build_scene(b, (1280, 720))
         # Pretend the grid underneath has already loaded its items -- AND
         # its page cache. Seeding only `_items` is what made the two
         # assertions below pass for nothing: `_pages` was never there to
@@ -260,7 +263,7 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
         b.nav_stack[0]["_pages"] = {0: [{"Id": "m1", "Name": "The Film"}]}
         b.nav_stack[0]["_page_size"] = 12
         b.nav_stack[0]["_win_tried"] = {0}
-        handlers["act-delete"]["click"]()
+        pick_more(b, "act", "Delete from Disk")
         _nodes, handlers = build_scene(b, (1280, 720))
         handlers["dlg-ok"]["click"]()
         self.assertEqual([r["kind"] for r in b.nav_stack], ["grid"])
@@ -284,8 +287,7 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
 
     def test_confirming_deletes_and_leaves_the_page(self):
         b = self._browser()
-        _nodes, handlers = build_scene(b, (1280, 720))
-        handlers["act-delete"]["click"]()
+        pick_more(b, "act", "Delete from Disk")
         _nodes, handlers = build_scene(b, (1280, 720))
         handlers["dlg-ok"]["click"]()
         calls = [(a, k) for n, a, k in b.controller.transport_kw

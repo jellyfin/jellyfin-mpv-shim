@@ -11,6 +11,7 @@ import logging
 
 from ...extras import is_extra
 from ...i18n import _
+from ...mpvtk.widgets import Menu
 from . import controls
 from .labels import is_watched
 
@@ -143,6 +144,80 @@ def common_actions(actions, tiles, item, server, prefix):
             on=bool(ud.get("IsFavorite"))),
         download_button(actions, tiles, item, server, prefix),
     ]
+
+
+def more_entries(actions, item, server, may_refresh, on_deleted=None):
+    """The More menu's ``(label, icon, callback)`` rows; ``[]`` for none.
+
+    ``may_refresh`` is ``actions.can_refresh_metadata`` asked in the page's
+    ``work()``: it can fetch the user policy, and a failed fetch is not
+    cached, so asked here it would go to the server on every repaint.
+
+    Delete is offered only to a page that passes ``on_deleted``, because a
+    page that *is* the deleted item has to leave itself afterwards.
+    """
+    from .. import live_tv
+
+    # Offline even with CanDelete: the catalog stores the DTO, flag and all,
+    # and neither entry has a server to reach.
+    if actions.offline or not item or not item.get("Id"):
+        return []
+    out = []
+    # Refresh above Delete, and an in-progress recording excluded: the same
+    # rules as the tile menu (`TilesMixin._tile_menu_entries`).
+    if may_refresh and not live_tv.is_recording_now(item):
+        out.append((_("Refresh metadata"), "refresh",
+                    lambda: actions.refresh_metadata(item, server)))
+    if on_deleted is not None and actions.can_delete(item):
+        out.append((_("Delete from Disk"), "delete",
+                    lambda: actions.confirm_delete_item(
+                        item, server, on_done=on_deleted)))
+    return out
+
+
+#: Route key that holds the More menu open. On the route, not the page or
+#: the shell's `_menu`, so it dies with the screen like the reader's menu.
+MORE_KEY = "_more"
+
+
+def more_button(route, invalidate, entries, node_id):
+    """The More button, or None when there is nothing behind it."""
+    if not entries:
+        return None
+
+    def open_menu():
+        route[MORE_KEY] = True
+        invalidate()
+
+    return controls.action_btn("more_horiz", _("More"), node_id, open_menu)
+
+
+def more_menu(route, invalidate, art, entries, anchor_id, scroll_id):
+    """The open More menu, dropped below its button; None while closed.
+
+    ``node_rect`` is in content space inside a scroll (mpvtk/layout.py), so
+    the page's live offset comes off before it is a window position.
+    """
+    if not route.get(MORE_KEY) or not entries:
+        return None
+    x = y = 0       # no laid-out button to hang it from; the renderer clamps
+    rect = art.node_rect(anchor_id)
+    if rect is not None:
+        x = rect["x"]
+        y = rect["y"] + rect["h"] + 4 - art.scroll.offset(scroll_id)
+
+    def close():
+        route.pop(MORE_KEY, None)
+        invalidate()
+
+    def pick(index, _value):
+        close()
+        if 0 <= index < len(entries):
+            entries[index][2]()
+
+    return Menu(anchor_id + "-menu", [e[0] for e in entries], x, y,
+                icons=[e[1] for e in entries],
+                on_select=pick, on_dismiss=close)
 
 
 def special_features(source, server, item):
