@@ -24,6 +24,8 @@ import shutil
 import subprocess
 import sys
 
+from .hostinfo import outside_path
+
 log = logging.getLogger("system_open")
 
 #: Openers to try on Linux/BSD, most portable first. ``xdg-open`` is the
@@ -79,6 +81,7 @@ def open_path(path):
         # has no reader.
         log.warning("cannot open %s: no such file", path)
         return False, None
+    path = outside_path(path)
     if os.name == "nt":
         try:
             os.startfile(path)  # type: ignore[attr-defined]  # Windows only

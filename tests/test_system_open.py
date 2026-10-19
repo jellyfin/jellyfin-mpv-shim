@@ -48,6 +48,10 @@ class Harness(unittest.TestCase):
 
         self._patch(subprocess, "Popen", fake_popen)
         self._patch(system_open.shutil, "which", fake_which)
+        # The real probe imports ctypes, which under a faked os.name == "nt"
+        # takes its Windows branch on Linux and fails to import.
+        # tests/test_outside_path_sites.py covers the mapping here.
+        self._patch(system_open, "outside_path", lambda path: path)
         fh = tempfile.NamedTemporaryFile(suffix=".epub", delete=False)
         fh.close()
         self.book = fh.name

@@ -346,3 +346,10 @@ docs say. Where it did not exist, the whole config was created under
 `%LOCALAPPDATA%\Packages\<package family>\LocalCache\Roaming\jellyfin-mpv-shim\`,
 invisible at the documented path and deleted on uninstall. The cache under
 `%LOCALAPPDATA%` behaves the same way.
+
+**Any path handed to another program, or shown to the user, goes through
+`hostinfo.outside_path`.** Explorer, a reader opening a downloaded book, and the user
+reading a "saved to …" message all look at the real filesystem, where a fresh install's
+`%APPDATA%` path does not exist. The redirected copy is used only if it exists, which
+is what keeps the pre-existing-config case on the real path.
+`tests/test_outside_path_sites.py` pins each site.

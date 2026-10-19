@@ -41,7 +41,7 @@ HOST_OS_RELEASE = "/run/host/os-release"
 #: user was given it deliberately.
 UPDATE_MARKER_ENV = "JMS_UPDATE_CHECK"
 
-#: What GetCurrentPackageFullName answers a packaged process asked with a
+#: What GetCurrentPackageFamilyName answers a packaged process asked with a
 #: zero-length buffer. An unpackaged one gets APPMODEL_ERROR_NO_PACKAGE (15700).
 _ERROR_INSUFFICIENT_BUFFER = 122
 
@@ -70,18 +70,59 @@ def is_msix():
     ours. Asked of Windows rather than read off the install path, which
     package volumes can move.
     """
+    return package_family_name() is not None
+
+
+def package_family_name():
+    """This process's MSIX package family name, or None when unpackaged."""
     if sys.platform != "win32":
-        return False
+        return None
     try:
         import ctypes
 
+        get = ctypes.windll.kernel32.GetCurrentPackageFamilyName
         length = ctypes.c_uint32(0)
-        rc = ctypes.windll.kernel32.GetCurrentPackageFullName(
-            ctypes.byref(length), None)
+        if get(ctypes.byref(length), None) != _ERROR_INSUFFICIENT_BUFFER:
+            return None
+        buf = ctypes.create_unicode_buffer(length.value)
+        if get(ctypes.byref(length), buf) != 0:
+            return None
+        return buf.value
     except (AttributeError, OSError):
         # Windows 7 has no such function, and nothing there is packaged.
-        return False
-    return rc == _ERROR_INSUFFICIENT_BUFFER
+        return None
+
+
+def outside_path(path):
+    """Where ``path`` is for a process outside this package.
+
+    A packaged app's *new* files under ``%APPDATA%`` and ``%LOCALAPPDATA%``
+    are redirected to the package's ``LocalCache``, and only the app itself
+    sees them at the path it asked for; Explorer, or a reader handed a
+    downloaded book, looks at the real path and finds nothing. Files that
+    existed before the install are used in place and not redirected
+    (docs/packaging.md §6), so the redirected copy is used only if it exists.
+    Every path handed to another program, or shown to the user, goes through
+    here.
+    """
+    family = package_family_name()
+    local = os.environ.get("LOCALAPPDATA")
+    if not family or not local or not path:
+        return path
+    for env, sub in (("APPDATA", "Roaming"), ("LOCALAPPDATA", "Local")):
+        base = os.environ.get(env)
+        if not base:
+            continue
+        try:
+            rel = os.path.relpath(path, base)
+        except ValueError:  # another drive
+            continue
+        if rel == os.curdir or rel.startswith(os.pardir):
+            continue
+        redirected = os.path.join(local, "Packages", family, "LocalCache",
+                                  sub, rel)
+        return redirected if os.path.exists(redirected) else path
+    return path
 
 
 def updates_managed():
