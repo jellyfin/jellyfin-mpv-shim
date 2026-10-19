@@ -122,6 +122,21 @@ jobs:
       with:
         name: windows
         path: ${{ github.workspace }}/publish/Installer/*.exe
+    - name: Build the Store package
+      # Unsigned on purpose: the Store re-signs what it accepts, and that
+      # signature is what Smart App Control trusts. docs/packaging.md §6.
+      env:
+        MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+        MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+      run: |
+        version=$(grep '^CLIENT_VERSION' jellyfin_mpv_shim/constants.py | cut -d '"' -f 2)
+        python tools/build_msix.py --arch x64 --out "publish/Store/jellyfin-mpv-shim_${version}_x64.msix"
+      shell: bash
+    - name: Archive the Store package
+      uses: actions/upload-artifact@v7
+      with:
+        name: msix-x64
+        path: ${{ github.workspace }}/publish/Store/*.msix
   build-win64-legacy:
     runs-on: windows-latest
     steps:
@@ -337,6 +352,21 @@ jobs:
       with:
         name: windows-arm64
         path: ${{ github.workspace }}/publish/Installer/*.exe
+    - name: Build the Store package
+      # Unsigned on purpose: the Store re-signs what it accepts, and that
+      # signature is what Smart App Control trusts. docs/packaging.md §6.
+      env:
+        MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+        MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+      run: |
+        version=$(grep '^CLIENT_VERSION' jellyfin_mpv_shim/constants.py | cut -d '"' -f 2)
+        python tools/build_msix.py --arch arm64 --out "publish/Store/jellyfin-mpv-shim_${version}_arm64.msix"
+      shell: bash
+    - name: Archive the Store package
+      uses: actions/upload-artifact@v7
+      with:
+        name: msix-arm64
+        path: ${{ github.workspace }}/publish/Store/*.msix
   build-flatpak:
     strategy:
       fail-fast: false

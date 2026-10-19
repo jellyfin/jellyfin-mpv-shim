@@ -308,3 +308,41 @@ requires the `build` package (`pip install build`); `pip install .[all]` and
 `gen_pkg.sh` also fetches `jellyfin_mpv_shim/default_shader_pack/` from the
 [`iwalton3/default-shader-pack`](https://github.com/iwalton3/default-shader-pack) GitHub
 release; that directory is not in git (see `.gitignore`).
+
+## 6. The Microsoft Store (MSIX)
+
+`tools/build_msix.py` wraps `dist/run` in an MSIX; the x64 and ARM64 CI jobs run it
+after `build-win*.bat` and upload the result as `msix-x64` / `msix-arm64`.
+
+**Why the Store at all: Smart App Control.** SAC judges every PE file on its own and
+blocks one that is neither known to Microsoft's cloud nor signed by a trusted CA. A
+PyInstaller bundle is full of unsigned `.pyd` files and DLLs that change with every
+dependency bump (Pillow, a new shinchiro `mpv-2.dll`, our own `fribidi-0.dll`), so
+signing `run.exe` alone would not get it past SAC — and SignPath's free OSS signing
+only signs artifacts built from our own source. The Store re-signs an accepted MSIX
+with Microsoft's certificate, which SAC trusts and which covers the whole package.
+Precedent: OpenSAK, another PyInstaller app, hit SAC blocks on unsigned `.pyd` files
+in its direct download while its Store build was unaffected
+([OpenSAK#904](https://github.com/OpenSAK-Org/OpenSAK/issues/904)). Not yet confirmed
+for this app on Windows 11 with SAC on.
+
+- **The package is unsigned on purpose.** It cannot be sideloaded as built; to test one
+  locally, sign it with a self-signed cert trusted in `LocalMachine\TrustedPeople`.
+- **Identity must match Partner Center exactly.** `MSIX_IDENTITY_NAME` and
+  `MSIX_PUBLISHER` are repo variables; until they are set the package carries a
+  placeholder identity and the script says so.
+- **Versions are four-part with a zero revision** (`3.2.0` → `3.2.0.0`). A `pre`
+  version keeps only its numbers, so it collides with the release it precedes:
+  pre-releases are not uploaded, as with the appdata (§4).
+- **Update notices default to off** in a packaged install (`hostinfo.is_msix`), as in a
+  Flatpak: the Store delivers the updates.
+
+### Config is virtualized only for a fresh install
+
+Measured 2026-10-18 on Windows 10 19045 with the 3.2.0 build packaged as-is: where
+`%APPDATA%\jellyfin-mpv-shim` already existed, every write — new files included — went
+to the real folder, so a user moving from the installer keeps their config where the
+docs say. Where it did not exist, the whole config was created under
+`%LOCALAPPDATA%\Packages\<package family>\LocalCache\Roaming\jellyfin-mpv-shim\`,
+invisible at the documented path and deleted on uninstall. The cache under
+`%LOCALAPPDATA%` behaves the same way.
