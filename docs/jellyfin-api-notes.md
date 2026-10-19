@@ -4,6 +4,16 @@ Facts about the **server**, not about our UI. Almost everything here has been
 measured against a real server — usually both a 10.11 and a 12.0 — or read out
 of the server source, and every one of them has cost a bug at least once.
 
+**Supported server versions** (owner, 2026-10-18): "10.11 and 12.0 are the
+targeted versions; older than that CVEs in Jellyfin itself become an issue".
+For anything older: "Support of anything older is not worth spending extra
+effort on beyond "catch the exception for something genuinely optional"." So
+no route gets a legacy fallback or a version branch for an older server — the
+10.9-only routes the shim uses (`UserItems/Resume`, `/Items/{id}/LocalTrailers`,
+`/Items/{id}/SpecialFeatures`) have none, and the optional ones cost their
+button or row when they fail. Code that already handles older servers stays
+until someone chooses to clean it up.
+
 The rule that generates most of this file: **the server almost never tells you
 that you got it wrong.** It drops what it cannot parse and answers 200. So a
 parameter name, an enum spelling or a `Fields` value taken from an SDK or from
