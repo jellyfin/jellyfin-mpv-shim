@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 10:26+0000\n"
+"PO-Revision-Date: 2026-10-19 10:29+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -999,19 +999,19 @@ msgstr "Sisesta uus PIN-kood."
 #. differ.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "PIN-koodid ei kattu."
 
 #. Error in the Set PIN dialog when the server refused to take the passcode
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "PIN-koodi eemaldamine nurjus."
 
 #. Error in the Set PIN dialog when the server refused to store the
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "PIN-koodi salvestamine nurjus."
 
 # seeded from jellyfin-web: ButtonSignIn
 #. Button, and the title of the screen it opens. Signs back in to a server
@@ -1019,10 +1019,8 @@ msgstr ""
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Logi sisse"
+msgstr "Logi uuesti sisse"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
