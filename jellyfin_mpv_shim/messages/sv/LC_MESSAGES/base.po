@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-12 14:59+0000\n"
+"PO-Revision-Date: 2026-10-19 07:26+0000\n"
 "Last-Translator: Maltavius <marten@voxberg.se>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sv/>\n"
@@ -5906,10 +5906,8 @@ msgstr "PIN-koden kunde inte sparas."
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "Those filters could not be saved."
-msgstr "PIN-koden kunde inte sparas."
+msgstr "Filtren kunde inte sparas."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
