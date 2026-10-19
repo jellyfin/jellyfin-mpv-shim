@@ -9,8 +9,9 @@ targeted versions; older than that CVEs in Jellyfin itself become an issue".
 For anything older: "Support of anything older is not worth spending extra
 effort on beyond "catch the exception for something genuinely optional"." So
 no route gets a legacy fallback or a version branch for an older server — the
-10.9-only routes the shim uses (`UserItems/Resume`, `/Items/{id}/LocalTrailers`,
-`/Items/{id}/SpecialFeatures`) have none, and the optional ones cost their
+routes the shim uses that exist only from 10.9 on (`UserItems/Resume`,
+`/Items/{id}/LocalTrailers`, `/Items/{id}/SpecialFeatures`) have none, and the
+optional ones cost their
 button or row when they fail. Code that already handles older servers stays
 until someone chooses to clean it up.
 
