@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
 "PO-Revision-Date: 2026-10-19 17:25+0000\n"
-"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
+"Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -1902,7 +1902,7 @@ msgstr "Navegador de la librería"
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reading"
-msgstr "Leyendo"
+msgstr "Lectura"
 
 #. Content fetched to this device for offline use. A group heading under
 #. Settings > Browse, the name of the Downloads settings page, and the
@@ -2299,7 +2299,7 @@ msgstr "Ninguna (texto sombreado)"
 #. Playback > Player Controls); stored as "hover".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr "Ocultar salvo al pasar el cursor"
+msgstr "Ocultar excepto al pasar el cursor"
 
 #. Choice in the "When the Player Controls Hide" dropdown (Settings >
 #. Playback > Player Controls); stored as "always".
@@ -3182,6 +3182,13 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"Cuando un vídeo es transcodificado, muestra los subtítulos Blu-ray o DVD "
+"integrados (PGS, VobSub) como una pista separada en lugar de quemarlos en la "
+"imagen, para que se mantengan nítidos y puedan ser cambiados sin reiniciar. "
+"Mostrar uno hace que el servidor extraiga primero cada pista de subtítulo "
+"que haya en el archivo, lo cuál lleva tiempo y espacio de disco en el "
+"servidor en un archivo más grande. No afecta a los subtítulos que están en "
+"su propio archivo."
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3597,8 +3604,8 @@ msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
-"\"Ocultar a menos que se pase el cursor por encima\" los mantiene visibles "
-"solo mientras el puntero esté sobre ellos, pausado o no."
+"\"Ocultar excepto al pasar el cursor\" los mantiene visibles solo mientras "
+"el puntero esté sobre ellos, pausado o no."
 
 #. Explanation shown under the "Hide the Player Controls After (seconds)"
 #. setting (Settings > Playback > Player Controls).
@@ -3608,7 +3615,7 @@ msgid ""
 "hovered\"."
 msgstr ""
 "0 lo oculta tan pronto como el puntero no esté sobre él, y fuerza \"Ocultar "
-"a menos que pase el cursor por encima\"."
+"excepto al pasar el cursor\"."
 
 #. Explanation shown under the "Shrink the Player Controls on a Narrow
 #. Window" setting (Settings > Playback > Player Controls).
@@ -6793,6 +6800,8 @@ msgid ""
 "Not active: the \"pypresence\" package is missing or failed to load. Install "
 "it and restart. (Details in the Logs tab.)"
 msgstr ""
+"No está activo: paquete \"pypresence\" faltante o error al cargarlo. "
+"Instálalo y reinicia. (Detalles en la pestaña Registros.)"
 
 #. Explanation under the Hardware Decoding setting when the user's own MPV
 #. configuration decides it instead. "mpv.conf" is a filename and "hwdec"
@@ -6801,6 +6810,8 @@ msgstr ""
 #, python-format
 msgid "Pinned by config: your mpv.conf sets hwdec=%s, which overrides this."
 msgstr ""
+"Fijado por configuración: tu mpv.conf establece hwdec=%s, lo cuál "
+"sobrescribe esto."
 
 #. Explanation under a per-server setting. %s is the server it applies to;
 #. "servers tab" is the Servers & Users tab of this Settings screen.
@@ -6874,6 +6885,7 @@ msgstr "Pantalla de inicio"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Connect to a server to change the home screen sections."
 msgstr ""
+"Conecta a un servidor para cambiar las secciones de la pantalla de inicio."
 
 #. Shown in the Home Screen settings when the server would not return them.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -6884,13 +6896,15 @@ msgstr "No se pudieron cargar estas configuraciones desde tu servidor."
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Try Again"
-msgstr ""
+msgstr "Intentar de nuevo"
 
 #. Explanation in the Home Screen settings. "Jellyfin Web" is the browser
 #. client's product name; leave it as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These settings are stored on your server and shared with Jellyfin Web."
 msgstr ""
+"Esta configuración está almacenada en tu servidor y compartida con Jellyfin "
+"Web."
 
 #. Heading in the Home Screen settings, above the list of rows the home
 #. screen shows.
@@ -6904,6 +6918,9 @@ msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
 msgstr ""
+"Las filas que muestra la pantalla de inicio, en orden. Las secciones que "
+"esta aplicación no puede dibujar se dejan como tu cliente web haya "
+"establecido."
 
 #. Shown for a home-screen row set to something this application cannot
 #. draw. %s is that section's name as Jellyfin Web calls it.
@@ -6911,13 +6928,14 @@ msgstr ""
 #, python-format
 msgid "Set to “%s” in Jellyfin Web, which this app does not display."
 msgstr ""
+"Establecer a \"%s\" en Jellyfin Web, lo cual esta aplicación no muestra."
 
 #. Label of one home-screen row in the settings list. %d is its position,
 #. counting from one.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Section %d"
-msgstr ""
+msgstr "Sección %d"
 
 # seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #. Checkbox in the Home Screen settings. The quoted names are home-screen
@@ -6935,6 +6953,9 @@ msgid ""
 "Off by default: the show's artwork is used instead, because an episode image "
 "can spoil the episode you have not watched yet."
 msgstr ""
+"Desactivado por defecto: en su lugar se usa el arte de la serie, porque una "
+"imagen del episodio puede spoilear el episodio que tienes y que no has visto "
+"aún."
 
 #. Status message when the home screen settings would not come back from
 #. the server.
@@ -6957,7 +6978,7 @@ msgstr "No se pudieron guardar las configuraciones de la pantalla de inicio."
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr ""
+msgstr "Diseño de la pantalla de inicio guardado."
 
 #. Status message when the order of the home screen rows could not be
 #. written to the server.
@@ -7007,36 +7028,36 @@ msgstr "Copiar"
 #. Shown on the Logs tab when nothing has been logged.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
-msgstr ""
+msgstr "Ninguna salida de registro capturada aún."
 
 #. Status message when Copy was pressed on an empty log.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
-msgstr ""
+msgstr "No hay nada que copiar aún."
 
 #. Status message confirming the log reached the clipboard. %d is how many
 #. lines.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "Copied %d log lines."
-msgstr ""
+msgstr "Copiadas %d líneas de registro."
 
 #. State beside a server in Settings: the application can reach it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Connected"
-msgstr ""
+msgstr "Conectado"
 
 #. One-word status in the Servers list: this server answered, but it no
 #. longer accepts the saved login, so the user has to sign in again. The
 #. other two states are "Connected" and "Offline".
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Signed out"
-msgstr ""
+msgstr "Sesión cerrada"
 
 #. State beside a server in Settings: the application cannot reach it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Offline"
-msgstr ""
+msgstr "Sin conexión"
 
 #. Placeholder in the empty field where the name of a new local profile is
 #. typed, in the Users settings. These are this application's own profiles,
@@ -7071,6 +7092,8 @@ msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
+"Cada usuario tiene sus propios servidores e identidad de dispositivo; un "
+"usuario bloqueado necesita un PIN para cambiarse."
 
 #. Heading of the Servers section of Settings. %s is the name of the local
 #. profile whose servers are listed.
@@ -7102,7 +7125,7 @@ msgstr "Establecer PIN"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Delete user %s and its saved logins?"
-msgstr ""
+msgstr "¿Eliminar el usuario %s y sus inicios de sesión almacenados?"
 
 # seeded from jellyfin-web: DeleteUser
 #. Title of the dialog that removes a local profile.
@@ -7114,7 +7137,7 @@ msgstr "Borrar usuario"
 #. Lower case, a small caption rather than a sentence.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
-msgstr ""
+msgstr "activo"
 
 #. Question in the dialog that forgets a server. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7131,14 +7154,14 @@ msgstr "Eliminar servidor"
 #. be fetched automatically.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Auto-download"
-msgstr ""
+msgstr "Descargar automáticamente"
 
 #. Status message when a reconnect to a server is already under way: the user
 #. pressed Retry a second time, or something else (the periodic health check)
 #. was already connecting to it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Already reconnecting."
-msgstr ""
+msgstr "Ya está reconectando."
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7161,6 +7184,8 @@ msgid ""
 "%s answered, but it no longer accepts the saved login. Signing in again "
 "keeps its downloads and settings."
 msgstr ""
+"%s respondió, pero ya no se acepta el inicio de sesión almacenado. Iniciar "
+"sesión de nuevo mantiene su configuración y descargas."
 
 #. Body of the same dialog, for a server that did not respond at all. %s is
 #. the server's name.
@@ -7170,6 +7195,8 @@ msgid ""
 "%s did not answer. It may be switched off, or this machine may not be able "
 "to reach it right now."
 msgstr ""
+"%s no respondió. Puede estar apagado, o puede que esta máquina no pueda "
+"alcanzarlo ahora."
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7180,22 +7207,22 @@ msgstr "No se pudo conectar a %s"
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "The server could not be removed."
-msgstr ""
+msgstr "El servidor no pudo ser eliminado."
 
 #. Status message when creating a local profile failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be added."
-msgstr ""
+msgstr "Este usuario no pudo ser añadido."
 
 #. Title of the dialog that changes a local profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Rename User"
-msgstr ""
+msgstr "Renombrar usuario"
 
 #. Status message when changing a local profile's name failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be renamed."
-msgstr ""
+msgstr "El usuario no pudo ser renombrado."
 
 # seeded from jellyfin-web: LabelYear
 #. Column heading in a library shown as a list: the item's release year.
@@ -7206,7 +7233,7 @@ msgstr "Año"
 #. Column heading in a library shown as a list: how long the item runs.
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"
-msgstr ""
+msgstr "Longitud"
 
 # seeded from jellyfin-web: Artist
 #. Column heading in a music track table: who performs the track.
@@ -7288,7 +7315,7 @@ msgstr "¿Eliminar %s de esta colección?"
 #. found no playable item inside.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
-msgstr ""
+msgstr "No hay nada aquí para poner en cola."
 
 #. How a clock time is assembled on a twelve-hour clock. {time} is like
 #. "8:30" and {period} is the translation of AM or PM. Reorder them, or
@@ -7297,14 +7324,14 @@ msgstr ""
 #, python-brace-format
 msgctxt "12-hour clock"
 msgid "{time} {period}"
-msgstr ""
+msgstr "{time} {period}"
 
 #. The morning half of a twelve-hour clock, as in "8:30 AM". Many languages
 #. have their own marker; some drop it and use a 24-hour clock instead.
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "AM"
-msgstr ""
+msgstr "AM"
 
 #. The afternoon half of a twelve-hour clock, as in "8:30 PM". Many
 #. languages have their own marker; some drop it and use a 24-hour clock
@@ -7312,7 +7339,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
 msgctxt "12-hour clock"
 msgid "PM"
-msgstr ""
+msgstr "PM"
 
 # seeded from jellyfin-web: Search
 #. Tooltip of the navigation bar's search button. A verb.
@@ -7326,12 +7353,12 @@ msgstr "Buscar"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "%s (needs reconnect)"
-msgstr ""
+msgstr "%s (necesita reconexión)"
 
 #. Tooltip of the window button that hides the window to the taskbar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Minimize"
-msgstr ""
+msgstr "Minimizar"
 
 # seeded from jellyfin-web: LabelRestore
 #. Tooltip of the window button that returns a maximized window to its
@@ -7349,7 +7376,7 @@ msgstr "Máximizar"
 #. larger or smaller. A verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "Cambiar tamaño"
 
 # seeded from jellyfin-web: Home
 #. Name of the home screen, on the navigation bar's Home button and as the
@@ -7381,7 +7408,7 @@ msgstr "Usuario"
 #. Placeholder in the empty search field on the navigation bar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
-msgstr ""
+msgstr "Buscar…"
 
 #. Banner shown when settings were changed that only take effect after the
 #. application is started again. %s is a comma-separated list of those
@@ -7389,7 +7416,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Restart to apply: %s"
-msgstr ""
+msgstr "Reiniciar para aplicar: %s"
 
 # seeded from jellyfin-web: Restart
 #. Button on the restart banner that closes and reopens the application
@@ -7404,7 +7431,7 @@ msgstr "Reiniciar ahora"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "Restart banner"
 msgid "Later"
-msgstr ""
+msgstr "Más tarde"
 
 #. Banner announcing a newer release, shown inside a Flatpak where the
 #. desktop's own updater installs it. %s is the version number; the quoted
@@ -7412,20 +7439,20 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s — run “flatpak update”"
-msgstr ""
+msgstr "Actualización disponible: %s — ejecuta \"flatpak update\""
 
 #. Banner announcing a newer release of this application. %s is the version
 #. number.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s"
-msgstr ""
+msgstr "Actualización disponible: %s"
 
 #. Button on the update banner that opens the release notes. The ellipsis
 #. means it opens something else.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Details…"
-msgstr ""
+msgstr "Detalles…"
 
 #. Button on the update banner that puts the notice off for now, so it
 #. returns next time. "Not now", not a direction in time. Two other buttons
@@ -7433,25 +7460,25 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "update banner"
 msgid "Later"
-msgstr ""
+msgstr "Más tarde"
 
 #. Button on the update banner that hides it for this version for good. An
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Ignore"
-msgstr ""
+msgstr "Ignorar"
 
 #. Tooltip of the update banner's Ignore button.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Do not mention this version again"
-msgstr ""
+msgstr "No mencionar esta versión de nuevo"
 
 #. Banner across the top of the library after something the user asked
 #. for failed because the server could not be reached. Followed by the
 #. "Retry" and "Go Offline" buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "The server isn't answering."
-msgstr ""
+msgstr "El servidor no está respondiendo."
 
 #. Button on the "server isn't answering" banner: browse only what is
 #. downloaded to this computer instead.
@@ -7463,7 +7490,7 @@ msgstr "Trabajar sin conexión"
 #. are listed.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "Sin conexión — muestra lo que está disponible."
 
 #. Button on the offline banner that opens the server settings. An
 #. imperative verb phrase.
@@ -7476,27 +7503,27 @@ msgstr "Configurar servidores"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr ""
+msgstr "Descargando %(name)s — %(n)d restante"
 
 #. Bar along the bottom while items are being fetched and the current one
 #. has no name. %(n)d is how many are still queued.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading — %(n)d remaining"
-msgstr ""
+msgstr "Descargando — %(n)d restante"
 
 #. Button on the downloading bar that opens the downloads page. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
-msgstr ""
+msgstr "Ver descargas"
 
 #. Stands in for a value the player could not report, on the playback
 #. controls. Lower case, because it appears inside a line rather than
 #. starting one.
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr ""
+msgstr "desconocido"
 
 #. Entry on the settings menu of the classic on-screen controls, opening
 #. MPV's own statistics overlay.
@@ -7525,7 +7552,7 @@ msgstr "SyncPlay habilitado"
 #. Shown over the video while the next item is being opened.
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
-msgstr ""
+msgstr "Por favor, espera, cargando..."
 
 #. Warning drawn over the video when the server is re-encoding it. "c" is a
 #. keyboard key; leave the letter as it is. Keep the line break.
@@ -7543,13 +7570,13 @@ msgstr ""
 #. "Could not play this item: <title> — "; "it" is that item.
 #: jellyfin_mpv_shim/player.py
 msgid "The server stopped sending it partway through."
-msgstr ""
+msgstr "El servidor dejó de enviarlo a mitad del proceso."
 
 #. Shown over the video when playback reaches the end of a downloaded
 #. episode and the one after it is not on this device.
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
+msgstr "El siguiente episodio no está descargado."
 
 #. How an episode is named in what this application reports to the server
 #. and to Discord. {0} and {1} are numbers.
@@ -7603,6 +7630,8 @@ msgstr "Habilitar SVP"
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Downloads are unavailable: the saved logins could not be read."
 msgstr ""
+"Las descargas no están disponibles: los inicios de sesión almacenados no se "
+"pudieron leer."
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
@@ -7616,6 +7645,8 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"No se puede cambiar la carpeta de descarga mientras una descarga está en "
+"progreso. Espera a que finalice, luego inténtalo de nuevo."
 
 #. Error when the folder chosen for downloads sits within the present one,
 #. which the move cannot handle.
@@ -7623,17 +7654,19 @@ msgstr ""
 msgid ""
 "That folder is inside the current download folder. Choose one outside it."
 msgstr ""
+"Esta carpeta está dentro de la carpeta de descarga actual. Elige una "
+"exterior a esta."
 
 #. Error when the folder chosen for downloads could not be opened.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't read that folder. Check the path and its permissions."
-msgstr ""
+msgstr "No se puede leer esta carpeta. Comprueba la ruta y sus permisos."
 
 #. Error when the folder chosen for downloads already holds this
 #. application's files.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
-msgstr ""
+msgstr "Esta carpeta ya contiene descargas. Elige una carpeta vacía."
 
 #. Error when the folder chosen for downloads holds other files, which this
 #. application would take charge of.
@@ -7642,11 +7675,14 @@ msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
+"Esta carpeta no está vacía. Elige una carpeta vacía — la carpeta de "
+"descargas está gestionada por esta aplicación y cualquier otra cosa no puede "
+"ser movida o eliminada."
 
 #. Error when the folder chosen for downloads could not be made.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
-msgstr ""
+msgstr "No se puede crear esta carpeta. Comprueba la ruta y sus permisos."
 
 #. Shown after choosing a new download folder the app cannot write into --
 #. another account's folder, or a read-only disk. Nothing has been moved.
@@ -7655,12 +7691,16 @@ msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
 msgstr ""
+"Esta app no tiene permitido escribir a esta carpeta. Elige una que te "
+"pertenezca, o cambia sus permisos, e inténtalo de nuevo."
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
 msgstr ""
+"Una descarga aún está finalizando. Espera a que acabe, luego inténtalo de "
+"nuevo."
 
 #. Error when the disk holding the chosen folder is too small for what is
 #. already downloaded.
@@ -7669,6 +7709,8 @@ msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
 msgstr ""
+"No hay suficiente espacio en este disco para mover las descargas. Libera "
+"algo de espacio e inténtalo de nuevo — nada ha sido movido."
 
 #. The same problem, discovered part way through the move rather than
 #. before it started. Past tense for that reason. Nothing was lost.
@@ -7677,6 +7719,9 @@ msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
 msgstr ""
+"Esta aplicación no tiene permitido escribir a esta carpeta. Las descargas se "
+"dejaron en su lugar; comprueba los permisos de la carpeta e inténtalo de "
+"nuevo."
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
@@ -7685,6 +7730,8 @@ msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"Fallo al mover las descargas. Fueron dejadas en su lugar; la carpeta de "
+"descargas no fue modificada."
 
 #. Error when the watch-together group asked for is gone.
 #: jellyfin_mpv_shim/syncplay.py
@@ -7777,6 +7824,10 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"GNOME no dibuja una bandeja de sistema por sí solo. Instala la extensión "
+"\"Soporte para AppIndicator y KStatusNotifierItem\" para obtener una, o "
+"activa \"Permitir en segundo plano\" en Configuración para ejecutar sin una "
+"ventana de todos modos."
 
 #. Warning shown when no tray icon could be created. "Allow Background" is
 #. a setting on this application's Settings screen; keep it matching that
@@ -7786,12 +7837,15 @@ msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
+"No hay ninguna bandeja del sistema en ejecución en este escritorio. Activa "
+"\"Permitir en segundo plano\" en Configuración para ejecutar sin ventana de "
+"todos modos."
 
 #. Entry on this application's system tray menu that brings the window up.
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr ""
+msgstr "Mostrar explorador de bibliotecas"
 
 #. Entry on this application's system tray menu, on Windows, that reveals
 #. the terminal window. An imperative verb phrase.
@@ -7833,29 +7887,29 @@ msgstr ""
 #. terminal's user list. Lower case and bracketed, appended after a name.
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
-msgstr ""
+msgstr "(predeterminado)"
 
 #. Terminal menu entry that creates a local profile of this application.
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Nuevo usuario"
 
 #. Printed in the terminal when the profile asked to be deleted is the one
 #. in use.
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Cambiar a otro usuario antes de eliminar este."
 
 #. Printed in the terminal when deleting the last remaining local profile
 #. was refused.
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Se requiere al menos un usuario."
 
 #. Printed in the terminal when the named local profile does not exist.
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "Usuario no encontrado."
 
 #. Stands in for a track's language when the file does not say.
 #. Deliberately clipped to four characters, because it sits inside a track
@@ -7924,13 +7978,13 @@ msgstr "Anime4K x2 Perceptual + Deblur (para HD)"
 #. the bracketed words say what it does.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN (Denoise + Sharpen)"
-msgstr ""
+msgstr "ArtCNN (Elimina ruido + Aumenta nitidez)"
 
 #. Name of a video shader profile. The bracketed code is the model's own
 #. name; leave it as it is.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN High (C4F32)"
-msgstr ""
+msgstr "ArtCNN High (C4F32)"
 
 #. Name of the widest video-profile scope: the profile used when nothing
 #. narrower is set.
@@ -7942,7 +7996,7 @@ msgstr "Por defecto (todos los medios)"
 #. library being viewed.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "Esta biblioteca"
 
 # seeded from jellyfin-web: Series
 #. Name of a video-profile scope: the profile applies to every episode of
@@ -7955,7 +8009,7 @@ msgstr "Esta serie"
 #. follows a wider one.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "No establecido"
 
 #. Marks which video-profile scope is actually deciding right now. {0} is
 #. that scope's name; the arrow is drawn from plain characters and should
@@ -7963,7 +8017,7 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr ""
+msgstr "{0}  <-- en vigor"
 
 #. Title of the in-player screen that chooses a video profile per scope. A
 #. video profile is a saved set of MPV shader and rendering options.
