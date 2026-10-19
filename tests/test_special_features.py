@@ -135,22 +135,36 @@ class TheRowTest(unittest.TestCase):
         self.assertEqual((b.route["kind"], b.route["item_id"]),
                          ("detail", "x2"))
 
+    LIVE = [({"kind": "detail", "item_id": "m1"}, "Movie"),
+            ({"kind": "series", "item_id": "sh1", "title": "Show"}, "Series"),
+            ({"kind": "season", "item_id": "se1", "series_id": "sh1",
+              "title": "Season 1"}, "Season")]
+
     def test_a_userdata_refresh_re_reads_the_row_without_it_walking(self):
         """A watched extra's check and progress come from re-reading, so
-        each refresh asks again -- and the row stays the same row."""
-        b = browser(DETAIL, with_counts("m1", extras=3), {"m1": EXTRAS})
-        b._browsing = True
-        for n in range(3):
-            b.source.special_features["m1"] = [
-                dict(e, UserData={"Played": n >= 1}) for e in EXTRAS]
-            self.assertTrue(b._refresh_current({"detail"}))
-            self.assertEqual(len(b.source.extras_calls), n + 2)
-            data = b.route["_data"]["extras"]
-            self.assertEqual([e["Id"] for e in data], ["x1", "x2", "x3"])
-            self.assertEqual(data[0]["UserData"]["Played"], n >= 1)
-        tiles = [i for i in order(build_scene(b, TALL)[0])
-                 if i.startswith("detail-extras-")]
-        self.assertEqual(len(tiles), 3)
+        each refresh asks again -- and the row stays the same row.
+
+        Through `refresh_userdata`, the path `enter_browse` takes after
+        playback, so a page that drops out of `USERDATA_KINDS` fails here.
+        Album and artist are left out of that set by ruling (2026-09-28)."""
+        for route, kind in self.LIVE:
+            with self.subTest(kind):
+                iid = route["item_id"]
+                b = browser(route, with_counts(iid, kind, extras=3),
+                            {iid: EXTRAS})
+                b._browsing = True
+                for n in range(3):
+                    b.source.special_features[iid] = [
+                        dict(e, UserData={"Played": n >= 1}) for e in EXTRAS]
+                    b.refresh_userdata(now=True)
+                    self.assertEqual(len(b.source.extras_calls), n + 2)
+                    data = b.route["_data"]["extras"]
+                    self.assertEqual([e["Id"] for e in data],
+                                     ["x1", "x2", "x3"])
+                    self.assertEqual(data[0]["UserData"]["Played"], n >= 1)
+                tiles = [i for i in order(build_scene(b, TALL)[0])
+                         if i.startswith(route["kind"] + "-extras-")]
+                self.assertEqual(len(tiles), 3)
 
 
 class TheCaptionTest(unittest.TestCase):
