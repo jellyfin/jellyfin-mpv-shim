@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
 "PO-Revision-Date: 2026-10-19 17:25+0000\n"
-"Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
+"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -2672,10 +2672,8 @@ msgstr "Mostrar lo que estás viendo en Discord"
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "Solicitar saltar las introducciones"
+msgstr "Controles multimedia de escritorio"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
@@ -2723,10 +2721,8 @@ msgstr "Espaciado de cuadrícula"
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remember Last Used Profile"
 msgid "Remember Library Filters"
-msgstr "Recordar el último perfil utilizado"
+msgstr "Filtros de biblioteca"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -3435,6 +3431,10 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"Permite que las teclas multimedia del teclado, los botones de los "
+"auriculares, la pantalla de bloqueo y los widgets multimedia del escritorio "
+"reproduzcan, pausen y salten canciones, y muestra qué se está reproduciendo "
+"junto con su portada (MPRIS, solo para Linux)."
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3485,6 +3485,10 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"Vuelve a abrir cada biblioteca con los filtros que tenía la última vez "
+"(género, no jugados, favoritos y el resto), guardados en tu cuenta en el "
+"servidor. Si se desactiva, los filtros solo durarán hasta que salgas de la "
+"biblioteca."
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -4925,7 +4929,8 @@ msgstr "Pantalla completa"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr "La reproducción se ha detenido, por lo que esta cola finaliza."
+msgstr ""
+"La reproducción se detuvo, así que esta lista de reproducción desapareció."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5816,16 +5821,14 @@ msgstr "Fecha en la que el episodio se añadió"
 #. says the library is not empty, only filtered.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "No items match these filters."
-msgstr ""
+msgstr "Ningún elemento coincide con estos filtros."
 
 # seeded from jellyfin-web: Filters
 #. Button under "No items match these filters." on an empty library grid.
 #. Removes every filter set on the library. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Filters"
 msgid "Clear Filters"
-msgstr "Filtros"
+msgstr "Borrar filtros"
 
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
@@ -5892,10 +5895,8 @@ msgstr "Esta ordenación no pudo ser guardada."
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Those items could not be removed."
 msgid "Those filters could not be saved."
-msgstr "Estos elementos no se han podido eliminar."
+msgstr "Estos filtros no se han podido guardar."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
