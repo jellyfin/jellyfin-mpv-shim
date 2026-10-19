@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-08-22 14:26+0000\n"
+"PO-Revision-Date: 2026-10-19 17:25+0000\n"
 "Last-Translator: ahmadjamel89 <ahmadjamel89@gmail.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/ckb/>\n"
@@ -5766,15 +5766,13 @@ msgstr "نەتوانرا پشکنین بۆ ئەوە بکرێت کە پێویست
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Could not check what needs downloading."
 msgid "Those filters could not be saved."
-msgstr "نەتوانرا پشکنین بۆ ئەوە بکرێت کە پێویستی بە داگرتنە."
+msgstr "ئەو فلتەرانە نەتوانرا پاشەکەوت بکرێن."
 
 #. Label beside the dropdown that orders a library grid. A verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Sort"
-msgstr ""
+msgstr "جۆر"
 
 #. Status message when a change made in the View settings modal did not
 #. reach the server.
