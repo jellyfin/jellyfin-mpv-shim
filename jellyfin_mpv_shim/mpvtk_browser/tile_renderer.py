@@ -29,6 +29,7 @@ import logging
 from collections import Counter
 import time
 
+from ..extras import is_extra
 from ..i18n import _
 from ..mpvtk.scaling import px, raster
 from ..mpvtk.widgets import (
@@ -48,6 +49,7 @@ from ..mpvtk.widgets import (
 )
 from . import components, theme
 from .components import chrome
+from .components.detail import fmt_ticks
 from .strips import Tile, logo_plate
 from .thumbnails import make_key
 
@@ -1193,15 +1195,24 @@ class TileRenderer:
         # labels: (show_title, show_year) from the library's view settings.
         # None means "as always", which is both on.
         show_title, show_year = labels or (True, True)
-        # Three-line captions are a property of the GEOMETRY, decided for the
-        # whole row by `caption_geom` -- a strip is composited at one tile
-        # size and one caption band, so it cannot be a per-tile answer. Here
-        # it only picks which of the two shapes this tile's text takes.
+        # Three-line captions are a property of the GEOMETRY, decided once
+        # for the whole row (who decides: `TileGeom.caption_lines`) -- a
+        # strip is composited at one tile size and one caption band, so it
+        # cannot be a per-tile answer. Here it only picks which shape this
+        # tile's text takes.
         third = geom.caption_lines >= 3
         title, subtitle = components.tile_lines(item, parent_item,
                                                 show_year=show_year,
                                                 air_time=not third)
         subtitle2 = components.air_time_line(item) if third else ""
+        if third and is_extra(item):
+            # Kind, then runtime, empty lines dropped and padded at the end
+            # as web's getCardTextLines does -- so an Unknown extra's runtime
+            # moves up. `fmt_ticks(0)` is "0:00", hence the guard.
+            ticks = item.get("RunTimeTicks")
+            lines = [s for s in (subtitle, fmt_ticks(ticks) if ticks else "")
+                     if s]
+            subtitle, subtitle2 = (lines + ["", ""])[:2]
         if not show_title:
             title = ""
             if not show_year:

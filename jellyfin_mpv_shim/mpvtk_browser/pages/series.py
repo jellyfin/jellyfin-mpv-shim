@@ -27,15 +27,15 @@ class SeriesPage(Page):
                 similar = source.get_similar(srv, iid) or []
             except Exception:
                 pass   # offline / older server: just no row
-            trailers: list = []
-            try:
-                trailers = source.get_trailers(srv, iid) or []
-            except Exception:
-                pass   # older servers / no trailers: just no button
+            item = source.get_item(srv, iid)
             return {
-                "item": source.get_item(srv, iid),
+                "item": item,
                 "seasons": source.get_seasons(srv, iid),
-                "similar": similar, "trailers": trailers,
+                "similar": similar,
+                "trailers": detail_components.local_trailers(
+                    source, srv, item),
+                "extras": detail_components.special_features(
+                    source, srv, item),
             }
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
@@ -83,6 +83,10 @@ class SeriesPage(Page):
         people = detail_components.people_row(tiles, item.get("People") or [])
         if people is not None:
             blocks.append(people)
+        extras = detail_components.special_features_row(
+            tiles, data.get("extras"), "series-extras")
+        if extras is not None:
+            blocks.append(extras)
         if data.get("similar"):
             # Shaped by its own artwork, like jellyfin-web
             # (shape: autooverflow, itemDetails/index.js:1245).
@@ -109,14 +113,10 @@ class SeriesPage(Page):
             controls.action_btn(
                 "shuffle", _("Shuffle"), "sa-shuffle",
                 lambda: actions.shuffle_series(series_id, server))]
-        # The detail loader had always fetched trailers for a Series, but a
-        # Series routes here, which had no button — one wasted API call per
-        # load, for a feature nobody could reach.
-        tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
-        if tids:
-            btns.append(controls.action_btn(
-                "movie", _("Trailer"), "sa-trailer",
-                lambda: actions.play_list(tids, server, 0)))
+        trailer = detail_components.trailer_button(
+            actions, item, trailers, server, "sa-trailer", self.open_link)
+        if trailer is not None:
+            btns.append(trailer)
         btns += detail_components.common_actions(
             actions, self.ctx.art.tiles, item, server, "sa")
         return Row(btns, gap=8, align="center")

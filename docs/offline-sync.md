@@ -1245,3 +1245,39 @@ which is `_adopt_orphan`, on a file it is trying to keep.
 notice between chunks, which can take the 60 s read timeout. `enqueue`
 withdraws it (`_uncancel`), or changing your mind inside that window queued
 the item and had the worker's unwind delete it underneath.
+
+## 6. Extras are online-only, by decision
+
+Special Features and trailers are never downloaded (owner, 2026-10-18:
+"Deferred"). The catalog has nothing that links an extra to its film, so one
+downloaded today would sit alone in the offline "Videos" library, and a film's
+download would not bring its extras.
+
+**The door is `_expand`**, and the branches that can be handed an extra apply
+`extras.is_extra` (the Series and Season branches list episodes through
+`/Shows/{id}/Episodes` and filter nothing):
+the playlist and folder listings drop an extra like an unsupported type (an
+extra can be added to a playlist, as on web), and a single extra raises
+`NotDownloadable` — not `[]`, which the dialog reads as "Nothing left to
+download", and not `ExpandFailed`, which invites a retry. The browser hides
+Download on an extra's tile menu and its page (`download_button`), and
+`OfflineLibrarySource.get_special_features` answers `[]`.
+
+**What proper support needs**, sized when this was decided (5–8 days):
+
+- an `owner_id` column on `downloads` — **not** `series_id`, which
+  `watched_targets` fans played marks out over (`db.py`), stamped into
+  `item.json` too so `_adopt_orphan` can rebuild it;
+- `_expand` fetching `/Items/{id}/SpecialFeatures` for a film, series or season;
+- a **third ownership** beside `origin` and `playlist_items.owned`, released at
+  every site that deletes a row: `delete_item`, a series or season delete, the
+  auto reaper, `_delete_playlist` and Remove Watched (§5);
+- extras partitioned out of the loose offline listings in `reload()`, search
+  and the genre readers, and an offline `get_special_features` keyed on
+  `owner_id`;
+- a refresh pass for extras the server has added or removed since.
+
+That bends two rules this file states: the catalog holds leaves only, and §5's
+two ownerships. Still unmeasured: whether `UserDataChanged` fires for an extra,
+and how the server's under-300-seconds-is-played rule meets the local
+advance-only mirror.

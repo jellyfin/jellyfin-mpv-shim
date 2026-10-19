@@ -21,6 +21,7 @@ import urllib.parse
 import requests
 
 from .. import items_api
+from ..extras import is_extra
 from ..utils import same_origin
 from ..books import AUDIOBOOK_TYPE, BOOK_TYPE, book_format, is_book
 from ..conf import settings
@@ -321,6 +322,16 @@ class DownloadCollision(Exception):
 
 class _Cancelled(Exception):
     """Raised inside the worker when the active download is being deleted."""
+
+
+class NotDownloadable(Exception):
+    """The item is one this catalog refuses: an extra (docs/offline-sync.md
+    §6).
+
+    Not ``[]``: that is "everything here is already downloaded", and the
+    dialog says so. Not ``ExpandFailed`` either, which is a network fault
+    and invites a retry that cannot succeed.
+    """
 
 
 class ExpandFailed(Exception):
@@ -2071,7 +2082,10 @@ class SyncManager:
                 # Playlists can mix in other entries; only download the types
                 # the browser surfaces (mirrors PLAYLIST_SUPPORTED_TYPES).
                 # Audio is included so music playlists download as one unit.
-                return [i for i in items if i.get("Type") in DOWNLOADABLE]
+                # An extra can be added to a playlist (web allows it), and is
+                # dropped here like an unsupported type.
+                return [i for i in items if i.get("Type") in DOWNLOADABLE
+                        and not is_extra(i)]
             if item_type in FOLDER_ITEM_TYPES:
                 # A books library is a folder tree, and a multi-file
                 # audiobook is a *folder* -- nothing else joins its chapters
@@ -2088,9 +2102,14 @@ class SyncManager:
                                          fields="MediaSources,Path",
                                          sort_by="SortName", limit=500)
                 items = (res or {}).get("Items", [])
-                return [i for i in items if i.get("Type") in DOWNLOADABLE]
+                return [i for i in items if i.get("Type") in DOWNLOADABLE
+                        and not is_extra(i)]
             item = api.get_item(item_id, fields="MediaSources,Path")
+            if is_extra(item):
+                raise NotDownloadable(item_id)
             return [item] if item else []
+        except NotDownloadable:
+            raise
         except Exception as exc:
             # Raised, not swallowed into []. Two documented contracts above
             # this depend on it: `gateway.download_enqueue` ("Raises on

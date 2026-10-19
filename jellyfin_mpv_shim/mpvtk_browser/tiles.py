@@ -13,6 +13,7 @@ import logging
 
 
 from ..i18n import _, _p
+from ..extras import is_extra
 from ..utils import launches_as_audio
 from ..mpvtk.widgets import Menu
 from . import components
@@ -385,7 +386,9 @@ class TilesMixin:
             # capitalizes a heading differently from a menu entry needs
             # both keys to say so.
             out.append((_("Add to playlist"), "queue_music", "addto"))
-        if t in self.MENU_DOWNLOAD and not self._offline:
+        if (t in self.MENU_DOWNLOAD and not self._offline
+                and not is_extra(item)):
+            # Extras are online-only (docs/offline-sync.md §6).
             out.append((_("Download"), "file_download", "download"))
         if t in self.MENU_MEDIA_INFO:
             # Offline too: the catalog holds the source it was downloaded

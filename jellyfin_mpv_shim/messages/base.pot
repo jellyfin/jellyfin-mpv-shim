@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-17 13:33-0400\n"
+"POT-Creation-Date: 2026-10-18 22:27-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1255,11 +1255,87 @@ msgstr ""
 msgid "Favorite"
 msgstr ""
 
+#. Heading over the row of a film's or show's extras (featurettes, deleted
+#. scenes, interviews) on its page. Jellyfin Web uses the same words.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+msgid "Special Features"
+msgstr ""
+
+#. Button on an item's page that plays its trailer, or opens it in the web
+#. browser when the server only has a link to one.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+msgid "Trailer"
+msgstr ""
+
 #. Button on an item's page that opens the same item in Jellyfin's browser
 #. client. Short for the web client, since the button sits in a row of
 #. narrow buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A short
+#. promotional film about the making of the film.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Featurette"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
+#. production.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Behind the Scenes"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
+#. from the finished film.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Deleted Scene"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. An interview
+#. with the cast or crew.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Interview"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A scene from
+#. the film itself.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Scene"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A short sample
+#. of the video.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Sample"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A short
+#. excerpt.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Clip"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
+#. noun, not the adjective).
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Short"
 msgstr ""
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
@@ -3676,6 +3752,12 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
+#. Error in the Download modal for a special feature (an extra belonging to a
+#. film or show). They can only be played from the server.
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Special features cannot be downloaded."
+msgstr ""
+
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -5276,12 +5358,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
-msgstr ""
-
-#. Button on an item's page that plays its trailer.
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-msgid "Trailer"
 msgstr ""
 
 #. Heading over an item's chapter thumbnails on its page. Jellyfin Web uses
