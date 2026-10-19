@@ -218,8 +218,11 @@ class _Contract:
         b, trap = self._browser()
         _nodes, handlers = self._go(b, trap, {
             "kind": "detail", "item_id": self.film["Id"], "title": FILM})
+        # Eleven extras overflow the row, so it also draws its scroll arrows.
+        arrows = {"detail-extras-pl", "detail-extras-pr"}
         tiles = [n.get("id") for n in _nodes
-                 if (n.get("id") or "").startswith("detail-extras-")]
+                 if (n.get("id") or "").startswith("detail-extras-")
+                 and n.get("id") not in arrows]
         self.assertEqual(tiles, ["detail-extras-" + e["Id"]
                                  for e in self.extras])
 
