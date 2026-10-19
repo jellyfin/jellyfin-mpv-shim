@@ -87,9 +87,12 @@ class DiagnosticsMixin(GatewayCore):
             player = playerManager._player
         except Exception:
             log.debug("no mpv handle for the clipboard", exc_info=True)
-        return copy_or_save(
+        from ...hostinfo import outside_path
+
+        ok, method, path = copy_or_save(
             text, os.path.join(self.config_dir(), "copied-logs.txt"),
             player=player)
+        return ok, method, outside_path(path) if path else path
 
     def open_config_folder(self):
         """Reveal the config directory. The tray menu used to be the only way
@@ -99,8 +102,10 @@ class DiagnosticsMixin(GatewayCore):
 
         from ... import conffile
         from ...constants import APP_NAME
+        from ...hostinfo import outside_path
 
-        path = os.path.dirname(conffile.get(APP_NAME, "conf.json"))
+        path = outside_path(
+            os.path.dirname(conffile.get(APP_NAME, "conf.json")))
         try:
             if sys.platform == "darwin":
                 subprocess.Popen(["open", path])
