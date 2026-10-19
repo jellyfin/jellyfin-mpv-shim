@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 10:31+0000\n"
+"PO-Revision-Date: 2026-10-19 10:39+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -1056,7 +1056,7 @@ msgstr "Varem lisatud serverid"
 #. server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Kasuta"
 
 # seeded from jellyfin-web: QuickConnect
 #. A Jellyfin feature that signs a device in by typing a short code into an
@@ -1070,39 +1070,31 @@ msgstr "Kiirühendus"
 #. Instruction above the Quick Connect code on the sign-in page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "Sisesta see kood Jellyfini rakendusse või veebiklienti:"
 
 #. Stands in for the Quick Connect code while it is being fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "SVP seaded"
+msgstr "Pärimine…"
 
 #. Label of the field on the sign-in page where the Jellyfin server's web
 #. address is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "Serveri URL: "
+msgstr "Serveri URL"
 
 #. Label of the field on the sign-in page where the Jellyfin account name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Kasutajanimi:"
+msgstr "Kasutajanimi"
 
 #. Label of the field on the sign-in page where the Jellyfin account
 #. password is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Parool:"
+msgstr "Parool"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #. Button on the sign-in page that signs in with a code instead of a
@@ -1130,33 +1122,25 @@ msgstr "Ühenda"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Serveri seadistus"
+msgstr "Kohaliku võrgu serverid"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "Sisesta kõigepealt serveri URL."
 
 #. Status shown while the Quick Connect code is being requested.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Serveri lisamine nurjus.\n"
-"Kontrolli ühenduse andmeid."
+msgstr "Ühendun serveriga…"
 
 #. Status shown while Quick Connect waits for someone to accept the code in
 #. another Jellyfin app.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "Kinnituse ootel…"
 
 #. Error shown when the Quick Connect code expired or was refused.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1173,6 +1157,7 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"See on teise serveri aadress. Sisselogimiseks lisa see eraldi uue serverina."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
