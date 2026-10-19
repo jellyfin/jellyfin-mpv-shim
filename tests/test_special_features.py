@@ -353,6 +353,36 @@ class DownloadIsNotOfferedTest(unittest.TestCase):
         self.assertIn("Special features cannot be downloaded.", texts)
         self.assertNotIn("Estimating…", texts)
 
+    def test_a_late_estimate_stays_with_the_dialog_that_asked(self):
+        """Cancel A, open B, then A's estimate lands: B keeps its own
+        state. `on_error` is not epoch-gated and opening a dialog does not
+        bump the epoch, so neither callback may write into whatever dialog
+        is current."""
+        from jellyfin_mpv_shim.sync.manager import NotDownloadable
+        from tests._shell_harness import _DeferredPool
+
+        for outcome in ("refused", "counted"):
+            with self.subTest(outcome):
+                b = browser(DETAIL)
+                pool = _DeferredPool()
+                b._pool = pool
+
+                def estimate(server, item_id, item_type):
+                    if item_id == "a" and outcome == "refused":
+                        raise NotDownloadable(item_id)
+                    return {"count": 4, "total_bytes": 4096}
+                b.controller.download_estimate = estimate
+                b._open_download({"Id": "a", "Name": "A", "Type": "Movie"})
+                b._close_download()
+                b._open_download({"Id": "b", "Name": "B", "Type": "Movie"})
+                self.assertTrue(pool.release(0))        # A's estimate
+                self.assertEqual(b._dl["item"]["Id"], "b")
+                self.assertIsNone(b._dl["est"])
+                self.assertNotIn("error", b._dl)
+                self.assertIn("Estimating…", self.texts(b))
+                pool.drain()                            # B's own
+                self.assertEqual(b._dl["est"]["count"], 4)
+
     def test_a_network_fault_on_an_extra_is_not_a_refusal(self):
         b = browser(DETAIL)
 

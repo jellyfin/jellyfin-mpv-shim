@@ -537,8 +537,8 @@ class DialogsMixin:
         container = item.get("Type") in ("Series", "Season", "Playlist",
                                          "MusicAlbum", "MusicArtist",
                                          "BoxSet", "Folder", "CollectionFolder")
-        self._dl = {"server": server, "item": item, "est": None,
-                    "container": container, "watched": not container}
+        self._dl = state = {"server": server, "item": item, "est": None,
+                            "container": container, "watched": not container}
         ep = self._epoch
 
         def work():
@@ -546,10 +546,13 @@ class DialogsMixin:
                 server, item.get("Id"), item.get("Type"))
 
         def done(est):
-            if self._dl is not None:
-                self._dl["est"] = est
-                if self._dl["container"]:
-                    self._dl["watched"] = bool((est or {}).get("audio_only"))
+            # Opening a dialog does not move the epoch, so a cancelled
+            # dialog's estimate can land while the next one is open.
+            if self._dl is not state:
+                return
+            state["est"] = est
+            if state["container"]:
+                state["watched"] = bool((est or {}).get("audio_only"))
             self._show_download()
 
         def failed(exc):
@@ -560,14 +563,15 @@ class DialogsMixin:
             # Download button withheld.
             from ..sync.manager import NotDownloadable
 
-            if self._dl is not None:
-                # The sync code's verdict, not this DTO's: `_expand` decides
-                # on a DTO it fetched itself, and a network fault on an
-                # extra is still worth a retry.
-                self._dl["error"] = (
-                    _("Special features cannot be downloaded.")
-                    if isinstance(exc, NotDownloadable) else
-                    _("Could not check what needs downloading."))
+            if self._dl is not state:
+                return              # dialog closed, or opened on another item
+            # The sync code's verdict, not this DTO's: `_expand` decides on a
+            # DTO it fetched itself, and a network fault on an extra is still
+            # worth a retry.
+            state["error"] = (
+                _("Special features cannot be downloaded.")
+                if isinstance(exc, NotDownloadable) else
+                _("Could not check what needs downloading."))
             self._show_download()
 
         self.run_async(work, done, ep, on_error=failed)
