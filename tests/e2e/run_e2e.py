@@ -98,6 +98,10 @@ CONTRACT = [
     # suite can only assume, because it builds the DTO it then reads.
     "tests.e2e.test_music_playlist",
     "tests.e2e.test_items_endpoint",
+    # Special Features and trailers (#759): the counts, the list, the
+    # `ExtraType` the download door reads, and season-owned extras. Set
+    # JMS_E2E_SERVER_ALT for the 10.11 leg.
+    "tests.e2e.test_special_features",
     # The server dates a watched mark (LastPlayedDate), which the
     # deliberate-unwatch replay rule (D1) depends on. Both majors.
     "tests.e2e.test_userdata_contract",
@@ -241,6 +245,8 @@ PER_BACKEND = [
     # loop the contract tier cannot see, because it drives the server
     # directly rather than through the player.
     "tests.e2e.test_audiobooks.AudiobookPlaybackTest",
+    # An extra and the local trailers through the real play path.
+    "tests.e2e.test_special_features.PlayingAnExtraTest",
     # The comic reader, which is the one browser screen the contract-tier
     # route walk cannot open: a comic page is PLAYED, so showing one imports
     # player.py and opens a window. Per backend because what it asserts on
