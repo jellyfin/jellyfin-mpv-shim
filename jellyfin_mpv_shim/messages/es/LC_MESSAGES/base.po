@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-16 20:21+0000\n"
+"PO-Revision-Date: 2026-10-19 17:25+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -4925,7 +4925,7 @@ msgstr "Pantalla completa"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr ""
+msgstr "La reproducción se ha detenido, por lo que esta cola finaliza."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -6781,6 +6781,8 @@ msgid ""
 "To stop the application, re-launch and uncheck this option or run `jellyfin-"
 "mpv-shim stop`."
 msgstr ""
+"Para detener la aplicación, vuelve a lanzar y desmarca esta opción o ejecuta "
+"`jellyfin-mpv-shim stop`."
 
 #. Explanation under a settings row that is switched on but cannot work.
 #. "pypresence" is a software package name; "Logs" is a tab on this
@@ -6804,55 +6806,55 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Applies to %s, enable other servers in servers tab."
-msgstr ""
+msgstr "Se aplica a %s, activa otros servidores en la pestaña de servidores."
 
 #. Question in the dialog that returns downloads to the folder this
 #. application chooses itself.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
-msgstr ""
+msgstr "¿Mover las descargas de vuelta a la carpeta predeterminada?"
 
 #. Confirming button of the dialog that returns downloads to the folder
 #. this application chooses itself.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the default folder"
-msgstr ""
+msgstr "Usar la carpeta predeterminada"
 
 #. Status message while downloaded files are being relocated. %d is the
 #. percentage done; the doubled percent sign prints one.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Moving downloads… %d%%"
-msgstr ""
+msgstr "Moviendo descargas... %d%%"
 
 #. Status message when relocating the download folder did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving the downloads failed."
-msgstr ""
+msgstr "Fallo al mover las descargas."
 
 #. Status message after the download folder was relocated, saying the
 #. application must be started again.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Download folder moved. Restart to finish switching."
-msgstr ""
+msgstr "Carpeta de descargas movida. Reinicia para finalizar el cambio."
 
 #. Status message while downloaded files are being relocated, before any
 #. progress figure is known.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving downloads…"
-msgstr ""
+msgstr "Moviendo descargas…"
 
 #. Status message when a second download-folder move was asked for while
 #. one is running.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "A move is already in progress."
-msgstr ""
+msgstr "Ya hay un movimiento en progreso."
 
 #. Status message when offline browsing was chosen but nothing is on this
 #. device.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Nothing downloaded to browse offline."
-msgstr ""
+msgstr "Nada descargado para explorar sin conexión."
 
 #. Status message when no Jellyfin server answered.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -6864,7 +6866,7 @@ msgstr "No se pudo alcanzar un servidor."
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
-msgstr ""
+msgstr "Pantalla de inicio"
 
 #. Shown in the Home Screen settings while offline, because these are
 #. stored on the server.
