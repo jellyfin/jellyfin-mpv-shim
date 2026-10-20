@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-20 07:22+0000\n"
+"PO-Revision-Date: 2026-10-20 07:31+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -3473,6 +3473,14 @@ msgid ""
 "get a drop shadow so they keep an edge against it. Off, they get the theme's "
 "card colour and no shadow, as Jellyfin Web does."
 msgstr ""
+"Kanālu logotipi ir veidoti kā melns zīmējums uz caurspīdīga fona — tie "
+"paredzēti baltai pamatnei, kādu izmanto citi klienti, tāpēc uz tumša fona "
+"melnie elementi kļūst neredzami. Kad tie ir aktīvi, katram logotipam tiek "
+"pievienots gaišs fona laukums (kādam tie sākotnēji arī bija paredzēti), bet "
+"tiem nedaudzajiem, kuriem ir balta kontūra, tiek pievienota arī ēna, lai tie "
+"saglabātu skaidras aprises. Kad tie ir neaktīvi, tiem tiek piešķirta "
+"attiecīgās tēmas kartīšu krāsa bez ēnas — tieši tāpat, kā tas ir \"Jellyfin "
+"Web\" saskarnē."
 
 #. Explanation shown under the "Make library logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3483,6 +3491,11 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
+"Tas pats attiecas uz bibliotēku, kas paredzēta Logo grafikas attēlošanai. "
+"Pēc noklusējuma šī funkcija ir izslēgta: filmu vai seriālu logotipi "
+"tradicionāli ir balti un ir labi saskatāmi uz tumša fona; ēna ir "
+"nepieciešama tikai tad, ja tiek izmantots fona laukums (plate). Ieslēdziet "
+"šo opciju, ja jūsu logotipi ir tumši."
 
 #. Explanation shown under the "Theme" setting (Settings > Browse > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3490,6 +3503,8 @@ msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"Palete, mirdzums, vāka stils un noklusējuma vāka izmērs. Krāsas mainās "
+"uzreiz; vāka un virsrakstu izmēri stājas spēkā pēc restartēšanas."
 
 #. Explanation shown under the "Grid Spacing" setting (Settings > Browse >
 #. Library Browser).
@@ -3499,6 +3514,10 @@ msgid ""
 "gaps keeps the page margins the same on every screen size; centring keeps "
 "the covers evenly spaced and moves both margins instead."
 msgstr ""
+"Gadījumos, kad vāku skaits pilnībā neaizpilda pieejamo platumu, atstarpju "
+"palielināšana ļauj saglabāt nemainīgas lappuses malas jebkurā ekrāna izmērā; "
+"savukārt centrēšana nodrošina vienmērīgu atstarpju sadalījumu starp vākiem, "
+"vienlaikus mainot abu malu platumu."
 
 #. Explanation shown under the "Full-Width Backdrops" setting (Settings >
 #. Browse > Library Browser).
@@ -3508,12 +3527,18 @@ msgid ""
 "client does. It shows more of the artwork without taking any more vertical "
 "space."
 msgstr ""
+"Izvietojiet fona elementu detalizētās informācijas lapā tā, lai tas sniegtos "
+"līdz pat loga malām — tieši tā, kā tas ir tīmekļa klientā. Tādējādi tiek "
+"parādīta lielāka daļa no vizuālā noformējuma, neaizņemot vairāk vietas "
+"vertikāli."
 
 #. Explanation shown under the "Cover Size" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
+"Pārraksta tēmas vāka izmēru. Pieejams arī jebkuras bibliotēkas izvēlnē "
+"\"Skatīt\"."
 
 #. Explanation shown under the "12-Hour Clock" setting (Settings > Browse >
 #. Library Browser).
@@ -3523,6 +3548,9 @@ msgid ""
 "and its air times, and the \"Ends at\" labels on a detail page and the "
 "player controls."
 msgstr ""
+"Attēlojiet diennakts laiku kā \"8:30 PM\", nevis \"20:30\" — tas attiecas uz "
+"tiešraides TV programmu un pārraižu laikiem, kā arī uz norādēm \"Beidzas\" "
+"informācijas lapā un atskaņotāja vadīklās."
 
 #. Explanation shown under the "Shading Behind the Player Controls" setting
 #. (Settings > Playback > Player Controls).
@@ -3531,6 +3559,9 @@ msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"Vadības elementiem ir jāpaliek salasāmiem neatkarīgi no tā, kāds ir kadrs. "
+"Iestatījums \"Nav\" (None) piešķir tekstam krītošo ēnu, nevis aptumšo aiz tā "
+"esošo attēlu."
 
 #. Explanation shown under the "When the Player Controls Hide" setting
 #. (Settings > Playback > Player Controls).
@@ -3539,6 +3570,9 @@ msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"Iestatījums \"Slēpt, ja vien nav uzvilkts kursors\" nodrošina, ka tie paliek "
+"redzami tikai tad, ja uz tiem atrodas kursors — neatkarīgi no tā, vai "
+"atskaņošana ir apturēta vai nē."
 
 #. Explanation shown under the "Hide the Player Controls After (seconds)"
 #. setting (Settings > Playback > Player Controls).
