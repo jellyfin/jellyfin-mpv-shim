@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 17:25+0000\n"
+"PO-Revision-Date: 2026-10-20 14:48+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -3182,6 +3182,13 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"Beim Transkodieren eines Videos sollen die integrierten Blu-ray- oder DVD-"
+"Untertitel (PGS, VobSub) als separate Tonspur angezeigt werden, anstatt sie "
+"in das Bild einzubrennen. So bleiben sie scharf und können ohne Neustart "
+"umgeschaltet werden. Die Anzeige einer einzelnen Tonspur zwingt den Server, "
+"zunächst alle Untertitelspuren der Datei zu extrahieren, was bei großen "
+"Dateien Zeit und Speicherplatz auf dem Server kostet. Untertitel in einer "
+"eigenen Datei sind davon nicht betroffen."
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3431,6 +3438,10 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"Ermöglicht das Abspielen, Pausieren und Überspringen von Titeln über die "
+"Medientasten der Tastatur, die Tasten des Headsets, den Sperrbildschirm und "
+"die Desktop-Medien-Widgets und zeigt mit dem Cover an, was gerade abgespielt "
+"wird (MPRIS, nur Linux)."
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3482,6 +3493,10 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"Jede Bibliothek mit den Filtern erneut öffnen, die beim letzten Mal aktiv "
+"waren (Genre, ungespielte Titel, Favoriten usw.), die in Ihrem Konto auf dem "
+"Server gespeichert sind. Wenn aus, bleiben Filter nur so lange aktiv, bis "
+"Sie die Bibliothek verlassen."
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -4945,6 +4960,8 @@ msgstr "Vollbild"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
 msgstr ""
+"Die Wiedergabe wurde gestoppt, daher ist diese Warteschlange nicht mehr "
+"verfügbar."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5847,16 +5864,14 @@ msgstr "Episode hinzugefügt am"
 #. says the library is not empty, only filtered.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "No items match these filters."
-msgstr ""
+msgstr "Keine Elemente passen zu diesen Filtern."
 
 # seeded from jellyfin-web: Filters
 #. Button under "No items match these filters." on an empty library grid.
 #. Removes every filter set on the library. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Filters"
 msgid "Clear Filters"
-msgstr "Filter"
+msgstr "Filter löschen"
 
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
@@ -5923,10 +5938,8 @@ msgstr "Diese Sortierung konnte nicht gespeichert werden."
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Those items could not be removed."
 msgid "Those filters could not be saved."
-msgstr "Diese Elemente konnten nicht entfernt werden."
+msgstr "Diese Filter konnten nicht gespeichert werden."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
