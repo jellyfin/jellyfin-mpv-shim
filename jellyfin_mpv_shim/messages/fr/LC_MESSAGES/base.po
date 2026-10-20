@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-20 20:50+0000\n"
+"PO-Revision-Date: 2026-10-20 21:01+0000\n"
 "Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -2688,10 +2688,8 @@ msgstr "Afficher votre lecture en cours dans Discord"
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "Demander à passer les introductions"
+msgstr "Contrôles depuis le bureau"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
@@ -2740,10 +2738,8 @@ msgstr "Espacement de grille"
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remember Last Used Profile"
 msgid "Remember Library Filters"
-msgstr "Se souvenir du dernier profil utilisé"
+msgstr "Garder les filtres de la bibliothèque"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -2962,6 +2958,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"Cette liste n'a aucun effet par elle même -- activez un des des boutons en "
+"dessous. Elle changes les pistes audio et de sous-titres proposées, par "
+"celles qui sont choisies automatiquement ; c'est le réglage précédent. "
+"\"und\" signifie « non étiqueté », si cette option est supprimé les pistes "
+"non étiquetés seront masquées."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
