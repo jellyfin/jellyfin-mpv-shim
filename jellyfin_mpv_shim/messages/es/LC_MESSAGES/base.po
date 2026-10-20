@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-19 17:25+0000\n"
+"PO-Revision-Date: 2026-10-20 16:32+0000\n"
 "Last-Translator: Jesús Jiménez <fordas15@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -2722,7 +2722,7 @@ msgstr "Espaciado de cuadrícula"
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Library Filters"
-msgstr "Filtros de biblioteca"
+msgstr "Recordar filtros de biblioteca"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -3493,9 +3493,9 @@ msgid ""
 "only last until you leave the library."
 msgstr ""
 "Vuelve a abrir cada biblioteca con los filtros que tenía la última vez "
-"(género, no jugados, favoritos y el resto), guardados en tu cuenta en el "
-"servidor. Si se desactiva, los filtros solo durarán hasta que salgas de la "
-"biblioteca."
+"(género, no reproducidos, favoritos y el resto), guardados en tu cuenta en "
+"el servidor. Si se desactiva, los filtros solo durarán hasta que salgas de "
+"la biblioteca."
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
