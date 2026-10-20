@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-20 07:31+0000\n"
+"PO-Revision-Date: 2026-10-20 07:36+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -2869,7 +2869,7 @@ msgstr ""
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Library Filters"
-msgstr ""
+msgstr "Atcerēties bibliotēkas filtrus"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -3581,6 +3581,8 @@ msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"0 slēpj tos, kamēr virs tiem nav kursors un iespējo \"Slēpt, ja vien nav "
+"uzvilkts kursors\"."
 
 #. Explanation shown under the "Shrink the Player Controls on a Narrow
 #. Window" setting (Settings > Playback > Player Controls).
@@ -3590,6 +3592,9 @@ msgid ""
 "the accessibility minimum, instead of dropping buttons sooner. Off keeps the "
 "older, larger floor."
 msgstr ""
+"Sašaurinot logu, vadības ierīces tiek samazinātas, līdz mazākā poga sasniedz "
+"pieejamības minimumu, nevis tiek atmestas uzreiz. Izslēgšana saglabā "
+"iepriekšejo, lielāku pamatu."
 
 #. Explanation shown under the "Mouse Back/Forward Buttons Skip Chapters"
 #. setting (Settings > Playback > Player Controls).
