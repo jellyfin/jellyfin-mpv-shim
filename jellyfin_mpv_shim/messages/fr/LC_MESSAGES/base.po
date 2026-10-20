@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-16 06:49+0000\n"
-"Last-Translator: cedev-1 <cedevserver@gmail.com>\n"
+"PO-Revision-Date: 2026-10-20 20:37+0000\n"
+"Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -863,8 +863,6 @@ msgstr "La lecture n'a pas pu démarrer."
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "Nothing downloaded to browse offline."
 msgid "Nothing is downloaded to browse offline."
 msgstr ""
 "Aucun fichier n'a été téléchargé pour permettre la navigation hors ligne."
