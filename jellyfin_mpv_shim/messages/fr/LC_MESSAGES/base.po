@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-20 20:46+0000\n"
+"PO-Revision-Date: 2026-10-20 20:50+0000\n"
 "Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -1284,14 +1284,14 @@ msgstr "Web"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Pas encore diffusé"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Manquant"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2462,7 +2462,7 @@ msgstr "Personnalisé (définir dans la configuration)"
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "Être averti des nouveautés"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
@@ -2592,6 +2592,7 @@ msgstr "Supprimer les téléchargements automatiques après le visionnage"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
 msgstr ""
+"Garder les téléchargements vus pendant (heures, 0=suppression immédiate)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
