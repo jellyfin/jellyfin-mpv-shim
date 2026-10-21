@@ -876,7 +876,7 @@ NOTES = {
     # 16ad0bb4, which took the flatpak from v0.41.0 to master for an
     # unrelated HDR fix (#687) -- so this is not upstream drift we failed
     # to track. renderer.lua's phud_bind_summon leans on the old default
-    # and was left behind; see docs/RELEASE_SHAPE_POST_3.0.0.md section 1.
+    # and was left behind; see docs/archive/RELEASE_SHAPE_POST_3.0.0.md section 1.
     # Naming the effect would go stale again at the next such change, so
     # it names where the answer comes from.
     "mouse_click_pauses": _("Off gives MPV's own mouse behaviour instead: "

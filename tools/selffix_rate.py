@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """How much of a release window was spent repairing that same window.
 
-`docs/POSTMORTEM_3.0.0.md` §1 measured 3.0.0 at roughly 30-45% by four
+`docs/archive/POSTMORTEM_3.0.0.md` §1 measured 3.0.0 at roughly 30-45% by four
 instruments, and §5.8 turned that into the one process rule with a number
 on it:
 
@@ -211,7 +211,7 @@ def classify(commits, verbose=False):
     if blame_lines == 0 and commits:
         raise SystemExit(
             "blame produced no lines at all across %d commits. That is the "
-            "0.0%% trap from docs/POSTMORTEM_3.0.0.md section 1, not a clean "
+            "0.0%% trap from docs/archive/POSTMORTEM_3.0.0.md section 1, not a clean "
             "release -- check the git invocation before believing any "
             "number here." % len(commits))
     return rows
@@ -285,7 +285,7 @@ def main(argv=None):
             print("excluded %d prose-only commit(s) -- AST-identical with "
                   "docstrings stripped.\nThey leave the denominator too, "
                   "which is where these figures part company with\n"
-                  "docs/POSTMORTEM_3.0.0.md section 1. Same numerators.\n"
+                  "docs/archive/POSTMORTEM_3.0.0.md section 1. Same numerators.\n"
                   % (len(commits) - len(keep)))
         commits = keep
 
@@ -298,7 +298,7 @@ def main(argv=None):
         print("  %-3s %3d / %-3d  %5.1f%%" % (name, n, d, pc))
     print("\nNever quote one of these as \"the\" rate: they are four "
           "instruments in\nthree units, and the variance is the finding "
-          "(docs/POSTMORTEM_3.0.0.md section 1).")
+          "(docs/archive/POSTMORTEM_3.0.0.md section 1).")
 
     table = daily(rows)
     if args.daily:
@@ -323,7 +323,7 @@ def main(argv=None):
           % (opening, trailing, "OK" if ok else "DO NOT TAG"))
     if not ok:
         print("      The window is spending more of its commits repairing "
-              "itself than\n      when it opened. docs/POSTMORTEM_3.0.0.md "
+              "itself than\n      when it opened. docs/archive/POSTMORTEM_3.0.0.md "
               "section 5.8; CLAUDE.md's\n      'Applying Review Findings' is "
               "the same rule without the number.")
     return 0 if ok else 1

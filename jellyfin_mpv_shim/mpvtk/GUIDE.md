@@ -1107,7 +1107,7 @@ Two things worth knowing before touching it:
   reason and fails on Windows for a correct one.
 - `/run/host/os-release` is the same trick from the other direction — it is the
   only place a Flatpak can read the *host's* identity, which is what the
-  SteamOS detection in `docs/RELEASE_SHAPE_POST_3.0.0.md` §5.3 uses.
+  SteamOS detection in `docs/archive/RELEASE_SHAPE_POST_3.0.0.md` §5.3 uses.
 
 ### 12.8 One bucket per family of faces, not per script
 

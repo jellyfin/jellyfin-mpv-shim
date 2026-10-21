@@ -77,7 +77,7 @@ class SourceAttributeTest(unittest.TestCase):
 
     def test_the_path_is_shown(self):
         """Deliberate divergence from jellyfin-web, which gates the path on
-        IsAdministrator. See docs/UI_FIXES_4.md §11 — it is not a boundary,
+        IsAdministrator. See docs/archive/UI_FIXES_4.md §11 — it is not a boundary,
         and hiding it from the owner of the machine buys nothing."""
         rows = dict(media_info.source_attributes({"Path": "/media/a.mkv"}))
         self.assertIn("/media/a.mkv", rows.values())

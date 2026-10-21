@@ -527,7 +527,7 @@ class MpvtkApp:
         blob, which is where the HUD's own keyboard policy travels: that
         blob only arrives on HUD engage, while the same bindings are
         installed for browsing by ``mpvtk-active``, which carries no opts
-        at all. See docs/ISSUES_2026-09.md (#717).
+        at all. See docs/archive/ISSUES_2026-09.md (#717).
         """
         from ..conf import select_key
 

@@ -1,595 +1,258 @@
 # Jellyfin MPV Shim
 
-[![Current Release](https://img.shields.io/github/release/jellyfin/jellyfin-mpv-shim.svg)](https://github.com/jellyfin/jellyfin-mpv-shim/releases)
+[![Current Release](https://img.shields.io/github/v/release/jellyfin/jellyfin-mpv-shim)](https://github.com/jellyfin/jellyfin-mpv-shim/releases)
 [![PyPI](https://img.shields.io/pypi/v/jellyfin-mpv-shim)](https://pypi.org/project/jellyfin-mpv-shim/)
 [![Translation Status](https://translate.jellyfin.org/widgets/jellyfin/-/jellyfin-mpv-shim/svg-badge.svg)](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)
 
-Jellyfin MPV Shim is a cross-platform client for Jellyfin. It can run in the background as a cast target or act as a fully-featured desktop client with offline sync support.
+Jellyfin MPV Shim is a fully featured Jellyfin client built on top of MPV with support for offline sync, media browsing, background casting, syncplay, music, live TV, books, and photos. It does not depend on or use a webview and doesn't mess with MPV's video output pipeline, allowing for HDR and tone mapping support.
 
-It has support for all your advanced media files without transcoding, as well as tons of
-features which set it apart from other multimedia clients:
+![The media player](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-player.png)
 
-- Direct play most media using MPV.
-- Watch videos with friends using SyncPlay.
-- Full [Live TV](https://github.com/jellyfin/jellyfin-mpv-shim#live-tv): channel guide, channels,
-  recordings, schedule and series rules — including scheduling recordings.
-- Offers a shim mode which runs in the background.
-- The Jellyfin mobile apps can fully control the client.
-- Prevents having to regularly change subtitles/audio settings for each episode.
-- Supports all of the [MPV keyboard shortcuts](https://github.com/jellyfin/jellyfin-mpv-shim#keyboard-shortcuts).
-- Enhance your video with [Shader Packs](https://github.com/jellyfin/jellyfin-mpv-shim#shader-packs) and [SVP Integration](https://github.com/jellyfin/jellyfin-mpv-shim#svp-integration).
-- Optionally share your media activity with friends using Discord Rich Presence.
-- Most features, as well as MPV itself, [can be extensively configured](docs/configuration.md).
-- You can configure the player to use an [external MPV player](docs/configuration.md#external-mpv) of your choice.
-- Chromecast-like [Display Mirroring](https://github.com/jellyfin/jellyfin-mpv-shim#display-mirroring), on by default.
-- You can [trigger commands to run](docs/configuration.md#shell-command-triggers) when certain events happen.
+**[Download for Windows](https://github.com/jellyfin/jellyfin-mpv-shim/releases/latest)** ·
+**[Flathub (Linux)](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim)** ·
+[pip (Linux)](#linux) · [macOS](#macos)
 
-To learn more, keep reading. This README explains everything, including [configuration](docs/configuration.md), [tips & tricks](https://github.com/jellyfin/jellyfin-mpv-shim#tips-and-tricks), and [development information](https://github.com/jellyfin/jellyfin-mpv-shim#development).
+<details>
+<summary>More screenshots</summary>
 
-## Getting Started
+| | |
+|---|---|
+| ![The library browser](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-home.png) | ![Music playback](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-music.png) |
+| Playback | Music |
+| ![A movie's page](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-movie.png) | ![A TV library](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-shows.png) |
+| Detail page | TV shows |
+| ![The Live TV guide](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-guide.png) | ![The comic reader](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-comics.png) |
+| Live TV guide | Comic reader |
+| ![An audiobook](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-audiobook.png) | ![The epub reader](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-epub.png) |
+| Audiobook | Epub reader |
 
-If you are on Windows, simply [download the binary](https://github.com/jellyfin/jellyfin-mpv-shim/releases).
-If you are using Linux, you can [install via flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) or [install via pip](https://github.com/jellyfin/jellyfin-mpv-shim#linux-installation). If you are on macOS, see the [macOS Installation](https://github.com/jellyfin/jellyfin-mpv-shim#osx-installation)
-section below.
+</details>
 
-To use the client, simply launch it and log into your Jellyfin server. You’ll need to enter the
-URL to your server, for example `http://server_ip:8096` or `https://secure_domain`. Make sure to
-include the subdirectory and port number if applicable. You can then cast your media
-from another Jellyfin application. You can also use quick connect, which is easier and faster.
+## Features
 
-The application runs with a notification icon by default on Windows and if installed on Linux. If
-you would like the application to run in the background without the notification icon, enable it in settings.
+- **Uncompromising Playback**: MPV's rendering and video pipelines are completely untouched. It's not redirected, broken, or embedded in a toolkit. Native HDR and Dolby Vision are supported on Windows and Linux.
+- **Browse and play your entire library** including films, shows, music, photos, [Live TV](#live-tv)
+  and [books, comics and audiobooks](#books-comics-and-audiobooks).
+- **Offline sync**: download media for offline viewing, automatically if desired.
+- **Cast target**: Fully controllable from Jellyfin web and mobile apps.
+- **SyncPlay**: Watch media with friends, without screen shares or awkward syncing.
+- **Smart Subtitles**: No need to set for every episode, they're remembered by default and
+  [can be forced globally](docs/configuration.md#language-config-power-user).
+- **Video Enhancement**: [video upscaling](#shader-packs-and-svp), debanding, and motion interpolation.
+- **Advanced Audio**: Audio passthrough and night mode so you can actually hear people talking.
+- **Seamless User & Server Switching** via [fast user switching](#fast-user-switching) and
+  optional PINs.
+- Keyboard, mouse, Jellyfin remote and game controller support, and all of
+  [MPV's shortcuts](#keyboard-shortcuts).
+- MPRIS media controls on Linux, Discord Rich Presence, [shell
+  commands](docs/configuration.md#shell-command-triggers) on playback events, and an
+  [external MPV](docs/configuration.md#external-mpv) if you prefer your own.
 
-Note: Due to the huge number of questions and issues that have been submitted about URLs, I now tolerate
-bare IP addresses and not specifying the port by default. If you want to connect to port 80 instead of
-8096, you must add the `:80` to the URL because `:8096` is now the default.
+## Getting started
 
-## Limitations
+Install it (below), launch it and log in. Enter your server's address, e.g.
+`http://192.168.1.10:8096` or `https://jellyfin.example.com`, including any subpath; port
+8096 is assumed if you leave it out, so a server on port 80 needs `:80`. Quick Connect works
+too.
 
-- A single active session still reports as one device to a given server. For sharing the player between
-  people, see [Fast User Switching](#fast-user-switching), which keeps each local user on its own device
-  identity. ([Related issue.](https://features.jellyfin.org/posts/319/mark-device-as-shared))
+Then browse from the window, or cast to it from another Jellyfin app. When a system tray is
+available, closing the window keeps it running there as a cast target; you can change that in
+Settings.
 
-### Known Issues
+### Windows
 
-Please note the following issues with controlling SyncPlay:
+Download the installer from [Releases](https://github.com/jellyfin/jellyfin-mpv-shim/releases).
+There are `ARM64` builds, and `LEGACY64` builds for CPUs without x86-64-v3 support
+(roughly pre-2013).
 
-- If you attempt to join a SyncPlay group when casting to MPV Shim, it will play the media but it will not activate SyncPlay.
-  - You can, however, proceed to activate SyncPlay from the player UI's SyncPlay menu, or
-    [using the menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
-- Stopping playback leaves the group's *content*, not the group — the same as the web client. From
-  there you have two options, and they are the web client's two: **Resume local playback** (in
-  **SyncPlay** in the library's top bar) rejoins what the group is watching, or simply **play
-  something else and the whole group follows you to it**. Use **SyncPlay → Leave** to actually
-  leave; watching something on your own is what leaving is for. (With no GUI, or when playback was
-  cast to a shim whose library was never opened, stopping does leave the group outright: there would
-  be no menu left to leave it from.)
-- SyncPlay can still be fragile. You may need to rejoin or even restart the client. Please report any issues you find.
+### Linux
 
-Music playback works, but gapless playback is not planned at this time.
+The [Flatpak](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) is the
+most integrated option. To install with pip instead you need `libmpv` (or `mpv`). **MPV 0.41
+or newer is recommended**:
 
-The shader packs feature is sensitive to graphics hardware. If the application fails to launch, use
-`--reset-shaders` command line argument to reset the shader configuration. If it's merely garbled graphics
-you can press `k` to disable the last used shader config.
+```bash
+pip3 install --upgrade jellyfin-mpv-shim
+```
 
-## Advanced Features
+Optional extras:
 
-### Menu
+- **Tray icon**: keeps it running in the background once the window closes (or enable
+  **Keep Running in Background** in Settings instead):
+  `pip3 install 'jellyfin-mpv-shim[systray]'`, plus GObject and AppIndicator from your
+  distribution (on Debian: `python3-gi gir1.2-ayatanaappindicator3-0.1`). The virtualenv must
+  have `--system-site-packages`; with pipx,
+  `pipx install --system-site-packages 'jellyfin-mpv-shim[systray]'`.
+- **Discord Rich Presence**: `pip3 install 'jellyfin-mpv-shim[discord]'`, then enable it in
+  Settings.
 
-Most of these are also reachable from the player UI's settings (gear) menu, which is usually
-easier. This menu is the older text-based one, and it still covers a few things the player UI
-does not.
+With MPV older than 0.41, minimizing to the tray closes MPV rather than hiding its window, and
+copy/paste in text fields needs `wl-clipboard` (Wayland) or `xclip`/`xsel` (X11).
 
-To open the menu, press **c** on your computer or use the navigation controls
-in the mobile/web app.
+If your distribution's MPV is old, [mpv-build](https://github.com/mpv-player/mpv-build) builds
+a current one with `libmpv` by default; run `sudo ldconfig` afterwards. Add
+`-Dsdl2-gamepad=enabled` to its `mpv_options` for controller support.
 
-The menu enables you to:
+### macOS
 
-- Adjust video transcoding quality.
-- Change the default transcoder settings.
-- Change subtitles or audio, while knowing the track names.
-- Change subtitles or audio for an entire series at once.
-- Mark the media as unwatched and quit.
-- Enable and disable SyncPlay.
-- Configure shader packs and SVP profiles.
-- Take screenshots.
+The application is not tested on Mac OS and is not formally supported. PRs to improve support and third-party packaging are welcome.
 
-On your computer, use the mouse or arrow keys, enter, and escape to navigate.
-The mouse's thumb buttons go back and forward a page — back is the same as
-escape, and forward has no on-screen button, so **right-click Back** to see the
-page history and jump anywhere in it (at the top of the stack, where there is no
-Back button, right-click **Home** instead). On your phone, use the arrow
-buttons, ok, back, and home to navigate.
+```bash
+brew install python mpv pipx
+pipx ensurepath
+pipx install 'jellyfin-mpv-shim[systray]'   # drop [systray] if you don't want the menu bar icon
+jellyfin-mpv-shim
+```
 
-The remote's other two buttons work as well. **Menu** (the hamburger) opens the
-context menu of whatever is selected — the same menu you get by right-clicking,
-holding Play, Queue, Mark Watched, Favorite and Download, so those actions are
-reachable without a keyboard. During playback it opens the player's settings
-menu instead. **Search** puts the cursor in the search box; it does nothing
-during playback. Your keyboard's menu key does the same as the remote's, and
-opening a movie or episode from a remote or the arrow keys lands on its Play
-button, so pressing ok twice plays it.
+## Using it
 
-### Fast User Switching
+### Controls and remotes
 
-The local library browser can hold several **users**, letting more than one person share the same
-player without their servers, sessions, and remote-control state colliding. Jellyfin (and jellyfin-web)
-has no built-in fast user switching; because this client owns its own UI, it can.
+Use the mouse, or the arrow keys, Enter and Esc. The mouse's thumb buttons go back and forward
+a page; right-click **Back** (or **Home** at the top level) to jump anywhere in the history.
 
-A *user* is a local grouping of one or more server logins that connect together. Only one user is active
-at a time. Switching disconnects the active user's servers and connects the selected user's, then updates
-the server selector.
+From a Jellyfin remote, use the arrows, OK, Back and Home. **Menu** opens the context menu of
+the selected item (Play, Queue, Mark Watched, Favorite, Download) or, during playback, the
+player's settings menu. **Search** jumps to the search box. Opening a film or episode lands
+on its Play button, so OK twice plays it.
 
-- **Managing users** — open **Settings → Servers**. The existing server(s) are kept as a `(default)` user
-  (which you can rename). Use **Add User** to create more, then **Switch** to a user and add its servers
-  with the normal *Add a server* form (each user's servers are managed while that user is active). Any
-  server address already used by another user is offered under *Previously added servers* with **Use** and
-  **Quick Connect** shortcuts, so you don't retype URLs when provisioning a new account.
-- **Switching** — a user drop-down appears to the left of the server selector in the top bar once you have
-  more than one user. Pick a user to switch to it.
-- **Separate device identity** — each non-default user gets its own Jellyfin device id (and a device name
-  like `hostname (Kids)`), so two users logged into the *same* server don't fight over one server-side
-  session. The `(default)` user keeps the original device id, so its existing sessions and tokens are
-  untouched.
-- **PIN protection (parental controls)** — a user can be given a PIN (**Set PIN**). Switching *into* a
-  locked user always requires the PIN. You can additionally tick *Require this PIN at startup and when
-  reopening the window*, which re-locks the browser whenever the app starts or the window is reopened from
-  the tray, so a locked profile can't be resumed without the PIN. This is a parental-control convenience,
-  **not** a security boundary — the PIN is only salted-hashed in the config, and the media itself is not
-  encrypted.
+During playback the controls have audio, subtitle and quality pickers, and the gear menu (or
+`c`) holds speed, aspect, shader profiles, subtitle style, SyncPlay and screenshots.
 
-The first time you close the browser window, you're asked whether closing should **Minimize to Tray**
-(keep the app running as a cast target) or **Exit**. Your choice is remembered and can be changed later
-via **Close to Tray (keep running)** in *Settings → General → Window*.
+### Keyboard shortcuts
 
-Users are stored in `users.json` in the config folder (next to `cred.json`). On first run with this
-feature, your existing `cred.json` is migrated into the `(default)` user automatically.
+Most of [MPV's keyboard shortcuts](https://mpv.io/manual/stable/#interactive-control) work.
+The app adds:
 
-### Shader Packs
+| Key | Action | | Key | Action |
+|---|---|---|---|---|
+| `<` `>` | Previous / next item | | `c` | Player settings menu |
+| `q` | Stop | | `k` | Unload the shader profile |
+| `w` | Mark watched and skip | | `u` | Mark unwatched and stop |
 
-Shader packs let you use advanced video shaders and video quality settings without the
-configuration they normally require. MPV Shim's default shader pack comes with
-[FSRCNNX](https://github.com/igv/FSRCNN-TensorFlow) and [Anime4K](https://github.com/bloc97/Anime4K)
-preconfigured. Try experimenting with video profiles! It may greatly improve your experience.
+And the MPV ones you are most likely to want: `space` pause, `←`/`→` seek 5 s, `↑`/`↓` seek
+1 min, `f` fullscreen, `m` mute, `s` / `S` screenshot with / without subtitles, `,` `.` step a
+frame, `[` `]` speed ±10%, `backspace` reset speed, `d` deinterlace, `Ctrl+Shift+←/→`
+subtitle delay.
 
-To use, navigate to the **Video Playback Profiles** option and select a profile.
-
-Profiles leave your graphics API alone, so HDR output keeps working. If video breaks
-when you load one, pick a different API under Settings → Video Enhancement → **Graphics
-API for Shaders** (`shader_pack_gpu_api`); `opengl` is the most compatible.
-
-For details on the shader settings, please see [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
-If you would like to customize the shader pack, there are details in the configuration section.
-
-### SVP Integration
-
-SVP integration allows you to easily configure SVP support, change profiles, and enable/disable
-SVP without having to exit the player. It is not enabled by default, please see the configuration
-instructions for instructions on how to enable it.
+All of these can be changed. See [Keyboard shortcuts](docs/configuration.md#keyboard-shortcuts)
+and [`input.conf`](docs/configuration.md#mpv-configuration).
 
 ### Live TV
 
-If your server has a tuner, a **Live TV** entry appears with your other libraries (and a row of
-shortcuts on the home screen, next to "On Now"). It has the same six screens the web client does:
+With a tuner on your server, **Live TV** appears with your libraries, with the web client's
+six screens: **Programs**, **Guide**, **Channels**, **Recordings**, **Schedule** and
+**Series** (recording rules). Right-click any programme to record it or the series.
+**Guide Settings** are stored on the server, shared with the web client.
 
-- **Programs** — what is on now, plus upcoming episodes, movies, sports, kids and news.
-- **Guide** — channels down, time across. Move the window with the arrows either side of the
-  date, jump back to the present with **Now**, and change day with the double arrows. Clicking a
-  programme opens it; from there you can watch the channel or record.
-- **Channels** — every channel, with what is on it right now. Right-click one to favourite it;
-  favourites can be floated to the top of the guide. Categories you have unticked in Guide
-  Settings drop out of this list.
-- **Recordings** — what has been recorded, and the folders it is filed under.
-- **Schedule** — what is recording now and what is scheduled, grouped by day. Click one to edit
-  its padding or cancel it.
-- **Series** — your series recording rules, with the same options the web client offers (new
-  episodes only, one channel or all, keep up to N, and so on).
+The guide shows one window of time and pages with the arrows, rather than scrolling sideways
+through 24 hours.
 
-You can record from a listing without opening it: right-click any programme, in the guide or in
-any row, for **Record** / **Record Series**.
+### Books, comics and audiobooks
 
-**Guide Settings** (top right of the Guide) controls channel order, favourites-first, the
-Live/New/Premiere/HD indicators, colour-coded categories and which categories are shown. These
-are **stored on your server in the same place the web client keeps them**, so changing them here
-changes them there and vice versa. Unticking a category empties the cells it covers rather than
-removing them, so the guide stays readable as a grid — again, as the web client does it.
+Books libraries browse by folder, as in the web client.
 
-One deliberate difference from the web client: the guide shows one window at a time (two hours
-on a typical window, more if there is room) and the arrows page it, rather than being a 24-hour
-grid you scroll sideways. That suits a remote better, and it avoids the scroll-sync stutter a
-grid inside the player's window would have.
+- **Epub** opens in a built-in reader with adjustable size, page colour and justification.
+- **Comics** (`cbz`, `cbt`) open in a built-in reader with fit-width and fit-page zoom.
+- **Other formats** (`pdf`, `mobi`, `azw3`, `cbr`, `cb7`) open in your desktop's own
+  application.
+- **Audiobooks** play like music, with chapter navigation, skip back 10 s / forward 30 s, and
+  chapter marks on the seek bar. Resume continues from where you stopped; **Play from
+  Beginning** is a separate button so you don't lose your place by accident.
 
-### Books and Audiobooks
+The built-in readers save your position to the server as you turn pages, in the same form the
+web client uses, so you can carry on elsewhere. For formats read outside the app, use
+**Progress…** on the book's page to pull or push your page.
 
-Books libraries now appear with your other libraries, and the two things
-Jellyfin calls a "book" are handled quite differently — because the server
-treats them quite differently.
+Jellyfin can only hand over a book as a whole file, so reading downloads it first, and **your
+account needs the "Allow media downloads" permission** to read books at all.
 
-**Audiobooks are ordinary audio.** They play, queue, download and report
-progress like any other track, and browse through the now-playing bar at the
-bottom of the window. A books library opens as its folder tree (the same
-default the web client uses), and a folder holding the chapters of one
-audiobook is drawn as an album would be: a cover, **Play** / **Resume** /
-**Add to Queue** / **Download**, and a numbered chapter list. Resume picks up
-at the first chapter you have not finished, at the point you left it.
+### Fast user switching
 
-A single-file audiobook (`.m4b`) is one long item with chapters inside it, so
-the audio bar grows controls for one: **chapter back/forward** around the play
-button, **back 10s / forward 30s** either side of it, **chapter ticks on the
-scrubber** so you can see where you are in the book rather than in the file,
-and a **chapter list**. They appear only for an audiobook that actually has
-chapters, so music is unaffected — and the bar drops them again on a narrow
-window, keeping whichever matter most for what is playing.
+Several people can share one player, each with their own servers and logins. In **Settings →
+Servers**, **Add User**, switch to it and add its servers. Once there is more than one user, a
+user picker appears beside the server picker in the top bar.
 
-Books you have finished get a tick on the shelf and part-read ones a progress
-bar, and right-clicking a book's folder can mark it finished or unfinished.
-Once you have started a book there is no bare "Play" button: the page offers
-**Resume** and, separately, **Play from Beginning** — starting a ten-hour book
-over by accident overwrites hours of position as it plays.
-
-**Books are download-and-open.** There is no reader in the player, and there
-will not be one: Jellyfin stores books but does not *serve* them — there is
-no endpoint that returns a page, an archive entry or a chapter of an ebook,
-so the only thing any client can fetch is the whole file. Rather than build a
-worse reader than the one you already have, a book's page offers **Read**,
-which downloads it if it is not already on disk and then hands it to whatever
-your desktop opens that format with. **Download** beside it fetches the copy
-and stops there. `epub`, `pdf` and the comic formats all
-work this way, and so do `mobi`/`azw3` — which the web client cannot open at
-all, because it has no reader for them and we do not need one.
-
-Downloaded books and audiobooks appear as their own two sections in
-**Settings → Downloads**, with audiobooks grouped by book so a thirty-file
-rip is one row rather than thirty.
-
-**Reading progress is manual, and deliberately so.** Your reader does not
-report back to Jellyfin — nothing could make it — so a PDF or comic gets a
-**Progress…** button with **Pull** and **Push**: pull to see where another
-device left off before you open the file, push to record the page you
-actually got to when you close it.
-
-**Ebooks get no such button, on purpose.** Jellyfin stores an epub's place
-as a position in the ebook reader's internal index (the text chopped into
-~1000-character runs, counted per chapter), not as a page or a percentage of
-the book. No reader shows you that number, so there is nothing you could
-type — and the scale is not the one "percent" suggests, because the
-denominator depends on how the book was split into chapters. The figure is
-still read from the server and shown on the page; only setting it is left
-out, until there is a unit worth asking you for.
-
-One thing to know: **downloading is a permission**, and for books it is not
-optional. If your account does not have "Allow media downloads", Read will
-say so — for a film that permission only costs you offline viewing, but for a
-book it is the only way to get at the content at all.
-
-### Display Mirroring
-
-Casting an item from another Jellyfin client shows it on your display before you play it,
-similar to Chromecast. **This is on by default and needs no configuration** — the item's page
-opens in the library browser, and you can drive it from there with the remote's arrow keys.
-Display mirroring doesn't interrupt playback.
+- Each user gets its own device identity, so two users on the same server don't share a session.
+- **Set PIN** locks a user; optionally require it at startup too. This is a parental-control
+  convenience, **not** security. Nothing is encrypted (although PINs are hashed).
 
 ### Cast-target mode (`headless`)
 
-For a box that should *only* be a cast target — a TV in a shared space, say — set `headless`
-to `true` in the config file. The player then shows a "Ready to cast" backdrop instead of the
-library, and the library cannot be reached from the machine itself: no browsing, no search, no
-settings, and no queue view. Casting, playback and the player controls all work normally,
-including transport controls for music.
+For a machine that should *only* be a cast target, such as a shared TV, set `headless` to
+`true` in the config file. It then shows "Ready to cast" instead of the library: casting,
+playback and the player controls work; browsing, search and settings are not reachable from
+the machine.
 
-**This is not a security feature.** It stops someone plugging in a mouse and playing random
-things from your library, which is what it is for. It does not stop anyone with real access to
-the machine: the config file is editable, and the systray menu still reaches Settings and the
-log viewer. If you need the box genuinely locked down, use the operating system for that.
+**This is not a security feature.** It stops casual use, not anyone with access to the config
+file or the tray menu.
 
-### Keyboard Shortcuts
+### Shader packs and SVP
 
-This program supports most of the [keyboard shortcuts from MPV](https://mpv.io/manual/stable/#interactive-control). The custom keyboard shortcuts are:
+The bundled [shader pack](https://github.com/iwalton3/default-shader-pack) offers upscaling and
+enhancement profiles (FSRCNNX, Anime4K). Choose one from the player's gear menu under **Change Video
+Playback Profile**. If video breaks, pick a different **Graphics API for Shaders** in Settings →
+Playback → Video Enhancement; `opengl` is the most compatible. If the app won't start after
+choosing a profile, launch it once with `--reset-shaders`; if the picture is merely garbled,
+press `k`.
 
-- < > to skip episodes
-- q to close player
-- w to mark watched and skip
-- u to mark unwatched and quit
-- c to open the menu
-- k disable shader packs
-
-Here are the notable MPV keyboard shortcuts:
-
-- space - Pause/Play
-- left/right - Seek by 5 seconds
-- up/down - Seek by 1 minute
-- s - Take a screenshot
-- S - Take a screenshot without subtitles
-- f - Toggle fullscreen
-- ,/. - Seek by individual frames
-- \[/\] - Change video speed by 10%
-- {/} - Change video speed by 50%
-- backspace - Reset speed
-- m - Mute
-- d - Enable/disable deinterlace
-- Ctrl+Shift+Left/Right - Adjust subtitle delay.
+[SVP](https://www.svp-team.com/) can be controlled from the menu too; it needs some setup. See [SVP integration](docs/configuration.md#svp-integration). Please note that I don't have an SVP license (it used to be free on Linux), so the support is untested.
 
 ## Configuration
 
-Most settings are editable in the app under **Settings**, so you rarely need to touch the
-config file. The full list of options, including the ones with no UI, is in
-**[docs/configuration.md](docs/configuration.md)**.
+Almost everything is in **Settings**, which has a search box. The complete reference,
+including options with no UI, is **[docs/configuration.md](docs/configuration.md)**, along with
+where the config folder is (the tray icon can open it).
 
-The config file lives in a per-platform folder — the systray icon can open it for you, and
-the path is printed at startup on Linux and macOS. See
-[the reference](docs/configuration.md) for the locations.
+## Tips and troubleshooting
 
-## Tips and Tricks
+### Open on a specific monitor
 
-Various tips have been found that allow the media player to support special
-functionality, albeit with more configuration required.
+In `mpv.conf` in the [config folder](docs/configuration.md#the-config-file), add `fs-screen=N`
+(with `fs=yes` to open fullscreen), where `N` counts from 0. On Windows, the monitor number in
+Display Settings minus one. If X11 reports your monitors as one screen, use `geometry=` with the
+position `xrandr` shows instead, e.g. `geometry=1920x1080+0+0`. Restart the app after editing.
 
-### Open on Specific Monitor (#19)
+### Volume on the mouse wheel
 
-Please note: Edits to the `mpv.conf` will not take effect until you restart the application. You can open the config directory by using the menu option in the system tray icon.
-
-**Option 1**: Select fullscreen output screen through MPV.
-Determine which screen you would like MPV to show up on.
-
-- If you are on Windows, right click the desktop and select "Display Settings". Take the monitor number and subtract one.
-- If you are on Linux, run `xrandr`. The screen number is the number you want. If there is only one proceed to **Option 2**.
-
-Add the following to your `mpv.conf` in the [config directory](docs/configuration.md#mpv-configuration), replacing `0` with the number from the previous step:
-
-```
-fs=yes
-fs-screen=0
-```
-
-**Option 2**: (Linux Only) If option 1 does not work, both of your monitors are likely configured as a single "screen".
-
-Run `xrandr`. It should look something like this:
-
-```
-Screen 0: minimum 8 x 8, current 3520 x 1080, maximum 16384 x 16384
-VGA-0 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 521mm x 293mm
-   1920x1080     60.00*+
-   1680x1050     59.95
-   1440x900      59.89
-   1280x1024     75.02    60.02
-   1280x960      60.00
-   1280x800      59.81
-   1280x720      60.00
-   1152x864      75.00
-   1024x768      75.03    70.07    60.00
-   800x600       75.00    72.19    60.32    56.25
-   640x480       75.00    59.94
-LVDS-0 connected 1600x900+1920+180 (normal left inverted right x axis y axis) 309mm x 174mm
-   1600x900      59.98*+
-```
-
-If you want MPV to open on VGA-0 for instance, add the following to your `mpv.conf` in the [config directory](docs/configuration.md#mpv-configuration):
-
-```
-fs=yes
-geometry=1920x1080+0+0
-```
-
-**Option 3**: (Linux Only) If your window manager supports it, you can tell the window manager to always open on a specific screen.
-
-- For OpenBox: https://forums.bunsenlabs.org/viewtopic.php?id=1199
-- For i3: https://unix.stackexchange.com/questions/96798/i3wm-start-applications-on-specific-workspaces-when-i3-starts/363848#363848
-
-### Control Volume with Mouse Wheel (#48)
-
-Add the following to `input.conf`:
+Add to `input.conf`:
 
 ```
 WHEEL_UP add volume 5
 WHEEL_DOWN add volume -5
 ```
 
-### MPRIS Media Controls (#54)
+### Run multiple instances
 
-Built in on Linux: media keys, headset buttons, the lock screen and desktop media widgets
-control playback. It is on by default (the `mpris` setting) and needs PyGObject. With
-playerctl, name the player in full: `playerctl -p com.github.iwalton3.jellyfin-mpv-shim play-pause`.
+`--config /path/to/folder` runs another, independent copy. Launching again with the *same*
+folder just brings the running one forward. `jellyfin-mpv-shim stop` (with the same
+`--config`, if any) shuts an instance down cleanly.
 
-### Run Multiple Instances (#45)
+### Arabic or Hebrew text drawn backwards
 
-Pass `--config /path/to/folder` to run another copy of the player.
-
-Each config directory gets its own instance: the single-instance guard is a lock inside the
-config directory, so copies pointed at different folders coexist by design. Launching a second
-copy with the *same* config directory instead raises the window of the one already running,
-which is what makes the desktop launcher and the tray behave sensibly.
-
-To shut one down, run `jellyfin-mpv-shim stop` (with the same `--config` folder, if you used
-one). It reaches the instance owning that directory over the same channel a second launch uses
-to raise the window, so it stops the right copy without hunting for a process id, and the app
-runs its normal shutdown rather than being killed. It exits non-zero only if an instance is
-holding the lock but not answering.
-
-### Audio Passthrough
-
-This is built in now — see [Audio Output](docs/configuration.md#audio-output). Set `audio_mode` to `hdmi` or
-`optical` in Settings and tick the formats your receiver accepts; there is no need to hand-edit
-`mpv.conf`.
-
-This section used to recommend an `mpv.conf` snippet setting `audio-spdif` and
-`af=lavcac3enc` together. **Don't do that.** The two are mutually exclusive per track: the AC3
-encoder is handed a compressed frame it cannot convert, the filter chain fails to build, and mpv
-recovers by silently disabling the filter — so the encoder never runs and nothing tells you why.
-`audio_mode=optical` handles this properly by choosing between passthrough and the encoder per
-track, based on what the track actually is.
-
-### MPV Crashes with "The sub-scale option must be a floating point number or a ratio"
-
-Run the jellyfin-mpv-shim program with LC_NUMERIC=C.
-
-## Development
-
-Build instructions, dev installation, packaging and translation are in
-**[docs/development.md](docs/development.md)**.
-
-## Linux Installation
-
-You can [install the software from flathub](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim). The pip installation is less integrated but takes up less space if you're not already using flatpak.
-
-If you are on Linux, you can install via pip. You'll need [libmpv](https://github.com/Kagami/mpv.js#get-libmpv) or `mpv` installed.
-
-MPV 0.41 or newer is recommended. Older versions work, with two differences:
-minimizing the library to the tray quits MPV rather than just dropping its
-window (it comes back on the next play, or from the tray), and copy/paste in
-text fields needs `wl-clipboard` on Wayland or `xclip`/`xsel` on X11, because
-MPV had no X11 clipboard of its own before 0.41.
-
-```bash
-pip3 install --upgrade jellyfin-mpv-shim
-```
-
-This installs the main UI, tkinter is not needed anymore. By default the application does not run
-in the background on Linux unless you enable it in settings or install the optional systray support:
-
-```bash
-pip3 install 'jellyfin-mpv-shim[systray]'
-# Requires gi and appindicator, e.g. on Debian:
-sudo apt install python3-gi gir1.2-ayatanaappindicator3-0.1
-```
-
-You must use a virtualenv with `--system-site-packages` enabled for systray support.
-With pipx, use `pipx install --system-site-packages 'jellyfin-mpv-shim[systray]'`.
-
-Discord rich presence support (must be enabled in config) can be installed with:
-
-```bash
-sudo pip3 install jellyfin-mpv-shim[discord]
-```
-
-If your distribution ships an old MPV, building it from source gets you better codec support and
-the current renderer. Follow the instructions in
-[mpv-build](https://github.com/mpv-player/mpv-build) — it builds MPV together with matching
-FFmpeg, libass and libplacebo, and its README lists the build dependencies for your distribution.
-
-`libmpv` is what this client loads, and mpv-build produces it by default (`libmpv` defaults to
-true in MPV's own meson options), so no extra configuration is needed. Afterwards run
-`sudo ldconfig` so the new library is picked up.
-
-Note, if it has been a while since you have compiled mpv, modern copies of `mpv-build` don't
-support `--enable-libmpv-shared` in the `mpv_options` file, you can clear the file as `libmpv`
-is now enabled by default. Add `-Dsdl2-gamepad=enabled` to `mpv_options` if you want gamepad
-support.
-
-### Right-to-left text and kerning need FriBiDi
-
-Some of what the client draws is baked into the picture with Pillow, and Pillow
-does complex text layout only through **Raqm**. Raqm and HarfBuzz are compiled
-into Pillow's wheels, but **FriBiDi is loaded at runtime and is not bundled on
-any platform** — so on a system without `libfribidi`, Pillow quietly falls back
-to a basic layout. Nothing errors, and an English library looks perfectly fine.
-
-What it costs, if it happens to you:
-
-* Right-to-left scripts (Arabic, Hebrew) are drawn in logical order with
-  isolated letterforms — reversed and disconnected — wherever the client bakes
-  text into the picture: tile captions, Cast & Crew, the heading over a
-  backdrop. The same text drawn as an overlay is correct, because MPV carries
-  its own copy.
-* No script gets kerning, Latin included. That also makes captions *measure*
-  slightly wide, so they get shortened with a "…" a little earlier than they
-  should.
-
-You can ask Pillow directly:
+Some text is drawn with Pillow, which needs **FriBiDi** for right-to-left scripts and kerning;
+without it nothing errors, but RTL titles come out reversed and captions are slightly
+mis-measured. The Windows installer and the Flatpak include it. Elsewhere, check:
 
 ```bash
 python3 -c "from PIL import features; print(features.check('raqm'))"
 ```
 
-`True` and there is nothing to do — which is the normal case, because most
-desktops already have FriBiDi (Pango needs it). If it prints `False`:
+If this prints `False`, install FriBiDi (`libfribidi0` on Debian/Ubuntu, `fribidi` on Fedora
+and Arch). If pip built Pillow from source rather than using a wheel, also install libraqm's
+development package and run `pip3 install --force-reinstall --no-binary=pillow pillow`.
 
-* install FriBiDi — `libfribidi0` on Debian/Ubuntu, `fribidi` on Fedora and
-  Arch — and check again;
-* and if pip had to **build Pillow from source** rather than use a wheel (no
-  wheel for your platform, an unusual architecture, or `--no-binary`), Pillow
-  needs libraqm's development files *at build time* too: `libraqm-dev` on
-  Debian/Ubuntu, `libraqm-devel` on Fedora, `libraqm` on Arch. Install those,
-  then `pip3 install --force-reinstall --no-binary=pillow pillow`.
+## Known issues
 
-The Flatpak and the Windows installer both ship what they need for this.
+- Joining a SyncPlay group from a client that is casting to this one plays the media without
+  enabling SyncPlay. Join from this player's own **SyncPlay** menu instead.
+- Stopping playback leaves the group's *content*, not the group, as in the web client: **SyncPlay
+  → Resume local playback** rejoins, and playing something else takes the group with you. Use
+  **SyncPlay → Leave** to leave. SyncPlay can still be fragile — please report problems.
+- Music has no gapless playback.
+- A player counts as one device on a server; [fast user switching](#fast-user-switching) gives
+  each local user its own.
 
-## <h2 id="osx-installation">macOS Installation</h2>
-Currently on macOS only the external MPV backend seems to be working. I cannot test on macOS, so please report any issues you find.
+## Development
 
-To install the CLI version:
-
-1. Install brew. ([Instructions](https://brew.sh/))
-2. Install python3 and mpv. `brew install python mpv`
-3. Install pipx. `brew install pipx`
-4. Set path `pipx ensurepath`
-5. Install jellyfin-mpv-shim. `pipx install jellyfin-mpv-shim`
-6. Run `jellyfin-mpv-shim`.
-
-If you'd like the menu bar icon as well:
-
-1. Install mpv. `brew install mpv`
-2. Install python3. `brew install python`
-3. Install pipx. `brew install pipx`
-4. Set path `pipx ensurepath`
-5. Install jellyfin-mpv-shim and pystray. `pipx install 'jellyfin-mpv-shim[systray]'`
-6. Run `jellyfin-mpv-shim`.
-
-Display mirroring is not tested on macOS, but may be installable with 'pipx install 'jellyfin-mpv-shim[mirror]'`.
-
-macOS installs the same Pillow wheels as Linux, so the FriBiDi note under
-[Linux Installation](#linux-installation) applies here too — worth checking if
-Arabic or Hebrew titles look wrong.
-
-## Building on Windows
-
-There is a prebuilt version for Windows in the releases section, so you only need this if you are
-working on the client itself.
-
-These steps mirror `.github/workflows/main.yml`, which is what actually produces the releases.
-**If this section and the workflow ever disagree, the workflow is right** — check it first.
-
-Make sure Python and libmpv are the same architecture; mismatching them fails at runtime.
-On an Arm machine that takes care: Windows runs x64 binaries under emulation, so an x64 Python
-will install and build without complaining and only the finished client will be wrong. CI checks
-this with `tools/check_win_arch.py` rather than trusting it — do the same locally if unsure.
-
-1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/jellyfin/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
-    - You can update the project later with `git pull`.
-2. Install [Python 3](https://www.python.org/downloads/) with PATH enabled (CI builds on 3.14) and [7zip](https://www.7-zip.org/).
-3. Install [Inno Setup](https://jrsoftware.org/isinfo.php) — it builds the installer at the end.
-    - CI does this with `winget install --id JRSoftware.InnoSetup -e -s winget`.
-4. Open `cmd` and run `pip install wheel` then `pip install .[all] pywin32`.
-5. Download libmpv from the [shinchiro/mpv-winbuild-cmake releases](https://github.com/shinchiro/mpv-winbuild-cmake/releases)
-   — the `mpv-dev-*` archive, **not** the player build.
-    - 64-bit: `mpv-dev-x86_64-v3-*.7z`. The `v3` builds need a CPU supporting x86-64-v3; for older
-      hardware use the plain `mpv-dev-x86_64-*-git-*.7z` (this is what the "legacy64" release is).
-    - ARM64: `mpv-dev-aarch64-*.7z`.
-6. Extract it and move `libmpv-2.dll` into the `jellyfin-mpv-shim` folder, **renaming it to
-   `mpv-2.dll`**. The build scripts look for that name.
-7. In Git Bash, build the PyInstaller bootloader from source:
-   ```bash
-   ./gen_pkg.sh --get-pyinstaller
-   cd pyinstaller/bootloader && python ./waf distclean all && cd .. && pip install .
-   cd ..
-   ```
-    - PyInstaller is only needed to produce the `.exe`. It is not a dependency of the
-      application, and nobody running the client needs it.
-    - A stock `pip install pyinstaller` also works, but ships a prebuilt bootloader that
-      antivirus products have a long history of flagging. Building it locally gives the
-      installer a bootloader that isn't already on every heuristic blocklist, which is why CI
-      does it this way.
-    - On ARM64, add `--target-arch=64bit-arm --check-c-compiler=msvc`. waf infers the target
-      from `PROCESSOR_ARCHITECTURE` and picks a compiler by search order; either one guessing
-      wrong builds an x64 bootloader and files it under the ARM64 name instead of erroring.
-8. In Git Bash, run `./gen_pkg.sh --skip-build`.
-    - This builds the translation files and downloads the shader packs.
-    - Compiling translations needs `msgfmt`, which Git Bash does not ship. Where it is absent
-      the script falls back to `tools/msgfmt.py`, which produces the same catalogs
-      (`tests/test_msgfmt.py` asserts that against GNU `msgfmt` on all 86 locales).
-9. Run `build-win.bat` from `cmd` (`build-win-arm64.bat` for ARM64, `build-win-dbg.bat`
-   for a console-attached debug build). There is no 32-bit build — see
-   [docs/packaging.md](docs/packaging.md) section 1.
-    - Every script reads the same `mpv-2.dll` in the same place — just extract the archive for
-      the architecture you want. There is no separate `mpv32` folder.
-    - The ARM64 script passes `/DArm64` to Inno Setup, which restricts the installer to Arm
-      machines and puts it in the 64-bit `Program Files` rather than the WOW64 one.
+Building, translating and testing: **[docs/development.md](docs/development.md)**.

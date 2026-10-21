@@ -1,4 +1,4 @@
-"""Batch-4 claims that only a real server can confirm (docs/UI_FIXES_4.md).
+"""Batch-4 claims that only a real server can confirm (docs/archive/UI_FIXES_4.md).
 
 Every one of these was measured by hand during the work and then written
 into code or into a comment. That is exactly the class of belief that rots:

@@ -3,7 +3,7 @@
 Everything else under `tests/` runs against a fake. That is why those suites
 are fast and deterministic, and it is also why a wrong request parameter, a
 DTO field we invented, or a reporting round trip that never closes are all
-invisible to them. `docs/E2E_PLAN.md` has the evidence and the roadmap; this
+invisible to them. `docs/e2e-roadmap.md` has the evidence and the roadmap; this
 file is how to run what exists.
 
 ## Running it

@@ -15,7 +15,7 @@ back to the image endpoint rather than failing to open -- and Live TV
 `/Views` (`repository.get_libraries`). See `docs/PERMISSION_GAPS.md`.
 
 Two things that are *not* tested here, because measurement said they are not
-true (both in `docs/E2E_PLAN.md`):
+true (both in `docs/e2e-roadmap.md`):
 
 * `qa-noplayback` can play, and no client can change that. Jellyfin's video
   endpoints are `AllowAnonymous`, so the item id is effectively the

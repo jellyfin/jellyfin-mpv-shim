@@ -1,203 +1,415 @@
 # Configuration Reference
 
-Every setting Jellyfin MPV Shim understands. Most of these are editable in the app under
-**Settings**, which is usually easier than editing the file by hand — this document is the
-complete reference, including the handful of options that have no UI.
+Every setting Jellyfin MPV Shim understands. **Most are easier to change in the app under
+Settings**, which has a search box; this page is the complete reference, including the
+options with no UI. See the [README](../README.md) for an introduction to the features.
 
-See the [README](../README.md) for an introduction to the features these configure.
+It is laid out the way the Settings screen is: [General](#general), [Browse](#browse) and
+[Playback](#playback), then [settings that are only in the config file](#config-file-only),
+then the files you can drop into the config folder ([themes](#writing-a-theme),
+[`mpv.conf` and `input.conf`](#mpv-configuration)).
 
-The configuration file is located in different places depending on your platform. You can also open the
-configuration folder using the systray icon if you are using the shim version. When you launch the program
-on Linux or macOS from the terminal, the location of the config file will be printed. The locations are:
+## The config file
 
-- Windows - `%appdata%\jellyfin-mpv-shim\conf.json`
-- Linux - `~/.config/jellyfin-mpv-shim/conf.json`
-- Linux (Flatpak) - `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json`
-- macOS - `~/Library/Application Support/jellyfin-mpv-shim/conf.json`
-- CygWin - `~/.config/jellyfin-mpv-shim/conf.json`
+`conf.json` lives in a per-platform folder. The systray menu can open it, and the path is
+printed at startup when launched from a terminal on Linux or macOS.
 
-You can specify a custom configuration folder with the `--config` option.
+| Platform | Location |
+|---|---|
+| Windows | `%appdata%\jellyfin-mpv-shim\conf.json` |
+| Linux | `~/.config/jellyfin-mpv-shim/conf.json` |
+| Linux (Flatpak) | `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json` |
+| macOS | `~/Library/Application Support/jellyfin-mpv-shim/conf.json` |
+| Cygwin | `~/.config/jellyfin-mpv-shim/conf.json` |
 
-### When a setting takes effect
+`--config DIR` uses another folder (and runs a separate instance — see the README's
+[Tips](../README.md#run-multiple-instances)). The file is read as UTF-8, with or without a
+byte-order mark. In JSON, a Windows path needs doubled backslashes: `"C:\\path\\to\\mpv.exe"`.
 
-**Unless an entry says otherwise, a setting applies straight away, or to the
-next thing you play.** The exceptions are the ones that do nothing at all until
-the app is started again, and those are called out here and marked *Requires
-restart* on their row in the Settings screen — which also offers to do the
-restart for you.
+**When a setting takes effect:** immediately, or for the next thing you play, unless its
+entry says *Requires restart* — Settings marks those rows the same way, and offers to restart
+for you when one changes.
 
-That is the whole vocabulary. It is stated once here rather than repeated per
-setting, because a reader comparing three differently-worded versions of the
-same sentence learns less than one who is told the rule.
+---
 
-## Transcoding
+## General
 
-You can adjust the basic transcoder settings via the menu.
+### This Device
 
-- `grid_fill` - Where the width a whole number of covers does not use ends up.
-      One of `justify`, `center` or `off`. Default: `justify`
-  - A grid of fixed-size covers almost never divides the window exactly, and
-      the remainder used to land entirely on the right — at some sizes that is
-      most of a cover's width of empty background down one side.
-  - `justify` widens the gaps so the row runs margin to margin. The page
-      margins stay put at every window size, which is what makes it the
-      default: the margin is the edge every heading, button and paragraph
-      lines up against, so a margin that moves as you drag is more noticeable
-      than covers sitting a few pixels further apart.
-  - `center` splits the remainder between the two margins instead. The covers
-      keep their spacing and both margins move with the window.
-  - `off` is the old behaviour, all of it on the right.
-  - Rows of **landscape** artwork (episodes, home videos, Live TV) are the case
-      none of the three fully solves: a 16:9 tile is 240px, so at three or four
-      columns there can be 250px left over, and spreading that across two gaps
-      is further apart than a row can read. `justify` absorbs what it sanely
-      can — a gap may at most double — and leaves the rest.
-- `backdrop_full_width` - Run a detail page's backdrop to the edges of the
-      window, with no padding above or beside it, the way the web client does.
-      Default: `true`
-  - It costs no vertical space either way: the header keeps exactly the height
-      the padded version had and gets wider, so what changes is how much of the
-      backdrop is cropped away, not how far down the page the buttons start.
-  - This shipped off, for two reasons that both turned out to be bugs
-      elsewhere: the header decoded its backdrop into a box shaped like the
-      banner, which threw away most of the picture's width before the crop
-      ever ran; and the scrollbar gutter was reserved here but only sometimes
-      by the layout, leaving an unpainted strip at the banner's edge. Both are
-      fixed, and the mode is on.
-  - Off for an item with no artwork at all whatever this is set to: there is
-      nothing to bleed, and the grey placeholder panel run edge to edge is just
-      a wider grey band.
-  - A header is capped at 60% of the window height in both modes. Its height
-      comes from its width, so on a short wide window the untamed 2.67:1 box
-      was most of the screen and the page opened on artwork with everything
-      below the fold.
-- `detail_poster` - Show a film's or series' own poster in a detail page's
-      header, inset over the backdrop. Default: `true`
-- `detail_episode_image` - The same slot on an episode, where the artwork is a
-      still from the episode. Default: `true`
-  - Separate from `detail_poster` on purpose: an episode's thumbnail is a frame
-      of an episode you may not have watched yet, on the page you opened to
-      decide whether to watch it. Somebody avoiding spoilers wants this off and
-      the posters left alone.
-- `clock_12h` - Print times of day as `8:30 PM` rather than `20:30`. Default:
-      `false`
-  - Covers everywhere the app shows a time of day: the Live TV guide's column
-      headings, air times on programme, timer and recording tiles, and the
-      "Ends at" label on both a detail page and the player controls.
-  - Not derived from your locale. Python only reads `LC_TIME` after a
-      `setlocale` this app never makes, so a "follow the system" option would
-      have been a guess in a Windows-shaped and a POSIX-shaped half; the switch
-      says which you want instead.
-  - Applies immediately, Live TV tiles included.
-- `mouse_click_pauses` - Left click on the video toggles pause. Default: `true`
-  - This is what this client has always done (the same "click anywhere" the MPV
-      OSC has). Turning it off gives MPV's own mouse behaviour back: nothing
-      binds the left button, so dragging the video moves the window, and **right
-      click** is what pauses.
-  - The two cannot both be had: a binding on the left button is exactly what
-      stops the video output dragging the window with it.
-  - Double click is full screen in either mode.
-- `hwdec` - Hardware video decoding. Default: `no`
-  - Values: `no` (software decoding, the same default mpv itself uses),
-      `over-1080p`, `auto`, `auto-copy`.
-  - `over-1080p` is software decoding at 1080p and below and hardware above it —
-      the cautious way to turn it on. Most hardware of the last decade decodes
-      1080p without help, and often looks better doing it, so this limits
-      hardware decoding to the files that actually need it (4K HEVC, AV1).
-  - `auto` uses mpv's whitelisted hardware decoders, decoding straight into the
-      GPU. `auto-copy` is the same but copies frames back to system RAM: slower,
-      and it avoids the hardware/renderer interop paths entirely, so it is worth
-      trying if `auto` misbehaves.
-  - `auto-copy` is also the mode that works with **video filters**, which the
-      direct modes do not. If your `mpv.conf` runs SVP or another VapourSynth
-      filter, that is the one to pick. (The shader pack is not a video filter —
-      it runs inside the GPU renderer and is unaffected either way.)
-  - It is off by default because some graphics drivers handle hardware decoding
-      badly, and mpv's own maintainers decline to enable it by default for that
-      reason. If turning it on stops video working — or stops the window opening
-      at all — start the app once with `--disable-hwdec`, which forces software
-      decoding for that run without changing the setting, and then change it back.
-  - **Your own `mpv.conf` outranks this.** If it sets `hwdec` at the top level,
-      the app writes the option nowhere at all — not from this setting, not from
-      a shader profile — and the Settings page says "Pinned by config". A
-      `hwdec` inside an mpv profile section (`[name]`) is *not* treated as a
-      pin, because those are conditional.
-  - A shader profile that states a **requirement** has it applied: a named
-      decoder (the shipped `rtx-vsr` needs `d3d11va` for its Direct3D filter),
-      or `no` if a profile ever needs software frames. Choosing that profile is
-      opting in. The blanket `auto-copy` every profile carries is ignored —
-      that is a policy about the machine, not a requirement of the profile.
-  - The playback HUD's *Playback Info* panel reports what is actually in use.
-- `deinterlace_auto` - Deinterlace video whose file says it is interlaced.
-      Default: `false`
-  - This is mpv's `--deinterlace=auto`, and off is mpv's own default. The
-      interlaced flag is unreliable in both directions: plenty of DVD and
-      broadcast rips are interlaced without carrying it, and plenty of
-      progressive files carry it from whatever produced them. Deinterlacing
-      progressive video softens a picture that was fine, which is why this is
-      opt-in.
-  - For the other half — a file that *is* interlaced and does not say so —
-      there is a **Deinterlace** entry in the player's settings (gear) menu.
-      That forces it on for what you are watching and reverts when you go back
-      to the library, so it survives moving to the next episode of a badly
-      flagged season without becoming a permanent setting.
-  - `auto` needs **mpv 0.38 or newer**. On an older build the option is
-      refused and the setting behaves as off; it will not silently fall back
-      to deinterlacing everything, because that is a different and worse
-      setting rather than a degraded version of this one.
-- `motion_interpolation` - Blend frames to reduce judder. Default: `off`
-  - Values: `off`, `smooth`, `blend`, `hq`.
-  - Video whose framerate does not divide into your display's refresh rate has
-      to have frames repeated unevenly — 24fps on a 60Hz screen is the usual
-      case — and that unevenness is the judder. These modes resample along the
-      time axis so the frames land evenly instead.
-  - **This is frame blending, not motion synthesis.** It is not an SVP
-      replacement; SVP was looked at and rejected, because it is now paid on
-      Linux and its dependencies are heavy.
-  - `smooth` (mpv's `tscale=oversample`) blends only across the transition
-      between frames, so motion evens out and the picture stays sharp. `blend`
-      (`linear`) cross-fades between the two nearest frames: the smoothest
-      motion, visibly softer on a pan. `hq` (`mitchell`) is a wider kernel over
-      more frames — smoother again, and the one that costs enough GPU to
-      matter. On hardware that cannot keep up it drops frames, which looks like
-      the judder it was turned on to fix.
-  - All three switch mpv to `video-sync=display-resample`, because
-      `--interpolation` is *silently disabled* without a display-sync mode.
-      That mode follows the display clock and adjusts audio speed slightly to
-      match, which is not what you want if you are bitstreaming to a receiver.
-      Turning the setting back off restores whatever `video-sync` you had.
-  - **If it drops frames on hardware that should cope, suspect your
-      monitors rather than your GPU.** These modes follow one display's
-      refresh rate, and mpv's own manual warns that "on multi-monitor
-      systems, there is a chance that the detected value is from the wrong
-      monitor" and that even a slightly wrong value "can ruin video
-      playback". A desktop mixing a 144Hz screen with 60Hz ones is exactly
-      that case, and it was measured dropping frames badly on a 4090. The
-      first thing to try is mpv's own
-      `display-fps-override=<the refresh rate of the screen you watch on>`
-      in your `mpv.conf` — though that did **not** resolve it on the machine
-      above, so a mismatched desktop may be more than one problem. There is
-      deliberately no setting for it here: we would be guessing at which
-      monitor you meant, which is the thing that is already wrong.
-  - The playback HUD's *Playback Info* panel reports dropped frames, split
-      into decoder and output. Output drops are the ones this causes.
-- `deband` - Smooth the blocky steps that appear in gradients. Default: `off`
-  - Values: `off`, `light`, `standard`, `strong`.
-  - Banding is the visible stepping in a smooth gradient — a sky, a fade to
-      black, a dark scene — left behind when a gradient that needed more
-      precision than the file carries is quantized. Debanding detects those
-      flat regions and dithers across them.
-  - **Animation benefits most**, because flat gradients are most of the
-      picture. Live action is largely unaffected: the filter only acts where
-      neighbouring samples fall within `deband-threshold`, and detailed or
-      grainy footage fails that test almost everywhere. `strong` is the one
-      that can visibly soften genuinely fine, low-contrast texture, which is
-      why the ladder is labelled by content rather than by quality.
-  - It is **not free on content it does nothing for**: each iteration is a
-      GPU pass, which is worth knowing on integrated graphics or a
-      single-board machine at 4K.
-  - What each preset writes (mpv's own defaults are threshold 48, range 16,
-      grain 32, one iteration):
+- `lang` - Interface language as a locale code (`de`, `pt_BR`, `zh_Hans`). Default: `null`
+  (follow the system). Requires restart.
+  - The picker shows how much of the app each language covers; the rest stays in English.
+    Translations are contributed on [Weblate](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/).
+  - "The system" means `LANGUAGE`, then `LC_ALL`, `LC_MESSAGES` and `LANG`; on Windows, the
+    user's display language.
+- `player_name` - The name this player shows in other clients' cast menus. Default: your hostname. Requires restart.
+- `raise_mpv` - Windows only. Bring the player window to the front when playback starts.
+  Default: `true`
+- `discord_presence` - Share what you are watching via Discord Rich Presence. Default: `false`
+  - Needs the optional `pypresence` package (`pip install 'jellyfin-mpv-shim[discord]'`).
+    Requires restart.
+- `mpris` - Linux: let media keys, headset buttons, the lock screen and desktop media widgets
+  control playback, and show what is playing there. Default: `true`
+  - Needs PyGObject. Requires restart. Next/previous follow the queue (or seek, with
+    `media_key_seek`).
+  - The bus name is `com.github.iwalton3.jellyfin-mpv-shim`; with playerctl, give it in full:
+    `playerctl -p com.github.iwalton3.jellyfin-mpv-shim play-pause`.
+- `check_updates` - Check GitHub for a new release, at most once a day. Default: `true`
+- `notify_updates` - Show a notice when an update is available. One of `default`, `enabled`,
+  `disabled`. Default: `default`
+  - `default` is off in the Flatpak (your software centre announces updates there) and on
+    everywhere else.
+
+### Input
+
+- `input_gamepad` - Drive the library and playback with a game controller. Default: `false`
+  (on by default on SteamOS). Requires restart.
+  - D-pad and left stick move; right stick seeks; bottom face button selects, right goes
+    back, left pauses; shoulders page through lists; Start opens the context menu (the
+    player's settings menu during playback).
+  - **The controller is not focus-aware** — it drives the app even when another window is in
+    front.
+  - Needs an mpv built with `-Dsdl2-gamepad=enabled`. The Windows builds, the Flatpak and
+    Debian's mpv have it; most others do not, and the setting is then ignored (the log says so).
+    One controller at a time.
+  - Every button is an ordinary mpv key and can be rebound in [`input.conf`](#mpv-configuration);
+    a line there wins over the built-in binding. Y/triangle (`GAMEPAD_ACTION_UP`), Select/View
+    (`GAMEPAD_BACK`) and both triggers are left free for you:
+
+    ```
+    GAMEPAD_ACTION_UP       cycle fullscreen
+    GAMEPAD_LEFT_TRIGGER    add speed -0.1
+    ```
+- `gamepad_swap_confirm` - Confirm on the **right** face button and back on the bottom one,
+  as on Nintendo-style pads. Default: `false`
+- `browse_block_keys` - Ignore mpv's own single-key shortcuts while the library is on screen.
+  Default: `true`
+  - Otherwise keys like `1`-`8` (picture adjustments), `d` (deinterlace) and `s` (screenshot)
+    act invisibly and carry over into the next video. Arrows, paging, the wheel and modified
+    keys are unaffected, and `9`/`0`/`m` still set the volume while music plays.
+  - Turn it off to use your own `input.conf` bindings in the library.
+
+### Window
+
+- `fullscreen` - Go fullscreen when playback starts. Default: `false`
+- `browser_fullscreen` - Run the library fullscreen too. Default: `false`
+  - Pressing `f` remembers your choice in whichever of these two applies at the time.
+- `remember_window_size` - Reopen at the size the window was last closed at. Default: `true`
+- `window_controls` - Draw move, minimize, maximize and close controls in the app's own top bar,
+  plus a resize grip, for windows the desktop gives no title bar. One of `auto`, `always`,
+  `never`. Default: `auto`
+  - `auto` shows them when mpv reports the window undecorated — GNOME on Wayland, or
+    `border=no` in your `mpv.conf` — and not on desktops that draw a real title bar.
+  - Dragging the bar to move the window needs **mpv 0.39** or newer; the buttons work on older
+    versions.
+- `window_controls_fullscreen` - Keep those controls on screen in fullscreen. Default: `false`
+- `hide_title_bar` - Ask the desktop for no title bar, so the app's own top bar replaces it.
+  Default: `false`. Requires restart.
+- `close_to_tray` - Closing the window keeps the app running in the system tray as a cast
+  target, instead of quitting. Default: `true`
+  - Ignored when there is no tray, unless `allow_background` or `headless` is set.
+- `allow_background` - Allow running with no window *and* no tray icon, so `close_to_tray`
+  and `start_minimized` work on desktops without a tray. Default: `false`
+  - The only ways to stop it then are `jellyfin-mpv-shim stop` or killing the process.
+- `start_minimized` - Start in the tray instead of opening the library. Default: `false`
+  - Needs a tray or `allow_background`. The `--minimized` flag starts one launch minimized and
+    works even without a tray. Launching the app again shows the window.
+- `display_mirror_summon` - Let casting from another device open the window, or bring it to
+  the front. Default: `false`
+  - Off, casting still navigates an already-open library, without stealing focus.
+
+---
+
+## Browse
+
+### Theme
+
+- `theme` - Look of the library browser. Default: `default`
+  - Built in: `default`; `nebula` (deep violet, rounded, larger covers); `superdark`
+    (near-black, no colour); `elegance` (inspired by the ElegantFin web theme); and
+    `jf-blueradiance`, `jf-wmc`, `jf-purplehaze`, `jf-light`, `jf-appletv`, translations of
+    jellyfin-web's own themes. The last two are light themes.
+  - Colours apply immediately; a theme's cover and heading *sizes* need a restart.
+  - The playback controls stay dark under every theme, as jellyfin-web's do.
+  - You can write your own — see [Writing a theme](#writing-a-theme).
+- `poster_scale` - Cover size, overriding the theme's. Default: `null` (the theme's own)
+  - Any number works; Settings offers `0.75` to `1.7`. Scales artwork only, not text. Also on
+    each library's **View** menu.
+- `ui_scale` - Scale of the whole interface. Default: `null` (follow the display's HiDPI
+  factor). Requires restart.
+  - Set e.g. `1.5` or `2.0` to make it readable on a TV across the room. `--scale FACTOR`
+    overrides it for one run.
+  - Downloaded (offline) artwork was fetched at 1x and is upscaled.
+- `ui_text_scale` - Multiply the size of all text, leaving artwork and spacing alone.
+  Default: `1.0`
+  - For when the words are too small rather than everything. If you want more than `1.5`,
+    `ui_scale` is usually the better answer.
+- `ui_text_min` - No text renders smaller than this many pixels. `0` disables it. Default: `0`
+  - The low-vision control: it raises the smallest labels without enlarging headings.
+
+### Library Browser
+
+- `library_image_cache_mb` - Memory budget for decoded artwork. Default: `96`. Requires restart.
+  - Raise it if you browse very large libraries and have RAM to spare.
+  - Downloaded artwork is also cached on disk (`$XDG_CACHE_HOME/jellyfin-mpv-shim/artwork`,
+    `~/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows) — up to 1 GiB or 5% of free
+    space, whichever is less, pruned after 30 days unused. Deleting it is always safe.
+- `scroll_wheel_pixels` - How far one wheel notch scrolls. Default: `80`
+- `scroll_mode` - One of `continuous`, `aligned`, `row`. Default: `continuous`
+  - `continuous` scrolls smoothly, lining rows up only when drawing falls behind.
+  - `aligned` never draws a row part-scrolled — try it if scrolling stutters (very large or
+    remote displays, external mpv).
+  - `row` moves exactly one row per notch.
+- `paginated` - Page through tile grids (First / Previous / Next / Last) instead of scrolling.
+  Default: `false`
+- `remember_filters` - Reopen each library with the filters it had last time. Default: `true`
+  - Stored on your server, so they follow your account to other devices running this app.
+- `grid_fill` - Where the leftover width of a tile grid goes. One of `justify` (widen the
+  gaps), `center` (split it between the margins), `off` (all on the right). Default: `justify`
+- `backdrop_full_width` - Run a detail page's backdrop edge to edge, as the web client does.
+  Default: `true`
+- `detail_poster` - Show the poster inset in a film's or series' header. Default: `true`
+- `detail_episode_image` - Show the episode still in an episode's header. Default: `true`
+  - Separate so you can avoid spoilers without losing posters.
+- `logo_legibility_live_tv` - Put a light plate behind transparent channel logos so dark ones
+  stay visible. Default: `true`
+- `logo_legibility_library` - The same for libraries drawing **Logo** artwork. Default: `false`
+  - Also on the library's **View** menu.
+- `clock_12h` - Show times as `8:30 PM` instead of `20:30`. Default: `false`
+
+### Reading
+
+These control the built-in [book readers](../README.md#books-comics-and-audiobooks).
+
+- `reader_font_size` - Text size in the epub reader, in pixels. Default: `21`
+  - The reader's `A-` / `A+` buttons change this.
+- `reader_theme` - Page colour: `dark`, `sepia` or `light`. Default: `dark`
+- `reader_justify` - Justify text, as a printed book does. Default: `true`
+- `comic_fit` - How a comic page opens: `width` (fit width, scroll down) or `page` (whole
+  page). Default: `page`
+  - The comic reader's **Fit Width** / **Fit Page** buttons change this.
+
+### Downloads
+
+Downloads are managed from **Downloads** in the sidebar; these settings control where they go
+and what is fetched automatically.
+
+- `sync_path` - Where downloads are stored. Default: `null` (a `downloads` folder in the
+  config folder)
+  - **Change it in Settings, not by hand** — Settings moves the existing files; editing the
+    path leaves them behind. The new folder must be empty, and the app owns it afterwards.
+- `prefer_downloaded` - Play the downloaded copy when there is one. Default: `true`
+- `work_offline` - Browse downloaded media only and don't contact the server. Default: `false`
+
+**Automatic downloads** keep upcoming episodes on disk. They run on a schedule, only while
+nothing is playing, and are off by default since they write to your disk unattended.
+
+- `auto_download_enable` - Turn automatic downloads on. Default: `false`
+- `auto_download_next_up` - Download from your Next Up list. Default: `true`
+- `auto_download_next_up_limit` - How many Next Up entries to consider (most recent first).
+  Default: `10`
+- `auto_download_lookahead` - Episodes to keep ahead of where you are in each series. `0`
+  disables it. Default: `2`
+  - Counted from the next episode to watch, so a series you stop watching does not keep
+    downloading.
+- `auto_download_max_gb` - Storage budget for automatic downloads, in GB. Default: `20`
+  - Downloads you started yourself are never counted or deleted automatically.
+- `auto_download_delete_watched` - Delete automatic downloads once watched. Default: `true`
+- `auto_download_keep_watched_hours` - ...but keep them this many hours first. `0` deletes on
+  the next check. Default: `24`
+  - When the budget is full, watched downloads are removed early to make room.
+- `auto_download_keep_days` - Delete unwatched automatic downloads after this many days. `0`
+  keeps them. Default: `30`
+- `auto_download_interval_mins` - How often to check, in minutes. Default: `60`
+
+Under **Show advanced settings**:
+
+- `auto_download_lookahead_min` - Leave a series alone while it has at least this many
+  upcoming episodes held or queued. Default: `null`
+- `auto_download_lookahead_max` - ...and top it up to this many when it drops below.
+  Default: `null`
+  - **Set both or neither** (otherwise `auto_download_lookahead` applies). This downloads in
+    fewer, larger batches, so a spun-down disk wakes less often.
+- `auto_download_max_per_pass` - How many items one check may queue. Default: `null` (20)
+
+---
+
+## Playback
+
+### Player Controls
+
+- `osc_style` - Which on-screen controls to use during playback. Default: `mpvtk`. Requires restart.
+  - `mpvtk` - The app's own controls, styled after jellyfin-web: seek bar with chapters and
+    previews, track and quality pickers, a settings (gear) menu, Skip Intro/Credits. Works
+    with keyboard, mouse and remotes. Needs `enable_gui`.
+  - `mpv` - mpv's own controls, with seek previews.
+  - `custom` - Your own OSC script (e.g. uosc). Put it in `scripts/` in the config folder
+    (fonts in `fonts/`), and add `osc=no` to `mpv.conf`. Seek previews still work.
+  - `none` - No on-screen controls; keyboard shortcuts and the menu key still work.
+  - **With `mpv` or `custom`**, change audio and subtitle tracks with the menu key (`c`) or
+    from the library, not the OSC's own picker: that picker cannot see Jellyfin's external or
+    burned-in subtitles, and its choice is not remembered. Its playlist and next/previous
+    buttons do nothing, because the queue is kept by the app.
+- `thumbnail_enable` - Show [seek previews](#seek-previews-trickplay) while scrubbing.
+  Default: `true`. Requires restart.
+- `hud_grab_keys` - Let the arrow keys and ENTER always drive the on-screen controls while
+  they are up. Default: `false`
+  - Off, the arrows keep seeking and only `hud_wake_key` takes keyboard control.
+- `hud_wake_key` - The key that brings up the controls for keyboard use (it also toggles
+  pause). Default: `ENTER`
+- `hud_scrim` - Shading behind the controls: `default` (gradient), `panel` (flat band behind
+  each bar) or `none` (outlined text instead). Default: `default`
+- `hud_autohide` - When the controls hide: `hover` (unless the pointer is on them), `always`
+  (even while paused) or `paused` (never while paused). Default: `hover`
+- `hud_hide_secs` - Seconds without input before the controls hide. Default: `4.0`
+- `hud_auto_scale` - On a narrow window, shrink the controls (down to 24×24 px targets) before
+  dropping any. Default: `true`
+- `mouse_chapter_nav` - The mouse's back/forward buttons skip chapters during playback.
+  Default: `false`. Requires restart.
+- `mouse_click_pauses` - Left click on the video pauses. Default: `true`
+  - Off restores mpv's behaviour: drag the video to move the window, right click to pause.
+    Double click is fullscreen either way.
+- `trickplay_fast_mode` - Load every seek preview up front. Default: `false`
+  - Previews never wait, at the cost of hundreds of MB of memory on a long video. See
+    [Seek previews](#seek-previews-trickplay).
+
+### Playback
+
+- `auto_play` - Play the next item in the queue automatically. Default: `true`
+- `hwdec` - Hardware video decoding: `no`, `over-1080p`, `auto` or `auto-copy`. Default: `no`
+  - `over-1080p` uses hardware only above 1080p — the cautious way to turn it on.
+  - `auto-copy` is slower than `auto` but avoids driver interop problems, and is the one that
+    works with video filters such as SVP.
+  - If turning it on breaks video, start once with `--disable-hwdec` and change it back.
+  - **A top-level `hwdec` in your `mpv.conf` wins**: the app then sets none, and Settings
+    shows "Pinned by config". A shader profile that needs a specific decoder (`rtx-vsr`
+    needs `d3d11va`) sets it while loaded.
+- `network_buffer` - How far ahead to read: `default` (mpv's, one second), `large` (20 s,
+  400 MiB) or `huge` (60 s, 1 GiB). Default: `default`
+  - Raise it if playback stops for buffering over a slow or distant connection.
+- `always_transcode` - Always ask the server to transcode. Default: `false`
+  - The server may still direct play files that already fit the profile; lower the bandwidth
+    limit to force it.
+- `local_kbps` - Bandwidth limit on your local network. Default: `2147483`
+- `remote_kbps` - Bandwidth limit for remote streaming. Default: `10000`
+- `direct_paths` - Open files straight from their SMB/NFS share instead of streaming.
+  Default: `false`
+- `remote_direct_paths` - Use direct paths even when the server is remote. Default: `false`
+- `playback_timeout` - Seconds to wait for a file to start before giving up. Default: `30`
+  - Hitting this usually means a missing or corrupt file on the server.
+
+### Audio
+
+By default nothing about audio is changed and mpv (and your `mpv.conf`) decides. These are for
+sending audio to a receiver.
+
+- `audio_device` - Which output device to use, as an mpv device name. Default: unset (mpv
+  decides)
+  - Settings lists the devices on this machine. **This is usually what passthrough needs** —
+    see [below](#passthrough-troubleshooting).
+- `audio_exclusive` - Take the device exclusively. Default: `false`
+  - Windows (WASAPI), macOS and sndio only; on Linux choose the hardware device with `audio_device`.
+- `audio_mode` - Default: `auto`
+  - `auto` - Change nothing.
+  - `stereo` - Downmix to stereo, normalized.
+  - `optical` - S/PDIF: passes through AC3 and DTS, and encodes anything else to AC3 so you
+    keep surround.
+  - `hdmi` - Passes through every format your receiver accepts; anything else is sent as
+    multichannel PCM.
+- `audio_passthrough_ac3`, `audio_passthrough_dts`, `audio_passthrough_eac3`,
+  `audio_passthrough_dts_hd`, `audio_passthrough_truehd` - Which formats your receiver
+  accepts. All default to `true`; Settings shows only those the selected mode can carry.
+- `audio_optical_encode_ac3` - In `optical` mode, encode other formats to AC3. Default: `true`
+  - Off, they are sent as stereo PCM. Some receivers add latency with the encoder.
+- `audio_night_mode` - Even out loud effects and quiet dialogue. Default: `false`
+  - Also in the player's settings menu. Disables passthrough while on.
+
+Don't combine `audio-spdif` and `af=lavcac3enc` in your own `mpv.conf` (an old tip): mpv
+silently drops the encoder. `audio_mode: optical` does this correctly, per track.
+
+#### Passthrough troubleshooting
+
+mpv can report a passthrough stream (`spdif-ac3` in the log) that never reaches the receiver:
+the bitstream travels as ordinary PCM, so a sound server that resamples it, changes its volume
+or routes it to the wrong device turns it into static or silence.
+
+The reliable setup is to **bypass the sound server**: set `audio_device` to the S/PDIF or HDMI
+device itself (`alsa/iec958:CARD=…`), not a `pulse/…` or `pipewire` entry, and on Windows or
+macOS also enable `audio_exclusive`. On Linux the sound server usually holds that device open,
+so release it first:
+
+```
+pactl set-card-profile <card-name> off       # card names from `pactl list cards`
+```
+
+Signs worth knowing on PipeWire/PulseAudio:
+
+- `pactl list cards` listing only `iec958-stereo`, with no `iec958-ac3-surround-51`, means the
+  sound server will never pass through on that card — going direct is the only route.
+- `Unknown PCM default:AES0=6,...` in the log means mpv could not open the device and fell back
+  to `default`. `cat /proc/asound/card*/pcm0p/sub0/status` shows who has it open.
+- With plain speakers attached, loud static is the *correct* result for a bitstream.
+
+### Subtitles & Languages
+
+- `subtitle_size` - Subtitle size, in percent. Default: `100`
+- `subtitle_color` - Subtitle colour, as hex. Default: `#FFFFFFFF`
+- `subtitle_position` - `top`, `bottom` or `middle`. Default: `bottom`
+  - These three do not apply to every subtitle format, nor to subtitles burned in by a
+    transcode. For full styling, use `mpv.conf`.
+- `language_preference` - Automatic track selection preset: `unset`, `dubbed_shows`,
+  `subbed_shows`, `dubbed_all`, `subbed_all` or `custom`. Default: `custom`
+  - **Subbed** prefers Japanese audio with full `preferred_language` subtitles, then any
+    `preferred_language` subtitles, then `preferred_language` audio.
+  - **Dubbed** prefers `preferred_language` audio with signs/songs subtitles, then
+    `preferred_language` audio alone, then the subbed rules.
+  - The *shows* variants leave films to the server's choice.
+  - **The subbed presets assume the original audio is Japanese** (the anime case). For
+    anything else, choose `custom` and write [`language_config`](#language-config-power-user)
+    rules.
+  - Unset writes no rules; Custom leaves your own rules alone.
+- `preferred_language` - The language the presets are built around, as your files tag it
+  (usually ISO 639-2/B, like `eng`). Default: `eng`
+- `remember_audio_track` - Reuse your audio choice for later episodes of a show. Default: `true`
+- `remember_subtitle_track` - Reuse your subtitle choice for later episodes. Default: `true`
+- `lang_filter` - Languages the audio and subtitle **menus** list. Default:
+  `und,eng,jpn,mis,mul,zxx`. Requires restart.
+  - **Does nothing until `lang_filter_sub` or `lang_filter_audio` is on.** It only shortens
+    the menus; it does not choose tracks. Remove `und` to hide untagged tracks.
+- `lang_filter_sub` - Apply `lang_filter` to the subtitle menu. Default: `false`
+- `lang_filter_audio` - Apply `lang_filter` to the audio menu. Default: `false`
+
+### Transcoding
+
+- `allow_transcode_to_h265` - Allow the server to transcode *to* HEVC. Default: `false`
+  - This also breaks forced transcoding of HDR and Dolby Vision
+    ([jellyfin#9313](https://github.com/jellyfin/jellyfin/issues/9313)).
+- `prefer_transcode_to_h265` - Ask for HEVC as the transcode target. Default: `false`
+- `transcode_hevc` - Always transcode HEVC video. Default: `false`
+- `transcode_av1` - Always transcode AV1 video. Default: `false`
+- `transcode_4k` - Always transcode video above 1080p. Default: `false`
+- `transcode_hdr` - Always transcode HDR to SDR. Default: `false`
+- `transcode_hi10p` - Always transcode 10-bit video to 8-bit. Default: `false`
+- `transcode_dolby_vision` - Always transcode Dolby Vision to SDR. Default: `false`
+  - mpv plays Dolby Vision itself with `vo=gpu-next`, which is mpv's default from **0.41**
+    (the Windows and Flatpak builds ship it). With an older system mpv, set `vo=gpu-next` in
+    `mpv.conf` rather than enabling this: the server only tone maps if its admin set that up.
+- `extract_image_subtitles` - While transcoding, deliver image subtitles (PGS, and VobSub on
+  Jellyfin 12+) as a separate track instead of burning them in. Default: `true`
+  - The server extracts every subtitle stream in the file to do this. External `.sup`/`.mks`
+    files are unaffected.
+- `force_video_codec` - Request this video codec. Default: `null`
+  - Combine with `always_transcode` to force a transcode into it. Overrides the `transcode_*`
+    codec options above.
+- `force_audio_codec` - Request this audio codec. Default: `null`
+
+### Video Enhancement
+
+- `deband` - Smooth the stepping in gradients (skies, fades, dark scenes). One of `off`,
+  `light`, `standard`, `strong`. Default: `off`
+  - Labelled by content: animation benefits most; detailed live action is mostly untouched,
+    and `strong` can soften fine low-contrast texture. Each step costs some GPU.
+  - What each writes (mpv's defaults: 1 iteration, threshold 48, range 16, grain 32):
 
     | | iterations | threshold | range | grain |
     |---|---|---|---|---|
@@ -205,857 +417,265 @@ You can adjust the basic transcoder settings via the menu.
     | `standard` | 2 | 48 | 14 | 24 |
     | `strong` | 4 | 64 | 12 | 32 |
 
-  - Iterations, threshold and grain rise together — they are the strength
-      axes. **`range` falls**, because it is the filter's initial radius and
-      mpv's manual says the radius "increases linearly for each iteration",
-      then: "If you increase the `--deband-iterations`, you should probably
-      decrease this to compensate." `light` runs mpv's own single iteration,
-      so it keeps mpv's own radius.
+    Range falls as iterations rise because mpv's radius grows with each iteration.
+  - The parameters are not exposed individually: leave this `off` and set `deband*` in your
+    `mpv.conf` for a specific combination. `off` writes nothing, so your values stand — true of
+    every setting in this group. When not `off`, this overrides the shader pack's debanding.
+- `render_quality` - `default` or `high`, mpv's `high-quality` preset (better upscaling,
+  some GPU cost, no shader files). Default: `default`
+  - Worth trying before the shader pack. Its HDR options need mpv 0.37+ and only have an
+    effect on `vo=gpu-next`.
+- `tone_mapping` - How HDR is fitted to an SDR display: `auto`, `bt.2390`, `bt.2446a`,
+  `spline`, `hable`, `reinhard` or `clip`. Default: `auto`
+  - These are mpv's curves. `auto` leaves mpv's choice alone; try `clip` if HDR looks grey and
+    flat. Has no effect when HDR is passed through to an HDR display.
+- `shader_pack_enable` - Offer the [shader pack](#shader-packs)'s video profiles. Default: `true`. Requires restart.
+- `shader_pack_subtype` - Profile group: `lq` or `hq` (for a capable graphics card).
+  Default: `lq`
+- `shader_pack_remember` - Remember the last profile you chose. Default: `true`
+- `shader_pack_gpu_api` - Graphics API while a profile is loaded: `auto`, `vulkan`, `d3d11`
+  or `opengl`. Default: `auto`
+  - Change it only if video breaks when a profile loads. `opengl` is the most compatible but
+    can cost HDR output; on Windows `d3d11` and `vulkan` keep HDR.
+- `deinterlace_auto` - Deinterlace video flagged as interlaced. Default: `false`
+  - The flag is unreliable both ways. For an interlaced file that is not flagged, use
+    **Deinterlace** in the player's settings menu, which lasts until you return to the library.
+  - Needs mpv 0.38+; on older builds it behaves as off.
+- `motion_interpolation` - Blend frames to reduce judder (24 fps on a 60 Hz screen):
+  `off`, `smooth`, `blend` or `hq`. Default: `off`
+  - `smooth` blends only at frame transitions and stays sharp; `blend` is smoothest but softer
+    on pans; `hq` is smoother again and costs real GPU. This is frame blending, not SVP-style
+    motion synthesis.
+  - Switches mpv to `video-sync=display-resample`, which adjusts audio speed slightly — not
+    what you want when bitstreaming to a receiver.
+  - **Dropping frames on capable hardware?** Suspect mixed refresh-rate monitors: mpv may read
+    the wrong one. Try `display-fps-override=<your screen's rate>` in `mpv.conf`. Dropped
+    frames are shown in the player's **Playback Info**.
 
-  - The parameters are deliberately not exposed individually. **Leave this
-      at `off` and set the `deband*` options in your own `mpv.conf` if you
-      want a specific combination** — `off` writes nothing at all, so your
-      values are left exactly as you set them. That is true of every setting
-      in this group.
-  - The shader pack also enables debanding, through the `deband-default`
-      group that every shader profile pulls in — so before this setting
-      existed, debanding arrived bundled with picking an upscaler and left
-      again when you unloaded one. This setting outranks the pack's while it
-      is not `off`, and is reasserted whenever a profile is loaded or
-      unloaded.
-- `tone_mapping` - How HDR video is fitted to an SDR display. Default: `auto`
-  - Values: `auto`, `bt.2390`, `bt.2446a`, `spline`, `hable`, `reinhard`,
-      `clip`. These are mpv's `--tone-mapping` curves, and they are different
-      trades rather than a quality ladder, which is why they are not renamed
-      here.
-  - **This does nothing when HDR is being passed through to an HDR
-      display**, because in that case mpv is not tone mapping at all. See
-      `target-colorspace-hint` handling in `player_window.py`.
-  - `auto` leaves mpv's own choice alone and writes nothing. `bt.2390` is the
-      reference curve. `clip` does no tone mapping and simply clips out-of-
-      range highlights — worth trying if HDR films look grey and flat rather
-      than merely dark.
-- `render_quality` - Apply mpv's own high-quality rendering preset.
-      Default: `default`
-  - Values: `default`, `high`.
-  - `high` writes what mpv's `high-quality` profile sets: `scale=ewa_lanczossharp`,
-      `scale-antiring=0.6`, `hdr-peak-percentile=99.995` and
-      `hdr-contrast-recovery=0.30`. (mpv's `gpu-hq` is now just an alias for
-      that profile, and neither includes debanding.)
-  - A middle tier between mpv's defaults and the shader pack: better
-      upscaling for some GPU cost, no shader files, and it does not use up
-      your single shader profile. Try it before the shader pack.
-  - It is written as individual properties rather than as
-      `profile=high-quality` because mpv cannot report what a profile
-      contained, so a profile can be applied and never taken back — which
-      would make this a setting that only turns on. The last two options
-      need **mpv 0.37 or newer**; on an older build they are skipped and the
-      scaling half still applies.
-  - `hdr-peak-percentile` is documented by mpv as **`--vo=gpu-next` only**.
-      That is mpv's default output from **0.41**; on 0.40 and older the
-      default is `gpu`, where it is accepted and ignored. Nothing breaks
-      either way — it is the same option mpv's own `high-quality` profile
-      sets — but on an older build this setting is the scaling half plus
-      `hdr-contrast-recovery` only.
-- `network_buffer` - How far ahead of playback to read. Default: `default`
-  - Values: `default`, `large` (20s readahead, 400 MiB), `huge` (60s, 1 GiB).
-  - mpv's own readahead is **one second**, which is short for a server
-      reached over the internet or a congested link. Raise this if playback
-      stalls to buffer. Larger buffers cost memory and make the first
-      seconds of a file slower to start.
-- `always_transcode` - This will tell the client to always transcode. Default: `false`
-  - This may be useful if you are using limited hardware that cannot handle advanced codecs.
-  - Please note that Jellyfin may still direct play files that meet the transcode profile
-      requirements. There is nothing I can do on my end to disable this, but you can reduce
-      the bandwidth setting to force a transcode.
-- `transcode_hdr` - Force transcode HDR videos to SDR. Default: `false`
-- `transcode_dolby_vision` - Force transcode Dolby Vision videos to SDR. Default: `false`
-- `extract_image_subtitles` - During a transcode, show a video's built-in image subtitles (PGS,
-  and VobSub on Jellyfin 12+) as a separate track rather than burning them in. Default: `true`
-  - Fetching one makes the server extract every subtitle stream in the file into its cache.
-    Turn this off to have them burnt in instead. External `.sup` / `.mks` files are not affected.
-  - MPV plays Dolby Vision natively now, so this is off by default. Existing configs are
-    migrated off it once, on the first launch after upgrading; re-enable it if your setup
-    still needs the SDR transcode.
-  - Dolby Vision tone mapping comes from `vo=gpu-next`, which is no longer experimental and is
-    MPV's default video output as of **MPV 0.41**. On MPV 0.40 and older the default is still
-    the older `vo=gpu`, which drops the Dolby Vision mapping and renders the base layer — fine
-    for profile 8, wrong-looking for profile 5. The Flatpak and Windows builds ship a current
-    MPV, so this only affects distro/pip installs using an older system `libmpv`.
-  - If that is you, set `vo=gpu-next` in `mpv.conf` (or update MPV). Turning this transcode
-    option back on is *not* a good substitute: Jellyfin does not tone map unless the server
-    admin enabled it — it is off by default and in practice wants a GPU on the server — so
-    without that you get a transcode that still looks wrong.
-  - A `vo=gpu` line already in your `mpv.conf` overrides the new default, so remove it if you
-    want the newer renderer. The shader packs do not set `vo`, so using them does not opt you out.
-- `transcode_hi10p` - Force transcode 10 bit color videos to 8 bit color. Default: `false`
-- `transcode_hevc` - Force transcode HEVC videos. Default: `false`
-- `transcode_av1` - Force transcode AV1 videos. Default: `false`
-- `transcode_4k` - Force transcode videos over 1080p. Default: `false`
-- `remote_kbps` - Bandwidth to permit for remote streaming. Default: `10000`
-- `local_kbps` - Bandwidth to permit for local streaming. Default: `2147483`
-- `direct_paths` - Play media files directly from the SMB or NFS source. Default: `false`
-  - `remote_direct_paths` - Apply this even when the server is detected as remote. Default: `false`
-  - `path_substitutions` - Rewrite the path reported by Jellyfin before opening it directly. Default: `[]`
-    - This is useful when Jellyfin runs in Docker and reports paths like `/media/shows/...` but your playback machine needs a Windows path such as `Z:\\media\\shows\\...` or `\\\\TRUENAS\\Media\\shows\\...`.
-    - `~` and environment variables are expanded for substitution entries and resolved direct paths (for example `$HOME`, `${HOME}`, or `%USERPROFILE%`).
-    - Format: `[["/media", "Z:\\media"], ["/mnt/media", "\\\\TRUENAS\\Media"]]`
-    - Format (with expansion): `[["/media", "%USERPROFILE%\\media"], ["/mnt/media", "$HOME/media"], ["/srv/media", "~/media"]]`
-  - Note that `Shared network folder` support was deprecated in Jellyfin 10.9, and is no longer exposed in the Jellyfin UI.
-- `allow_transcode_to_h265` - Allow the server to transcode media *to* `hevc`. Default: `false`
-  - If you enable this, it'll allow remuxing to HEVC but it'll also break force transcoding of Dolby Vision and HDR content if those settings are used. (See [this bug](https://github.com/jellyfin/jellyfin/issues/9313).)
-- `prefer_transcode_to_h265` - Requests the server to transcode media *to* `hevc` as the default. Default: `false`
-- `transcode_warning` - Display a warning the first time media transcodes in a session. Default: `true`
-  - This is an OSD message for the classic player controls only. With the in-window controls (`osc_style: mpvtk`) it is never shown; the gear menu's quality entry marks a transcoding stream instead.
-- `force_video_codec` - Force a specified video codec to be played. Default: `null`
-  - This can be used in tandem with `always_transcode` to force the client to transcode into
-      the specified format.
-  - This may have the same limitations as `always_transcode`.
-  - This will override `transcode_to_h265`, `transcode_h265` and `transcode_hi10p`.
-- `force_audio_codec` - Force a specified audio codec to be played. Default: `null`
-  - This can be used in tandeom with `always_transcode` to force the client to transcode into
-      the specified format.
-  - This may have the same limitations as `always_transcode`.
+### Skip Intro / Credits
 
-## Audio Output
+Uses the server's media segments. Each setting is `off`, `ask` (show a **Skip** button; a
+seek prompt with other OSC styles) or `always` (skip silently).
 
-By default the shim changes nothing about audio and lets MPV (and anything in
-your own `mpv.conf`) decide. The settings below are for sending audio to an
-external receiver.
+- `segment_intro` - Intros. Default: `ask`
+- `segment_outro` - Credits. Default: `ask`
+- `segment_commercial` - Commercials. Default: `off`
+- `segment_preview` - Previews. Default: `off`
+- `segment_recap` - Recaps. Default: `off`
+- `skip_intro_on_seek` - Seeking forward with the keyboard or a remote during an intro or
+  credits skips the whole segment. Default: `false`
 
-- `audio_device` - Which output device MPV opens, as an MPV device name
-  (`alsa/iec958:CARD=X,DEV=0`, `wasapi/{guid}`, …). Default: unset
-  - Unset means MPV decides, so its default and anything in your `mpv.conf`
-    are left alone. Settings offers a drop-down of whatever MPV reports on
-    this machine right now.
-  - **This is the setting passthrough usually needs.** See "Passthrough needs
-    a sound server that will carry it" below.
-- `audio_exclusive` - Take the output device exclusively, so nothing else can
-  mix into it. Default: `false`
-  - MPV honours this on WASAPI (Windows), CoreAudio (macOS) and sndio only, so
-    the Settings form hides it elsewhere. On Linux the equivalent is choosing
-    the hardware device directly with `audio_device`.
-  - Other applications get no sound while something is playing.
-- `audio_mode` - How audio is sent to your speakers or receiver. Default: `auto`
-  - `auto` - Change nothing. MPV's defaults and your `mpv.conf` apply.
-  - `stereo` - Force stereo and normalize the downmix.
-  - `optical` - S/PDIF (optical or coaxial). Passes through AC3 and DTS, which
-      is all the cable has bandwidth for, and encodes anything else to AC3 so
-      you still get surround instead of a stereo downmix.
-  - `hdmi` - Passes through every compressed format your receiver accepts.
-      Never re-encodes: HDMI carries multichannel PCM natively, so anything
-      that isn't passed through is sent uncompressed.
-- `audio_passthrough_ac3`, `audio_passthrough_dts`, `audio_passthrough_eac3`,
-  `audio_passthrough_dts_hd`, `audio_passthrough_truehd` - Which formats to
-  pass through. All default to `true`; untick anything your receiver can't
-  decode. Only the ones the selected mode can carry are shown in Settings —
-  `optical` offers AC3 and DTS only.
-- `audio_optical_encode_ac3` - In `optical` mode, encode audio that can't be
-  passed through to AC3. Default: `true`
-  - This is the only way surround fits down an optical cable, so leave it on
-    unless the encoder causes trouble — it adds latency on some receivers.
-  - With it off, those tracks are sent as stereo PCM. S/PDIF can't carry
-    multichannel PCM either, so there is no third option. Formats your
-    receiver *can* accept directly are unaffected.
-- `audio_night_mode` - "Night Mode (Auto Volume Adj)". Evens out loud effects
-  and quiet dialogue. Default: `false`
-  - Also on the player's settings menu, and applies to what is already playing.
-  - Turns passthrough off while enabled. The volume has to be adjusted before
-    your receiver gets the audio, which means the audio has to be decoded
-    first. In `optical` mode you keep surround (it is re-encoded to AC3); in
-    `hdmi` mode you get multichannel PCM.
+---
 
-### Passthrough needs a sound server that will carry it
+## Config-file only
 
-These settings tell mpv what to *ask* for. Whether it arrives is up to your
-audio stack, and passthrough is the one case where a stack that quietly
-substitutes something else is hard to notice: mpv reports
-`AO: [alsa] 48000Hz stereo 2ch spdif-ac3` and is genuinely emitting the
-bitstream, but an AC3 bitstream is carried as ordinary 2-channel PCM frames.
-Anything that resamples it, applies a volume other than 100%, or sends it to
-the wrong device turns it into static rather than an error.
+Settings with no dedicated control. Most also appear under **General → Show advanced
+settings**.
 
-Two things to check on PipeWire or PulseAudio if a receiver will not lock on:
+### Startup and background
 
-- **Does the card offer a passthrough profile at all?**
-  `pactl list cards` should list something like
-  `output:iec958-ac3-surround-51: Digital Surround 5.1 (IEC958/AC3)`. A card
-  offering only `iec958-stereo` does linear PCM over S/PDIF and nothing else,
-  no matter what mpv asks for.
-- **Is the sound server holding the S/PDIF device open?** If it is, mpv cannot
-  open it directly and falls back to the `default` device — which is where
-  `Unknown PCM default:AES0=6,AES1=130,...` in the log comes from. Those two
-  ALSA lines are harmless in themselves (the IEC958 channel-status bits mean
-  nothing to `default`), but they are a good sign the stream is not going
-  where you think. `cat /proc/asound/card*/pcm0p/sub0/status` shows the owner.
-
-The reliable arrangement is to bypass the sound server: set **`audio_device`**
-(Settings → Audio → Audio Output Device) to the S/PDIF or HDMI device itself
-rather than a `pulse/…` or `pipewire` entry. On Windows and macOS, tick
-**`audio_exclusive`** as well.
-
-On Linux the sound server usually keeps the S/PDIF device open, which stops
-MPV from taking it. Free it first:
-
-```
-pactl set-card-profile <card-name> off       # from `pactl list cards`
-```
-
-Then pick the `alsa/iec958:CARD=…` entry in Settings. If the `AES0=…` lines
-stop appearing in the log, the channel-status bits are being set and the
-bitstream is really going out — with speakers attached you will hear loud
-static, which is the *correct* result for a bitstream and what a receiver
-locks onto. Nothing attached and no static means it is still not reaching the
-port.
-
-Not every card can do this. `pactl list cards` showing only `iec958-stereo`
-for a card, with no `iec958-ac3-surround-51`, means the sound server will
-never treat it as passthrough-capable — going direct via `audio_device` is
-then the only route, and whether the hardware honours the non-audio bit is up
-to the hardware.
-
-Nothing is set for you unless you set it: with `audio_device` unset the shim
-passes no device to MPV at all, so an `mpv.conf` somebody already got right is
-never overridden. `ao` is never set either.
-
-## Features
-
-You can use the config file to enable and disable features.
-
-- `auto_play` - Automatically play the next item in the queue. Default: `true`
-- `fullscreen` - Fullscreen the player when starting playback. Default: `false`
-  - The library browser and the player share one window, so playback no longer takes over the screen unless you ask it to.
-- `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
-  - Turning this off puts the app in command-line mode: no window, no system tray and no settings screen, so on Windows the only way back is editing `conf.json` by hand. It is listed under "Advanced" in the settings form for that reason.
-  - It is *not* how you get MPV's own on-screen controls back — set `osc_style` to `mpv` and leave this on.
-  - For the classic "sit in the background and play what is cast to me" setup, enable `close_to_tray` (or `allow_background` where there is no tray), `start_minimized` and `fullscreen`; closing the video with `q` or the back button returns to waiting.
-- `browser_fullscreen` - Run the in-window library browser fullscreen. Default: `false`
-  - Browsing is a desktop activity, so it opens windowed even when `fullscreen` is set. `fullscreen` still applies when playback starts.
-  - Toggling fullscreen in the player (`f`, or the on-screen control) is remembered: it writes `browser_fullscreen` while browsing and `fullscreen` while something is playing.
-- `close_to_tray` - When enabled, closing the player window minimizes the app to the system tray, keeping it running as a cast target; when disabled, closing exits. Ignored (treated as `false`) when no system tray is available, unless `allow_background` or `headless` is set. Default: `true`
-  - In `headless` (cast-target) mode there is no library to come back to and being reachable over the network is the point, so it keeps running with or without a tray. Set this to `false` if you want closing the window to quit.
-- `allow_background` - Permit running with no window and no tray icon: the app stays alive as a cast target but is invisible on the desktop. This is what makes `close_to_tray` and `start_minimized` work on machines with no system tray. Off by default because the only ways out are `jellyfin-mpv-shim stop` and killing the process. Default: `false`
-  - In the settings form this replaces the "Close to Tray" checkbox when no tray is running, since on those machines it is the same question with different consequences.
-- `start_minimized` - Start minimized to the tray instead of opening the library. Ignored when no tray is available unless `allow_background` is set — but passing `--minimized` on the command line is honoured regardless, since that is a decision made for that one launch. Either way, running `jellyfin-mpv-shim` again shows the window. Default: `false`
-  - The settings form only offers this once the toggle above it (`close_to_tray`, or `allow_background` where there is no tray) is enabled, since it is asking the app to start in the state that toggle permits. Turning that toggle back off also turns this one off, so it can't keep acting from a checkbox that is no longer on screen; the form says so when it happens.
-- `remember_window_size` - Persist the window size across launches. Default: `true`
-  - Off means the size is a fixed preference the app always opens at, which is what you want if you deliberately pinned one.
-- `window_controls` - Draw a drag handle and minimize/maximize/close buttons into the library browser's own top bar, for windows the desktop gives no title bar of its own. One of `auto`, `always`, `never`. Default: `auto`
-  - `auto` asks MPV rather than guessing from the desktop environment, because MPV's `border` property already is the answer. On a Wayland compositor with no `zxdg_decoration_manager_v1` — which is every GNOME session, since mutter supports client-side decorations only — MPV reports `border=no` for a window nothing is decorating; where the protocol does exist it reports whichever mode the compositor actually granted. So KDE, sway and X11 keep their real title bars and get no second one, and GNOME Wayland gets a working one instead of a window it cannot move or close.
-  - It follows `--border=no` for the same reason, so setting that deliberately gets you the controls rather than a window with no way out.
-  - The top bar becomes the title bar: drag it to move the window, double-click it to maximize. Buttons on the bar keep working — only the empty space drags. Fullscreen suppresses all of it, there being no title bar anywhere in fullscreen.
-  - The bottom-right corner becomes a resize grip (three dots), because a window with no frame has no edges to drag either. It is not drawn while the window is maximized. On Wayland MPV also implements its own invisible resize zone along the window edges, which takes over within a few pixels of the border.
-  - The playback HUD grows the same three buttons and the same corner, so a windowed video is not a window you can only get out of by pressing ESC first.
-  - `always` and `never` override the detection. `never` is the escape hatch if your compositor decorates windows in a way MPV does not report.
-  - **Dragging needs MPV 0.39.** MPV refuses to drag its window while the pointer is inside a script's input section, and the only way to say "except for this one" also re-arms MPV's own drag-from-anywhere — which over a UI moves the window instead of dragging a scrollbar. Turning that off is `--input-builtin-dragging`, added in 0.39, so on 0.38 the buttons and the resize grip work but the bar does not drag. Resizing and the buttons need nothing special.
-- `window_controls_fullscreen` - Keep those buttons on screen in full screen. Default: `false`
-  - Off, because full screen has no title bar anywhere and nothing to move, maximize or drag — so the buttons are furniture over the picture.
-  - On is for anyone who wants a way out of full screen that is not a keyboard shortcut, which matters most with `hide_title_bar` also on.
-  - In-window UI only. A classic OSC decides its own window buttons from `border` and never asks about full screen, so this cannot be passed on to it.
-- `hide_title_bar` - Ask the desktop for no title bar on the player window, so the browser's own top bar is the only one. Default: `false`
-  - This is MPV's `border` option, set at startup, so changing it needs a restart.
-  - It pairs with `window_controls`: on `auto`, the buttons appear as soon as this is on, because `auto` reads the same `border` property.
-  - Set only when it is on. Leaving it alone otherwise is what lets someone who put `border=no` in their own `mpv.conf` keep the buttons — writing `border=yes` for them would take the title bar back *and* the replacement with it.
-  - Leave both off unless you want them: a window with neither a title bar nor the top-bar buttons can be awkward to move on some desktops.
-  - During video playback under an `osc_style` other than the in-window one, the OSC on screen draws its own window buttons — the stock MPV OSC, this client's classic OSC and most custom ones all do, and they turn them on for exactly this case (no border). The in-window UI's buttons are only suppressed there, so you are not offered two sets.
-- `display_mirror_summon` - Let casting take the screen: open the window when it is closed to the tray, and bring it forward when it is already open. Default: `false`
-  - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open or in front of what you are doing.
-  - With it off, casting a page to an already-open library still navigates it — silently, without taking focus back from the web client you are casting *from*.
-- `browse_block_keys` - Swallow MPV's own keyboard shortcuts while the library browser is on screen. Default: `true`
-  - MPV is started with its default bindings on for the whole session, so in the library every key the client has not taken is still MPV's — `1`-`8` move contrast, brightness, gamma and saturation, `d` cycles deinterlacing, `s` writes a screenshot. There is no video for them to act on, they persist into the *next* thing you play, and the only feedback is MPV's own OSD, which draws underneath the library.
-  - Only unmodified printable keys are blocked. The arrows, Page Up/Down, Home/End and the scroll wheel are the browser's own either way, and modified keys (`ctrl+`, `alt+`) are left alone.
-  - While music is playing, `9`, `0` and `m` are re-claimed by the browser itself, so they still change the volume — and unlike MPV's own bindings they move the now-playing bar's slider with them.
-  - Turn it off to use your own `input.conf` bindings in the library. That also gives MPV's `9`/`0`/`m` back in place of the browser's.
-- `library_image_cache_mb` - Memory budget for **decoded** library artwork. Default: `96`
-  - Requires restart. The budget is baked into the artwork cache when the browser starts.
-  - Decoded is the expensive form — a 4K backdrop is 33 MB decoded against ~400 KB on the wire — and this is a working set rather than a library: decoded images exist to composite tile strips, and only the rows near what is on screen are built. What is on screen is never evicted to make room, so a screen with more artwork than this goes over it rather than flickering. Raise it if you browse enormous libraries on a machine with RAM to spare.
-  - Two other caches sit behind this one, and neither has a setting because neither wants a number from you.
-  - The **artwork cache** keeps the server's own compressed images in `$XDG_CACHE_HOME/jellyfin-mpv-shim/artwork` (`~/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows; `--config DIR` puts it in `DIR/cache` so an isolated config stays isolated). It is **persistent**: every entry is keyed by the server's own image tag, so last week's poster is still this week's poster, and it is kept between launches rather than re-fetching a whole library on every start. Up to **1 GiB**, but never more than 5% of what is free on that filesystem — so it shrinks continuously on a filling disk instead of waiting for a threshold. Anything unread for 30 days is reaped, which is also what clears out entries orphaned by changing the Cover Size or the theme's tile shape (those change the cache key rather than replacing the entry). Deleting the directory is always safe.
-  - The **strip cache** holds composited rows as raw bitmaps — in this process on libmpv, in a scratch directory on `mpv_ext` — capped at 128 MiB, or 32 MiB on a machine short of RAM (under 8 GB installed, or under 2 GB free). One row is up to ~31 MiB at 4K, so the larger figure is a few screenfuls; a miss is a recomposite on a worker thread, not a refetch. The cap matters most under `mpv_ext`, where these are files in a scratch directory that is RAM-backed wherever one exists — on a small machine `/run/user` is small too, so they land in `/dev/shm`, which is RAM under another name. Rows the current frame is drawing are never evicted, whatever the budget says. These are not persistent and should not be: they are composited for this window, this theme and this cover size.
-  - Where there is nowhere persistent to write (a sandbox, a read-only home), the artwork cache falls back to a RAM-backed scratch directory at 64 MiB. Scratch directories live in a per-configuration namespace (`<base>/jellyfin-mpv-shim.<id>/`) and are swept at startup, so a session that crashed or was killed does not leave its artwork behind forever — including on Windows, where a process cannot be probed for liveness at all: the single-instance lock guarantees one live copy per configuration, so anything else in that namespace was left by a copy that is gone. Two copies started with different `--config` directories get different namespaces and cannot reclaim each other's.
-- `scroll_wheel_pixels` - Pixels a single wheel notch scrolls in the library browser. Default: `80`
-  - Scrolling glides. On an equal-row grid the step is rounded so a whole number of notches spans one row, so a trackpad or trackball never leaves you a sliver of a row off. Raise it to scroll faster, lower it for finer control.
-- `scroll_mode` - How much of a row the wheel may leave you in the middle of. One of `continuous`, `aligned`, `row`. Default: `continuous`
-  - `continuous` scrolls by pixels and draws wherever that lands. It is not naive about slow displays: drawing a new scroll position re-lays the whole overlay and re-issues every visible image, so the browser times its own frames and lines rows up **only when a scroll is asking for them faster than it can draw them**, which is when it would otherwise stutter. Anything that keeps up scrolls freely, however fast you spin the wheel.
-  - `aligned` makes that permanent — rows are never drawn part-scrolled. The wheel still moves by pixels and the scrollbar still glides; only the content steps. Pick it if scrolling still stutters for you: a very large display, a slow or remote one, or an external MPV, where an image reaches MPV as a file it has to open and map rather than memory it already shares. The F12 diagnostics overlay shows what a frame costs (`draw:`) if you want to see why.
-  - `row` moves exactly one row (or one home-screen section) per notch, and the scrollbar steps with it. An accessibility escape hatch, and the oldest behaviour.
-  - **Replaces `snapped_scrolling` and `force_scroll_snapping`, and is not migrated from either.** `snapped_scrolling: true` in an existing config is ignored (with a warning in the log) and you start on `continuous`. It was set when continuous scrolling was not on offer, so keeping it would hold exactly the people who wanted smooth scrolling on the workaround for not having it. Set `scroll_mode` to `row` if you want it back.
-- `paginated` - Page the library and music tile grids instead of scrolling them. Default: `false`
-  - Each page is one screenful (no scrolling within a page), with a bottom bar for First / Previous / Next / Last and a page-number box you can type into. Adjacent pages are prefetched so paging is instant. Global — applies to every tile grid. The songs list and genre grids keep scrolling.
-- `remember_filters` - Reopen each library with the filters it had last time. Default: `true`
-  - Stored on the server for each library, so they follow your account to other devices running this app; Jellyfin Web does not read them. The A–Z letter is never kept. Off, filters last until you leave the library, and nothing is saved or restored — anything already stored is kept, unused, and comes back if you turn this on again. Applies straight away.
-- `logo_legibility_live_tv` - Back transparent **channel logos** with the light plate they were drawn for. Default: `true`
-  - Channel logos arrive as ink on a transparent background, drawn for the white page every other client puts them on — so on a dark one the black ones vanish. On, they get a light plate, and the few whose own outline is white get a drop shadow so they still have an edge against it.
-  - Off, they get the theme's card colour behind them and no shadows, which is what Jellyfin Web does.
-- `logo_legibility_library` - The same, for a library set to draw **Logo** artwork. Default: `false`
-  - Off by default because the two conventions are opposite: a film's or series' logo is white by convention and already reads on a dark background, and it is the plate that then makes it need a shadow. Turn it on if your logo artwork is dark.
-  - Also on the **View** menu of any library set to draw Logo artwork, which is where you would be when you notice.
-- `reader_font_size` - Type size in the built-in epub reader, in pixels before interface scaling. Default: `21`
-  - The `A-` and `A+` buttons in the reader write this setting, so the size you read at is the size you come back to — for every book, on every launch.
-  - Those buttons step through a list of sensible sizes (15, 17, 19, 21, 24, 27, 31, 36). A number set here is used as it is; the buttons then step to the next size above or below it.
-- `reader_theme` - Page colour in the reader. One of `dark`, `sepia`, `light`. Default: `dark`
-  - Dark to match the rest of the app, not because it is better to read: the other two are there for that. The button at the bottom right of the reader cycles them.
-- `reader_justify` - Justify the text, as a printed book does. Default: `true`
-  - Off gives a ragged right edge. Worth trying in a narrow window, where justification has fewer places to put the extra space and can open up rivers.
-- `comic_fit` - How a comic page is fitted when you open one. One of `width` (the page as wide as the window, scrolled down) or `page` (a whole page at once). Default: `page`
-  - The **Fit Width** / **Fit Page** buttons on the comic reader's own bar write this setting, so the next comic opens the way you were reading the last one.
-- `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`
-  - `null` follows the display: mpv's `display-hidpi-scale`, which is `1.0` on
-    X11 and the compositor's factor on Wayland/macOS.
-  - Set a number (`1.5`, `2.0`) to force it. Handy on a 1x display to see what
-    a HiDPI user gets, or to make the UI readable on a TV across the room.
-  - Requires restart.
-  - `--scale FACTOR` overrides this for a single run without touching
-    the config, e.g. `jellyfin-mpv-shim --scale 1.5`.
-  - Artwork is re-fetched from the server at the larger size, so scaling up
-    stays sharp. Art from **offline sync** is the exception: it was downloaded
-    at 1x and will be upscaled.
-- `theme` - Visual theme for the library browser. Default: `default`
-  - `default` - The stock look, unchanged from earlier versions.
-  - `nebula` - A deep-violet, glowing theme with rounded cards and larger
-    covers.
-  - `superdark` - Near-black surfaces, dark buttons, no colour anywhere. It
-    turns `badge_shadow` on, because that is the look it is for: an
-    accent-filled badge pill on a near-black card reads as a chip stuck to
-    the poster. Its accent is a light grey rather than a dark one — `ACCENT`
-    is the hover ring and focus border as well as the button fill, so a
-    colour dark enough to be a button is a hairline nobody can see.
-  - `jf-blueradiance`, `jf-wmc`, `jf-purplehaze`, `jf-light`, `jf-appletv` -
-    Translations of jellyfin-web's own Blue Radiance, Windows Media Center,
-    Purple Haze, Light and Apple TV themes, so the shim can match the web
-    client you already use. The last two are **light** themes.
-  - Light themes are supported: the whole UI follows the palette, including
-    the controls the player draws for itself (text fields, dropdowns,
-    scrollbars, tooltips). The playback overlay stays dark on purpose — a
-    white HUD over a dark film is unreadable, and jellyfin-web keeps its
-    player controls dark for the same reason.
-  - A theme sets the palette, the mpv browse background, whether titles and
-    the selected card glow, whether cover cards are rounded or square, where
-    the carousel page buttons sit, and the default cover, caption and heading
-    sizes. `poster_scale` and `ui_scale` still override the sizing. Artwork is
-    cover-cropped to fill its tile under every theme — except a wordmark or a
-    logo on a transparent background, which is drawn whole because a crop
-    would take a bite out of the name.
-  - **Colours apply immediately** when you change this in Settings, including
-    the controls the player draws for itself. Cover and heading *sizes* still
-    need a restart: changing a poster's dimensions means re-compositing every
-    cached row, and doing that under the pointer is worse than asking.
-  - Themes are JSON files — see [Writing a theme](#writing-a-theme).
-- `poster_scale` - Overrides the active theme's default cover size. Default: `null`
-  - `null` keeps the theme's own size; a number scales the cover tiles. The
-    settings form offers `0.75`, `0.85`, `1.0`, `1.2`, `1.4` and `1.7`, but
-    any number works.
-  - **The artwork, and only the artwork** — every shape of it: posters, square
-    music covers, 16:9 thumbnails and banners. Captions and badges keep their
-    size. Text has its own two controls (`ui_text_scale` and `ui_text_min`),
-    and `ui_scale` moves the whole interface including the type; a cover
-    setting that also moved text was a third, unlabelled text control.
-  - **Applies immediately**, and is also on the View menu of any library —
-    seeing the change is the point of the setting, and walking back to a
-    library to look was the whole difficulty. Scroll positions are dropped
-    when it changes: they are pixel offsets into a list whose rows just
-    changed height.
-  - The *theme's* own cover size still needs a restart (see `theme`). The
-    difference is that there resizing is a side effect of changing colours,
-    and here it is what you asked for.
-- `osc_style` - Which on-screen controller to use. Default: `mpvtk`
-  - `mpvtk` - A player UI styled after jellyfin-web, rendered by the library
-    browser inside the player window: top bar (back, title, SyncPlay),
-    seek bar with chapter marks, buffered ranges and hover previews,
-    transport with seek/chapter steps, track/quality pickers, a settings
-    menu (speed, aspect, shader profiles, subtitle style, SyncPlay,
-    stats, screenshot), favorites, volume, and Skip Intro/Credits.
-    Playback runs clean; mouse motion (or the `hud_wake_key`) summons the
-    controls, and a few seconds without input hides them again. Fully
-    navigable with a keyboard or a Jellyfin remote. Needs `enable_gui`
-    (falls back to `mpv` otherwise). `jellyfin` is accepted as a legacy
-    alias.
-  - `mpv` - MPV's own on-screen controls, with seek previews where your mpv
-    can show them. Turn previews on or off with `thumbnail_enable`.
-    - On **mpv 0.41 and newer** this is mpv's stock OSC, driven through its
-      OSC Preview API (`user-data/osc/draw-preview`) — you get upstream's
-      controls, upstream's fixes, and our trickplay images in them.
-    - On **older mpv** the shim loads a bundled fork of mpv 0.38's OSC
-      instead, because the Preview API does not exist there and that fork is
-      the only way to get previews. Which one you get is an implementation
-      detail; the controls look and behave the same either way.
-    - `default` is accepted as a legacy alias. It used to be a separate
-      choice — "whatever OSC is built into your mpv" — and folded into `mpv`
-      once the shim started using mpv's own OSC for both. It is migrated
-      automatically.
-    - Thumbnail data is still published for thumbfast-aware OSCs like uosc;
-      to run one of those, use `custom`.
-    - The shim asks the OSC to get out of the way when the library browser
-      opens, and when you choose `none`, with the `osc-visibility` and
-      `osc-idlescreen` script-messages. Mpv's own OSC and the scripts forked
-      from it understand those; an OSC that implements only a private API of
-      its own may not hear them and can keep drawing over the library.
-  - `custom` - You have installed your own OSC script. Turns MPV's built-in
-    controls off (whatever your `mpv.conf` says) and has the library paint a
-    solid background of its own instead of relying on the window colour.
-    - That background is the point. A third-party OSC draws an idle screen —
-      the MPV logo and "Drop files or URLs here to play" — while the library
-      sits on a window with nothing loaded, and it is drawn *over* the window
-      colour, so no colour setting can hide it. Only something the library
-      paints itself can.
-    - This style also lets the library draw above the OSC's own layer, which
-      uosc in particular needs. That is why it is a separate choice rather
-      than something `mpv` does for everyone: the same layer is used by
-      MPV's console when it is showing a menu.
-    - **Running your own OSC:** drop the script in the `scripts/` folder beside
-      `conf.json` (see the paths at the top of this file) and any font it needs
-      in `fonts/`, then put `osc=no` in `mpv.conf` there. This style already
-      turns MPV's built-in controls off, so nothing draws underneath yours.
-    - **Two things a third-party OSC cannot do, and will not.** Both apply to
-      `default` as well; trickplay previews are the part that does work.
-      - **Tracks.** Its subtitle and audio pickers see only what MPV has, and
-        Jellyfin's external and burned-in subtitles are not MPV tracks — an
-        external one is added only when you pick it, and a burned-in one needs
-        the server to restart the stream. Choosing from the OSC's own picker
-        misses those, is not reported to Jellyfin, and is not remembered for
-        the next episode. Use the menu key (`kb_menu`, `c` by default), or the
-        library, to change tracks.
-      - **The queue.** It lives in the shim, not in MPV, so MPV's playlist has
-        one entry in it and the OSC's playlist and next/previous buttons do
-        nothing. Handing the queue to MPV would mean keeping two copies of the
-        playback state in step, which is not worth what it would buy.
-    - Trickplay previews still work, the same as under `default`.
-  - `none` - No on-screen controls at all. Playback is bare; the library, the
-    keyboard shortcuts and the menu key (`kb_menu`, `c` by default) still
-    work, and Skip Intro/Credits falls back to its "seek to skip" prompt.
-    Applies to a third-party OSC as well, subject to the same caveat.
-  - **Replaces `enable_osc`, and is not migrated from it.** That was a
-    separate switch which only ever reached mpv's *own* controls, so turning
-    it off did nothing under the default style and then silently took the
-    controls away if you later switched to the mpv OSC. A stale `enable_osc`
-    entry in your config is ignored; choose `none` here if you meant it.
-- `hud_grab_keys` - Always take over the arrow keys and ENTER for the
-  on-screen controls while a video plays. Default: `false` — mpv's own seek
-  keys keep working, and only `hud_wake_key` is taken over. With the default,
-  controls raised by mouse motion are driven by the pointer alone and the
-  arrows still seek; pressing `hud_wake_key` then takes keyboard control of
-  the controls already on screen, which reverts as soon as they hide.
-  (Jellyfin remotes always drive the controls either way.)
-- `hud_wake_key` - The key that summons the on-screen controls for keyboard
-  driving while they are hidden, and that takes keyboard control of controls
-  already showing (mpv key name syntax). ENTER also toggles pause/play when
-  it wakes them. Default: `ENTER`
-- `ui_select_key` - The key that **activates** whatever the in-window
-  interface has focused — a tile in the library, a button on the player
-  controls (mpv key name syntax). Default: `ENTER`
-  - Not the same as `hud_wake_key`, which *summons* hidden controls, nor as
-    `kb_menu_ok`, which is the legacy OSD menu's OK and reaches neither the
-    library nor the player controls.
-  - The gamepad's Confirm button and a Jellyfin remote's Select both send
-    this key, so remapping it moves all three together rather than leaving
-    two of them on a key nothing listens for.
-  - A **replacement**, not an alias: point it somewhere else and `ENTER`
-    stops being taken in the library and on the player controls, which is
-    the reason to change it. Applies without a restart.
-  - In Settings under **General → Advanced**, or search the settings screen
-    for "enter" or "remap". Deliberately not promoted into a normal group:
-    remapping keys is an answer for somebody who wants it rather than a
-    control everyone has to read past.
-  - Two keys it does *not* move with it. While the controls are hidden,
-    `hud_wake_key` still holds its own key — move that one too if you want
-    `ENTER` free during playback. And `kb_menu_ok` stays where it is, so a
-    game controller's Confirm stops reaching the legacy OSD menu once these
-    two disagree.
-- `hud_scrim` - How the picture is shaded behind the player controls, so they
-  stay legible over any frame. One of `default`, `panel`, `none`.
-  Default: `default`
-  - `default` is a gradient rising from the bottom of the window (and a
-    smaller one from the top, under the title).
-  - `panel` is a flat band exactly the height of each bar — a hard edge, and
-    nothing washed over the picture above it.
-  - `none` draws no shading at all and gives the controls' text and icons a
-    dark halo instead. Legibility has to come from somewhere; this is the
-    option that pays for it in the glyphs rather than in the picture.
-- `hud_autohide` - When the player controls hide. One of `hover`, `always`,
-  `paused`. Default: `hover`
-  - `hover` keeps them up only while the pointer is on them — paused or not.
-  - `always` runs the timer regardless, including while paused.
-  - `paused` runs the timer but never hides while playback is paused (what
-    earlier versions always did).
-- `hud_hide_secs` - Seconds of no input before the player controls hide.
-  Default: `4.0`
-  - `0` means "as soon as the pointer is not on them", and forces `hover`
-    mode — a zero delay means nothing without a pointer test, since mouse
-    motion is also what summons them. The timer never runs shorter than
-    0.5s, so the controls cannot blink out in the same frame they appear.
-- `hud_auto_scale` - Let the player controls shrink further on a narrow
-  window before any of them are dropped. Default: `true`
-  - On, the controls shrink until the smallest button reaches **24x24**
-    logical pixels — WCAG 2.2 SC 2.5.8 (AA), the published minimum for a
-    pointer target — and only then are the less important ones given up,
-    in the order under **Player Controls** below.
-  - Off restores the older floor of 72%, where the controls stop shrinking
-    sooner and buttons start disappearing instead. It is the compatibility
-    setting, not a third behaviour.
-  - The floor is in *logical* pixels, so it does not fight `ui_scale`:
-    raising that makes the controls bigger, never smaller. A forced
-    `ui_scale` for a TV across the room keeps every button above the
-    minimum by a wide margin.
-- `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
-- `mouse_chapter_nav` - The mouse's back/forward buttons jump a chapter
-  during playback. Off by default: they are easy to hit by accident on
-  some mice, and skipping a chapter of a film is less forgiving than the
-  Back press those buttons perform in the library — which is unaffected
-  either way, since the library's own bindings sit on top of these.
-  Does nothing on a file with no chapters. Requires restart.
-  Default: `false`
-- `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
-- `headless` - Cast-target mode: show the "Ready to cast" screen instead of the library, and make the library unreachable from this machine. Default: `false`
+- `enable_gui` - The window, tray and library. Default: `true`. Requires restart.
+  - **Off puts the app in command-line mode with no window and no Settings** — the only way
+    back is editing `conf.json`. It is not how to get mpv's own controls; that is
+    `osc_style: mpv`.
+- `headless` - Cast-target mode: show "Ready to cast" instead of the library, and make the
+  library unreachable from this machine. Default: `false`. Requires restart.
   - Not a security boundary — see [Cast-target mode](../README.md#cast-target-mode-headless).
-  - Settings goes with the library. With no system tray icon there is nothing left to turn it off from, so it is listed under "Advanced" in the settings form and the way back is editing `conf.json`.
-  - You don't need it for the ordinary "wait in the background until something casts to me" setup — that is `close_to_tray` (or `allow_background`), `start_minimized` and `fullscreen`.
-  - (Replaces `display_mirroring`. Mirroring itself is now always on and needs no setting; a stale `display_mirroring` entry in your config is ignored.)
-- `screenshot_menu` - Allow taking screenshots from menu. Default: `true`
-- `check_updates` - Check for updates via GitHub. Default: `true`
-  - This requests the GitHub releases page and checks for a new version.
-  - Update checks are performed when playing media, once per day.
-  - If the repository is ever renamed or moved, the check follows GitHub's
-    redirect so existing installs keep hearing about updates — but only to
-    `jellyfin`, `jellyfin-labs` or `iwalton3`. A redirect anywhere else is
-    logged and ignored, so an account takeover cannot re-home your update
-    notice.
-- `notify_updates` - Display update notification when playing media. One of `default`, `enabled`, `disabled`. Default: `default`
-  - Notification will only display once until the application is restarted.
-  - `default` answers by how the app was installed: **off inside a Flatpak**,
-    where your desktop's software centre already announces updates and
-    `flatpak update` is what installs them, and **on everywhere else** (pip,
-    Windows, macOS), where this app is the only thing that knows.
-  - `enabled` and `disabled` are your answer and are never overridden.
-  - Inside a Flatpak the notice tells you to run `flatpak update`, since the
-    releases page cannot install anything there. It still links to the page,
-    which is where the release notes are. A build handed to you directly (a
-    CI artifact, a local bundle) says nothing about `flatpak update`: those
-    have no remote to update from.
-  - Was a `true`/`false` setting before 3.1.0. An existing `false` becomes
-    `disabled`; an existing `true` becomes `default`, since nothing on disk
-    distinguishes "never touched it" from "asked for it".
-- `mpris` - Publish playback over MPRIS on Linux, so keyboard media keys,
-  headset buttons, the lock screen and desktop media widgets control the
-  shim, and show the title, artist, album and cover of what is playing.
-  Next/previous follow the Jellyfin queue (or seek, with `media_key_seek`).
+    Without a tray icon the way back is editing `conf.json`.
+  - For an ordinary "wait in the background for casts" setup you don't need this: use
+    `close_to_tray` (or `allow_background`), `start_minimized` and `fullscreen`.
+- `connect_retry_mins` - At launch, keep retrying the server this many minutes before showing
+  the login screen. Default: `0`
+- `health_check_interval` - Seconds between server connection checks; `null` disables them.
+  Default: `300`
+- `mpv_idle_quit` - Close mpv when idle to free memory and the GPU; it restarts on the next
+  play or when the library is reopened. Never while the library is on screen, and never an mpv
+  you started yourself (`mpv_ext` with `mpv_ext_start: false`). Default: `true`
+- `mpv_idle_quit_secs` - Idle seconds before that happens. Default: `300`
+
+### Server connection
+
+- `ignore_ssl_cert` - Don't verify the server's TLS certificate. Default: `false`
+  - Consider a free Let's Encrypt certificate instead.
+- `tls_client_cert` - Client certificate for a server behind mutual TLS. Default: `null`.
+  Requires restart.
+- `tls_client_key` - Its private key. Default: `null`. Requires restart.
+- `tls_server_ca` - CA bundle to verify the server with. Default: `null`. Requires restart.
+- `path_substitutions` - With `direct_paths`, rewrite the server's file paths into ones this
+  machine can open. Default: `[]`
+  - For a server in Docker reporting `/media/...` when you need `Z:\media\...`:
+    `[["/media", "Z:\\media"], ["/mnt/media", "\\\\TRUENAS\\Media"]]`
+  - `~` and environment variables (`$HOME`, `%USERPROFILE%`) are expanded.
+
+### Playback behaviour
+
+- `media_keys` - Bind mpv to the keyboard's media keys. Default: `true`. Requires restart.
+- `media_key_seek` - Media next/previous seek instead of changing episode. Default: `false`
+- `use_web_seek` - Use the seek distances set in Jellyfin web for the arrow keys.
+  Default: `false`
+- `force_set_played` - Mark an item played when mpv reaches the end, for files whose broken
+  timestamps stop that happening normally. Default: `false`
+- `photo_display_secs` - Slideshow speed for photos, in seconds. Default: `5`
+  - Setting `image-display-duration` in `mpv.conf` has no effect; use this.
+- `transcode_warning` - Warn the first time something transcodes (classic OSC styles only).
   Default: `true`
-  - Also in Settings → General → This Device. Needs PyGObject (`python-gobject`
-    on most distributions); without it the setting does nothing. Takes effect
-    after a restart.
-  - The player is `com.github.iwalton3.jellyfin-mpv-shim` on the bus. playerctl
-    and Waybar shorten a name to its first part, so select it with
-    `playerctl -p com.github.iwalton3.jellyfin-mpv-shim`.
-- `discord_presence` - Enable Discord rich presence support. Default: `false`
-  - Also in Settings → General → This Device. Needs the optional `pypresence` package
-    (`pip install jellyfin-mpv-shim[discord]`) and takes effect after a
-    restart; with it missing the setting stays on but does nothing, which
-    the settings screen now says.
-- `menu_mouse` - Enable mouse support in the menu. Default: `true`
-  - This requires MPV to be compiled with lua support.
+- `screenshot_menu` - Offer screenshots in the menu. Default: `true`
+- `screenshot_dir` - Where screenshots go. Default: the desktop on Windows, the current
+  folder elsewhere.
+- `menu_mouse` - Mouse support in the legacy menu. Default: `true`. Requires restart.
+- `thumbnail_preferred_size` - Preferred seek-preview width, in pixels. Default: `320`
+- `thumbnail_scale` - Enlarge seek previews as they are drawn. Default: `null` (follow the
+  interface or display scale). Needs mpv 0.38+.
 
-## Downloads and Offline Sync
+### Keyboard shortcuts
 
-You can download media to watch without a server connection. Downloads are managed from the
-library browser (**Downloads** in the sidebar); these settings control where they go and whether
-episodes are fetched for you automatically.
+Set any of these to `null` to disable it, though some features may then be unreachable.
 
-- `sync_path` - Where downloaded media is stored. Default: `null` (a `downloads` folder in the
-  config directory)
-  - Change this from *Settings → Browse → Downloads*, not by hand: moving the store copies the files and
-    updates the catalog. Editing the path directly leaves the existing downloads behind.
-  - The folder must be **empty**, and this app then owns it — it will move and remove things inside
-    it. An existing empty folder is fine, as is one on another drive.
-  - Pasting a path is safe: surrounding quotes and spaces are ignored, so Windows Explorer's
-    *Copy as path* can be pasted straight in.
-- `prefer_downloaded` - Play the downloaded copy when one exists, instead of streaming. Default: `true`
-- `work_offline` - Browse only downloaded media and don't contact the server. Default: `false`
-  - Applied live when toggled, so you don't need to restart.
+- `kb_stop` - Stop playback. Default: `q`
+- `kb_prev` - Previous item. Default: `<`
+- `kb_next` - Next item. Default: `>`
+- `kb_watched` - Mark watched and skip. Default: `w`
+- `kb_unwatched` - Mark unwatched and stop. Default: `u`
+- `kb_menu` - Open the player's settings menu (the legacy menu outside the in-window
+  controls). Default: `c`
+- `kb_menu_esc` - Back out of a menu or page; exits fullscreen when there is nothing to back
+  out of. Default: `esc`
+- `kb_nav_back` - "Back" only — never exits fullscreen, and does nothing at the library's
+  top level. Default: `null` (unbound)
+- `kb_menu_ok` - OK in the **legacy OSD menu only**; the library and player controls use
+  `ui_select_key`. Default: `enter`
+- `kb_menu_left` - Left in the legacy menu; seeks otherwise. Default: `left`
+- `kb_menu_right` - Right in the legacy menu; seeks otherwise. Default: `right`
+- `kb_menu_up` - Up in the legacy menu; seeks otherwise. Default: `up`
+- `kb_menu_down` - Down in the legacy menu; seeks otherwise. Default: `down`
+- `kb_pause` - Pause. Default: `space`
+- `kb_fullscreen` - Toggle fullscreen. Default: `f`
+- `kb_kill_shader` - Unload the shader profile. Default: `k`
+- `ui_select_key` - The key that activates whatever is focused in the library or player
+  controls. Default: `ENTER`
+  - A gamepad's Confirm and a remote's Select send this key too, so they move with it.
+  - It replaces ENTER rather than adding to it. `hud_wake_key` keeps its own key.
 
-Automatic downloads keep upcoming episodes on disk without being asked. This is the only feature
-that writes to your disk unattended, so it is off by default. It runs on a schedule and only while
-nothing is playing.
+Seek distances are mpv bindings in `input.conf`; the old `seek_*` settings were moved there for
+you — except with `mpv_ext` and `mpv_ext_no_ovr` both on, where your own mpv config is used and the
+lines are printed to the log for you to copy instead. See [mpv configuration](#mpv-configuration).
 
-- `auto_download_enable` - Turn automatic downloads on. Default: `false`
-- `auto_download_next_up` - Follow the server's Next Up across every series. Default: `true`
-- `auto_download_next_up_limit` - How many Next Up entries to consider. Default: `10`
-  - Next Up is as long as your started-series count, which is often 50+ on a real library. The
-    server returns it most-recent-first, so a small limit is the shows you are actually watching.
-- `auto_download_lookahead` - Episodes to keep ahead of the last one you watched, for the series
-  you are working through. `0` disables it. Default: `2`
-  - The window is anchored on the next episode *to watch* (the server's Next Up for that series),
-    not on the last one downloaded, so a series you stop watching settles at this many episodes
-    instead of being fetched in its entirety.
-- `auto_download_lookahead_min` - Leave a series alone while it already has at
-      least this many upcoming episodes held or queued. Default: `null`
-- `auto_download_lookahead_max` - ...and top it up to this many when it drops
-      below the minimum. Default: `null`
-  - **Set both or neither.** With one set and not the other, the pair is
-      ignored and `auto_download_lookahead` is used as before — there is no
-      sensible guess for the missing half.
-  - Downloads then arrive in fewer, larger batches, which is the point: the
-      flat lookahead fetches one episode at a time, waking a spun-down disk for
-      each one.
-  - Episodes that are queued or downloading count as held, so a pass does not
-      re-request what the previous pass already asked for.
-- `auto_download_max_per_pass` - How many items one automatic check may queue.
-      Default: `null`, meaning 20
-  - The limit was previously hardcoded at 20; this makes it adjustable without
-      changing that default. Values below 1 are ignored.
-- `auto_download_max_gb` - Storage budget for automatic downloads. Default: `20`
-  - Only applies to automatic downloads. Ones you asked for are never counted against it and are
-    never deleted automatically.
-- `auto_download_delete_watched` - Delete automatic downloads once watched. Default: `true`
-- `auto_download_keep_watched_hours` - Keep a watched automatic download for this many hours
-  before deleting it. `0` deletes it on the next check. Default: `24`
-  - The clock starts the first time this app sees the item as watched, so it works with the
-    server away. An episode you finished elsewhere while this machine was off starts its window
-    when the machine next looks.
-  - Retention only. If the storage budget above is reached, watched downloads are still removed
-    before their time is up — otherwise a full budget would stop automatic downloading for the
-    length of the window. *Reached*, not exceeded: a budget sitting exactly full evicts too,
-    because that is the state a capped folder settles into.
-- `auto_download_keep_days` - Delete unwatched automatic downloads after this many days. `0` means
-  never expire on age alone. Default: `30`
-- `auto_download_interval_mins` - How often to check. Default: `60`
+### Shell command triggers
 
-## Client Certificates
+Run a command when playback changes state.
 
-For servers behind mutual-TLS. All three are paths, and unset by default.
-
-- `tls_client_cert` - Client certificate to present to the server. Default: `null`
-- `tls_client_key` - The matching private key. Default: `null`
-- `tls_server_ca` - CA bundle used to verify the server. Default: `null`
-
-## Shell Command Triggers
-
-You can execute shell commands on media state using the config file:
-
-- `media_ended_cmd` - When all media has played. Runs in addition to `stop_cmd`.
-- `pre_media_cmd` - Before the player displays. (Will wait for finish.)
-- `stop_cmd` - Once when playback ends, whatever the reason: a stop, the queue finishing, a stream failing, the window closing, the connection to mpv being lost, or quitting. Pairs with `play_cmd`; it does not run when nothing was playing.
-- `stop_cmd_on_replace` - Starting something new while something plays hands over: `stop_cmd` waits for the new playback to end. Set to `true` to run it for the old playback first. Default: `false`
-- `idle_cmd` - After no activity for `idle_cmd_delay` seconds.
-- `idle_cmd_delay` - Seconds of inactivity before `idle_cmd` fires. Default: `300`
-- `idle_when_paused` - Consider the player idle when paused. Default: `false`
-- `stop_idle` - Stop the player when idle. (Requires `idle_when_paused`.) Default: `false`
-- `mpv_idle_quit` - Quit MPV when idle to free the window, GPU context, and memory; it is re-created automatically on the next playback request, or when the library is reopened from the tray. It never fires while the library browser is on screen. Not applied to an externally-managed MPV you started yourself (`mpv_ext` with `mpv_ext_start: false`). Default: `true`
-- `mpv_idle_quit_secs` - Seconds of inactivity before `mpv_idle_quit` takes effect. Default: `300`
 - `play_cmd` - After playback starts.
-- `idle_ended_cmd` - After player stops being idle.
+- `pre_media_cmd` - Before the player appears (waits for it to finish).
+- `stop_cmd` - Once when playback ends, for any reason. Does not run if nothing was playing.
+- `stop_cmd_on_replace` - Run `stop_cmd` for the old item when something new is started over
+  it, rather than when the new one ends. Default: `false`
+- `media_ended_cmd` - When the whole queue has played (in addition to `stop_cmd`).
+- `idle_cmd` - After `idle_cmd_delay` seconds with nothing happening.
+- `idle_ended_cmd` - When the player stops being idle.
+- `idle_cmd_delay` - Seconds before `idle_cmd` runs. Default: `60`
+- `idle_when_paused` - Count paused as idle. Default: `false`
+- `stop_idle` - Stop playback when idle (needs `idle_when_paused`). Default: `false`
 
-## Subtitle Visual Settings
+### Shader packs
 
-These settings may not works for some subtitle codecs or if subtitles are being burned in
-during a transcode. You can configure custom styled subtitle settings through the MPV config file.
+The shader pack bundles mpv settings and shaders (FSRCNNX, Anime4K, …) into profiles you pick
+from the player's settings menu. Choosing one overrides shaders set in your `mpv.conf`. Details
+of the profiles: [default-shader-pack](https://github.com/iwalton3/default-shader-pack).
 
-- `subtitle_size` - The size of the subtitles, in percent. Default: `100`
-- `subtitle_color` - The color of the subtitles, in hex. Default: `#FFFFFFFF`
-- `subtitle_position` - The position (top, bottom, middle). Default: `bottom`
+- `shader_pack_custom` - Use your own copy of the pack. Default: `false`. Requires restart.
+  - On first enable, the built-in pack is copied to `shader_pack/` in the config folder (if it
+    does not exist yet), and that copy is used from then on.
+- `shader_pack_profile` - The profile to load. Default: `null`
+  - Updated when you pick one, with `shader_pack_remember`. If a profile breaks video, start
+    with `--reset-shaders` (clears this and `shader_pack_gpu_api`) or press `k`.
 
-## External MPV
+### Seek previews (trickplay)
 
-The client supports using an external copy of MPV, including one that is running prior to starting
-the client. This may be useful if your distribution only provides MPV as a binary executable (instead
-of as a shared library), or to connect to MPV-based GUI players. Please note that SMPlayer exhibits
-strange behaviour when controlled in this manner. External MPV is currently the only working backend
-for media playback on macOS. Additionally, due to Flatpak sandbox restrictions, external mpv is not
-practical to use in most cases for the Flatpak version.
+Previews come from the server's trickplay images, falling back to chapter images, and work with
+every `osc_style` — including your own OSC if it supports
+[thumbfast](https://github.com/po5/thumbfast).
 
-- `mpv_ext` - Enable usage of the external player by default. Default: `false`
-  - The external player may still be used by default if `libmpv` is not available.
-- `mpv_ext_path` - The path to the `mpv` binary to use. By default it uses the one in the PATH. Default: `null`
-  - If you are using Windows, make sure to use two backslashes. Example: `C:\\path\\to\\mpv.exe`
-- `mpv_ext_ipc` - The path to the socket to control MPV. Default: `null`
-  - If unset, the socket is a randomly selected temp file.
-  - On Windows, this is just a name for the socket, not a path like on Linux.
-- `mpv_ext_start` - Start a managed copy of MPV with the client. Default: `true`
-  - If not specified, the user must start MPV prior to launching the client.
-  - MPV must be launched with `--input-ipc-server=[value of mpv_ext_ipc]`.
-- `mpv_ext_start_retries` - The number of times to retry starting MPV if it fails to start. Default: `10`
-- `mpv_ext_start_retry_delay_ms` - The delay in milliseconds between retries. Default: `3000`
-- `mpv_ext_no_ovr` - Disable built-in mpv configuration files and use user defaults.
-  - Please note that some scripts and settings, such as ones to keep MPV open, may break
-      functionality in MPV Shim.
+They are fetched a window at a time around where you are seeking, since a whole film's worth
+can be hundreds of MB uncompressed; scrubbing far outside the window shows an empty frame
+briefly. `trickplay_fast_mode` loads them all instead.
 
-## Keyboard Shortcuts
+### SVP integration
 
-You can reconfigure the custom keyboard shortcuts. You can also set them to `null` to disable the shortcut. Please note that disabling keyboard shortcuts may make some features unusable. Additionally, if you remap `q`, using the default shortcut will crash the player.
+Set `svp_enable`, then in SVP enable *Settings → Control options → External control via HTTP*.
 
-- `kb_stop` - Stop playback and close MPV. (Default: `q`)
-- `kb_prev` - Go to the previous video. (Default: `<`)
-- `kb_next` - Go to the next video. (Default: `>`)
-- `kb_watched` - Mark the video as watched and skip. (Default: `w`)
-- `kb_unwatched` - Mark the video as unwatched and quit. (Default: `u`)
-- `kb_menu` - Open the configuration menu. (Default: `c`)
-- `kb_menu_esc` - Leave the menu. Exits fullscreen otherwise. (Default: `esc`)
-- `kb_nav_back` - "Go back" and nothing else: leave the menu, close a dialog,
-  or step back a page in the library — and **never** exit fullscreen.
-  (Default: `null`, unbound)
-  - `kb_menu_esc` keeps doing both jobs, because most people expect ESC to
-    leave fullscreen. Set this if you want the two separated, e.g.
-    `"kb_nav_back": "b"`.
-  - At the library's *root* there is nowhere to go back to, and this key then
-    does nothing at all. That is the difference: ESC exits fullscreen there.
-  - The mouse back button and a multimedia keyboard's Back key are unaffected;
-    they go through the in-window UI's own binding, which still behaves like
-    ESC at the library root.
-- `kb_menu_ok` - "ok" for the **legacy OSD menu only** — not the library and
-  not the player controls, which use `ui_select_key`. (Default: `enter`)
-- `kb_menu_left` - "left" for menu. Seeks otherwise. (Default: `left`)
-- `kb_menu_right` - "right" for menu. Seeks otherwise. (Default: `right`)
-- `kb_menu_up` - "up" for menu. Seeks otherwise. (Default: `up`)
-- `kb_menu_down` - "down" for menu. Seeks otherwise. (Default: `down`)
-- `kb_pause` - Pause. Also "ok" for menu. (Default: `space`)
-- `kb_fullscreen` - Toggle fullscreen. (Default: `f`)
-- `kb_kill_shader` - Disable shader packs. (Default: `k`)
-- `media_keys` - Enable binding of MPV to media keys. Default: `true`
-- `input_gamepad` - Enable game controller input, so a pad can drive the
-  library and playback. Also in Settings → General → Input. mpv reads
-  this once when it starts, so it takes effect on the next launch.
-  Default: `false`, except on **SteamOS**, where it is turned on once when
-  the config is upgraded to 3.1.0 — a Steam Deck is a machine where the pad
-  is the only pointing device most people have. Turn it back off and it
-  stays off.
+- `svp_enable` - Enable SVP integration. Default: `false`
+- `svp_url` - SVP's web API. Default: `http://127.0.0.1:9901/`
+- `svp_socket` - mpv socket for SVP. Default: `mpvpipe` on Windows, `/tmp/mpvsocket`
+  elsewhere.
 
-  The d-pad and **left stick** move the selection; the **right stick**
-  seeks, by the same distances your arrow keys do. The bottom face button
-  (A on an Xbox-style pad) selects, the right one (B) goes back, the left
-  one (X) pauses, the shoulder buttons page through long lists, and Start
-  opens the context menu — the player's settings menu while something is
-  playing. The two sticks are deliberately different: a keyboard has one
-  set of arrows and has to share them between navigating and seeking, and a
-  controller does not.
+On Windows the bundled mpv cannot run SVP. Install an mpv build with
+[VapourSynth](https://github.com/shinchiro/mpv-winbuild-cmake/wiki/Setup-vapoursynth-for-mpv),
+then set `mpv_ext` and `mpv_ext_path` to use it.
 
-  Held controls repeat, but much more slowly than mpv repeats a held key
-  (`--input-ar-rate`, 40 a second by default) — a direction about seven
-  times a second, the shoulder buttons about three, the right stick's seek
-  about two and a half. Confirm, back, play/pause and Start do not repeat at
-  all. If you rebind a control in `input.conf` you get mpv's own repeat
-  behaviour for it instead, since the binding is then yours.
+### External mpv
 
-  Every button is an ordinary mpv binding, so **you can reassign any of them
-  in your own `input.conf`** by naming the key:
+Drive a separate mpv process instead of the bundled library — for a distribution that ships
+mpv only as a program, or an mpv-based GUI player (SMPlayer behaves oddly). This is the only
+working backend on macOS, and is rarely practical inside the Flatpak.
 
-  ```
-  GAMEPAD_ACTION_UP       cycle fullscreen
-  GAMEPAD_BACK            keypress ESC
-  GAMEPAD_RIGHT_STICK_UP  seek 600
-  GAMEPAD_LEFT_TRIGGER    add speed -0.1
-  ```
+- `mpv_ext` - Use an external mpv. Default: `false` (it is used anyway if `libmpv` is missing). Requires restart.
+- `mpv_ext_path` - The `mpv` executable. Default: `null` (the one on `PATH`). Requires restart.
+- `mpv_ext_ipc` - The control socket. Default: `null` (a random temporary file).
+  Requires restart.
+  - On Windows this is a pipe name, not a path.
+- `mpv_ext_start` - Start mpv with the app. Default: `true`. Requires restart.
+  - If off, start mpv yourself first with `--input-ipc-server=<mpv_ext_ipc>`.
+- `mpv_ext_start_retries` - Attempts to start mpv. Default: `10`. Requires restart.
+- `mpv_ext_start_retry_delay_ms` - Delay between attempts. Default: `3000`. Requires restart.
+- `mpv_ext_no_ovr` - Use your own mpv configuration instead of the app's. Default: `false`. Requires restart.
+  - Scripts that keep mpv open, among others, may break the app. The app's `input.conf` is not
+    read in this mode.
 
-  A line there wins over the shim's own binding for that key, and nothing
-  has to be disabled first. `GAMEPAD_ACTION_UP` (Y/triangle), `GAMEPAD_BACK`
-  (Select/View) and both triggers are left unbound on purpose, so they are
-  free for whatever you want on them.
+### SyncPlay tuning
 
-  Off by default for two reasons, both worth knowing before turning it on.
-  **A controller is not focus-aware**: mpv reads it through SDL without a
-  window, so the shim responds to your pad even when another application is
-  in front. And **most builds of mpv cannot do this at all** — the feature is
-  compiled out unless mpv was built with `-Dsdl2-gamepad=enabled`, which is
-  not its default. Debian's mpv has it, the Windows builds this client ships
-  have it, and the Flatpak builds its own mpv with it. If yours does not, the
-  setting is ignored with a line in the log and nothing else changes.
+You are unlikely to need these.
 
-  mpv supports one controller at a time, and only pads it recognises through
-  SDL's controller database; an unrecognised stick is ignored rather than
-  mapped to something arbitrary.
+- `sync_max_delay_speed` - Drift (ms) before adjusting speed to catch up. Default: `50`
+- `sync_max_delay_skip` - Drift (ms) before seeking to catch up. Default: `300`
+- `sync_method_thresh` - Drift (ms) above which seeking is used instead of speed. Default: `2000`
+- `sync_speed_time` - How long (ms) a speed adjustment lasts. Default: `1000`
+- `sync_speed_attempts` - Speed adjustments before giving up on them. Default: `3`
+- `sync_attempts` - Sync attempts before SyncPlay is disabled. Default: `5`
+- `sync_osd_message` - Show SyncPlay status messages on screen. Default: `true`
 
-- `gamepad_swap_confirm` - Put the confirm button on the **right** face
-  button and back on the bottom one, instead of the other way round. Also in
-  Settings → General → Input, and it applies immediately. Default: `false`
+### Debugging
 
-  mpv reports the face buttons by *position*, not by the letter printed on
-  them, and the two common layouts disagree about where A is: an Xbox-style
-  pad puts it at the bottom, a Nintendo-style one (Switch Pro, most 8BitDo
-  pads) puts it on the right. Nothing in the button events distinguishes
-  them, so this is you telling the shim which pad is in your hands. It moves
-  those two buttons and nothing else on the controller.
+You may be asked to set these when reporting an issue. Logs are also under **Settings → Logs**.
 
-- `ui_text_scale` - Multiply the size of every piece of text in the
-  interface. `1.25` is a quarter larger, `0.9` a tenth smaller. Unlike
-  `ui_scale`, which scales the entire interface (artwork, spacing and
-  controls along with the type), this moves only the text -- for when the
-  words are too small rather than everything being too small. Values above
-  `1.5` are not offered in the interface: by then most tile captions are
-  ellipsized, and what is needed is for the *whole* interface to be bigger
-  — which is `ui_scale`. Text scaling is for text, by definition.
-  (Default: `1.0`)
+- `write_logs` - Write logs to the config folder. Default: `false`
+- `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
+- `mpv_log_level` - mpv's log level: `fatal`, `error`, `warn`, `info`, `v`, `debug`, `trace`,
+  or `noise` (`debug` without the app filtering its own per-frame chatter). Default: `info`. Requires restart.
+- `sanitize_output` - Keep server tokens out of logs. Default: `true`
 
-- `ui_text_min` - Nothing in the interface renders smaller than this many
-  pixels, whatever `ui_text_scale` works out to. `0` disables it. This is
-  the low-vision control: a percentage moves every size together, so the
-  smallest label stays the smallest label — a floor raises the bottom of
-  the scale without enlarging headings that were already readable.
-  (Default: `0`)
+### Interface font (environment variable)
 
-### Seek distances moved to `input.conf`
+`JELLYFIN_MPV_SHIM_UI_FONT` is an environment variable, not a setting. Set it to a font file
+and it is tried first for all text the app draws. The automatic choice checks that each
+character can be drawn, so this is mostly an appearance preference. Emoji keep working, but the
+font is used for every script it covers.
 
-`seek_up`, `seek_down`, `seek_right`, `seek_left`, `seek_v_exact` and
-`seek_h_exact` were **removed in config version 4**. The arrow keys are
-mpv's own again, so a seek distance is an ordinary mpv binding and lives
-in `input.conf` in this client's config directory, where it can be edited
-like any other:
+Its main use is a **Traditional Chinese** library on Windows, which otherwise gets Japanese
+letterforms because a title's language cannot be detected:
 
 ```
-up    seek 30
-down  seek -30
-right seek 10 exact
-left  seek -10 exact
+JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\msjh.ttc
 ```
 
-If you had any of those settings, they were written there for you the
-first time this version started, and removed from `conf.json`.
-
-**One case is not carried across on purpose**: with `mpv_ext` and
-`mpv_ext_no_ovr` both enabled, external mpv reads *your* mpv config
-directory rather than this client's, so the file above is never loaded.
-Nothing is written and nothing is cleared — that combination means "use
-my own mpv config", and this client does not edit it. The lines it would
-have written are printed to the log at startup, so you can paste them
-into your own `input.conf`.
-
-## Shader Packs
-
-Shader packs allow you to import MPV config and shader presets into MPV Shim and easily switch
-between them at runtime through the built-in menu. This enables easy usage and switching of
-advanced MPV video playback options, such as video upscaling, while being easy to use.
-
-If you select one of the presets from the shader pack, it will override some MPV configurations
-and any shaders manually specified in `mpv.conf`. If you would like to customize the shader pack,
-use `shader_pack_custom`.
-
-- `shader_pack_enable` - Enable shader pack. (Default: `true`)
-- `shader_pack_custom` - Enable to use a custom shader pack. (Default: `false`)
-  - If you enable this, it will copy the default shader pack to the `shader_pack` config folder.
-  - This initial copy will only happen if the `shader_pack` folder didn't exist.
-  - This shader pack will then be used instead of the built-in one from then on.
-- `shader_pack_remember` - Automatically remember the last used shader profile. (Default: `true`)
-- `shader_pack_profile` - The default profile to use. (Default: `null`)
-  - If you use `shader_pack_remember`, this will be updated when you set a profile through the UI.
-  - It is reapplied while the player is being built, so a profile that breaks video breaks every launch. Launching with `--reset-shaders` clears this and `shader_pack_gpu_api` before that happens, then starts normally; pressing `k` does the same for this key only, and needs a window you can see.
-- `shader_pack_subtype` - The profile group to use. The default pack contains `lq` and `hq` groups. Use `hq` if you have a fancy graphics card.
-- `shader_pack_gpu_api` - Graphics API to force while a profile is loaded: `auto`, `vulkan`, `d3d11` or `opengl`. (Default: `auto`)
-  - `auto` leaves MPV's own choice (and anything in your `mpv.conf`) alone. The shader pack's legacy `opengl` request is ignored, because the shaders do not need it and OpenGL can cost you HDR output. The pack's `fbo-format` request is ignored with it — that format name only exists on the OpenGL backend, and MPV's own default asks for the same 16-bit float format on every backend. A profile that names some *other* API is honored, since a profile built around a Direct3D 11 filter cannot run anywhere else.
-  - Set this only if video breaks when you load a profile. `opengl` is the most compatible; on Windows, `d3d11` (the MPV default) and `vulkan` are the ones that handle HDR.
+---
 
 ## Writing a theme
 
-Themes are JSON files, and they resolve the same way shader packs do: the ones
-shipped inside the package are the built-ins, and a file of the same name in
-your config directory replaces the built-in of that name entirely.
+Themes are JSON files. Built-ins ship in `jellyfin_mpv_shim/themes/`; a file in `themes/` in
+your config folder adds one, or replaces the built-in of the same name. **The file name is the
+theme id** you put in `theme`. New files appear after a restart.
 
-- Built-in: `jellyfin_mpv_shim/themes/*.json` (currently `nebula.json`)
-- Yours: `themes/*.json` under the config folder — `~/.config/jellyfin-mpv-shim/themes/`
-  on Linux, `%appdata%\jellyfin-mpv-shim\themes\` on Windows,
-  `~/Library/Application Support/jellyfin-mpv-shim/themes/` on macOS.
-
-The **file name is the theme id** — the value you put in the `theme` setting.
-Dropping in `midnight.json` makes `midnight` selectable; a `nebula.json` of your
-own shadows the shipped Nebula, and a `default.json` shadows the stock look.
-
-Every theme is merged over the built-in default, so **a theme only states what
-it changes**. This is a complete, valid theme:
+A theme states only what it changes; everything else comes from the default theme:
 
 ```json
 {
@@ -1064,322 +684,68 @@ it changes**. This is a complete, valid theme:
 }
 ```
 
-Anything you leave out is the default's value — never the value of whatever
-theme was applied before. Unknown keys, unknown palette colours and values of
-the wrong shape are logged and ignored, and the rest of the theme still
-applies, so one typo costs you one colour rather than the whole file.
-
-Colours are `"rrggbb"`, with or without a leading `#`.
+Colours are `"rrggbb"`, `#` optional. Mistakes are logged (Settings → Logs) and skipped, and
+the rest of the theme applies.
 
 | Key | Meaning |
 | --- | --- |
-| `name` | Label shown in the settings dropdown. Defaults to the file name. |
+| `name` | Label in the dropdown. Defaults to the file name. |
 | `palette` | Colour table; see below. |
 | `browse_bg` | mpv's `background-color` behind the browser, `"#rrggbb"`. |
-| `glow` | Blurred accent halo behind bold titles and around the selected card. |
-| `rounded` | Rounded cards instead of square ones. Card shape only — the artwork is cover-cropped to fill its tile under every theme. |
+| `glow` | Accent halo behind bold titles and around the selected card. |
+| `rounded` | Rounded cards instead of square. |
 | `accent_buttons` | Accent-bordered top bar and settings tabs. |
-| `badge_shadow` | Tile badges (type marker, version count, unwatched count, downloaded, watched) as a bare white mark with a drop shadow instead of a mark on a filled pill. The mark goes white rather than keeping the accent: the pill is what makes an accent legible over artwork, so a dark or pale accent with no pill is a badge you cannot see. |
-| `arrow_mode` | `header` (jellyfin-web's: a flat pair in the section heading) or `overlay` (round translucent buttons floating on the artwork). |
-| `arrow_bg`, `arrow_alpha` | Fill and opacity (0–255) of the `overlay` page buttons. |
-| `hud_accent` | The accent as drawn over *video* — the seek bar's fill. `null` follows `ACCENT`, which is usually what you want; pin it if your accent is too dark or too pale to read against a moving picture. |
-| `window_gradient` | Background ramp down the page: `[[0.0, "0f3562"], [0.5, "1162a4"], [1.0, "03215f"]]`, or `null` for a flat fill. |
-| `topbar_gradient` | The same across the top bar (horizontal). |
-| `poster_scale` | Cover-size multiplier. The `poster_scale` *setting* overrides this. |
-| `heading_size` | Carousel section-title font size. |
-| `tile_landscape` | `[width, height]` of the landscape/library tile. |
-| `tile_title_size`, `tile_sub_size` | Tile caption font sizes; `null` is the stock size. Cover size does not move these. |
+| `badge_shadow` | Tile badges as a white mark with a drop shadow, instead of a filled pill. |
+| `arrow_mode` | `header` (a pair of arrows in the section heading) or `overlay` (round buttons over the artwork). |
+| `arrow_bg`, `arrow_alpha` | Fill and opacity (0–255) of the `overlay` buttons. |
+| `hud_accent` | Accent over *video* (the seek bar). `null` follows `ACCENT`; set it if your accent is hard to see on a moving picture. |
+| `window_gradient` | Vertical background ramp, e.g. `[[0.0, "0f3562"], [0.5, "1162a4"], [1.0, "03215f"]]`, or `null`. |
+| `topbar_gradient` | The same, horizontally across the top bar. |
+| `poster_scale` | Cover-size multiplier (the `poster_scale` setting overrides it). |
+| `heading_size` | Section-title font size. |
+| `tile_landscape` | `[width, height]` of landscape tiles. |
+| `tile_title_size`, `tile_sub_size` | Tile caption font sizes; `null` for stock. |
 
-Palette colours: `WINDOW_BG`, `CARD_BG`, `PANEL_BG`, `PLACEHOLDER_BG`,
-`BUTTON_BG`, `BUTTON_ACTIVE`, `ENTRY_BG`, `BORDER`, `TEXT_FG`, `SUBTLE_FG`,
-`ACCENT`, `ACCENT_HOVER`, `ACCENT_SOFT`, `ACCENT_FG`, `FAV_RED`, `OK_GREEN`,
-`WARN_AMBER`, `PROGRESS_TRACK`, `WATCHED_GREEN`.
+Palette colours: `WINDOW_BG`, `CARD_BG`, `PANEL_BG`, `PLACEHOLDER_BG`, `BUTTON_BG`,
+`BUTTON_ACTIVE`, `ENTRY_BG`, `BORDER`, `TEXT_FG`, `SUBTLE_FG`, `ACCENT`, `ACCENT_HOVER`,
+`ACCENT_SOFT`, `ACCENT_FG`, `FAV_RED`, `OK_GREEN`, `WARN_AMBER`, `PROGRESS_TRACK`,
+`WATCHED_GREEN`.
 
-`ACCENT` is the one you most likely want. There is deliberately only one accent
-in the UI — buttons, selection, hover rings, progress and active tabs all use
-it — so changing it retints the whole app coherently. `ACCENT_HOVER` is the
-same colour lightened and `ACCENT_SOFT` the same darkened for fills that sit
-behind text; `ACCENT_FG` is what gets drawn *on* an accent fill and normally
-wants to stay white.
+`ACCENT` is the one to change: it is the only accent in the UI (buttons, selection, focus,
+progress), so it retints everything coherently. `ACCENT_HOVER` is it lightened, `ACCENT_SOFT`
+darkened, and `ACCENT_FG` is the text drawn on it.
 
-**Gradients: use the fewest stops that describe the shape.** Unlike CSS, extra
-stops do not buy smoothness here — libass has no gradient primitive, so each
-stop is drawn as its own eased ramp, and every extra one is a place where the
-colour briefly stops changing. Two or three stops give a clean gradient; six
-collinear ones give visible bands. `tools/gradient_fidelity.py` renders a
-gradient through mpv and prints its slope profile if you want to check one.
-
-Warnings about a theme that failed to parse go to the log (Settings → Logs).
-A newly *added* theme file appears in the dropdown after a restart; switching
-between themes already on disk repaints immediately.
-
-## Trickplay Thumbnails
-
-MPV will automatically display thumbnail previews. By default it uses the Trickplay images and falls back to chapter images. Trickplay is compatible
-with any OSC that uses [thumbfast](https://github.com/po5/thumbfast), as I have added a [compatibility layer](https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/jellyfin_mpv_shim/thumbfast.lua)
-— so previews reach the Jellyfin UI, MPV's own controls and your own OSC
-script alike, whatever `osc_style` you have chosen.
-
-Previews are downloaded as JPEG mosaics and uncompressed to raw bitmaps, which
-is where the size is: a two-hour film is about 130 MB of them at the default
-thumbnail width and over 500 MB if your server generates 640px previews. So
-they are fetched **a window at a time**, a few tens of megabytes around wherever
-you are seeking, and swapped as you move. Scrubbing somewhere the current
-window does not reach shows an empty preview box for one round trip. Items
-short enough to fit under the limit are loaded whole and never wait at all.
-
-`trickplay_fast_mode` turns that off and loads every frame up front, the way
-older versions did — every preview is then instant, at the cost of the full
-download and the full memory.
-
-- `thumbnail_enable` - Enable trickplay thumbnails: the preview frame shown while you drag the seek bar. Applies to every `osc_style`. Read when MPV is built, so changing it needs a restart. Turning it off also stops the images being downloaded, which is the reason to. (Default: `true`)
-- `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
-- `thumbnail_scale` - How much to enlarge the preview frames when they are drawn, for a HiDPI display where they would otherwise come out small. `null` follows the display: the interface scale in the Jellyfin UI, and the display's HiDPI factor under MPV's own controls or your own OSC. The frames are scaled as they are drawn rather than downloaded bigger, so this costs no memory; it needs MPV 0.38 or newer, and older versions draw them at their own size. Applies the next time previews load. (Default: `null`)
-- `trickplay_fast_mode` - Load every preview frame at once instead of a window around the seek position. Previews never wait, but a long video costs hundreds of megabytes of memory. Turning it *on* applies to the video you are watching, the next time you scrub outside the part already loaded; turning it *off* applies to the next video. (Default: `false`)
-
-`thumbnail_osc_builtin` was removed. It meant "use your own custom OSC but
-leave trickplay enabled", which is `osc_style: custom` — thumbfast is loaded
-whatever the style, so your OSC still gets the previews. A `false` left in
-`conf.json` is ignored (the log says so) and dropped on the next save; if you
-run your own OSC, set `osc_style` to `custom`.
-
-## SVP Integration
-
-To enable SVP integration, set `svp_enable` to `true` and enable "External control via HTTP" within SVP
-under Settings > Control options. Adjust the `svp_url` and `svp_socket` settings if needed.
-
-- `svp_enable` - Enable SVP integration. (Default: `false`)
-- `svp_url` - URL for SVP web API. (Default: `http://127.0.0.1:9901/`)
-- `svp_socket` - Custom MPV socket to use for SVP.
-  - Default on Windows: `mpvpipe`
-  - Default on other platforms: `/tmp/mpvsocket`
-
-Currently on Windows the built-in MPV does not work with SVP. You must download MPV yourself.
-
-- Download the latest MPV build [from here](https://sourceforge.net/projects/mpv-player-windows/files/64bit/).
-- Follow the [vapoursynth instructions](https://github.com/shinchiro/mpv-winbuild-cmake/wiki/Setup-vapoursynth-for-mpv).
-  - Make sure to use the latest Python, not Python 3.7.
-- In the config file, set `mpv_ext` to `true` and `mpv_ext_path` to the path to `mpv.exe`.
-  - Make sure to use two backslashes per each backslash in the path.
-
-## SyncPlay
-
-You probably don't need to change these, but they are defined here in case you
-need to.
-
-- `sync_max_delay_speed` - Delay in ms before changing video speed to sync playback. Default: `50`
-- `sync_max_delay_skip` - Delay in ms before skipping through the video to sync playback. Default: `300`
-- `sync_method_thresh` - Delay in ms before switching sync method. Default: `2000`
-- `sync_speed_time` - Duration in ms to change playback speed. Default: `1000`
-- `sync_speed_attempts` - Number of attempts before speed changes are disabled. Default: `3`
-- `sync_attempts` - Number of attempts before disabling sync play. Default: `5`
-- `sync_osd_message` - Write syncplay status messages to OSD. Default: `true`
-
-## Debugging
-
-These settings assist with debugging. You will often be asked to configure them when reporting an issue.
-
-- `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
-- `mpv_log_level` - Log level to use for mpv. Default: `info`
-  - Options: fatal, error, warn, info, v, debug, trace, noise
-  - `noise` is `debug` with the shim's own filter turned off. At `debug`
-    the renderer's per-frame scene pushes and gpu-next's per-frame
-    chatter are dropped, because they are the app talking to itself and
-    they bury whatever you turned debug on to read. Warnings and errors
-    are never filtered at any level.
-- `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
-- `write_logs` - Write logs to the config directory for debugging. Default: `false`
-
-## Interface Font Override (Environment Variable)
-
-`JELLYFIN_MPV_SHIM_UI_FONT` is an **environment variable**, not a config key.
-Set it to the full path of a font file and that font is tried *first* for every
-piece of text the client bakes into the picture — library tiles, the playback
-HUD, the cast screen, the built-in book reader.
-
-It exists for hosts where the automatic choice is still not the font you want.
-The client checks, character by character, that a font can actually draw the
-text before using it, and moves on to the next candidate when it cannot — so
-boxes (tofu) should be rare, and this override is an appearance preference more
-often than a repair.
-
-**Simplified Chinese, Korean and Traditional Chinese on Windows no longer need
-it.** The client used to take MS Gothic — a *Japanese* font — for every CJK
-script, and MS Gothic can draw only part of Chinese and none of Korean, so some
-characters rendered and others became boxes. Chinese text now resolves Microsoft
-YaHei and Korean resolves Malgun Gothic on their own. If you would rather pick
-the font yourself, these are the ones to name:
-
-```
-JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\msyh.ttc      Simplified Chinese
-JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\msjh.ttc      Traditional Chinese
-JELLYFIN_MPV_SHIM_UI_FONT=C:\Windows\Fonts\malgun.ttf    Korean
-```
-
-Traditional Chinese is the case where naming a font still buys something real:
-Chinese and Japanese share most of their characters but draw some of them
-differently, and the client cannot tell which language a title is in — so a
-Traditional Chinese library is drawn with Japanese letterforms unless you point
-this at `msjh.ttc`.
-
-On Linux and macOS the automatic choice is normally right; if it is not, point
-this at any font file with the coverage you need (for example
-`/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc`).
-
-**What it costs.** The override is offered ahead of *every* built-in font list,
-including the one used for emoji and symbols, but it is only used for text it can
-actually draw — so colour emoji still work if your chosen font has no emoji in
-it. What you do give up is the client's own preference for anything the font
-*can* draw: name a Chinese font and Japanese titles are drawn with it too.
-
-## Other Configuration Options
-
-Other miscellaneous configuration options. You probably won't have to change these.
-
-- `player_name` - The name of the player that appears in the cast menu. Initially set from your hostname.
-- `client_uuid` - The identifier for the client. Set to a random value on first run.
-- `playback_timeout` - Timeout to wait for MPV to start loading video in seconds. Default: `30`
-  - If you're hitting this, it means files on your server probably got corrupted or deleted.
-  - It could also happen if you try to play an unsupported video format. These are rare.
-- `photo_display_secs` - How long a photo is shown before the queue moves on, in seconds. Default: `5`
-  - Photos open paused, so this is the slideshow speed once you press play.
-  - This is MPV's `--image-display-duration`, but setting it in `mpv.conf` will not work: the library browser
-    holds the same option at `inf` while it is on screen, so the player has to set it for each photo.
-- `lang` - Interface language, as a locale code (`de`, `pt_BR`, `zh_Hans`).
-  Also in Settings → General, at the top of the page. Takes effect after a
-  restart. Default: `null`, meaning follow the system.
-  - The picker lists every language with the share of the app translated into
-    it. The rest of the interface stays in English; translations are
-    contributed through Weblate at translate.jellyfin.org.
-  - Following the system means what gettext means by it: `LANGUAGE`, then
-    `LC_ALL`, `LC_MESSAGES` and `LANG`. On Windows it is the user's UI
-    language instead, which no environment variable carries.
-  - Before 3.1.0 this app asked Python for the system locale, which ignores
-    `LANGUAGE` (what GNOME and KDE set for the display language) and answers
-    `C` for a locale that has not been generated — the Debian, container and
-    Flatpak default. If your desktop language never had any effect here, that
-    is why.
-- `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`
-  - Please consider getting a certificate from Let's Encrypt instead of using this.
-- `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`
-  - This only applies for when you first launch the program.
-- `lang_filter` - Limit which tracks the audio and subtitle **menus** offer.
-  Default: `und,eng,jpn,mis,mul,zxx`
-  - **Not automatic selection**, which the old wording here ("limit track
-    selection") implied: the only consumers are the OSD menu's two track lists
-    and the playback HUD's pickers (`menu.py`, `osc_bridge.py`). What gets
-    chosen for you is `language_preference` and `language_config` below.
-  - Requires restart — the list is read once at startup. The two options below
-      are read as they are used, so changing them alone takes effect at once;
-      that is why this one is worth calling out, since otherwise the filter
-      appears to start working with the *old* languages.
-  - **It does nothing until you turn on one of the two options below**, both
-    of which default to off. Editing the list alone is the commonest way to
-    conclude this setting is broken.
-  - If you remove `und` from the list, it will ignore untagged items.
-  - Languages are typically in [ISO 639-2/B](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes),
-      but if you have strange files this may not be the case.
-- `lang_filter_sub` - Apply the language filter to subtitle selection. Default: `False`
-- `lang_filter_audio` - Apply the language filter to audio selection. Default: `False`
-- `remember_audio_track` - Reuse your audio track choice for later episodes of the same show. Default: `true`
-- `remember_subtitle_track` - Reuse your subtitle track choice for later episodes. Default: `true`
-- `language_preference` - Track-selection preset, set from *Settings → Subtitles & Languages*. Default: `custom`
-  - One of `unset`, `dubbed_shows`, `subbed_shows`, `dubbed_all`, `subbed_all`, `custom`.
-  - Anything other than `custom` generates `language_config` rules for you; `custom` leaves whatever you wrote there alone. See [Language Config](#language-config-power-user).
-  - What each one writes, with `preferred_language` as *pref* (default `eng`)
-    and the original audio assumed to be `jpn` — `language_config.preset_rules`
-    is the source, and the rules are tried in order:
-    - Subbed (both variants): `jpn` audio + full *pref* subtitles; then `jpn`
-      audio + any *pref* subtitles; then *pref* audio.
-    - Dubbed (both variants): *pref* audio + signs/songs subtitles; then
-      *pref* audio; then `jpn` audio + full *pref* subtitles; then `jpn`
-      audio + any *pref* subtitles.
-    - Unset writes no rules at all, leaving selection to the server.
-    - The "shows only" variants add `"type": "series"` to every rule, so
-      **films are left entirely at the server's choice**.
-  - **The subbed presets assume the original audio is Japanese.** That is the
-    anime case the examples were written for, and nothing in the dropdown says
-    so. If your original audio is something else, pick `custom` and write the
-    rules by hand.
-- `preferred_language` - The language the presets above are built around. Default: `eng`
-  - Shown in Settings only while one of the Dubbed/Subbed presets is selected; under Unset and Custom nothing reads it.
-  - A language code as your files tag it, typically ISO 639-2/B like `eng`.
-- `screenshot_dir` - Sets where screenshots go.
-  - Default is the desktop on Windows and unset (current directory) on other platforms.
-- `force_set_played` - This forcibly sets items as played when MPV playback finished.
-  - If you have files with malformed timestamps that don't get marked as played, enable this.
-- `raise_mpv` - Windows only. Disable this if you are fine with MPV sometimes appearing behind other windows when playing.
-- `health_check_interval` - The number of seconds between each client health check. Null disables it. Default: `300`
-
-## Media Segments (Skip Intro and friends)
-
-Segment detection uses Jellyfin's MediaSegments API. There is one setting per
-segment type the server publishes, and each takes the same three values:
-
-- `off` - ignore this kind of segment.
-- `ask` - offer to skip it. With the Jellyfin player UI (`osc_style: mpvtk`)
-  that is a floating "Skip …" button during the segment, shown even while the
-  controls are hidden; with other UIs it is the classic seek-to-skip prompt.
-- `always` - skip it silently, with a brief "Skipped …" message.
-
-Settings, and their defaults:
-
-- `segment_intro` - Intros. Default: `ask`
-- `segment_outro` - Credits. Default: `ask`
-- `segment_commercial` - Commercials. Default: `off`
-- `segment_preview` - Previews. Default: `off`
-- `segment_recap` - Recaps. Default: `off`
-
-The last three default to off, as they do in jellyfin-web: they are far less
-common, and a segment skipped out from under you is worse than one you have
-to skip yourself.
-
-**These replace `skip_intro_always`, `skip_intro_enable`, `skip_credits_always`
-and `skip_credits_enable`, and ARE migrated from them** — `always` wins over
-`enable`, so an install that skipped intros automatically still does.
-- `skip_intro_on_seek` - Seeking forward during an intro/credits window skips
-  the whole segment. Applies to keyboard and remote seeks only; scrubbing or
-  seeking from the Jellyfin player UI never triggers it (use its Skip button).
-  Default: `false`
+**Use as few gradient stops as describe the shape** — each stop is drawn as a separate ramp, so
+extra ones show as bands rather than adding smoothness.
 
 ## Language Config (Power User)
 
-`language_config` is an opt-in list of preference rules for picking audio and subtitle tracks automatically.
-Most users should leave it unset and stick with the per-show preferences in the application menu — this is
-for people who tire of repeating the same selection on every video and know exactly what they want.
+`language_config` is a list of rules for choosing audio and subtitle tracks automatically. The
+[`language_preference`](#subtitles--languages) presets write it for you; choose `custom` to
+write your own.
 
-Each rule is a JSON object. Rules are evaluated in order; the first rule whose constraints can all be
-satisfied sets the audio and subtitle tracks. If no rule matches, the Jellyfin server defaults apply
-(same as if `language_config` were unset). When a rule matches, it overrides any track that was selected
-from the casting client — open the in-player menu to override at runtime.
+Rules are tried in order, and the first one whose constraints can all be met sets the tracks.
+If none matches, the server's defaults apply. A rule sets only what it names —
+`{"alang": "jpn"}` picks Japanese audio and leaves subtitles alone — and a match overrides the
+track chosen by a casting client.
 
-A rule sets only what it specifies: `{"alang": "jpn"}` selects Japanese audio and leaves the subtitle
-track to the server default.
+Constraints (the rule fails if any cannot be met):
 
-Constraints (rule fails to match if any cannot be satisfied):
+- `type` - `"movie"` or `"series"` (episodes).
+- `alang` / `slang` - comma-separated audio / subtitle language priority, mpv-style (`"jpn,eng"`).
+- `amatch` / `smatch` - regex an audio / subtitle track title must match.
+- `subtype` - `"signs"` (the title mentions signs, songs, op/ed or lyrics, or the track is
+  forced) or `"full"` (anything else, including plain "English").
 
-- `type` - `"movie"` or `"series"` (matches `Episode` items).
-- `alang` - mpv-style comma-separated audio language priority list (e.g. `"jpn,eng"`).
-- `slang` - same for subtitles.
-- `amatch` - regex that must match an audio track's title.
-- `smatch` - same for subtitles.
-- `subtype` - `"signs"` or `"full"`. Note the asymmetry:
-  - `"signs"` requires **positive identification**: the subtitle title must contain `sign`, `song`, `op/ed`,
-    or `lyric`, **or** the track must be marked forced. A plain "English" track will not qualify.
-  - `"full"` is the **negation**: any subtitle that is not positively identified as signs/songs and is not
-    marked forced. Untitled or generically-titled tracks (like "English") count as full.
+Biases, which narrow the choice without failing the rule:
 
-Biases (narrow the candidate set without rejecting the rule):
+- `aprefer` / `sprefer` - regex preference over track titles, e.g.
+  `"aprefer": "^(?!.*commentary)"` to avoid commentary.
 
-- `aprefer` - regex bias over audio track titles, applied after `alang` selects a language.
-- `sprefer` - same for subtitles. Useful for avoiding commentary tracks: `"aprefer": "^(?!.*commentary)"`.
+Among several subtitles in the chosen language, full dialogue beats signs/songs even without
+`subtype`.
 
-When multiple subtitles in the matching language are available, the same dialogue-vs-signs scoring used by
-the menu's "subbed" / "dubbed" options breaks the tie — full-dialogue tracks beat signs/songs tracks even
-without a `subtype` constraint. So `{"slang": "eng"}` on a release with both `English Dialogue` and
-`Signs/Songs` will pick the dialogue track.
-
-For anime with full English subtitles and Japanese audio, while leaving movies untouched:
+Japanese audio with full English subtitles for series, films left alone:
 
 ```json
 "language_config": [
@@ -1389,11 +755,7 @@ For anime with full English subtitles and Japanese audio, while leaving movies u
 ]
 ```
 
-The `type: "series"` constraint is what keeps a movie that happens to ship a Japanese dub from being
-auto-selected. If you'd rather have Ghibli-style anime films also match, drop the `type` constraint from
-the first two rules — at the cost of occasionally picking a Japanese dub on a Western film.
-
-For English audio with signs/songs subtitles, falling back to subbed when no dub exists:
+English audio with signs/songs subtitles, falling back to subbed:
 
 ```json
 "language_config": [
@@ -1404,26 +766,39 @@ For English audio with signs/songs subtitles, falling back to subbed when no dub
 ]
 ```
 
-For a movies-only rule that defers to the menu for series:
-
-```json
-"language_config": [
-    {"type": "movie", "alang": "eng,jpn", "slang": "eng"}
-]
-```
-
-Anything more specific than this is probably better handled by a custom mpv lua script.
-
 ## MPV Configuration
 
-You can configure mpv directly using the `mpv.conf` and `input.conf` files. (It is in the same folder as `conf.json`.)
-This may be useful for customizing video upscaling, keyboard shortcuts, or controlling the application
-via the mpv IPC server.
+`mpv.conf` and `input.conf` in the config folder (beside `conf.json`) are read like mpv's own,
+for anything mpv can do: scaling, subtitle styling, key bindings, an IPC server. Edits take
+effect after a restart.
+
+Seek distances live in `input.conf`:
+
+```
+up    seek 30
+down  seek -30
+right seek 10 exact
+left  seek -10 exact
+```
 
 ## Authorization
 
-The `users.json` file contains your local users and, within each, the server authorization information
-(migrated once from the older `cred.json`, which is left in place but no longer updated). If you are
-having problems with the client, such as the Now Playing not appearing or want to start over, you can
-delete `users.json` (and `cred.json`) and add the servers again.
+Logins are kept in the config folder. If one misbehaves — remote control stops appearing,
+say — remove that server in **Settings → Servers** and sign in again.
 
+To start over completely, quit the app and delete the whole config folder. That also deletes
+your settings and, unless `sync_path` points elsewhere, your downloads. Watched state recorded
+offline and not yet sent to the server is lost either way.
+
+## Removed settings
+
+These are ignored if still in your `conf.json`:
+
+| Old setting | Now |
+|---|---|
+| `enable_osc` | `osc_style: none` (not migrated) |
+| `display_mirroring` | Mirroring is always on; see `display_mirror_summon` |
+| `snapped_scrolling`, `force_scroll_snapping` | `scroll_mode: row` (not migrated) |
+| `thumbnail_osc_builtin` | `osc_style: custom` (not migrated) |
+| `skip_intro_*`, `skip_credits_*` | `segment_intro`, `segment_outro` (migrated) |
+| `seek_up`, `seek_down`, `seek_left`, `seek_right`, `seek_*_exact` | `input.conf` (migrated) |

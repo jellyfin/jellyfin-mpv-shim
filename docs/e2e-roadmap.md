@@ -1,4 +1,4 @@
-# End-to-end testing against a real server — plan
+# End-to-end testing against a real server — roadmap
 
 Branch `e2e-testing`. The server is [stdjflib] `serve` against
 `~/Desktop/std-jf-lib` (`--live-tv` wires in [faketvsource]).
@@ -9,9 +9,9 @@ this document answers is not "what should we test", it is **"what has actually
 broken, and why was every existing test structurally unable to see it"**. The
 test list falls out of that.
 
-Sources mined: `docs/REGRESSION_CHECKLIST_2026-07-25.md`,
-`docs/UI_UX_FIXES_2026-08.md` (three hand-testing rounds),
-`docs/ISSUES_TO_VERIFY.md`, `docs/archive/`, and the fix commits themselves.
+Sources mined: `docs/archive/REGRESSION_CHECKLIST_2026-07-25.md`,
+`docs/archive/UI_UX_FIXES_2026-08.md` (three hand-testing rounds),
+`docs/archive/ISSUES_TO_VERIFY.md`, `docs/archive/`, and the fix commits themselves.
 
 ## Six failure classes the current suites cannot see
 
@@ -398,7 +398,8 @@ one of the two largest open-bug clusters.
 **Never bake an item GUID into a test.** IDs are server-assigned and change on
 every reprovision. Look items up by name or path. The library is otherwise
 fully deterministic by design — `<lockdata>true</lockdata>` everywhere, dates
-from `config.EPOCH`, pseudo-randomness derived by SHA-256 rather than `hash()`.
+from `stdjflib.config.EPOCH`, pseudo-randomness derived by SHA-256 rather than
+`hash()`.
 
 **Mutating tests need an owner.** Playstate, favourites, DisplayPreferences and
 timers all persist. Either give each mutating area its own account, or reset in

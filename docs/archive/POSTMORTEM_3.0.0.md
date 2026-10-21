@@ -174,7 +174,7 @@ Sites, verified at HEAD (2026-09-08):
 | 7 | `mpvtk/renderer.lua:4735` `return k[3] and (state.select_key or 'ENTER') or k[1]` | **yes** |
 
 **4 of 7 sites correct.** R10 sits *one screen* from R3, inside a function that
-resolves the very setting it then hardcodes — and per `docs/RISK_MAP_2026-09.md`
+resolves the very setting it then hardcodes — and per `docs/archive/RISK_MAP_2026-09.md`
 it was found by writing the predicate down, after four surveys and a full manual
 session walked past it.
 
@@ -194,7 +194,7 @@ counted. That is the point: F35 was filed as one site.
 **The triage that deferred this is wrong, on two counts — and I checked the
 tables, not the prose.**
 
-`docs/RISK_MAP_2026-09.md:306-309` puts R1/R2/R3/R10 in **Tier 3 — config-file
+`docs/archive/RISK_MAP_2026-09.md:306-309` puts R1/R2/R3/R10 in **Tier 3 — config-file
 edit only; defer past 3.0.0**, justified by *"None of these appear in
 `TAB_SECTIONS` at all, so reaching them means hand-editing `conf.json`."*
 
@@ -279,7 +279,7 @@ from `on_playstate`'s `if self._browsing: self._yield()` (`app.py:2578-2579`),
 which is the **only** path for a remote "Play To", a SyncPlay start or an EOF
 queue advance.
 
-`docs/ISSUES_2026-09.md`, Cross-cutting A, ends:
+`docs/archive/ISSUES_2026-09.md`, Cross-cutting A, ends:
 
 > **While there, delete the dead branch:** `app.py:2371`'s
 > `if self._browsing: self._yield()` cannot fire for video, because `_start`
@@ -325,7 +325,7 @@ the best statement of the repo's defect shape anywhere in the tree
 
 **But it is declared for exactly two pieces of state** (`OWNED` in
 `tools/audit_owned_state.py`): `SyncManager._cancelled` and
-`SyncManager._active_item`. The four entries `docs/RISK_MAP_2026-09.md` §7 calls
+`SyncManager._active_item`. The four entries `docs/archive/RISK_MAP_2026-09.md` §7 calls
 *"the cheapest Tier-1 coverage available — a bookkeeping extension to a tool that
 exists"* — `_sync_path`, `ThumbnailStore._gone`, `mpv.TIMEOUT`,
 `_login["pass"]` — are **not declared**. CONFIRMED by grep.
@@ -616,7 +616,7 @@ section is disabled.
 
 ### 3.4 A factual error in the plan of record that produced a "nothing to do"
 
-`docs/ISSUES_2026-09.md:894-897`:
+`docs/archive/ISSUES_2026-09.md:894-897`:
 
 > **Issue 2** … is the #700 hover strand, fixed by `2035d720`, which landed
 > **after** pre14 was cut. The reporter confirms it is fixed on dev. Nothing to
@@ -777,7 +777,7 @@ Left as an open question rather than guessed at.
   They are the best value in the patch release.
 
 **Sequencing, in the repo's own terms** — *measure → ratify → move the code*. The
-measure step is done (`docs/RISK_MAP_2026-09.md`, plus §1 here). **Ratify next**:
+measure step is done (`docs/archive/RISK_MAP_2026-09.md`, plus §1 here). **Ratify next**:
 the four doc corrections above, and F35's product question (does the idle Skip
 offer follow `hud_wake_key` or `ui_select_key`?). Only then move code, and move
 it with an instrument rather than a patch — because §1's daily table says the
@@ -844,7 +844,7 @@ tool's own defect shape, in the tool.
 ### 5.2 Four lines in `tools/audit_owned_state.py` — DONE, and not four lines
 
 Add `_sync_path`, `ThumbnailStore._gone`, `mpv.TIMEOUT` and `_login["pass"]` to
-`OWNED`. `docs/RISK_MAP_2026-09.md` §7 already specifies them, already argues
+`OWNED`. `docs/archive/RISK_MAP_2026-09.md` §7 already specifies them, already argues
 they are the cheapest Tier-1 coverage in the tree, and the tool is already wired
 into the suite. ~~This is bookkeeping, not engineering.~~
 
@@ -879,7 +879,7 @@ owner the audit exists to catch.
 
 ### 5.3 `tools/audit_act_targets.py` — ~~specified, never built~~ BUILT
 
-`docs/RISK_MAP_2026-09.md` §7 says *"stays first among the lints: it covers R7
+`docs/archive/RISK_MAP_2026-09.md` §7 says *"stays first among the lints: it covers R7
 and R8 (Tier 1 and Tier 2)"*. ~~It does not exist~~ — it does now, with
 `tests/test_no_act_reachthrough.py`. Its rule: every gateway `_act` property
 write must route through a `PlayerManager` owner method. It covers C6 above and

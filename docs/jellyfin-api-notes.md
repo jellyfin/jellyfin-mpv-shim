@@ -72,7 +72,7 @@ Measured on the v12 QA server: `AudioLanguages=eng` is **1108 of 1131** through
 `/Items` and **1131** through the legacy route. So a filter can be perfectly
 well formed, perfectly supported by the server, and do nothing at all for us.
 **Measure a filter on `/Items` before concluding the server ignores it** — that
-mistake cost a wrong entry in `docs/UI_FIXES_4.md` §19 that had to be retracted.
+mistake cost a wrong entry in `docs/archive/UI_FIXES_4.md` §19 that had to be retracted.
 
 `items_api.py` is the modern twin. Three things about it:
 

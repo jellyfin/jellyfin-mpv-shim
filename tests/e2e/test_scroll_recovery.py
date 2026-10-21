@@ -300,7 +300,7 @@ class ScrollRecoveryTest(unittest.TestCase):
         return (bar["thumb_y"] - bar["y"]) / travel
 
     def test_dragging_the_thumb_to_the_middle_loads_that_neighbourhood(self):
-        """`docs/E2E_PLAN.md` item 19, and the last of the mouse gestures
+        """`docs/e2e-roadmap.md` item 19, and the last of the mouse gestures
         with no test: `state.drag` -- the scrollbar branch -- is exercised
         only against a dropdown's popup in the toolkit suite, never against
         a page of a thousand real items.

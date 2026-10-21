@@ -6,7 +6,7 @@ accept the wrong one. Its own JSON file rather than a config key because
 ``settings_base`` has no ``dict`` type and, more importantly, because these
 overrides are **device-local**: which profile runs well depends on this
 machine's GPU. Keys carry the server uuid, since item ids are only unique per
-server. Both decisions are recorded in ``docs/UI_FIXES_4.md`` §15.
+server. Both decisions are recorded in ``docs/archive/UI_FIXES_4.md`` §15.
 
 **Absent and null mean different things.** A key that is not in the file
 inherits from the next scope out; a key holding ``null`` is an override that

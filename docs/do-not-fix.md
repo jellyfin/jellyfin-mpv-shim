@@ -144,7 +144,7 @@ produce a finding a third time:
   turning `mouse_click_pauses` off buys.
 
   Recorded because it reads as a gap in a table — A6 in the mouse matrix of
-  `docs/POSTMORTEM_3.0.0.md` §3.3 — sitting next to A4, which **is** a defect.
+  `docs/archive/POSTMORTEM_3.0.0.md` §3.3 — sitting next to A4, which **is** a defect.
   Two adjacent empty cells, one deliberate and one not; do not close them
   together.
 - **#727 item 1 — no window controls in full screen is deliberate.** In full

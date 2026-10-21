@@ -359,6 +359,7 @@ two-sense msgid gets found, and the rescue: `docs/i18n.md` §6 and §10.
 | [docs/track-selection.md](docs/track-selection.md) | the four things that decide a track and the order between them; why `-1` and `None` are different memories |
 | [docs/auth-headers.md](docs/auth-headers.md) | when mpv gets the `Authorization` header vs a token in the URL, and the sidecar rule that spans both |
 | [docs/testing.md](docs/testing.md) | the SyncPlay suites, the fakes discipline and its case histories, the journal |
+| [docs/e2e-roadmap.md](docs/e2e-roadmap.md) | the real-server e2e suite: the failure classes it exists for, its status, what to add next, and what was tried and blocked |
 | [docs/packaging.md](docs/packaging.md) | Windows/FriBiDi, the ARM64 job, `tools/msgfmt.py`, Flatpak, version spelling |
 | [docs/i18n.md](docs/i18n.md) | xgettext, location granularity, `--merge`, seeding from jellyfin-web |
 | [docs/settings-curation.md](docs/settings-curation.md) | adding a config key, which tab and why, and **whether a change takes effect before a restart** |
