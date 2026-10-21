@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-21 18:55+0000\n"
+"PO-Revision-Date: 2026-10-21 18:56+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -7474,9 +7474,9 @@ msgstr "إعدادات الخوادم"
 #. Bar along the bottom while items are being fetched. %(name)s is what is
 #. downloading now and %(n)d how many are still queued.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy, python-format
+#, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr "تحميل %(name)ات — %(n)d باقي"
+msgstr "تحميل %(name)ات — %(n)ية باقي"
 
 #. Bar along the bottom while items are being fetched and the current one
 #. has no name. %(n)d is how many are still queued.
