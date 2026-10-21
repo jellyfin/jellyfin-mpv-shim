@@ -111,8 +111,8 @@ for you when one changes.
   and `start_minimized` work on desktops without a tray. Default: `false`
   - The only ways to stop it then are `jellyfin-mpv-shim stop` or killing the process.
 - `start_minimized` - Start in the tray instead of opening the library. Default: `false`
-  - Needs a tray or `allow_background`. `--minimized` on the command line does the same for
-    one launch. Launching the app again shows the window.
+  - Needs a tray or `allow_background`. The `--minimized` flag starts one launch minimized and
+    works even without a tray. Launching the app again shows the window.
 - `display_mirror_summon` - Let casting from another device open the window, or bring it to
   the front. Default: `false`
   - Off, casting still navigates an already-open library, without stealing focus.
