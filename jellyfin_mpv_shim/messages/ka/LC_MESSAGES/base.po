@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-09-24 07:15+0000\n"
+"PO-Revision-Date: 2026-10-21 03:07+0000\n"
 "Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ka/>\n"
@@ -1304,10 +1304,8 @@ msgstr "სერვერის წაშლა"
 #. already is. Must not read the same as "Watch": in one language it did,
 #. and the play button came out saying "Seen".
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "გასვლა და მონიშვნა, როგორც არნანახი"
+msgstr "ნანახი"
 
 # seeded from jellyfin-web: Favorite
 #. Tooltip of the heart button that marks what is playing or being viewed
@@ -1363,10 +1361,8 @@ msgstr "აუდიო"
 #. kind, singular.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "სუბტიტრის ზომა: {0}"
+msgstr "სუბტიტრი"
 
 # seeded from jellyfin-web: Lyric
 #. Heading over a lyrics stream's rows in the Media Info panel. A stream
@@ -1775,10 +1771,8 @@ msgstr "რემუქსი"
 #. re-encoding this video right now.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (ტრანსკოდირება)"
+msgstr "ტრანსკოდირება"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #. One reason the server gives for having to re-encode, listed on the
@@ -3824,10 +3818,8 @@ msgstr ""
 #. Button in the Add to Playlist modal that switches to the Add to
 #. Collection modal. The ellipsis means it opens another view.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "სერვერის წაშლა"
+msgstr "კოლექიცები…"
 
 #. Button that dismisses something without acting. Used on modals (Add to
 #. Playlist, Reading Progress, SyncPlay, the recording dialogs) and as the
@@ -3921,10 +3913,8 @@ msgstr ""
 #. Placeholder in the Download modal while the app works out how many items
 #. would be downloaded and how much space they need.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "SVP-ის მორგება"
+msgstr "შეფასება…"
 
 #. Summary line in the Download modal. %(count)d is a number of items,
 #. %(size)s an already-formatted size such as "4.2 GB". The middle
@@ -4031,10 +4021,8 @@ msgstr ""
 #. playback controls, where it means MPV decides.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "ავტოდაკვრა"
+msgstr "ავტო"
 
 # seeded from jellyfin-web: Poster
 #. Choice in the Artwork dropdown of a library's View settings: tall
@@ -4297,10 +4285,8 @@ msgstr "შემოგვიერთდა {0}."
 #. Stands in for the name of a SyncPlay group the server did not name. A
 #. set of people watching in sync.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "ახალი ჯგუფი"
+msgstr "ჯგუფი"
 
 #. Shown in the SyncPlay dialog when nobody on this server has a watch-
 #. together group open.
@@ -4328,10 +4314,8 @@ msgstr "ლოკალური დაკვრის გაგრძელე�
 #. Button in the SyncPlay dialog that takes this device out of the watch-
 #. together group. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Leave"
-msgstr "ახალი ჯგუფი"
+msgstr "გასვლა"
 
 # seeded from jellyfin-web: Refresh
 #. Button that fetches something again: the SyncPlay group list, the
@@ -4460,10 +4444,8 @@ msgstr ""
 
 #. State of a download that has started but has no progress figure yet.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading"
-msgstr "სერვერის წაშლა"
+msgstr "მიმდინარეობს გადმოწერა"
 
 #. Status of one queued download in Settings > Downloads, in place of
 #. "Queued": it was queued by another profile whose saved login no longer
@@ -4486,10 +4468,8 @@ msgstr ""
 
 #. State of a download that did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Failed"
-msgstr "ჩავარდნა"
+msgstr "ჩავარდა"
 
 # seeded from jellyfin-web: ButtonTogglePlaylist
 #. Stands in for the name of a downloaded playlist the catalog did not
@@ -4896,18 +4876,14 @@ msgstr "დადუმება"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "SVP-ის მორგება"
+msgstr "მორგება"
 
 #. Tooltip of the button on the playback controls that fills the screen
 #. with the video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Fullscreen"
 msgid "Fullscreen"
-msgstr "ავტომატურად სრულ ეკრანზე"
+msgstr "სრულ ეკრანზე"
 
 #. Status message after clicking a row on the Play Queue page when playback
 #. has already ended, so there is no queue left to jump within.
@@ -5521,10 +5497,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play"
-msgstr "SyncPlay"
+msgstr "დაკვრა"
 
 # seeded from jellyfin-web: ButtonPause
 #. Tooltip of the button on the now-playing bar that halts playback. An
@@ -5751,10 +5725,8 @@ msgstr ""
 #. Button on an item's page that plays its trailer.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "ჩავარდნა"
+msgstr "ტრეილერი"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Heading over an item's chapter thumbnails on its page. Jellyfin Web uses
@@ -6405,10 +6377,8 @@ msgstr "სერვერის წაშლა"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove"
-msgstr "სერვერის წაშლა"
+msgstr "წაშლა"
 
 #. Shown on the queue editor when nothing is queued.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -7574,18 +7544,14 @@ msgstr ""
 #. Tooltip of the navigation bar's dropdown that switches between Jellyfin
 #. servers.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "სერვერი:"
+msgstr "სერვერი"
 
 #. Tooltip of the navigation bar's dropdown that switches between accounts
 #. on this server.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "მომხმარებლის სახელი:"
+msgstr "მომხმარებელი"
 
 #. Placeholder in the empty search field on the navigation bar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -7717,10 +7683,8 @@ msgstr ""
 #. Marker beside a quality option on the playback controls, meaning the
 #. server would re-encode the video to reach it. A noun here.
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (ტრანსკოდირება)"
+msgstr "ტრანსკოდირება"
 
 #. First entry of a video profile list for a narrower scope, meaning "stop
 #. overriding and follow the wider setting".
