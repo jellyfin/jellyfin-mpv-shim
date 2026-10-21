@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-11 19:48+0000\n"
+"PO-Revision-Date: 2026-10-21 18:55+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -30,7 +30,7 @@ msgstr "تهيئة مجهولة"
 #. Reading Progress dialog. Both placeholders are page numbers.
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy, python-format
+#, python-format
 msgid "Page %(page)d of %(total)d"
 msgstr "صفحة %(page)ات of %(total)d"
 
@@ -7134,7 +7134,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Connected to %s."
-msgstr "متصل مع %s"
+msgstr "متصل مع %s."
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
