@@ -54,8 +54,10 @@ builds without complaint and produces the wrong client; `tools/check_win_arch.py
 1. Install Git for Windows, then in Git Bash:
    `git clone https://github.com/jellyfin/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
 2. Install [Python 3](https://www.python.org/downloads/) with PATH enabled (CI uses 3.14),
-   [7-Zip](https://www.7-zip.org/) and [Inno Setup](https://jrsoftware.org/isinfo.php)
-   (`winget install --id JRSoftware.InnoSetup -e -s winget`).
+   [7-Zip](https://www.7-zip.org/), [Inno Setup](https://jrsoftware.org/isinfo.php)
+   (`winget install --id JRSoftware.InnoSetup -e -s winget`), and the Visual Studio C++ build
+   tools and [CMake](https://cmake.org/) for the DLL and bootloader builds below. The CI runners
+   have the last two preinstalled, which is why the workflow never mentions them.
 3. In `cmd`: `pip install wheel` then `pip install .[all] pywin32`.
 4. Download the **`mpv-dev-*`** archive (not the player) from
    [shinchiro/mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake/releases) —
