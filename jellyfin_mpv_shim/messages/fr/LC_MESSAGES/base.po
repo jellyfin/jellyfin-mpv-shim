@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-21 08:40+0000\n"
+"PO-Revision-Date: 2026-10-21 08:44+0000\n"
 "Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -7252,6 +7252,8 @@ msgid ""
 "%s answered, but it no longer accepts the saved login. Signing in again "
 "keeps its downloads and settings."
 msgstr ""
+"%s répond mais n'accepte pas les identifiants enregistrés. Se reconnecter "
+"conserve les téléchargements et réglages locaux."
 
 #. Body of the same dialog, for a server that did not respond at all. %s is
 #. the server's name.
@@ -7261,6 +7263,8 @@ msgid ""
 "%s did not answer. It may be switched off, or this machine may not be able "
 "to reach it right now."
 msgstr ""
+"%s ne répond pas. Le serveur est peut-être éteint, ou cette machine ne peut "
+"pas s'y connecter pour le moment."
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
