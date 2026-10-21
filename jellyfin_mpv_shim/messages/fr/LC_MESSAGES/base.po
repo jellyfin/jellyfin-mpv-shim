@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-21 08:09+0000\n"
+"PO-Revision-Date: 2026-10-21 08:25+0000\n"
 "Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -3363,11 +3363,15 @@ msgstr ""
 #. may differ for you. "eng" is a literal ISO 639-2 code the user types:
 #. keep it as is.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid ""
 "The language to use for dubbed audio or subbed subtitles. Note the "
 "preference heuristics are built around English naming conventions, your "
 "mileage may vary. Use a language code such as eng."
 msgstr ""
+"Langue utilisée pour la piste audio et le sous-titrage. Les abréviations "
+"font référence à l'anglais et leur traduction peuvent varier. Utiliser une "
+"codification de langue comme \"eng\"."
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
@@ -3456,6 +3460,9 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"Autoriser les raccourcis clavier, commande de casques, écran verrouillé et "
+"boutons de widgets à lire, mettre en pause et passer et à afficher ce qui "
+"est en cours en cours de lecture (MPRIS, Linux uniquement)."
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3507,6 +3514,10 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"Réouvrir chaque bibliothèque avec les derniers filtres sauvegardés pour "
+"votre compte sur le serveur (genre, non lu, favoris, etc.). Si cette option "
+"est désactivée les filtres seront réinitialisés à la fermeture de la "
+"bibliothèque."
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
