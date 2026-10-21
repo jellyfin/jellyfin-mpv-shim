@@ -1,16 +1,14 @@
 # Jellyfin MPV Shim
 
-[![Current Release](https://img.shields.io/github/release/jellyfin/jellyfin-mpv-shim.svg)](https://github.com/jellyfin/jellyfin-mpv-shim/releases)
+[![Current Release](https://img.shields.io/github/v/release/jellyfin/jellyfin-mpv-shim)](https://github.com/jellyfin/jellyfin-mpv-shim/releases)
 [![PyPI](https://img.shields.io/pypi/v/jellyfin-mpv-shim)](https://pypi.org/project/jellyfin-mpv-shim/)
 [![Translation Status](https://translate.jellyfin.org/widgets/jellyfin/-/jellyfin-mpv-shim/svg-badge.svg)](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)
 
-A cross-platform Jellyfin client built on MPV, with a full library browser, offline sync and
-casting. It draws its whole interface inside MPV's own window — no webview — so MPV's video
-pipeline, HDR and tone mapping are untouched, and nearly everything direct plays.
+Jellyfin MPV Shim is a fully featured Jellyfin client built on top of MPV with support for offline sync, media browsing, background casting, syncplay, music, live TV, books, and photos. It does not depend on or use a webview and doesn't mess with MPV's video output pipeline, allowing for HDR and tone mapping support.
 
-![The library browser](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-home.png)
+![The media player](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-player.png)
 
-**[Download for Windows](https://github.com/jellyfin/jellyfin-mpv-shim/releases)** ·
+**[Download for Windows](https://github.com/jellyfin/jellyfin-mpv-shim/releases/latest)** ·
 **[Flathub (Linux)](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim)** ·
 [pip (Linux)](#linux) · [macOS](#macos)
 
@@ -19,7 +17,7 @@ pipeline, HDR and tone mapping are untouched, and nearly everything direct plays
 
 | | |
 |---|---|
-| ![Media playback](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-player.png) | ![Music playback](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-music.png) |
+| ![The library browser](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-home.png) | ![Music playback](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-music.png) |
 | Playback | Music |
 | ![A movie's page](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-movie.png) | ![A TV library](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-shows.png) |
 | Detail page | TV shows |
@@ -32,18 +30,17 @@ pipeline, HDR and tone mapping are untouched, and nearly everything direct plays
 
 ## Features
 
-- **Browse and play your whole library** — films, shows, music, photos, [Live TV](#live-tv)
-  and [books, comics and audiobooks](#books-comics-and-audiobooks) — from MPV's window.
-- **Offline sync**: download media, or let it keep your next episodes on disk automatically.
-- **Cast target**: other Jellyfin apps can control it, and casting shows the item on screen
-  first, like a Chromecast. It can wait in the tray, or run as a [dedicated cast
-  target](#cast-target-mode-headless).
-- **SyncPlay**, to watch with friends.
-- **Remembers your audio and subtitle choices** across a series, with optional
-  [rules](docs/configuration.md#language-config-power-user) for picking them automatically.
-- **Picture quality**: [shader packs](#shader-packs-and-svp) (FSRCNNX, Anime4K), debanding,
-  motion interpolation, HDR tone mapping, audio passthrough to a receiver.
-- **Several people on one player** with [fast user switching](#fast-user-switching) and
+- **Uncompromising Playback**: MPV's rendering and video pipelines are completely untouched. It's not redirected, broken, or embedded in a toolkit. Native HDR and Dolby Vision are supported on Windows and Linux.
+- **Browse and play your entire library** including films, shows, music, photos, [Live TV](#live-tv)
+  and [books, comics and audiobooks](#books-comics-and-audiobooks).
+- **Offline sync**: download media for offline viewing, automatically if desired.
+- **Cast target**: Fully controllable from Jellyfin web and mobile apps.
+- **SyncPlay**: Watch media with friends, without screen shares or awkward syncing.
+- **Smart Subtitles**: No need to set for every episode, they're remembered by default and
+  [can be forced globally](docs/configuration.md#language-config-power-user).
+- **Video Enhancement**: [video upscaling](#shader-packs-and-svp), debanding, and motion interpolation.
+- **Advanced Audio**: Audio passthrough and night mode so you can actually hear people talking.
+- **Seamless User & Server Switching** via [fast user switching](#fast-user-switching) and
   optional PINs.
 - Keyboard, mouse, Jellyfin remote and game controller support, and all of
   [MPV's shortcuts](#keyboard-shortcuts).
@@ -80,7 +77,7 @@ pip3 install --upgrade jellyfin-mpv-shim
 
 Optional extras:
 
-- **Tray icon** — keeps it running in the background once the window closes (or enable
+- **Tray icon**: keeps it running in the background once the window closes (or enable
   **Keep Running in Background** in Settings instead):
   `pip3 install 'jellyfin-mpv-shim[systray]'`, plus GObject and AppIndicator from your
   distribution (on Debian: `python3-gi gir1.2-ayatanaappindicator3-0.1`). The virtualenv must
@@ -98,8 +95,7 @@ a current one with `libmpv` by default; run `sudo ldconfig` afterwards. Add
 
 ### macOS
 
-Only the external MPV backend works on macOS, and the maintainer cannot test there — please
-report problems.
+The application is not tested on Mac OS and is not formally supported. PRs to improve support and third-party packaging are welcome.
 
 ```bash
 brew install python mpv pipx
@@ -139,7 +135,7 @@ And the MPV ones you are most likely to want: `space` pause, `←`/`→` seek 5 
 frame, `[` `]` speed ±10%, `backspace` reset speed, `d` deinterlace, `Ctrl+Shift+←/→`
 subtitle delay.
 
-All of these can be changed — see [Keyboard shortcuts](docs/configuration.md#keyboard-shortcuts)
+All of these can be changed. See [Keyboard shortcuts](docs/configuration.md#keyboard-shortcuts)
 and [`input.conf`](docs/configuration.md#mpv-configuration).
 
 ### Live TV
@@ -150,7 +146,7 @@ six screens: **Programs**, **Guide**, **Channels**, **Recordings**, **Schedule**
 **Guide Settings** are stored on the server, shared with the web client.
 
 The guide shows one window of time and pages with the arrows, rather than scrolling sideways
-through 24 hours — easier with a remote.
+through 24 hours.
 
 ### Books, comics and audiobooks
 
@@ -179,8 +175,7 @@ user picker appears beside the server picker in the top bar.
 
 - Each user gets its own device identity, so two users on the same server don't share a session.
 - **Set PIN** locks a user; optionally require it at startup too. This is a parental-control
-  convenience, **not** security — the PIN is only stored hashed in the config, and the media is
-  not encrypted.
+  convenience, **not** security. Nothing is encrypted (although PINs are hashed).
 
 ### Cast-target mode (`headless`)
 
@@ -201,8 +196,7 @@ Playback → Video Enhancement; `opengl` is the most compatible. If the app won'
 choosing a profile, launch it once with `--reset-shaders`; if the picture is merely garbled,
 press `k`.
 
-[SVP](https://www.svp-team.com/) can be controlled from the menu too; it needs some setup —
-see [SVP integration](docs/configuration.md#svp-integration).
+[SVP](https://www.svp-team.com/) can be controlled from the menu too; it needs some setup. See [SVP integration](docs/configuration.md#svp-integration). Please note that I don't have an SVP license (it used to be free on Linux), so the support is untested.
 
 ## Configuration
 
@@ -215,7 +209,7 @@ where the config folder is (the tray icon can open it).
 ### Open on a specific monitor
 
 In `mpv.conf` in the [config folder](docs/configuration.md#the-config-file), add `fs-screen=N`
-(with `fs=yes` to open fullscreen), where `N` counts from 0 — on Windows, the monitor number in
+(with `fs=yes` to open fullscreen), where `N` counts from 0. On Windows, the monitor number in
 Display Settings minus one. If X11 reports your monitors as one screen, use `geometry=` with the
 position `xrandr` shows instead, e.g. `geometry=1920x1080+0+0`. Restart the app after editing.
 
