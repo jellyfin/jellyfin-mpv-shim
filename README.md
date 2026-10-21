@@ -68,7 +68,7 @@ There are `ARM64` builds, and `LEGACY64` builds for CPUs without x86-64-v3 suppo
 ### Linux
 
 The [Flatpak](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) is the
-most integrated option. To install with pip instead you need `libmpv` (or `mpv`) — **MPV 0.41
+most integrated option. To install with pip instead you need `libmpv` (or `mpv`). **MPV 0.41
 or newer is recommended**:
 
 ```bash
