@@ -794,6 +794,6 @@ These are ignored if still in your `conf.json`:
 | `enable_osc` | `osc_style: none` (not migrated) |
 | `display_mirroring` | Mirroring is always on; see `display_mirror_summon` |
 | `snapped_scrolling`, `force_scroll_snapping` | `scroll_mode: row` (not migrated) |
-| `thumbnail_osc_builtin` | `osc_style: custom` |
+| `thumbnail_osc_builtin` | `osc_style: custom` (not migrated) |
 | `skip_intro_*`, `skip_credits_*` | `segment_intro`, `segment_outro` (migrated) |
 | `seek_up`, `seek_down`, `seek_left`, `seek_right`, `seek_*_exact` | `input.conf` (migrated) |
