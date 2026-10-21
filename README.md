@@ -80,7 +80,8 @@ pip3 install --upgrade jellyfin-mpv-shim
 
 Optional extras:
 
-- **Tray icon** — needed to keep running in the background once the window closes:
+- **Tray icon** — keeps it running in the background once the window closes (or enable
+  **Keep Running in Background** in Settings instead):
   `pip3 install 'jellyfin-mpv-shim[systray]'`, plus GObject and AppIndicator from your
   distribution (on Debian: `python3-gi gir1.2-ayatanaappindicator3-0.1`). The virtualenv must
   have `--system-site-packages`; with pipx,
