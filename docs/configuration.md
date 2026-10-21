@@ -488,7 +488,8 @@ settings**.
 - `health_check_interval` - Seconds between server connection checks; `null` disables them.
   Default: `300`
 - `mpv_idle_quit` - Close mpv when idle to free memory and the GPU; it restarts on the next
-  play or when the library is reopened. Never while the library is on screen. Default: `true`
+  play or when the library is reopened. Never while the library is on screen, and never an mpv
+  you started yourself (`mpv_ext` with `mpv_ext_start: false`). Default: `true`
 - `mpv_idle_quit_secs` - Idle seconds before that happens. Default: `300`
 
 ### Server connection
