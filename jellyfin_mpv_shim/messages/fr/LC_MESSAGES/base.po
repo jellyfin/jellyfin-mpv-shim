@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-21 08:46+0000\n"
+"PO-Revision-Date: 2026-10-21 08:54+0000\n"
 "Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -7699,6 +7699,8 @@ msgstr "Activer SVP"
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Downloads are unavailable: the saved logins could not be read."
 msgstr ""
+"Les téléchargements sont indisponibles : les identifiants enregistrés ne "
+"peuvent pas être lus."
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
@@ -7764,6 +7766,9 @@ msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
 msgstr ""
+"Cette application n'est pas autorisée à écrire dans ce dossier. Choisissez "
+"un de vos dossiers ou changez les permission de celui-ci avant de "
+"recommencer."
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
@@ -7790,6 +7795,9 @@ msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
 msgstr ""
+"Cette application n'est pas autorisée à écrire dans ce dossier. Les "
+"téléchargements n'ont pas été déplacés, vérifiez les permission du dossier "
+"avant de recommencer."
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
@@ -7943,16 +7951,13 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
-"MPV Shim v{0} mise à jour disponible\n"
-"Ouvrir le menu (touche 'c') pour plus de détails."
+"Mise jour disponible pour MPV Shim v{0}\n"
+"Exécuter « flatpak update » pour l'installer."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
