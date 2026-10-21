@@ -781,9 +781,12 @@ left  seek -10 exact
 
 ## Authorization
 
-Logins are kept in `users.json` in the config folder (an older `cred.json` may sit beside it
-and is no longer updated). To start over, or if remote control stops working, delete
-`users.json` and add your servers again.
+Logins are kept in the config folder. If one misbehaves — remote control stops appearing,
+say — remove that server in **Settings → Servers** and sign in again.
+
+To start over completely, quit the app and delete the whole config folder. That also deletes
+your settings and, unless `sync_path` points elsewhere, your downloads and any watched state
+not yet sent to the server.
 
 ## Removed settings
 
