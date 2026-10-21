@@ -766,7 +766,7 @@ class Settings(SettingsBase):
     #: On by default, and it shipped off -- both reasons turned out to be
     #: bugs elsewhere (a backdrop decoded into a banner-shaped box, and a
     #: scrollbar gutter reserved on only one side of the layout) and both
-    #: are fixed. docs/configuration.md and docs/artwork-pipeline.md §7.
+    #: are fixed. docs/artwork-pipeline.md §7.
     backdrop_full_width: bool = True
     #: Print times of day as "8:30 PM" instead of "20:30" -- the Live TV
     #: guide and its air times, and both "Ends at" labels

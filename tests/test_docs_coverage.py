@@ -142,6 +142,23 @@ class DocsCoverageTest(unittest.TestCase):
             + "\n\nEither the setting was removed (delete the entry) or this "
               "is a value/sub-key (add it to `vocabulary` here).")
 
+    def test_restart_markings_match_the_settings_form(self):
+        """The doc says "Requires restart" exactly where Settings does.
+
+        `RESTART_REQUIRED` is what marks the rows in the form. The doc's
+        own list once covered three of its nineteen keys."""
+        from jellyfin_mpv_shim.mpvtk_browser.config import RESTART_REQUIRED
+        marked = set()
+        for m in re.finditer(r"^- `([a-z][a-z0-9_]*)`(.*?)(?=^- `|^#|\Z)",
+                             self.docs, re.M | re.S):
+            if "Requires restart" in m.group(2):
+                marked.add(m.group(1))
+        self.assertEqual(
+            sorted(marked ^ set(RESTART_REQUIRED)), [],
+            "docs/configuration.md's 'Requires restart' entries differ from "
+            "mpvtk_browser/config.py:RESTART_REQUIRED (symmetric difference "
+            "shown). The form is the source; match the doc to it.")
+
     def test_internal_lists_have_not_gone_stale(self):
         """A key in INTERNAL or GROUPED that no longer exists means the
         exemption is silently covering nothing."""

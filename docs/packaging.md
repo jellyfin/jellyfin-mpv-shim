@@ -110,7 +110,7 @@ The **PyPI** path is different and mostly fine: Pillow publishes 86 wheels
 (manylinux/musllinux x86_64+aarch64, macOS, Windows, iOS) with raqm and
 harfbuzz compiled in. What those wheels do *not* carry is FriBiDi — see below —
 which is why a pip install on Windows measures `raqm=False` while the same
-wheel on a desktop Linux measures `True`. README's Linux Installation section
+wheel on a desktop Linux measures `True`. The README's "Arabic or Hebrew text drawn backwards" tip
 carries the user-facing version of this.
 
 ### FriBiDi is required, and its absence is silent

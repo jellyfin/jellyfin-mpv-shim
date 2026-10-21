@@ -81,7 +81,7 @@ Current Dependencies:
 
 ## Building the Project
 
-Please see the README for instructions.
+See [docs/development.md](docs/development.md).
 
 ## macOS Work
 

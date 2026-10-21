@@ -22,14 +22,12 @@ use mpv as the player, and updated to allow all features of the remote control a
 The Jellyfin API client comes from [Jellyfin for Kodi](https://github.com/jellyfin/jellyfin-kodi/tree/master/jellyfin_kodi).
 The API client was originally forked for this project and is now a [separate package](https://github.com/iwalton3/jellyfin-apiclient-python).
 
-The css file for desktop mirroring is from [jellyfin-chromecast](https://github.com/jellyfin/jellyfin-chromecast/tree/5194d2b9f0120e0eb8c7a81fe546cb9e92fcca2b) and is subject to GPL v2.0.
-
 The shaders included in the shader pack are also available under verious open source licenses,
 [which you can read about here](https://github.com/iwalton3/default-shader-pack/blob/master/LICENSE.md).
 
 ## Local Dev Installation
 
-If you are on Windows there are additional dependencies. Please see the Windows Build Instructions.
+On Windows, see [Building on Windows](#building-on-windows).
 
 1. Install the dependencies: `pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray pillow python-mpv-jsonipc pypresence`.
     - If you run `./gen_pkg.sh --install`, it will also fetch these for you.
@@ -38,11 +36,54 @@ If you are on Windows there are additional dependencies. Please see the Windows 
     - You can also download a zip build.
 3. `cd` to the repository: `cd jellyfin-mpv-shim`
 4. Run prepare script: `./gen_pkg.sh`
-    - To do this manually, download the web client, shader pack, and build the language files.
+    - It downloads the shader pack and compiles the translations.
 5. Ensure you have a copy of `libmpv` or `mpv` available.
 6. Install any platform-specific dependencies from the respective install tutorials.
 7. You should now be able to run the program with `./run.py`. Installation is possible with `sudo pip3 install .`.
     - You can also install the package with `./gen_pkg.sh --install`.
+
+## Building on Windows
+
+The releases already include Windows builds; you only need this to work on the client itself.
+These steps mirror `.github/workflows/main.yml`, which produces the releases — **if the two
+disagree, the workflow is right.**
+
+Python and libmpv must be the same architecture. On an Arm machine an x64 Python installs and
+builds without complaint and produces the wrong client; `tools/check_win_arch.py` checks this.
+
+1. Install Git for Windows, then in Git Bash:
+   `git clone https://github.com/jellyfin/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
+2. Install [Python 3](https://www.python.org/downloads/) with PATH enabled (CI uses 3.14),
+   [7-Zip](https://www.7-zip.org/) and [Inno Setup](https://jrsoftware.org/isinfo.php)
+   (`winget install --id JRSoftware.InnoSetup -e -s winget`).
+3. In `cmd`: `pip install wheel` then `pip install .[all] pywin32`.
+4. Download the **`mpv-dev-*`** archive (not the player) from
+   [shinchiro/mpv-winbuild-cmake](https://github.com/shinchiro/mpv-winbuild-cmake/releases) —
+   preferably the release `main.yml` pins. Use `mpv-dev-x86_64-v3-*` for current CPUs, the plain
+   `mpv-dev-x86_64-*` for older ones (the `LEGACY64` release), or `mpv-dev-aarch64-*` for ARM64.
+   Extract `libmpv-2.dll` into the repository and **rename it to `mpv-2.dll`**.
+5. Build the two DLLs libmpv and Pillow need beside it, which Windows does not provide:
+   - `python tools/build_win_vulkan_loader.py` — `vulkan-1.dll`. libmpv hard-imports it, and
+     without it the client dies at startup on machines whose GPU driver did not install one.
+   - `pip install meson ninja` then `python tools/build_win_fribidi.py` — `fribidi-0.dll`.
+     Without it, right-to-left text renders reversed and nothing is kerned.
+
+   `tools/check_win_libmpv_deps.py --allow vulkan-1.dll mpv-2.dll` and
+   `tools/check_win_raqm.py --require-bundled` verify them. See
+   [packaging.md](packaging.md) section 1.
+6. In Git Bash, build the PyInstaller bootloader from source:
+   ```bash
+   ./gen_pkg.sh --get-pyinstaller
+   cd pyinstaller/bootloader && python ./waf distclean all && cd .. && pip install .
+   cd ..
+   ```
+   A stock `pip install pyinstaller` also works, but its prebuilt bootloader is often flagged
+   by antivirus software. On ARM64, add `--target-arch=64bit-arm --check-c-compiler=msvc` to
+   the `waf` command, or it may silently build an x64 bootloader.
+7. In Git Bash, run `./gen_pkg.sh --skip-build` (translations and shader pack). Without GNU
+   `msgfmt` it falls back to `tools/msgfmt.py`, which produces the same catalogs.
+8. In `cmd`, run `build-win.bat` (`build-win-arm64.bat` for ARM64, `build-win-dbg.bat` for a
+   console-attached debug build). There is no 32-bit build.
 
 ## Translation
 
@@ -77,19 +118,24 @@ To compile all `*.po` files to `*.mo`:
 
 Two suites, deliberately separate.
 
-**Fast suite** — stdlib `unittest`, no mpv, no display, no extra packages:
+**Unit suite** — stdlib `unittest`, no extra packages. Run it under `xvfb-run`: a few
+modules import `player.py`, and importing it opens a real mpv window.
 
 ```bash
-python3 -m unittest discover tests
+xvfb-run -a python3 -m unittest discover tests          # ~2 minutes
+xvfb-run -a python3 tools/run_tests_parallel.py         # the same tests, one process per module
 ```
+
+Select tests with `-k`, not by module name: a module name stays in `sys.argv`, which the app
+parses at import time.
 
 **Integration matrix** — fake and real mpv, run once per backend in its own
 process (`player.py` selects its backend at import time, so a subprocess is
 the only clean way to get a pristine import per backend):
 
 ```bash
-python3 tests/integration/run_integration.py           # full matrix
-python3 tests/integration/run_integration.py --list    # what it will run
+xvfb-run -a python3 tests/integration/run_integration.py           # full matrix, ~10 minutes
+python3 tests/integration/run_integration.py --list                # what it will run
 ```
 
 Real-mpv legs run under `xvfb-run` when it is available, both to keep ~25
