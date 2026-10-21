@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-21 08:54+0000\n"
+"PO-Revision-Date: 2026-10-21 09:59+0000\n"
 "Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -228,7 +228,7 @@ msgstr "Passer l'aperçu"
 #. tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Preview"
-msgstr "Aperçu ignoré"
+msgstr "Aperçu passé"
 
 #. Prompt drawn over the video offering to jump past a preview, shown when
 #. the viewer seeks into it.
@@ -246,7 +246,7 @@ msgstr "Passer le résumé"
 #. tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Recap"
-msgstr "Résumé ignoré"
+msgstr "Résumé passé"
 
 #. Prompt drawn over the video offering to jump past a recap, shown when
 #. the viewer seeks into it.
@@ -723,7 +723,7 @@ msgstr "Passer les introductions"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Ignorer le générique"
+msgstr "Passer le générique"
 
 #. What to do at an advertisement break: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
@@ -893,13 +893,13 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
-"Impossible de redémarrer automatiquement — quitter et relancer l’application "
+"Impossible de redémarrer automatiquement — quittez et relancez l’application "
 "pour appliquer vos modifications."
 
 #. Status message when a retry after a connection failure also failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Still can't reach the server."
-msgstr "Toujours impossible de joindre le serveur."
+msgstr "Connexion au serveur toujours impossible."
 
 #. Title of the dialog that changes to another user of this server. %s is
 #. that user's name.
@@ -1037,7 +1037,7 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
-"Le mot de passe pour %s n'est plus accepté. Se reconnecter n'aura pas "
+"Les identifiants pour %s ne sont plus acceptés. Se reconnecter n'aura pas "
 "d'impact sur les téléchargements ou les réglages locaux."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
@@ -3002,11 +3002,16 @@ msgstr ""
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid ""
 "\"Automatic\" turns this off inside a Flatpak, where your desktop already "
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"L'option « Automatique » désactive cette fonctionnalité au sein d'un "
+"environnement Flatpak — où votre bureau signale déjà la disponibilité de "
+"mises à jour et où la commande « flatpak update » permet de les installer — "
+"tout en la laissant activée partout ailleurs."
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3076,6 +3081,10 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"Une période de rétention après le visionnage : le contenu reste téléchargé "
+"pendant une certaine durée pour que vous ou une autre personne de votre "
+"foyer puisse le regarder à nouveau. En cas d'espace de stockage faible ces "
+"contenus peuvent tout de même être supprimés avant la fin de cette période."
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
@@ -3363,7 +3372,6 @@ msgstr ""
 #. may differ for you. "eng" is a literal ISO 639-2 code the user types:
 #. keep it as is.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid ""
 "The language to use for dubbed audio or subbed subtitles. Note the "
 "preference heuristics are built around English naming conventions, your "
@@ -7270,7 +7278,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Couldn't connect to %s"
-msgstr "Impossible de se connecter à %s."
+msgstr "Impossible de se connecter à %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
