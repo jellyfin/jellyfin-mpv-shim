@@ -58,8 +58,9 @@ Install it (below), launch it and log in. Enter your server's address, e.g.
 8096 is assumed if you leave it out, so a server on port 80 needs `:80`. Quick Connect works
 too.
 
-Then browse from the window, or cast to it from another Jellyfin app. Closing the window keeps
-it running in the system tray as a cast target; you can change that in Settings.
+Then browse from the window, or cast to it from another Jellyfin app. When a system tray is
+available, closing the window keeps it running there as a cast target; you can change that in
+Settings.
 
 ### Windows
 
