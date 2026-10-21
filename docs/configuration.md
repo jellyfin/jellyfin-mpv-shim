@@ -555,7 +555,8 @@ Set any of these to `null` to disable it, though some features may then be unrea
   - It replaces ENTER rather than adding to it. `hud_wake_key` keeps its own key.
 
 Seek distances are mpv bindings in `input.conf`; the old `seek_*` settings were moved there for
-you. See [mpv configuration](#mpv-configuration).
+you — except with `mpv_ext` and `mpv_ext_no_ovr` both on, where your own mpv config is used and the
+lines are printed to the log for you to copy instead. See [mpv configuration](#mpv-configuration).
 
 ### Shell command triggers
 
