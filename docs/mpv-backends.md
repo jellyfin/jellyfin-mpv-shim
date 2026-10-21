@@ -384,7 +384,7 @@ bindings outranked the console — and the handler was right for a reason its ow
 comment did not give. The rule was in the file the whole time: `:5771` states it
 correctly, 1,200 lines away, because getting it wrong there had cost #717. One
 rule, right at one site and wrong at another, which is the shape
-`docs/RISK_MAP_2026-09.md` §2 is a table of. `tools/audit_key_bindings.py:PUBLISHED` now enumerates
+`docs/archive/RISK_MAP_2026-09.md` §2 is a table of. `tools/audit_key_bindings.py:PUBLISHED` now enumerates
 every `user-data/mpv/*` property mpv's builtin scripts set, with what the
 renderer owes each; `context-menu/open` is recorded there as watched by nothing.
 

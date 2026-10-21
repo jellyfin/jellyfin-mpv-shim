@@ -1,6 +1,6 @@
 """Every screen, loaded and rendered against a real library.
 
-This replaces a manual step. `docs/REGRESSION_CHECKLIST_2026-07-25.md` §1 is:
+This replaces a manual step. `docs/archive/REGRESSION_CHECKLIST_2026-07-25.md` §1 is:
 
     Walk each route once: home, library grid, person, detail, series, season,
     search, playlists, playlist editor, queue editor, music library (all five

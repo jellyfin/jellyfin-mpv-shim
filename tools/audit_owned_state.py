@@ -170,7 +170,7 @@ OWNED = [
             "treats it as a cache rather than as a verdict, turns a "
             "transient 401 into artwork that stays blank until restart. "
             "Whether 401/403 belongs in here at all is a live question "
-            "(`docs/RISK_MAP_2026-09.md` section 3.5); this entry pins who "
+            "(`docs/archive/RISK_MAP_2026-09.md` section 3.5); this entry pins who "
             "may answer it.",
     ),
     Owned(

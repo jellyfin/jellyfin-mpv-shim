@@ -49,7 +49,7 @@ _PHOTO_MAX_WIDTH = 3840
 #: docs/jellyfin-api-notes.md section 11.
 #:
 #: Deliberately *not* the string reported to the server: that is a separate
-#: and older question (docs/UI_FIXES_4.md §10, where it is deferred), and
+#: and older question (docs/archive/UI_FIXES_4.md §10, where it is deferred), and
 #: tying the screen to it would have made the screen wait for it.
 PLAY_DIRECT = "DirectPlay"
 PLAY_DIRECT_STREAM = "DirectStream"

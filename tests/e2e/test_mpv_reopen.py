@@ -1,6 +1,6 @@
 """Closing mpv mid-playback, then playing again.
 
-`docs/REGRESSION_CHECKLIST_2026-07-25.md` calls this "the historic stale-queue
+`docs/archive/REGRESSION_CHECKLIST_2026-07-25.md` calls this "the historic stale-queue
 bug; the highest-value single item on this page", and it is the flagship of
 the tracker's largest cluster (#458, 18 comments).
 
@@ -81,7 +81,7 @@ class MpvReopenTest(_ChildCase):
 
 @_e2e.require_server_and_mpv
 class AbandonedItemTest(_ChildCase):
-    """The #458 caveat, recorded in `docs/ISSUES_TO_VERIFY.md`:
+    """The #458 caveat, recorded in `docs/archive/ISSUES_TO_VERIFY.md`:
 
         a later comment describes a residual X-button freeze that also
         *marks the item watched* via `get_timeline_options`. Verify that

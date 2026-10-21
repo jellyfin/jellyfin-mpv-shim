@@ -18,7 +18,7 @@ of those are correct and some are the bug, and they look identical:
   the wake binding, then hardcodes `'ENTER'` on the next two lines -- so the
   Skip button binds ENTER even when `ui_select_key` has moved.
 
-All four are in `docs/RISK_MAP_2026-09.md` section 2. **R10 was found by
+All four are in `docs/archive/RISK_MAP_2026-09.md` section 2. **R10 was found by
 writing this predicate down, not by reading the file** -- it sits one screen
 from R3, inside a function that resolves the very setting it then hardcodes,
 and four surveys plus a full session of hand work had walked past it. That
@@ -118,7 +118,7 @@ class Site:
 DECLARED = {
     # ---------------------------------------------------------- OPEN BUGS
     # Declared as findings, not exemptions. All are verified open in
-    # docs/RISK_MAP_2026-09.md section 2, and all need a config-file edit to
+    # docs/archive/RISK_MAP_2026-09.md section 2, and all need a config-file edit to
     # reach -- which is why section 7 defers them rather than repairing them
     # under release pressure.
     "player.py:PlayerManager": (

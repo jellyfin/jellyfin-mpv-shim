@@ -321,7 +321,7 @@ should not be built first.
 **BUILT (last, per that rule), and the class was indeed growing: seven open
 rows, not four.** R2 turned out to have a second site, and two more are in the
 HUD's summon bindings. None repaired — the reachability argument above is
-unchanged. `docs/POSTMORTEM_3.0.0.md` §5.1.
+unchanged. `docs/archive/POSTMORTEM_3.0.0.md` §5.1.
 
 **One platform exception.** `conf.py:413` is
 `mpv_ext: bool = sys.platform.startswith("darwin")` — **the external backend is
@@ -336,13 +336,13 @@ without the platform qualifier gets this backwards for every Mac user.
   (Tier 1 and Tier 2) and its Rule B reach-throughs are in `gateway/hud.py`,
   which no setting gates. **BUILT.** Ten sites, all declared; three of the four
   writes have an unused `PlayerManager` method waiting, and the fourth is the
-  aspect-override commit on `enrich-e2e-tests`. `docs/POSTMORTEM_3.0.0.md` §5.3.
+  aspect-override commit on `enrich-e2e-tests`. `docs/archive/POSTMORTEM_3.0.0.md` §5.3.
 - The four declared entries on `tools/audit_owned_state.py` (`_sync_path`,
   `ThumbnailStore._gone`, `mpv.TIMEOUT`, `_login["pass"]`) are the cheapest
   Tier-1 coverage available — ~~a bookkeeping extension to a tool that exists,
   not new machinery.~~ **DONE, and three of the four needed the tool to grow
   first: a directory scope for the browser's mixins, and a way to name state
-  that does not hang off `self`.** `docs/POSTMORTEM_3.0.0.md` §5.2.
+  that does not hang off `self`.** `docs/archive/POSTMORTEM_3.0.0.md` §5.2.
 - `test_config_cells.py` drops: its verified cell is `headless`-gated, i.e.
   Tier 3.
 - The `_MpvHandle` capsule is unaffected — mpv re-creation is reached by

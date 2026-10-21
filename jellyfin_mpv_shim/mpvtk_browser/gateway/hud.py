@@ -126,7 +126,7 @@ class HudMixin(GatewayCore):
         ``media.Video._get_url_from_source``, so this is an attribute read
         rather than a request per second. The cost is that live transcode
         progress and encoder fps are not available, which is the trade
-        recorded in docs/UI_FIXES_4.md §10.
+        recorded in docs/archive/UI_FIXES_4.md §10.
         """
         from ...player import playerManager
         try:

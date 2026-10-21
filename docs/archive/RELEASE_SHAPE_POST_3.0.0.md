@@ -1,8 +1,8 @@
 # Release shape after 3.0.0 — one release, not two
 
 **Kind: a decision, and the evidence that moves it.** The measurement steps are
-already done and live in `docs/RISK_MAP_2026-09.md` (the map) and
-`docs/POSTMORTEM_3.0.0.md` (the rot and the per-issue tracing). This document
+already done and live in `docs/archive/RISK_MAP_2026-09.md` (the map) and
+`docs/archive/POSTMORTEM_3.0.0.md` (the rot and the per-issue tracing). This document
 answers the question those two leave open: *what is the next release, and what
 is in it.* **Izzie's decisions of 2026-09-08 are folded in and marked [iw].**
 
@@ -60,7 +60,7 @@ than the #737 fix and it affects every Flatpak user on every release.
 
 ### 1.1 #739 — the open question is closed, and it does not license the fix
 
-`docs/POSTMORTEM_3.0.0.md` §3.6 and its Appendix leave this open:
+`docs/archive/POSTMORTEM_3.0.0.md` §3.6 and its Appendix leave this open:
 
 > an XWayland session should have had a working x11 clipboard, so #739's
 > reported failure is **not established**.
@@ -260,7 +260,7 @@ The four wrong claims, each re-verified for this document:
 | # | site | claim | check |
 |---|---|---|---|
 | 1 | `mpvtk_browser/config.py:766-770` | mpv changed `MBTN_RIGHT` "at 0.41" | **False.** `v0.41.0` binds `cycle pause`; the change is master-only. The fact the note asserts is right; the boundary is not. |
-| 2 | `docs/ISSUES_2026-09.md:894-897` | `2035d720` "landed after pre14 was cut" | **False.** `git merge-base --is-ancestor 2035d720 v3.0.0pre14` → true. |
+| 2 | `docs/archive/ISSUES_2026-09.md:894-897` | `2035d720` "landed after pre14 was cut" | **False.** `git merge-base --is-ancestor 2035d720 v3.0.0pre14` → true. |
 | 3 | `clipboard.py:41`, `mpvtk_browser/dialogs.py:1052`, `mpvtk/renderer.lua:298-299`, `tests/lua/test_renderer.lua:284` | `--clipboard-backends` defaults to `win32,mac,wayland,vo` | **False.** `win32,mac,wayland,x11,vo`, x11 enabled. One of the four sites is a test, which is why nothing caught it. |
 | 4 | `CLAUDE.md` | four required dependencies | **False.** `pyproject.toml:18-29` has five; `pillow` is required since the browser replaced Tk. |
 

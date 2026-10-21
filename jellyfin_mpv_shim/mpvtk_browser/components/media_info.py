@@ -25,7 +25,7 @@ to by ``tests/test_source_invariants.py``.
 Faithful to ``jellyfin-web/src/components/itemMediaInfo/itemMediaInfo.js``
 in *which* attributes appear, their order, and their conditions, because a
 user comparing the two screens is comparing them attribute by attribute.
-Two deliberate departures, both recorded in ``docs/UI_FIXES_4.md``:
+Two deliberate departures, both recorded in ``docs/archive/UI_FIXES_4.md``:
 
 * the **file path is not administrator-gated** here (web gates it on
   ``IsAdministrator``);
@@ -89,7 +89,7 @@ def source_attributes(source):
     log, in a web client's devtools, and a ``static=true`` stream is
     reachable by anyone holding the item guid regardless. A control that
     stops nobody and hides a row from the owner of the machine is not worth
-    having. See docs/UI_FIXES_4.md §11.
+    having. See docs/archive/UI_FIXES_4.md §11.
     """
     from .labels import human_size
 
@@ -301,7 +301,7 @@ def summary_parts(source):
 #: How the stream reached us. Derived, not asked for: unlike jellyfin-web —
 #: which has to read its own session back off the server because the server
 #: is what decided — *we* made this decision, in
-#: ``media.Video._get_url_from_source``. See docs/UI_FIXES_4.md §10.
+#: ``media.Video._get_url_from_source``. See docs/archive/UI_FIXES_4.md §10.
 DIRECT_PLAY = "DirectPlay"
 DIRECT_STREAM = "DirectStream"
 REMUX = "Remux"

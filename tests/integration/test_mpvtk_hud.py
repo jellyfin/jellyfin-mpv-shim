@@ -1123,7 +1123,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
 class RealConsoleLoanTest(h.TmpDirTest):
     """The keyboard loan, driven by mpv's ACTUAL console.
 
-    `docs/E2E_PLAN.md` records this as attempted and blocked: "The property
+    `docs/e2e-roadmap.md` records this as attempted and blocked: "The property
     cannot be injected from Python... The real console is not loaded"
     (`mpvtk.app._SPAWN_OPTS` sets `load_scripts: "no"`, so pressing `` ` ``
     does nothing). Both halves are now answered -- spawn the handle with

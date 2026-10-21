@@ -49,7 +49,7 @@ def flatpak_managed():
 
     The one question the notifier and its message both turn on, asked in one
     place so they cannot answer it differently: a marked build is one we
-    handed over ourselves (§5.4 of docs/RELEASE_SHAPE_POST_3.0.0.md), it has
+    handed over ourselves (§5.4 of docs/archive/RELEASE_SHAPE_POST_3.0.0.md), it has
     no remote to update from, and telling its user to run ``flatpak update``
     would be wrong.
     """

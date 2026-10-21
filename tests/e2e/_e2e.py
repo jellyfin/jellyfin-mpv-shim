@@ -3,7 +3,7 @@
 Everything else in `tests/` runs against a fake. That is deliberate and it is
 why those suites are fast and deterministic — but it also means the request
 the shim actually sends is never validated by anything, and the DTOs it
-reasons about are hand-written by us. `docs/E2E_PLAN.md` has the evidence:
+reasons about are hand-written by us. `docs/e2e-roadmap.md` has the evidence:
 `enable_images=False` to a method with no such argument, `is_movies` for
 `IsMovie` (with a unit test asserting the wrong spelling, which is why it was
 green), a SyncPlay ping sent as a float against a `long`. None of those are
@@ -174,7 +174,7 @@ def require_server(obj):
     return unittest.skipUnless(
         server_reachable(),
         "no server: set JMS_E2E_SERVER to a running Jellyfin "
-        "(see docs/E2E_PLAN.md)",
+        "(see docs/e2e-roadmap.md)",
     )(obj)
 
 

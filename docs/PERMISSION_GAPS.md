@@ -340,7 +340,7 @@ test fails and hiding the button becomes the thing to reconsider.
 ## 6. Deleting media — the one gate we take from the item, not the account  — ADDED
 
 Not a gap that was found; a feature that had to be built without making one.
-Delete from Disk (#4, `docs/UI_FIXES_4.md`) is the first thing in the browser
+Delete from Disk (#4, `docs/archive/UI_FIXES_4.md`) is the first thing in the browser
 that destroys anything on the server, so the question of who may press it had
 to be answered before the button existed rather than after.
 
