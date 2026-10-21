@@ -787,8 +787,8 @@ Logins are kept in the config folder. If one misbehaves — remote control stops
 say — remove that server in **Settings → Servers** and sign in again.
 
 To start over completely, quit the app and delete the whole config folder. That also deletes
-your settings and, unless `sync_path` points elsewhere, your downloads and any watched state
-not yet sent to the server.
+your settings and, unless `sync_path` points elsewhere, your downloads. Watched state recorded
+offline and not yet sent to the server is lost either way.
 
 ## Removed settings
 
