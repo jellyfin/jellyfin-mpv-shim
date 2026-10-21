@@ -20,6 +20,7 @@ printed at startup when launched from a terminal on Linux or macOS.
 | Linux | `~/.config/jellyfin-mpv-shim/conf.json` |
 | Linux (Flatpak) | `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json` |
 | macOS | `~/Library/Application Support/jellyfin-mpv-shim/conf.json` |
+| Cygwin | `~/.config/jellyfin-mpv-shim/conf.json` |
 
 `--config DIR` uses another folder (and runs a separate instance — see the README's
 [Tips](../README.md#run-multiple-instances)). The file is read as UTF-8, with or without a
