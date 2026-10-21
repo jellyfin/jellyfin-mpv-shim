@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-21 08:44+0000\n"
+"PO-Revision-Date: 2026-10-21 08:46+0000\n"
 "Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -7508,7 +7508,7 @@ msgstr "Plus tard"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s — run “flatpak update”"
-msgstr ""
+msgstr "Mise à jour disponible : %s — lancer « flatpak update »"
 
 #. Banner announcing a newer release of this application. %s is the version
 #. number.
@@ -7639,7 +7639,7 @@ msgstr ""
 #. "Could not play this item: <title> — "; "it" is that item.
 #: jellyfin_mpv_shim/player.py
 msgid "The server stopped sending it partway through."
-msgstr ""
+msgstr "L'envoi du serveur s'est arrêté pendant la lecture."
 
 #. Shown over the video when playback reaches the end of a downloaded
 #. episode and the one after it is not on this device.
