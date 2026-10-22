@@ -392,6 +392,39 @@ class RegistryDurabilityTest(UserManagerTestBase):
         self.assertNotEqual(before, after)          # the good save did land
 
 
+class RegistryPermissionsTest(UserManagerTestBase):
+    """users.json and its backup hold every profile's server tokens, so they
+    are created owner-only rather than under the default umask (0644 on a
+    typical Linux box, readable by every local account)."""
+
+    PATHS = ("users.json", "users.json.bak")
+
+    def test_both_files_are_created_owner_only(self):
+        real_open = os.open
+        modes = {}
+
+        def spy(path, flags, mode=0o777, *a, **k):
+            modes[os.path.basename(path)] = mode
+            return real_open(path, flags, mode, *a, **k)
+
+        um = self.fresh()
+        with mock.patch("jellyfin_mpv_shim.users.os.open", side_effect=spy):
+            um.save()
+        for name in self.PATHS:
+            with self.subTest(file=name):
+                self.assertEqual(modes.get(name + ".tmp"), 0o600)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX mode bits")
+    def test_files_on_disk_are_0600_under_a_permissive_umask(self):
+        old = os.umask(0o022)
+        self.addCleanup(os.umask, old)
+        self.fresh().save()
+        for name in self.PATHS:
+            with self.subTest(file=name):
+                mode = os.stat(os.path.join(self.tmp, name)).st_mode & 0o777
+                self.assertEqual(mode, 0o600)
+
+
 class KnownServersTest(UserManagerTestBase):
     def test_known_servers_deduped_across_users(self):
         self.write_cred_json([

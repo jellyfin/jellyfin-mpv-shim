@@ -341,7 +341,10 @@ class UserManager:
         """
         tmp = path + ".tmp"
         try:
-            with open(tmp, "w") as f:
+            # Owner-only: the payload is every profile's server tokens, and
+            # the default umask leaves a plain open() world-readable.
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
                 json.dump(payload, f, indent=4)
                 f.flush()
                 os.fsync(f.fileno())
