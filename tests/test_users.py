@@ -424,6 +424,26 @@ class RegistryPermissionsTest(UserManagerTestBase):
                 mode = os.stat(os.path.join(self.tmp, name)).st_mode & 0o777
                 self.assertEqual(mode, 0o600)
 
+    @unittest.skipUnless(os.name == "posix", "POSIX mode bits")
+    def test_files_left_by_an_older_build_are_tightened_on_load(self):
+        # An older build wrote these 0644, and a load with nothing to change
+        # never saves -- so only load itself can fix them. cred.json is
+        # never written again at all once migrated.
+        self.write_cred_json([{"uuid": "u1", "username": "alice",
+                               "address": "http://s:8096"}])
+        self.fresh()
+        aside = os.path.join(self.tmp, "users.json.unreadable-1")
+        with open(aside, "w", encoding="utf-8") as f:
+            f.write("{")
+        names = self.PATHS + ("cred.json", "users.json.unreadable-1")
+        for name in names:
+            os.chmod(os.path.join(self.tmp, name), 0o644)
+        self.fresh()
+        for name in names:
+            with self.subTest(file=name):
+                mode = os.stat(os.path.join(self.tmp, name)).st_mode & 0o777
+                self.assertEqual(mode, 0o600)
+
 
 class KnownServersTest(UserManagerTestBase):
     def test_known_servers_deduped_across_users(self):
