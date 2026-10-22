@@ -6,14 +6,14 @@
         "PANEL_BG": "1d2635",
         "PLACEHOLDER_BG": "1d2635",
         "BUTTON_BG": "111827",
-        "BUTTON_ACTIVE": "29354a",
+        "BUTTON_ACTIVE": "47505c",
         "ENTRY_BG": "1d2635",
         "BORDER": "47505c",
         "TEXT_FG": "d1d5db",
         "SUBTLE_FG": "9ca3af",
         "ACCENT": "d1d5db",
         "ACCENT_HOVER": "f3f8ff",
-        "ACCENT_SOFT": "29354a",
+        "ACCENT_SOFT": "343d4d",
         "ACCENT_FG": "29354a",
         "WATCHED_GREEN": "22c55e",
         "FAV_RED": "d15353"
@@ -30,7 +30,7 @@
             "1d2635"
         ],
         [
-            0.75,
+            1.0,
             "111827"
         ]
     ]
