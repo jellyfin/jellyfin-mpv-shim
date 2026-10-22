@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-22 07:00+0000\n"
+"PO-Revision-Date: 2026-10-22 09:32+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -2335,199 +2335,195 @@ msgstr "Peida alati"
 #. Playback > Player Controls); stored as "paused".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Ära peida pausil olles"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "justify".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Laienda vahesid"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "center".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Joonda paanid keskele"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "off".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Paiguta paremale"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "None".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Teema vaikeväärtus"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "0.75".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Väga väike"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "0.85".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Väike"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "1.2".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Keskmine"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "1.7".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Suur"
+msgstr "Väga suur"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
-msgstr ""
+msgstr "Automaatne (soovitatav)"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "vulkan".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Vulkan"
-msgstr ""
+msgstr "Vulkan"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "d3d11".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Direct3D 11 (Windows only)"
-msgstr ""
+msgstr "Direct3D 11 (ainult Windows)"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "opengl".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "OpenGL (compatibility)"
-msgstr ""
+msgstr "OpenGL (ühilduvusrežiim)"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default (auto)"
-msgstr ""
+msgstr "Vaikimisi (automaatne)"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "stereo".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Force Stereo"
-msgstr ""
+msgstr "Sunnitud stereo"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "optical".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Optical Surround"
-msgstr ""
+msgstr "Optiline ruumiline heli"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "hdmi".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDMI Passthrough"
-msgstr ""
+msgstr "HDMI läbilaskerežiim"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "unset".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
-msgstr ""
+msgstr "Määramata"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "dubbed_shows".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (shows only)"
-msgstr ""
+msgstr "Pealelugemisega (ainult sarjad)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "subbed_shows".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (shows only)"
-msgstr ""
+msgstr "Subtiitritega (ainult sarjad)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "dubbed_all".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (all)"
-msgstr ""
+msgstr "Pealelugemisega (kõik)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "subbed_all".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
-msgstr ""
+msgstr "Subtiitritega (kõik)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "custom".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
-msgstr ""
+msgstr "Kohandatud (määratud seadetes)"
 
 #. Label of the dropdown for the "notify_updates" setting (Settings >
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "Teavita mind uuendustest"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Game Controller"
-msgstr "Esituste arv"
+msgstr "Mängupult"
 
 #. Label of the checkbox for the "gamepad_swap_confirm" setting (Settings >
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Vaheta kinnitus- ja tagasinupp"
 
 #. Label of the text field for the "sync_path" setting (Settings > Browse >
 #. Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
-msgstr ""
+msgstr "Allalaadimiste kaust"
 
 #. Label of the checkbox for the "prefer_downloaded" setting (Settings >
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
-msgstr ""
+msgstr "Eelista allalaaditud faili"
 
 #. Label of the checkbox for the "mouse_click_pauses" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Vasakklõps peatab esituse"
 
 #. Label of the checkbox for the "detail_poster" setting (Settings > Browse
 #. > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Kuva üksikasjade lehel kaanepilte"
 
 #. Label of the checkbox for the "detail_episode_image" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Kuva üksikasjade lehel episoodide pisipilte"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #. Label of the dropdown for the "hwdec" setting (Settings > Playback >
 #. Playback).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Hardware Decoding"
-msgstr "Tühista salvestamine"
+msgstr "Riistvaraline dekodeerimine"
 
 #. Label of the checkbox for the "deinterlace_auto" setting (Settings >
 #. Playback > Video Enhancement).
@@ -2539,122 +2535,116 @@ msgstr ""
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Liikumise silumine"
 
 #. Label of the dropdown for the "deband" setting (Settings > Playback >
 #. Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (Teisendamine)"
+msgstr "Värviribade eemaldamine"
 
 #. Label of the dropdown for the "tone_mapping" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "HDR toonikaardistus"
 
 #. Label of the dropdown for the "render_quality" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Rendering Quality"
-msgstr "Muuda video kvaliteeti"
+msgstr "Renderdamiskvaliteet"
 
 #. Label of the dropdown for the "network_buffer" setting (Settings >
 #. Playback > Playback).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Võrgupuhver"
 
 #. Label of the checkbox for the "auto_download_enable" setting (Settings >
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Laadi tulevased episoodid automaatselt alla"
 
 #. Label of the checkbox for the "auto_download_next_up" setting (Settings
 #. > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Kaasa \"Järgmiseks\""
 
 #. Label of the number field for the "auto_download_next_up_limit" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "\"Järgmiseks\" loendi üksuste limiit"
 
 #. Label of the number field for the "auto_download_lookahead" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Ettelaaditavate episoodide arv (0 = väljas)"
 
 #. Label of the number field for the "auto_download_max_gb" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Automaatse allalaadimise mahupiirang (GB)"
 
 #. Label of the checkbox for the "auto_download_delete_watched" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Eemalda server"
+msgstr "Kustuta automaatselt alla laaditud failid pärast vaatamist"
 
 #. Settings label, Browse tab, Downloads group. A number of hours an
 #. automatically downloaded episode is kept after you finish watching it,
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "Vaadatud allalaadimiste säilitamisaeg (tundides, 0 = kustuta kohe)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Vaatamata allalaadimiste säilitamisaeg (päevades, 0 = piiramatu)"
 
 #. Label of the number field for the "auto_download_interval_mins" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Kontrollimise vahemik (minutites)"
 
 #. Label of the number field for the "auto_download_lookahead_min" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "Laadi juurde, kui alles on alla (osa)"
 
 #. Label of the number field for the "auto_download_lookahead_max" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "Laadi juurde kuni (osani)"
 
 #. Label of the number field for the "auto_download_max_per_pass" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Suurim allalaadimiste arv kontrolli kohta"
 
 #. Label of the checkbox for the "close_to_tray" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "Sulge salve (jätka tööd)"
 
 #. Label of the checkbox for the "allow_background" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
-msgstr ""
+msgstr "Jätka tööd taustal"
 
 #. Label of the checkbox for the "remember_window_size" setting (Settings >
 #. General > Window).
