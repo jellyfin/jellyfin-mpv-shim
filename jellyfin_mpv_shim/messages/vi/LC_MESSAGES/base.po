@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-08-13 18:11+0000\n"
-"Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
+"PO-Revision-Date: 2026-10-22 06:55+0000\n"
+"Last-Translator: Jang <9xgiang@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/vi/>\n"
 "Language: vi\n"
@@ -45,7 +45,7 @@ msgstr "Trang %d"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% đọc"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -113,7 +113,7 @@ msgstr "Đang chờ ủy quyền..."
 #. signing in again.
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Xóa tất cả tài khoản hiện có."
 
 #. Printed in the terminal after a server was signed in to.
 #: jellyfin_mpv_shim/clients.py
@@ -129,21 +129,18 @@ msgstr "Thêm máy chủ không thành công."
 #. saved, so its saved login is replaced.
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Tài khoản đã tồn tại. Đang cập nhật thông tin đăng nhập."
 
 #. Printed in the terminal after a saved login was replaced.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Đã thêm máy chủ thành công."
+msgstr ""
+"Được in trong terminal sau khi thông tin đăng nhập đã lưu được thay thế."
 
 #. Printed in the terminal when replacing a saved login failed.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Thêm máy chủ không thành công."
+msgstr "Cập nhật thông tin xác thực máy chủ không thành công."
 
 #. Terminal prompt asking for the Jellyfin server's web address. The
 #. trailing space separates it from what is typed; keep it.
@@ -170,33 +167,25 @@ msgstr "Thêm máy chủ khác?"
 
 #. Printed in the terminal when the Jellyfin server could not be reached.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Không thể thêm máy chủ.\n"
-"Vui lòng kiểm tra thông tin kết nối của bạn."
+msgstr "Không thể kết nối tới máy chủ."
 
 #. Printed in the terminal when the server administrator has turned the
 #. Quick Connect feature off.
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Quick Connect chưa được bật trên máy chủ này."
 
 #. Printed in the terminal when requesting a Quick Connect code failed.
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Không thể khởi động Quick Connect."
 
 #. Label of the dropdown for the "segment_outro" setting (Settings >
 #. Playback > Skip Intro / Credits).
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Đã bỏ qua đoạn giới thiệu"
+msgstr "Bỏ qua đoạn giới thiệu"
 
 #. Confirmation drawn over the video after the closing credits were jumped
 #. past. Past tense.
@@ -213,49 +202,38 @@ msgstr "Đi tới để bỏ qua đoạn giới thiệu"
 #. Button drawn over the video during an advertisement break. Pressing it
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Đặc biệt"
+msgstr "Bỏ qua quảng cáo"
 
 #. Confirmation drawn over the video after an advertisement break was
 #. jumped past. Past tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Đã bỏ qua đoạn giới thiệu"
+msgstr "Đã bỏ qua quảng cáo"
 
 #. Prompt drawn over the video offering to jump past an advertisement
 #. break, shown when the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Đi tới để bỏ qua đoạn giới thiệu"
+msgstr "Tua qua quảng cáo"
 
 #. Button drawn over the video during a preview of a coming episode.
 #. Pressing it jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Đã bỏ qua đoạn giới thiệu"
+msgstr "Bỏ qua đoạn giới thiệu"
 
 #. Confirmation drawn over the video after a preview was jumped past. Past
 #. tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
 msgstr "Đã bỏ qua đoạn giới thiệu"
 
 #. Prompt drawn over the video offering to jump past a preview, shown when
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Đi tới để bỏ qua đoạn giới thiệu"
+msgstr "Tua qua đoạn xem trước"
 
 #. Button drawn over the video during a "previously on" recap. Pressing it
 #. jumps past it. An imperative verb phrase.
