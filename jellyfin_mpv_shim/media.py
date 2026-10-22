@@ -716,7 +716,10 @@ class Video(object):
 
             source_path = self._apply_path_substitutions(source_path)
             parsed_source_path = urllib.parse.urlparse(source_path)
-            if not parsed_source_path.scheme:
+            # A one-letter "scheme" is a Windows drive letter: D:\x parses
+            # as scheme "d", and is a file path that may not be mounted.
+            has_scheme = len(parsed_source_path.scheme) > 1
+            if not has_scheme:
                 expanded_source_path = os.path.expanduser(
                     os.path.expandvars(source_path)
                 )
@@ -728,10 +731,11 @@ class Video(object):
                     )
                 source_path = expanded_source_path
                 parsed_source_path = urllib.parse.urlparse(source_path)
+                has_scheme = len(parsed_source_path.scheme) > 1
 
             self.media_source["Path"] = source_path
 
-            if parsed_source_path.scheme:
+            if has_scheme:
                 self.is_transcode = False
                 self.play_method = PLAY_DIRECT
                 self.direct_path = True
