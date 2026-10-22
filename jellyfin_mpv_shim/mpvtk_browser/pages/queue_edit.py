@@ -433,7 +433,7 @@ class PlaylistEditPage(SelectionPage):
               # is what makes shift-range selection possible.
               "on_click": (lambda mods, i=i: self.click_row(i, mods))}
              for i, it in enumerate(items)],
-            size="normal", row_h=34, hover_bg=theme.BUTTON_BG)
+            size="normal", row_h=34, hover_bg=theme.BUTTON_ACTIVE)
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
                      size="page", bold=True), Spacer(h=4), rename_row, toolbar,
                 Spacer(h=2), table]

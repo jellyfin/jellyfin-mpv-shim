@@ -516,7 +516,7 @@ class AudiobookPage(Page):
             Table([{"label": "#", "w": 46, "align": "right"},
                    {"label": _("Title"), "flex": 1},
                    {"label": _("Start"), "w": 90, "align": "right"}],
-                  rows, size="normal", hover_bg=theme.BUTTON_BG),
+                  rows, size="normal", hover_bg=theme.BUTTON_ACTIVE),
         ], gap=8, align="stretch")
 
 
