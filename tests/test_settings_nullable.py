@@ -118,11 +118,31 @@ class SettingsFormNullableTest(unittest.TestCase):
         self.settings = settings
         self._saved_save = settings.save
         self._saved_scale = settings.ui_scale
+        self._saved_lookahead = settings.auto_download_lookahead_min
+        self._saved_ext_path = settings.mpv_ext_path
         settings.save = lambda *a, **k: None   # no config file under test
 
     def tearDown(self):
         self.settings.ui_scale = self._saved_scale
+        self.settings.auto_download_lookahead_min = self._saved_lookahead
+        self.settings.mpv_ext_path = self._saved_ext_path
         self.settings.save = self._saved_save
+
+    def test_an_emptied_nullable_text_field_saves_as_none(self):
+        """A TextBox submits "" when cleared, never None. int("") raised, so
+        "leave blank" was refused, and str("") stored "" live -- the value
+        the consumers above crash or hang on."""
+        self.settings.auto_download_lookahead_min = 3
+        self.assertTrue(
+            self.cfg.set_setting("auto_download_lookahead_min", ""))
+        self.assertIsNone(self.settings.auto_download_lookahead_min)
+
+        self.settings.mpv_ext_path = "/usr/bin/mpv"
+        self.assertTrue(self.cfg.set_setting("mpv_ext_path", ""))
+        self.assertIsNone(self.settings.mpv_ext_path)
+
+    def test_empty_is_still_refused_for_a_non_nullable_int(self):
+        self.assertFalse(self.cfg.set_setting("local_kbps", ""))
 
     def test_every_ui_scale_choice_saves(self):
         for label, value in self.cfg.LABELED_ENUMS["ui_scale"]:

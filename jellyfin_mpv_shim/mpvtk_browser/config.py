@@ -1459,7 +1459,8 @@ def set_setting(key, value):
     if kind is None:
         return False
     try:
-        if value is None and is_nullable(key):
+        # "" too: a cleared TextBox submits "", never None.
+        if (value is None or value == "") and is_nullable(key):
             setattr(settings, key, None)
         else:
             setattr(settings, key, coerce(kind, value))
