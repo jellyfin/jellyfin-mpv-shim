@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-22 09:32+0000\n"
+"PO-Revision-Date: 2026-10-22 11:31+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -2650,65 +2650,61 @@ msgstr "Jätka tööd taustal"
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
-msgstr ""
+msgstr "Mäleta akna suurust"
 
 #. Label of the dropdown for the "window_controls" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "Akna nupud ülaribal"
 
 #. Label of the checkbox for the "window_controls_fullscreen" setting
 #. (Settings > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Window Buttons in Full Screen"
-msgstr ""
+msgstr "Kuva akna nupud täisekraanil"
 
 #. Label of the checkbox for the "hide_title_bar" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "Peida töölaua päiseriba"
 
 #. Label of the dropdown for the "osc_style" setting (Settings > Playback >
 #. Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
-msgstr ""
+msgstr "Pleieri juhtnuppude stiil"
 
 #. Label of the checkbox for the "thumbnail_enable" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "Luba pisipiltide eelvaade"
+msgstr "Luba kerimispiltide kuvamine"
 
 #. Label of the checkbox for the "trickplay_fast_mode" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "Laadi kõik kerimispildid korraga"
 
 #. Label of the checkbox for the "discord_presence" setting (Settings >
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
-msgstr ""
+msgstr "Kuva Discordis, mida sa vaatad"
 
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "Küsi sissejuhatuse vahelejätmist"
+msgstr "Töölaua meedia juhtnupud"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr ""
+msgstr "Kasutajaliidese skaala"
 
 # seeded from jellyfin-web: LabelTextSize
 #. Label of the dropdown for the "ui_text_scale" setting (Settings > Browse
@@ -2721,82 +2717,81 @@ msgstr "Teksti suurus"
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "Vähim teksti suurus"
 
 #. Label of the dropdown for the "poster_scale" setting (Settings > Browse
 #. > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
-msgstr ""
+msgstr "Kaanepildi suurus"
 
 #. Label of the checkbox for the "backdrop_full_width" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
-msgstr ""
+msgstr "Täislaiuses taustapildid"
 
 #. Label of the checkbox for the "clock_12h" setting (Settings > Browse >
 #. Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "12-Hour Clock"
-msgstr ""
+msgstr "12 tunni kellavorming"
 
 #. Label of the dropdown for the "grid_fill" setting (Settings > Browse >
 #. Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
-msgstr ""
+msgstr "Ruudustiku vahemaa"
 
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Library Filters"
-msgstr ""
+msgstr "Jäta meediakogu filtrid meelde"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "Muuda telekanalite logod paremini loetavaks"
 
 #. Label of the checkbox for the "logo_legibility_library" setting
 #. (Settings > Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "Muuda meediakogu logod paremini loetavaks"
 
 # seeded from jellyfin-web: LabelType
 #. Label of the number field for the "reader_font_size" setting (Settings >
 #. Browse > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Type Size"
-msgstr "Tüüp"
+msgstr "Teksti suurus"
 
 #. Label of the dropdown for the "reader_theme" setting (Settings > Browse
 #. > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "Lehekülje värv"
 
 #. Label of the checkbox for the "reader_justify" setting (Settings >
 #. Browse > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "Rõhtpaiguta tekst"
 
 #. Label of the dropdown for the "comic_fit" setting (Settings > Browse >
 #. Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "Koomiksite lugemisrežiim"
 
 #. Label of the checkbox for the "headless" setting (under Advanced on the
 #. General tab of Settings).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "Meedia vastuvõtja režiim (meediakogu sirvimine puudub)"
 
 #. Label of the checkbox for the "display_mirror_summon" setting (Settings
 #. > General > Window).
