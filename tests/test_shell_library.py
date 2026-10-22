@@ -32,7 +32,9 @@ from tests._shell_harness import (
     home_page,
     ids,
     menu_pick,
+    more_rows,
     music_page,
+    pick_more,
     series_page,
     types,
 )
@@ -1438,6 +1440,199 @@ class TestDetailActions(unittest.TestCase):
         self.assertIn("sa-nextup", ids(_n))
         h["sa-nextup"]["click"]()
         self.assertTrue(self.ctl.played)      # next-up episode played
+
+
+class TestPlayFromBeginning(unittest.TestCase):
+    """"Play from beginning" marks the item unplayed -- the server's
+    ResetPlayedState is what clears the position -- and then plays from zero.
+    The two calls go out in that order on ONE worker job, so the play cannot
+    overtake the reset and have the server hand its old position back."""
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.log = []
+        self.ctl.set_watched = lambda srv, iid, w: (
+            self.log.append(("set_watched", iid, w)) or True)
+        self.ctl.play = lambda item, srv, offset_ticks=None, **kw: (
+            self.log.append(("play", item.get("Id"), offset_ticks)))
+        self.ctl.play_list = lambda ids, srv, idx, offset_ticks=None, **kw: (
+            self.log.append(("play_list", list(ids), offset_ticks)))
+        self.src = FakeSource()
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.pool = self.b._pool = _DeferredPool()
+
+    def _open(self, item):
+        self.src.items[item["Id"]] = item
+        self.b.navigate({"kind": "detail", "server": "srv1",
+                         "item_id": item["Id"], "title": item["Name"]})
+        self.pool.drain()
+        return build_scene(self.b)
+
+    @staticmethod
+    def _film(ud, **kw):
+        return dict({"Id": "m9", "Name": "Film", "Type": "Movie",
+                     "UserData": ud}, **kw)
+
+    def test_the_film_is_unplayed_then_played_from_zero(self):
+        _n, h = self._open(self._film({"PlaybackPositionTicks": 600000000}))
+        self.pool.queued.clear()
+        h["btn-restart"]["click"]()
+        self.assertEqual(len(self.pool.queued), 1, "one job, or no order")
+        self.assertEqual(self.log, [])
+        self.pool.release()
+        self.assertEqual(self.log, [("set_watched", "m9", False),
+                                    ("play", "m9", None)])
+
+    def test_an_episode_is_unplayed_then_its_queue_starts_from_zero(self):
+        ep = {"Id": "ep1", "Name": "Ep", "Type": "Episode",
+              "SeriesId": "s1", "SeasonId": "se1",
+              "UserData": {"PlaybackPositionTicks": 600000000}}
+        _n, h = self._open(ep)
+        self.pool.queued.clear()
+        h["btn-restart"]["click"]()
+        self.assertEqual(len(self.pool.queued), 1)
+        self.pool.release()
+        self.assertEqual(self.log, [("set_watched", "ep1", False),
+                                    ("play_list", ["e0", "e1", "e2"], None)])
+
+    def test_a_failed_reset_still_plays(self):
+        def boom(srv, iid, w):
+            raise RuntimeError("server away")
+        self.ctl.set_watched = boom
+        _n, h = self._open(self._film({"PlaybackPositionTicks": 600000000}))
+        self.pool.queued.clear()
+        h["btn-restart"]["click"]()
+        self.pool.release()
+        self.assertEqual(self.log, [("play", "m9", None)])
+
+    def test_shown_for_a_position_a_watched_flag_or_both(self):
+        for ud in ({"PlaybackPositionTicks": 5}, {"Played": True},
+                   {"PlaybackPositionTicks": 5, "Played": True}):
+            _n, h = self._open(self._film(ud))
+            self.assertIn("btn-restart", h, ud)
+
+    def test_hidden_when_there_is_nothing_to_restart(self):
+        _n, h = self._open(self._film({}))
+        self.assertNotIn("btn-restart", h)
+        _n, h = self._open({"Id": "a9", "Name": "Song", "Type": "Audio",
+                            "UserData": {"Played": True}})
+        self.assertNotIn("btn-restart", h)
+        _n, h = self._open({"Id": "g9", "Name": "Gap", "Type": "Episode",
+                            "LocationType": "Virtual", "SeriesId": "s1",
+                            "UserData": {"Played": True,
+                                         "PlaybackPositionTicks": 5}})
+        self.assertNotIn("btn-restart", h)
+
+    def test_it_sits_between_resume_and_play_and_leaves_resume_focused(self):
+        nodes, h = self._open(self._film({"PlaybackPositionTicks": 5}))
+        order = [n["id"] for n in nodes
+                 if n.get("id") in ("btn-resume", "btn-restart", "btn-play")]
+        self.assertEqual(order, ["btn-resume", "btn-restart", "btn-play"])
+        self.assertEqual([n["id"] for n in nodes if n.get("af")],
+                         ["btn-resume"])
+
+    def test_the_tracks_picked_after_the_draw_reach_the_play(self):
+        seen = []
+        self.ctl.play = lambda item, srv, offset_ticks=None, srcid=None, \
+            aid=None, sid=None: seen.append((srcid, aid, sid))
+        _n, h = self._open(self._film(
+            {"PlaybackPositionTicks": 5},
+            MediaSources=self.src.get_item("srv1", "zz")["MediaSources"]))
+        h["dt-audio"]["select"](0, "English 5.1")
+        h["dt-sub"]["select"](1, "English")
+        self.pool.queued.clear()
+        h["btn-restart"]["click"]()
+        self.pool.release()
+        self.assertEqual(seen, [("src1", 1, 2)])
+
+    def test_the_tile_menu_entry_does_the_same(self):
+        item = {"Id": "m9", "Name": "Film", "Type": "Movie",
+                "UserData": {"PlaybackPositionTicks": 600000000}}
+        self.b._open_tile_menu(item, 10, 10)
+        menu_pick(self.b, "restart")
+        self.assertEqual(len(self.pool.queued), 1)
+        self.pool.release()
+        self.assertEqual(self.log, [("set_watched", "m9", False),
+                                    ("play", "m9", None)])
+
+
+class TestMarkSeasonPlayed(unittest.TestCase):
+    """The episode page's More menu can mark the whole season played. The
+    SEASON id is what goes to the server; the episode's own DTO is flipped
+    optimistically because it is the only thing on screen that changes."""
+
+    EP = {"Id": "ep1", "Name": "Ep", "Type": "Episode", "SeriesId": "s1",
+          "SeasonId": "se1", "UserData": {"PlaybackPositionTicks": 5}}
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.calls = []
+        self.result = True
+        self.ctl.set_watched = lambda srv, iid, w: (
+            self.calls.append((iid, w)) or self.result)
+        self.src = FakeSource()
+        self.b = MpvtkBrowser(app=None, source=self.src, controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.drawn = []
+        self.b.invalidate = lambda: self.drawn.append(1)
+
+    def _open(self, item):
+        self.src.items[item["Id"]] = dict(item,
+                                          UserData=dict(item["UserData"]))
+        self.b.navigate({"kind": "detail", "server": "srv1",
+                         "item_id": item["Id"], "title": item["Name"]})
+
+    def _ud(self):
+        return self.b.route["_data"]["item"]["UserData"]
+
+    def test_picking_it_marks_the_season_and_flips_the_episode(self):
+        self._open(self.EP)
+        rows = more_rows(self.b, "act")
+        self.assertIn("Mark season played", rows)
+        pick_more(self.b, "act", "Mark season played")
+        self.assertEqual(self.calls, [("se1", True)])
+        self.assertTrue(self._ud()["Played"])
+        self.assertEqual(self._ud()["PlaybackPositionTicks"], 0)
+
+    def test_the_flip_asks_for_a_repaint(self):
+        # Called directly: picking from the menu invalidates on its own when
+        # it closes, which would satisfy this whether the action asked or not.
+        self._open(self.EP)
+        self.drawn.clear()
+        self.b._actions.mark_season_played(self.b.route["_data"]["item"],
+                                           "srv1")
+        self.assertTrue(self.drawn, "flipped the DTO and never asked to draw")
+
+    def test_a_refused_write_rolls_the_episode_back(self):
+        self.result = False
+        self._open(self.EP)
+        self.drawn.clear()
+        self.b._actions.mark_season_played(self.b.route["_data"]["item"],
+                                           "srv1")
+        self.assertEqual(self.calls, [("se1", True)])
+        self.assertFalse(self._ud().get("Played"))
+        self.assertEqual(self._ud()["PlaybackPositionTicks"], 5)
+        # One repaint for the flip and one for the rollback: without the
+        # second the tick stays on screen over a write nothing recorded.
+        self.assertEqual(len(self.drawn), 2)
+
+    def test_a_film_has_no_such_entry(self):
+        self._open({"Id": "m9", "Name": "Film", "Type": "Movie",
+                    "UserData": {}})
+        self.assertNotIn("Mark season played", more_rows(self.b, "act"))
+
+    def test_an_episode_without_a_season_has_no_such_entry(self):
+        self._open(dict(self.EP, SeasonId=None))
+        self.assertNotIn("Mark season played", more_rows(self.b, "act"))
+
+    def test_offline_it_is_offered_without_the_server_only_entries(self):
+        self.b._offline = True
+        self._open(self.EP)
+        rows = more_rows(self.b, "act")
+        self.assertIn("Mark season played", rows)
+        self.assertNotIn("Refresh metadata", rows)
+        self.assertNotIn("Delete from Disk", rows)
+
 
 class TestGridFilters(unittest.TestCase):
     def setUp(self):

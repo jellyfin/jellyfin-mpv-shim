@@ -18,6 +18,7 @@ from ...mpvtk.widgets import Column, Dropdown, Row, Text, VScroll
 from .. import components, theme, timefmt
 from ..components import (chrome, controls, detail as detail_components,
                           media_info)
+from ..repository import PLAYABLE_TYPES
 from .base import Page
 
 log = logging.getLogger("mpvtk_browser.pages.detail")
@@ -97,6 +98,12 @@ class DetailPage(Page):
         more = detail_components.more_entries(
             self.ctx.actions, item, server, data.get("may_refresh"),
             on_deleted=self._left_after_delete)
+        if item.get("Type") == "Episode" and item.get("SeasonId"):
+            # Appended here rather than in `more_entries`, which returns
+            # nothing offline: the write is queued like Mark played is.
+            more = list(more) + [(
+                _("Mark season played"), "check",
+                lambda: self.ctx.actions.mark_season_played(item, server))]
         blocks.append(self._detail_actions(item, server, more))
         blocks.extend(self._track_pickers(item))
         text = chrome.overview(item)
@@ -205,7 +212,7 @@ class DetailPage(Page):
         self.route["_deleted"] = True
         self.ctx.nav.go_back()
 
-    def _start(self, item, server, offset_ticks=None):
+    def _start(self, item, server, offset_ticks=None, restart=False):
         """Play `item` with the version and tracks selected **now**.
 
         Read when the button is pressed rather than when it was built. The
@@ -223,6 +230,10 @@ class DetailPage(Page):
         srcid = (self.route.get("_srcid")
                  or ((item.get("MediaSources") or [{}])[0]).get("Id"))
         aid, sid = self._effective_tracks(item)
+        if restart:
+            self.ctx.actions.play_from_beginning(
+                item, server, srcid=srcid, aid=aid, sid=sid)
+            return
         self.ctx.actions.play(item, server, offset_ticks=offset_ticks,
                               srcid=srcid, aid=aid, sid=sid)
 
@@ -244,6 +255,16 @@ class DetailPage(Page):
                 "btn-resume",
                 lambda: self._start(item, server, offset_ticks=pos),
                 primary=True, size=controls.PRIMARY_ROW, autofocus=True))
+        if (not missing
+                and item.get("Type") in PLAYABLE_TYPES
+                and (pos > 0 or components.is_watched(item))):
+            # Marks the item unplayed (which is what clears its position)
+            # and plays from zero; the tile menu's entry of the same name
+            # does the same.
+            buttons.append(controls.action_btn(
+                "first_page", _("Play from beginning"), "btn-restart",
+                lambda: self._start(item, server, restart=True),
+                size=controls.PRIMARY_ROW))
         if not missing:
             # The second site of the tile chip's rule: an episode the server
             # has no file for cannot be played, and a button that reports a

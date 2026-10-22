@@ -6824,9 +6824,10 @@ msgstr ""
 msgid "Album"
 msgstr ""
 
-#. Action on an item's menu that starts the item over rather than resuming.
-#. An imperative verb phrase.
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#. Button on a film or episode page, and entry on an item's menu, that starts
+#. the item over rather than resuming. It also marks the item as not watched,
+#. which clears its saved position. An imperative verb phrase.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Play from beginning"
 msgstr ""
 
@@ -6846,6 +6847,13 @@ msgstr ""
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark played"
+msgstr ""
+
+#. Entry in the More menu of an episode page that tells the server every
+#. episode of that episode's season has been watched. An imperative verb
+#. phrase.
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+msgid "Mark season played"
 msgstr ""
 
 #. Action on an item's menu that opens the playlist chooser. An imperative

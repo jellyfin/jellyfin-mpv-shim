@@ -779,10 +779,11 @@ class TilesMixin:
             # this", and starting it at zero threw that away silently --
             # there was nothing to say the position had been lost. Beginning
             # is still one menu entry away.
-            offset = None
-            if resume:
-                offset = ((item.get("UserData") or {})
-                          .get("PlaybackPositionTicks")) or None
+            if not resume:
+                self._actions.play_from_beginning(item, server)
+                return
+            offset = ((item.get("UserData") or {})
+                      .get("PlaybackPositionTicks")) or None
             self._play(item, server, offset_ticks=offset)
             return
         if t == "Season":

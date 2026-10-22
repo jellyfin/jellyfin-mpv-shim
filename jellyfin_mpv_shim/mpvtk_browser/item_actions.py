@@ -153,10 +153,13 @@ class ItemActions:
     # -- playback ----------------------------------------------------------
 
     def play(self, item, server, offset_ticks=None, srcid=None, aid=None,
-             sid=None):
+             sid=None, before=None):
         """Yield/keep-browse and start a single ``item``. Episodes queue the
         rest of the series so autoplay-next chains them (like the Tk
-        browser)."""
+        browser).
+
+        ``before(ctl)`` runs first on the same worker, so whatever it asks
+        the server for is sent before the start is."""
         # `item_is_audio`, not `Type == "Audio"`: that half of the rule
         # calls an AUDIOBOOK a video (Type="AudioBook", MediaType="Audio"),
         # and the video branch clears `_browsing` and hands the window over.
@@ -172,6 +175,8 @@ class ItemActions:
             # decides the queue the start consumes, and splitting them put
             # the start back on the loop thread via on_done.
             def work(ctl):
+                if before is not None:
+                    before(ctl)
                 try:
                     q = source.get_series_queue(srv, series,
                                                 start_item_id=iid)
@@ -184,9 +189,33 @@ class ItemActions:
 
             self._launch(work)
         else:
-            self._launch(
-                lambda ctl: ctl.play(item, server, offset_ticks=offset_ticks,
-                                     srcid=srcid, aid=aid, sid=sid))
+            def work(ctl):
+                if before is not None:
+                    before(ctl)
+                ctl.play(item, server, offset_ticks=offset_ticks,
+                         srcid=srcid, aid=aid, sid=sid)
+
+            self._launch(work)
+
+    def play_from_beginning(self, item, server, srcid=None, aid=None,
+                            sid=None):
+        """Mark ``item`` unplayed, then play it from zero.
+
+        The unplay is what clears the position: the server's
+        ResetPlayedState zeroes it, where simply starting at zero left the
+        old one to be handed back by the next resume. No optimistic flip --
+        the window goes to the player at once, and the page is corrected
+        from the server after the stop. A failed reset is logged and
+        playback still starts."""
+        def reset(ctl):
+            try:
+                ctl.set_watched(server, item.get("Id"), False)
+            except Exception:
+                log.debug("could not mark %s unplayed", item.get("Id"),
+                          exc_info=True)
+
+        self.play(item, server, offset_ticks=None, srcid=srcid, aid=aid,
+                  sid=sid, before=reset)
 
     def play_list(self, ids, server, start_index=0, audio=False, items=None,
                   pause_stills=True):
@@ -360,6 +389,33 @@ class ItemActions:
                     ud.pop("PlayedPercentage", None)
                 else:
                     ud["PlayedPercentage"] = was_pct
+                self.services.invalidate()
+
+        self._fire(work)
+        self.services.invalidate()
+
+    def mark_season_played(self, item, server):
+        """Mark the season ``item`` (an episode) belongs to as played.
+
+        The season id is what goes to the server, which marks every episode
+        in it. The only thing on screen to change is this episode's own DTO,
+        so that is flipped optimistically and put back if nothing recorded
+        the write."""
+        ud = item.setdefault("UserData", {})
+        was_played = ud.get("Played")
+        was_pos = ud.get("PlaybackPositionTicks")
+        ud["Played"] = True
+        ud["PlaybackPositionTicks"] = 0
+
+        def work(ctl):
+            if ctl.set_watched(server, item.get("SeasonId"), True) is False:
+                # Read again: a stop patch may have swapped the dict since.
+                ud = item.setdefault("UserData", {})
+                ud["Played"] = was_played
+                if was_pos is None:
+                    ud.pop("PlaybackPositionTicks", None)
+                else:
+                    ud["PlaybackPositionTicks"] = was_pos
                 self.services.invalidate()
 
         self._fire(work)

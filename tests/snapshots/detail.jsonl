@@ -20,9 +20,12 @@
 {"af": true, "click": true, "fill": "00a4dc", "h": 42.5, "hover": {"fill": "1cb6e8"}, "id": "btn-resume", "radius": 6, "sc": "detail", "t": "rect", "w": 157.0, "x": 16.0, "y": 627.0}
 {"c": "ffffff", "h": 20.0, "id": "r.1.0.0.0.4.0.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 8 5 l 8 19 l 19 12", "sc": "detail", "t": "icon", "w": 20.0, "x": 26.0, "y": 638.2}
 {"align": "left", "c": "ffffff", "h": 22.5, "id": "r.1.0.0.0.4.0.1", "sc": "detail", "size": 18, "t": "text", "text": "Resume  0:30", "w": 110.0, "x": 53.0, "y": 637.0}
-{"click": true, "fill": "2e3138", "h": 42.5, "hover": {"fill": "3a3e46"}, "id": "btn-play", "radius": 6, "sc": "detail", "t": "rect", "w": 82.3, "x": 183.0, "y": 627.0}
-{"c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.0.4.1.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 8 5 l 8 19 l 19 12", "sc": "detail", "t": "icon", "w": 20.0, "x": 193.0, "y": 638.2}
-{"align": "left", "c": "e8e8e8", "h": 22.5, "id": "r.1.0.0.0.4.1.1", "sc": "detail", "size": 18, "t": "text", "text": "Play", "w": 35.3, "x": 220.0, "y": 637.0}
+{"click": true, "fill": "2e3138", "h": 42.5, "hover": {"fill": "3a3e46"}, "id": "btn-restart", "radius": 6, "sc": "detail", "t": "rect", "w": 210.6, "x": 183.0, "y": 627.0}
+{"c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.0.4.1.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 18.41 16.59 l 13.82 12 l 18.41 7.41 l 17 6 l 11 12 l 17 18 m 6 6 l 8 6 l 8 18 l 6 18", "sc": "detail", "t": "icon", "w": 20.0, "x": 193.0, "y": 638.2}
+{"align": "left", "c": "e8e8e8", "h": 22.5, "id": "r.1.0.0.0.4.1.1", "sc": "detail", "size": 18, "t": "text", "text": "Play from beginning", "w": 163.6, "x": 220.0, "y": 637.0}
+{"click": true, "fill": "2e3138", "h": 42.5, "hover": {"fill": "3a3e46"}, "id": "btn-play", "radius": 6, "sc": "detail", "t": "rect", "w": 82.3, "x": 403.6, "y": 627.0}
+{"c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.0.4.2.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 8 5 l 8 19 l 19 12", "sc": "detail", "t": "icon", "w": 20.0, "x": 413.6, "y": 638.2}
+{"align": "left", "c": "e8e8e8", "h": 22.5, "id": "r.1.0.0.0.4.2.1", "sc": "detail", "size": 18, "t": "text", "text": "Play", "w": 35.3, "x": 440.6, "y": 637.0}
 {"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "act-watched", "radius": 6, "sc": "detail", "t": "rect", "w": 107.2, "x": 16.0, "y": 685.5}
 {"c": "e8e8e8", "h": 18.0, "id": "r.1.0.0.0.5.0.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 9 16.17 l 4.83 12 l 3.41 13.41 l 9 19 l 21 7 l 19.59 5.59", "sc": "detail", "t": "icon", "w": 18.0, "x": 26.0, "y": 696.5}
 {"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.0.5.0.1", "sc": "detail", "size": 16, "t": "text", "text": "Watched", "w": 62.2, "x": 51.0, "y": 695.5}
