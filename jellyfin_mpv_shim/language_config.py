@@ -83,7 +83,11 @@ def _filter_by_lang(streams: list, lang_priority: str) -> Optional[list]:
 
 
 def _bias_by_regex(streams: list, pattern: str) -> list:
-    pat = re.compile(pattern, re.IGNORECASE)
+    try:
+        pat = re.compile(pattern, re.IGNORECASE)
+    except re.error:
+        log.warning("language_config: invalid prefer regex %r", pattern)
+        return streams
     preferred = [s for s in streams if pat.search(_track_title(s))]
     return preferred or streams
 
