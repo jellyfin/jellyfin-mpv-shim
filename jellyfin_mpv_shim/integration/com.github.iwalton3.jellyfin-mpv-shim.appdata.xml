@@ -79,6 +79,26 @@
 
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="3.3.0" date="2026-10-22">
+      <description>
+        <p>
+          Security update for the eMudhra certificate authority incident. Also adds
+          Special Features support and fixes a duplicate player window on restore.
+        </p>
+        <p>Changes:</p>
+        <ul>
+          <li>Require certifi 2026.10.19, which distrusts the compromised eMudhra (emSign) G3 roots.</li>
+          <li>Fixed a second player window opening when restoring from minimized (#828)</li>
+          <li>The app now exits cleanly if the player cannot be restarted.</li>
+          <li>Add Special Features for movies and TV shows (#759)</li>
+          <li>The Trailer button only appears when the server has a trailer.</li>
+          <li>Add a More menu to detail pages with Refresh Metadata (#764)</li>
+          <li>Delete from Disk moved into the More menu.</li>
+          <li>Improve button UX and update Elegance theme (#839, #840)</li>
+          <li>Fix invalid regex throwing, windows direct paths, credential file perms, handle nullable settings (pokke#1)</li>
+        </ul>
+      </description>
+    </release>
     <release version="3.2.0" date="2026-10-17">
       <description>
         <p>

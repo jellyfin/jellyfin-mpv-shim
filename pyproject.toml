@@ -32,6 +32,7 @@ dependencies = [
     # Pillow, and logging in at all now goes through that browser. Without it
     # the app falls back to the CLI, which is a materially different product.
     "pillow",
+    "certifi>=2026.10.19",
 ]
 
 [project.urls]
