@@ -95,6 +95,7 @@
           <li>Add a More menu to detail pages with Refresh Metadata (#764)</li>
           <li>Delete from Disk moved into the More menu.</li>
           <li>Improve button UX and update Elegance theme (#839, #840)</li>
+          <li>Fix invalid regex throwing, windows direct paths, credential file perms, handle nullable settings (pokke#1)</li>
         </ul>
       </description>
     </release>
