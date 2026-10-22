@@ -553,7 +553,7 @@ class GridPage(Page):
                 # answer the cursor — and it is still clickable (clicking it
                 # clears the filter). Same rule as controls.tab_btn.
                 hover={"fill": theme.ACCENT_HOVER if cur_letter == ch
-                       else theme.BUTTON_BG},
+                       else theme.BUTTON_ACTIVE},
                 on_click=lambda c=ch: self._set_filter(
                     "letter", None if cur_letter == c else c))
             for ch in _LETTERS]

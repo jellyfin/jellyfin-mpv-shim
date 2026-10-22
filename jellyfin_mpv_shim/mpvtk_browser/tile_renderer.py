@@ -1281,7 +1281,7 @@ class TileRenderer:
             inner.append(Icon("chevron_right", int(title_size * 0.9),
                               color=theme.TEXT_FG))
             link = {"id": "%s-more" % row_id,
-                    "hover": {"fill": theme.BUTTON_BG},
+                    "hover": {"fill": theme.BUTTON_ACTIVE},
                     "on_click": see_all}
         # The leading Spacer, not padding on the Row: a heading is one child
         # of an UNPADDED column (see chrome.split_bleed) so that the strip
@@ -1890,6 +1890,7 @@ class TileRenderer:
             })
         return Table(columns, table_rows, row_h=TRACK_ROW_H,
                      id=(scroll_id or prefix) + "-table",
+                     hover_bg=theme.BUTTON_ACTIVE,
                      virtual=self.list_virtual(scroll_id, head_h))
 
     def list_virtual(self, scroll_id, head_h=0):
@@ -2030,4 +2031,4 @@ class TileRenderer:
                     lambda x, y, tr=tr: self.on_context(tr, x, y))
             rows.append(row)
         return Table(columns, rows, size="normal", row_h=TRACK_ROW_H,
-                     hover_bg=theme.BUTTON_BG, virtual=virtual)
+                     hover_bg=theme.BUTTON_ACTIVE, virtual=virtual)
