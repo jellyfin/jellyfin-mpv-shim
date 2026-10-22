@@ -40,7 +40,7 @@
 {"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.3.0", "sc": "search", "size": 15, "t": "text", "text": "Artist", "w": 294.3, "x": 549.4, "y": 1607.1}
 {"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.4.0", "sc": "search", "size": 15, "t": "text", "text": "Album", "w": 294.3, "x": 855.7, "y": 1607.1}
 {"align": "right", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.5.0", "sc": "search", "size": 15, "t": "text", "text": "Time", "w": 70.0, "x": 1162.0, "y": 1607.1}
-{"click": true, "ctx": true, "h": 34.0, "hover": {"fill": "2e3138"}, "id": "search-song-0", "radius": 4, "sc": "search", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1631.5}
+{"click": true, "ctx": true, "h": 34.0, "hover": {"fill": "3a3e46"}, "id": "search-song-0", "radius": 4, "sc": "search", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1631.5}
 {"align": "right", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.1.0", "sc": "search", "size": 17, "t": "text", "text": "1", "w": 46.0, "x": 38.0, "y": 1637.9}
 {"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.2.0", "sc": "search", "size": 17, "t": "text", "text": "Song", "w": 441.4, "x": 96.0, "y": 1637.9}
 {"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.3.0", "sc": "search", "size": 17, "t": "text", "text": "", "w": 294.3, "x": 549.4, "y": 1637.9}
