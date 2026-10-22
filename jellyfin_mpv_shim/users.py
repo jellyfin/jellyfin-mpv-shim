@@ -16,6 +16,7 @@ What is per-user versus per-server, and how this meets ``clientManager``:
 docs/architecture.md section 7.
 """
 
+import glob
 import hashlib
 import hmac
 import json
@@ -52,6 +53,27 @@ def _has_users(data):
     applied to one of them and not the other.
     """
     return bool(isinstance(data, dict) and data.get("users"))
+
+
+def _restrict_existing(paths):
+    """Make already-written credential files owner-only.
+
+    `_write_durably` creates new files 0600, but a file from an older build
+    stays at whatever the umask gave it (usually 0644) until its next save,
+    and the legacy cred.json is never saved again at all. POSIX only: on
+    Windows the mode bits only toggle read-only.
+    """
+    if os.name != "posix":
+        return
+    for p in paths:
+        try:
+            if os.stat(p).st_mode & 0o077:
+                os.chmod(p, 0o600)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            log.warning("Could not restrict permissions on %s", p,
+                        exc_info=True)
 
 
 def _fsync_dir(directory):
@@ -200,6 +222,10 @@ class UserManager:
             if self._loaded:
                 return
             path = self._path()
+            # users.json* takes in the .bak, a leftover .tmp and the
+            # .unreadable-* set-asides: every one of them holds tokens.
+            _restrict_existing(glob.glob(glob.escape(path) + "*")
+                               + [conffile.get(APP_NAME, "cred.json")])
             data = None
             recovered = False
             # **"Is the primary there" decides only whether there are bytes to
@@ -341,7 +367,10 @@ class UserManager:
         """
         tmp = path + ".tmp"
         try:
-            with open(tmp, "w") as f:
+            # Owner-only: the payload is every profile's server tokens, and
+            # the default umask leaves a plain open() world-readable.
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
                 json.dump(payload, f, indent=4)
                 f.flush()
                 os.fsync(f.fileno())

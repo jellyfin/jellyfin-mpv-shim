@@ -392,6 +392,59 @@ class RegistryDurabilityTest(UserManagerTestBase):
         self.assertNotEqual(before, after)          # the good save did land
 
 
+class RegistryPermissionsTest(UserManagerTestBase):
+    """users.json and its backup hold every profile's server tokens, so they
+    are created owner-only rather than under the default umask (0644 on a
+    typical Linux box, readable by every local account)."""
+
+    PATHS = ("users.json", "users.json.bak")
+
+    def test_both_files_are_created_owner_only(self):
+        real_open = os.open
+        modes = {}
+
+        def spy(path, flags, mode=0o777, *a, **k):
+            modes[os.path.basename(path)] = mode
+            return real_open(path, flags, mode, *a, **k)
+
+        um = self.fresh()
+        with mock.patch("jellyfin_mpv_shim.users.os.open", side_effect=spy):
+            um.save()
+        for name in self.PATHS:
+            with self.subTest(file=name):
+                self.assertEqual(modes.get(name + ".tmp"), 0o600)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX mode bits")
+    def test_files_on_disk_are_0600_under_a_permissive_umask(self):
+        old = os.umask(0o022)
+        self.addCleanup(os.umask, old)
+        self.fresh().save()
+        for name in self.PATHS:
+            with self.subTest(file=name):
+                mode = os.stat(os.path.join(self.tmp, name)).st_mode & 0o777
+                self.assertEqual(mode, 0o600)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX mode bits")
+    def test_files_left_by_an_older_build_are_tightened_on_load(self):
+        # An older build wrote these 0644, and a load with nothing to change
+        # never saves -- so only load itself can fix them. cred.json is
+        # never written again at all once migrated.
+        self.write_cred_json([{"uuid": "u1", "username": "alice",
+                               "address": "http://s:8096"}])
+        self.fresh()
+        aside = os.path.join(self.tmp, "users.json.unreadable-1")
+        with open(aside, "w", encoding="utf-8") as f:
+            f.write("{")
+        names = self.PATHS + ("cred.json", "users.json.unreadable-1")
+        for name in names:
+            os.chmod(os.path.join(self.tmp, name), 0o644)
+        self.fresh()
+        for name in names:
+            with self.subTest(file=name):
+                mode = os.stat(os.path.join(self.tmp, name)).st_mode & 0o777
+                self.assertEqual(mode, 0o600)
+
+
 class KnownServersTest(UserManagerTestBase):
     def test_known_servers_deduped_across_users(self):
         self.write_cred_json([
