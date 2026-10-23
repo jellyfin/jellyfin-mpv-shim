@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-17 13:28+0000\n"
-"Last-Translator: Bjørn Kromann Johansen <bkj+weblate@bjornsen.dk>\n"
+"PO-Revision-Date: 2026-10-23 20:12+0000\n"
+"Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
 "Language: da\n"
@@ -960,7 +960,6 @@ msgstr "Ny PIN"
 #. second time, to check it was typed correctly. A verb. Split from the
 #. yes/no dialog's title of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgctxt "form label"
 msgid "Confirm"
 msgstr "Bekræft"
@@ -2074,7 +2073,7 @@ msgstr "Spline"
 #. Enhancement); stored as "hable".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hable"
-msgstr "Hable"
+msgstr "Deaktivér"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "reinhard".
@@ -3015,6 +3014,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"\"Automatisk\" afbryder dette i en Flatpak, hvor dit skrivebord allerede "
+"annoncerer opdateringer og \"flatpak update\" installerer dem, og lader det "
+"være aktiveret alle andre steder."
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3053,6 +3055,10 @@ msgid ""
 "no video for them to act on. Turn it off to use your own MPV key bindings "
 "there."
 msgstr ""
+"Stopper MPV's egne genveje -- billedjustering, skærmbilleder, undertekst og "
+"lydskift -- fra at handle, mens du er i biblioteket, hvor der ikke er nogen "
+"video, som de kan handle på. Sluk den - for i stedet at bruge dine egne MPV-"
+"nøglebindinger."
 
 #. Explanation shown under the "Select Key" setting (under Advanced on the
 #. General tab of Settings).
@@ -3062,6 +3068,9 @@ msgid ""
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
 msgstr ""
+"Aktiverer det, der er fremhævet, i biblioteket og i afspillerkontrollerne. "
+"Et mpv-nøglenavn; ændre det resulterer i Gå tilbage til MPV. "
+"Spilcontrollerens Confirm-knap og en telefons Select følger den."
 
 #. Help text under the setting above. "Grace period" and "rewatch" are
 #. also the words people search the settings box for, so keep whatever the
@@ -4386,10 +4395,9 @@ msgstr "Downloader"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "Venter på godkendelse…"
+msgstr "Venter på at %s logger ind…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
@@ -4807,10 +4815,8 @@ msgstr "Afbryd lyd"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "SVP-indstillinger"
+msgstr "Indstillinger"
 
 #. Tooltip of the button on the playback controls that fills the screen
 #. with the video.
@@ -4920,10 +4926,9 @@ msgstr ""
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The PIN could not be removed."
+#, python-format
 msgid "%s could not be refreshed."
-msgstr "PIN kunne ikke fjernes."
+msgstr "%s kunne ikke opdateres."
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -7118,17 +7123,15 @@ msgstr ""
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connect to Jellyfin"
+#, python-format
 msgid "Connected to %s."
-msgstr "Tilslut til Jellyfin"
+msgstr "Forbundet til %s."
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connecting…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "Tilslutter…"
+msgstr "Tilslutter til %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7151,10 +7154,9 @@ msgstr ""
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "Kunne ikke forbinde til serveren."
+msgstr "Kunne ikke forbinde til %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
