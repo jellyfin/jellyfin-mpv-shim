@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-21 18:56+0000\n"
+"PO-Revision-Date: 2026-10-24 00:39+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -7682,6 +7682,8 @@ msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
 msgstr ""
+"لم يسمح لهذا التطبيق بالكتابة في هذا المجلد. الملفات المنزلة تم تركها في "
+"مكانها: تأكد من تصاريح المجلد و حاول مجددا."
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
