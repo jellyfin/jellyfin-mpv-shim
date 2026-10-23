@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-22 11:31+0000\n"
+"PO-Revision-Date: 2026-10-23 07:24+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -2803,98 +2803,92 @@ msgstr ""
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "Täisekraanil meediakogu sirvija"
 
 #. Label of the checkbox for the "browse_block_keys" setting (Settings >
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "Keela pleieri kiirklahvid meediakogu sirvimise ajal"
 
 #. Label of the checkbox for the "hud_grab_keys" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "Määra nooleklahvid alati pleieri juhtnuppudeks"
 
 #. Label of the text field for the "hud_wake_key" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "Pleieri juhtnuppude aktiveerimisklahv"
 
 # seeded from jellyfin-web: SelectAll
 #. Label of the text field for the "ui_select_key" setting (under Advanced
 #. on the General tab of Settings).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Select All"
 msgid "Select Key"
-msgstr "Vali kõik"
+msgstr "Valikuklahv"
 
 #. Label of the dropdown for the "hud_scrim" setting (Settings > Playback >
 #. Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Varjutus pleieri juhtnuppude taga"
 
 #. Label of the dropdown for the "hud_autohide" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "Millal pleieri juhtnupud peidetakse"
 
 #. Label of the number field for the "hud_hide_secs" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "Peida pleieri juhtnupud pärast (sekundit)"
 
 #. Label of the checkbox for the "hud_auto_scale" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr ""
+msgstr "Kahanda pleieri juhtnuppe kitsas aknas"
 
 #. Label of the checkbox for the "mouse_chapter_nav" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "Hiire tagasi- ja edasinupud vahetavad peatükke"
 
 #. Label of the dropdown for the "audio_mode" setting (Settings > Playback
 #. > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "Heliväljundi režiim"
 
 #. Label of the text field for the "audio_device" setting (Settings >
 #. Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr ""
+msgstr "Heli väljundseade"
 
 #. Label of the checkbox for the "audio_exclusive" setting (Settings >
 #. Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "Kasuta seadet eksklusiivrežiimis"
 
 #. Label of the checkbox for the "shader_pack_enable" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "Video taasesituse profiilid"
+msgstr "Luba video taasesitusprofiilid"
 
 #. Label of the dropdown for the "shader_pack_subtype" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "Uus rühm"
+msgstr "Profiilirühm"
 
 #. Label of the checkbox for the "shader_pack_remember" setting (Settings >
 #. Playback > Video Enhancement).
