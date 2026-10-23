@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-09-15 20:09+0000\n"
-"Last-Translator: brtc <boratici.acc@gmail.com>\n"
+"PO-Revision-Date: 2026-10-23 20:12+0000\n"
+"Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/tr/>\n"
 "Language: tr\n"
@@ -1793,7 +1793,7 @@ msgstr "Kapsayıcı Değiştirme"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Transcoding"
-msgstr "Biçim dönüştürme"
+msgstr "Kod dönüştürme"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #. One reason the server gives for having to re-encode, listed on the
@@ -7684,7 +7684,7 @@ msgstr ""
 #. server would re-encode the video to reach it. A noun here.
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Transcode"
-msgstr "Biçim dönüştürmek"
+msgstr "Kod dönüştürme"
 
 #. First entry of a video profile list for a narrower scope, meaning "stop
 #. overriding and follow the wider setting".
