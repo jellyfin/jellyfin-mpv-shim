@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-23 07:24+0000\n"
+"PO-Revision-Date: 2026-10-23 20:12+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -2894,7 +2894,7 @@ msgstr "Profiilirühm"
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr ""
+msgstr "Mäleta viimati kasutatud profiili"
 
 #. Label of the dropdown for the "shader_pack_gpu_api" setting (Settings >
 #. Playback > Video Enhancement).
@@ -2906,37 +2906,37 @@ msgstr ""
 #. > Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
-msgstr ""
+msgstr "Luba AC3 läbilase"
 
 #. Label of the checkbox for the "audio_passthrough_dts" setting (Settings
 #. > Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS"
-msgstr ""
+msgstr "Luba DTS läbilase"
 
 #. Label of the checkbox for the "audio_passthrough_eac3" setting (Settings
 #. > Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through E-AC3"
-msgstr ""
+msgstr "Luba E-AC3 läbilase"
 
 #. Label of the checkbox for the "audio_passthrough_dts_hd" setting
 #. (Settings > Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
-msgstr ""
+msgstr "Luba DTS-HD läbilase"
 
 #. Label of the checkbox for the "audio_passthrough_truehd" setting
 #. (Settings > Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through TrueHD"
-msgstr ""
+msgstr "Luba TrueHD läbilase"
 
 #. Label of the checkbox for the "audio_optical_encode_ac3" setting
 #. (Settings > Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Re-encode Others to AC3"
-msgstr ""
+msgstr "Kodeeri muud helivood ümber AC3-ks"
 
 #. Explanation shown under the "Close to Tray (keep running)" setting
 #. (Settings > General > Window). Explanation shown under the "Keep Running
@@ -2947,6 +2947,10 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"Koos sätetega \"Käivita minimeeritult\" ja \"Täisekraan\" on see "
+"klassikaline meediamängija seadistus: rakendus ootab taustal, mängib "
+"taasesituse suunamisel videot täisekraanil ning naaseb ooterežiimi, kui "
+"video lõppeb või vajutad klahvi Q."
 
 #. Explanation shown under the "Language Filter" list of language codes
 #. (Settings > Playback > Subtitles & Languages). The "two switches below it"
@@ -2959,6 +2963,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"See loend ei tee iseseisvalt midagi - lülita sisse üks kahest selle all "
+"olevast lülitist. See muudab seda, milliseid radasid heli- ja "
+"subtiitrimenüüd sulle pakuvad, mitte seda, milline neist automaatselt "
+"valitakse; selle eest vastutab ülalolev eelseadistus. \"und\" tähistab "
+"siltideta radasid, seega selle eemaldamine peidab ka siltideta rajad."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -2974,6 +2983,13 @@ msgid ""
 "assume the original audio is Japanese; if yours is not, choose Custom and "
 "write the rules yourself."
 msgstr ""
+"\"Subtiitritega\" säilitab algse heliraja ja lisab sinu keeles täielikud "
+"subtiitrid. \"Dubleeritud\" eelistab sinu keeles helirada koos siltide ja "
+"laulusõnade subtiitritega ning dubleerimise puudumisel naaseb subtiitritega "
+"variandi juurde. Paarisvalikud \"ainult sarjad\" jätavad filmid serveri "
+"vaikeseadete hooleks. Subtiitritega eelseadistused eeldavad, et algne "
+"helirada on jaapani keeles; kui see nii pole, vali \"Kohandatud\" ja kirjuta "
+"reeglid ise."
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
@@ -2983,6 +2999,9 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"Protsent näitab, kui suur osa rakendusest on sellesse keelde tõlgitud; "
+"ülejäänu jääb ingliskeelseks. Tõlgetesse saab panustada aadressil "
+"translate.jellyfin.org."
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
@@ -2992,6 +3011,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"Valik \"Automaatne\" lülitab selle Flatpaki paketis välja (kuna töölaud "
+"teavitab värskendustest ise ja käsk \"flatpak update\" paigaldab need) ning "
+"hoiab selle sisse lülitatuna kõigis teistes keskkondades."
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3003,6 +3025,12 @@ msgid ""
 "with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
 "log says so. Any button can be reassigned in your input.conf."
 msgstr ""
+"Navigeeri d-padi või vasaku juhtkangiga, keri parema juhtkangiga, lehitse "
+"lehekülgi õlanuppudega ja ava menüü Start-nupuga. Mängupult ei jälgi akna "
+"fookust, mis tähendab, et sisendid jõuavad rakenduseni ka siis, kui teine "
+"aken on eespool. Funktsioon vajab SDL2 mängupuldi toega mpv-d; toe "
+"puudumisel seda seadistust eiratakse ning teade salvestatakse logisse. Kõiki "
+"nuppe saab kohandada failis input.conf."
 
 #. Explanation shown under the "Swap Confirm and Back Buttons" setting
 #. (Settings > General > Input).
@@ -3011,6 +3039,8 @@ msgid ""
 "Turn this on for a controller whose A button is on the right rather than at "
 "the bottom (Switch Pro, most 8BitDo pads)."
 msgstr ""
+"Lülita see sisse sellise mängupuldi puhul, mille A-nupp asub allosa asemel "
+"paremal (nt Switch Pro, enamik 8BitDo pulte)."
 
 #. Explanation shown under the "Block Player Keybinds While Browsing"
 #. setting (Settings > General > Input).
@@ -3021,6 +3051,10 @@ msgid ""
 "no video for them to act on. Turn it off to use your own MPV key bindings "
 "there."
 msgstr ""
+"Keelab MPV enda kiirklahvid (pilditöötlus, ekraanipildid, subtiitrite ja "
+"heli vahetamine) ajal, kui viibid meediakogus, kus puudub video, millele "
+"neid rakendada. Lülita see välja, kui soovid seal kasutada oma MPV "
+"klahvikombinatsioone."
 
 #. Explanation shown under the "Select Key" setting (under Advanced on the
 #. General tab of Settings).
@@ -3030,6 +3064,10 @@ msgid ""
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
 msgstr ""
+"Aktiviseerib meediakogus ja pleieri juhtnuppudel esile tõstetud elemendi. "
+"MPV klahvinimi; selle muutmisel tagastatakse Enter-klahv MPV haldusalasse. "
+"Mängupuldi kinnitusnupp (Confirm) ja telefoni valida-nupp (Select) järgivad "
+"seda seadistust."
 
 #. Help text under the setting above. "Grace period" and "rewatch" are
 #. also the words people search the settings box for, so keep whatever the
