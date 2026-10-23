@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-17 13:33-0400\n"
-"PO-Revision-Date: 2026-10-01 12:58+0000\n"
-"Last-Translator: SecularSteve <fairfull.playing@gmail.com>\n"
+"PO-Revision-Date: 2026-10-23 07:24+0000\n"
+"Last-Translator: trailxyz <abel@mislovic.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
 "Language: hr\n"
@@ -24,7 +24,7 @@ msgstr ""
 #. is. Shown where EPUB or PDF would otherwise appear.
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr "Nepriznati format"
+msgstr "Nepoznat format"
 
 #. Position in a book or comic, shown in the reader's bottom bar and in the
 #. Reading Progress dialog. Both placeholders are page numbers.
@@ -46,7 +46,7 @@ msgstr "Stranica %d"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr "%d%% rčitati"
+msgstr "%d%% pročitano"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -864,10 +864,8 @@ msgstr "Reprodukcija nije mogla biti pokrenuta."
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "Nothing downloaded to browse offline."
 msgid "Nothing is downloaded to browse offline."
-msgstr "Ništa preuzeto za pregledavanje izvan mreže."
+msgstr "Ništa nije preuzeto za pregledavanje izvan mreže."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -964,8 +962,6 @@ msgstr "Novi PIN"
 #. second time, to check it was typed correctly. A verb. Split from the
 #. yes/no dialog's title of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Confirm"
 msgctxt "form label"
 msgid "Confirm"
 msgstr "Potvrdi"
@@ -1025,10 +1021,8 @@ msgstr "PIN nije mogao biti spremljen."
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Prijava"
+msgstr "Ponovna prijava"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1045,6 +1039,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Vaša spremljena prijava za %s više nije prihvaćena. Ponovnim prijavljivanjem "
+"zadržavate preuzimanja i postavke."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1128,10 +1124,8 @@ msgstr "Spoji se"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Konfiguracija servera"
+msgstr "Poslužitelji na vašoj mreži"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
@@ -1165,6 +1159,8 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Ova adresa je drugačiji poslužitelj. Za njegovu prijavu, dodajte ga kao novi "
+"poslužitelj."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1174,10 +1170,8 @@ msgstr "Povezivanje…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "Nije moguće povezati se. Molimo provjerite svoje podatke."
+msgstr "Nije se moguće prijaviti. Molimo provjerite svoje podatke."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1297,14 +1291,14 @@ msgstr "Web"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Neprikazan"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Nedostaje"
 
 # seeded from jellyfin-web: Video
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2480,7 +2474,7 @@ msgstr "Prilagođeno (postavljeno u konfiguraciji)"
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "Obavijesti me o novostima"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
@@ -2609,7 +2603,7 @@ msgstr "Obriši automatske preuzimanja nakon što ih pogledaš"
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "Zadrži prikazana preuzimanja za (sati, 0 = obriši odmah)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
@@ -2973,6 +2967,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"Ova lista ne radi ništa sama po sebi -- uključite jednu od dva prekidača "
+"ispod nje. Ona mjenja koji meni audio i titlova će biti prikazan, a ne one "
+"koje su odabrane automatski; to radi unaprijed podešena postavka iznad. "
+"\"und\" znači neoznačeno, uklanjanjem te postavke sakriva neoznačene audio "
+"zapise i zapise titlova."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -4926,7 +4925,7 @@ msgstr "Puni zaslon"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr ""
+msgstr "Izvođenje je stalo, pa je lista čekanja prazna."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5015,15 +5014,14 @@ msgstr "Postavke snimanja nisu mogle biti spremljene."
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "The server is refreshing %s."
-msgstr ""
+msgstr "Poslužitelj osvježava %s."
 
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "%s could not be deleted."
+#, python-format
 msgid "%s could not be refreshed."
-msgstr "%s nije mogla biti izbrisana."
+msgstr "%s nije mogao biti osvježen."
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
