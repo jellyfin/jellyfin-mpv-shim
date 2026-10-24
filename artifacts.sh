@@ -1,7 +1,7 @@
 #!/bin/bash
 # No InstallerLegacy: the LEGACY32 build was dropped -- see docs/packaging.md
 # section 1. LEGACY64 is a different thing and lands in publish/Installer.
-mkdir -p publish publish/Installer publish/Debug publish/Flatpak
+mkdir -p publish publish/Installer publish/Debug publish/Flatpak publish/macOS
 version=$(cat jellyfin_mpv_shim/constants.py | grep '^CLIENT_VERSION' | cut -d '"' -f 2)
 if [[ "$1" == "standard" ]]
 then
@@ -20,4 +20,8 @@ then
     flatpak build-bundle repo \
         "publish/Flatpak/jellyfin-mpv-shim_v${version}_${2}.flatpak" \
         com.github.iwalton3.jellyfin-mpv-shim || exit 1
+elif [[ "$1" == "macos" ]]
+then
+    # $2 is the architecture label (arm64/x86_64), as for flatpak.
+    cp dist/jellyfin-mpv-shim_version.dmg publish/macOS/jellyfin-mpv-shim_${version}_macOS_${2}.dmg || exit 1
 fi

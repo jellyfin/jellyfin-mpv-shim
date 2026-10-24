@@ -1,0 +1,33 @@
+{
+  "fill": {
+    "solid": "srgb:0.00000,0.04314,0.14510,1.00000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "jellyfin.svg",
+          "name": "jellyfin",
+          "position": {
+            "scale": 1.53,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

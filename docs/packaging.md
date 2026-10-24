@@ -308,3 +308,24 @@ requires the `build` package (`pip install build`); `pip install .[all]` and
 `gen_pkg.sh` also fetches `jellyfin_mpv_shim/default_shader_pack/` from the
 [`iwalton3/default-shader-pack`](https://github.com/iwalton3/default-shader-pack) GitHub
 release; that directory is not in git (see `.gitignore`).
+
+## 6. macOS
+
+```
+./macos/build.sh
+./artifacts.sh macos arm64
+```
+
+Put `mpv.app` and `libfribidi.0.dylib` in `macos/` first, see `macos/README.md`.
+CI builds this for arm64 + x86_64.
+
+**mpv is upstream's macOS build, not Homebrew's.** Homebrew's loads its libraries
+from `/opt/homebrew`, so a bundle carrying it only runs on the machine that built it.
+
+**Everything macOS specific stays in `macos/`.** A PyInstaller runtime hook preloads
+the bundled FriBiDi and turns the excluded libmpv binding into the error the app
+already handles, and the icons are prebuilt there. Nothing under `jellyfin_mpv_shim/` changes for this build.
+
+**The DMG is signed ad hoc and not notarized**, so a downloaded copy is blocked on
+first launch until it is allowed in Privacy & Security. Notarizing needs a Developer
+ID, see `macos/README.md`.

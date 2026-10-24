@@ -26,3 +26,10 @@ repo
 # input like mpv-2.dll, not a source file.
 fribidi-0.dll
 build/fribidi/
+
+# MacOS
+mpv.app
+mpv.zip
+mpv.tar.gz
+libfribidi.0.dylib
+.DS_Store
