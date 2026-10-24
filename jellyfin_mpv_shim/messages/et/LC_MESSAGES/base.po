@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-24 10:16+0000\n"
+"PO-Revision-Date: 2026-10-24 16:38+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -3576,6 +3576,9 @@ msgid ""
 "Stop anything else using the device while playing. Needed for passthrough on "
 "some systems, and it means other applications will be silent."
 msgstr ""
+"Peatab taasesituse ajal kõigi teiste rakenduste juurdepääsu seadmele. See on "
+"mõnes süsteemis vajalik läbilaskehelile ning tähendab, et teised rakendused "
+"jäävad sel ajal hääletuks."
 
 #. Explanation shown under the "Paginated" setting (Settings > Browse >
 #. Library Browser).
@@ -3585,6 +3588,10 @@ msgid ""
 "screenful with First / Previous / Next / Last controls and a page number you "
 "can type into. Easier than precise scrolling on a trackpad."
 msgstr ""
+"Jagab meediakogu ja muusika ruudustikuvaated lehekülgedeks, mitte ei keri "
+"neid: iga lehekülg on ühe ekraani täis koos juhtnuppudega \"Esimene\", "
+"\"Eelmine\", \"Järgmine\" ja \"Viimane\" ning leheküljenumbriga, kuhu saad "
+"numbri ise sisse trükkida. Lihtsam kui täpne kerimine puuteplaadiga."
 
 #. Explanation shown under the "Remember Library Filters" setting (Settings >
 #. Browse > Library Browser). "Filters" are the choices in a library's Filter
@@ -3595,6 +3602,9 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"Avab iga meediakogu uuesti viimati kasutatud filtritega (žanr, esitamata, "
+"lemmikud jm), salvestades need serveris sinu kontole. Kui säte on väljas, "
+"kehtivad filtrid vaid seni, kuni meediakogust lahkud."
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3606,6 +3616,12 @@ msgid ""
 "get a drop shadow so they keep an edge against it. Off, they get the theme's "
 "card colour and no shadow, as Jellyfin Web does."
 msgstr ""
+"Kanalilogod on läbipaistva taustaga graafika, mis on kohandatud muude "
+"klientide valgetele taustadele. Tumedas vaates muutuvad mustad logod "
+"nähtamatuks. Sisselülitamisel kuvatakse iga logo heledal taustal ning valge "
+"äärisega logodele lisatakse langev vari parema loetavuse tagamiseks. Valikul "
+"\"Väljas\"rakendatakse neile kujundusteema kaardivärv ilma varjuta, täpselt "
+"nagu Jellyfin Web-is."
 
 #. Explanation shown under the "Make library logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3616,6 +3632,11 @@ msgid ""
 "background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
+"Sama funktsionaalsus meediakogudele, kus on valitud logode kuvamine. "
+"Vaikimisi välja lülitatud: filmide ja sarjade logod on tavaliselt valged "
+"ning paistavad tumedal taustal hästi silma — alusplaadi lisamine nõuab ka "
+"varju kasutuselt võttu. Aktiveeri see säte juhul, kui sinu meediakogu logod "
+"on tumedat värvi."
 
 #. Explanation shown under the "Theme" setting (Settings > Browse > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3623,6 +3644,9 @@ msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"Värvipalett, kuma, kaanepildi stiil ja kaane vaikesuurus. Värvimuudatused "
+"rakenduvad koheselt; kaante ja pealkirjade mõõtmed jõustuvad alles "
+"uuestikäivitamisel."
 
 #. Explanation shown under the "Grid Spacing" setting (Settings > Browse >
 #. Library Browser).
@@ -3632,6 +3656,10 @@ msgid ""
 "gaps keeps the page margins the same on every screen size; centring keeps "
 "the covers evenly spaced and moves both margins instead."
 msgstr ""
+"Määrab, kuhu paigutub ülejääv laius, mida täisarv kaanepilte ei täida. "
+"Vahede suurendamine säilitab lehekülje veerised ühesugusena igal "
+"ekraanisuurusel; keskele joondamine hoiab kaante vahed ühtlasena ja liigutab "
+"selle asemel mõlemaid veeriseid."
 
 #. Explanation shown under the "Full-Width Backdrops" setting (Settings >
 #. Browse > Library Browser).
@@ -3641,6 +3669,9 @@ msgid ""
 "client does. It shows more of the artwork without taking any more vertical "
 "space."
 msgstr ""
+"Laiendab ükisiasjade lehe taustapildi akna servadeni, täpselt nagu "
+"veebiklient. See kuvab suurema osa pildimaterjalist ilma täiendavat "
+"vertikaalset ruumi võtmata."
 
 #. Explanation shown under the "Cover Size" setting (Settings > Browse >
 #. Theme).
