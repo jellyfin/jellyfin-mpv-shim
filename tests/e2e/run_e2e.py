@@ -244,9 +244,9 @@ PER_BACKEND = [
     # A real audiobook, a real stream, a real seek: the half of the resume
     # loop the contract tier cannot see, because it drives the server
     # directly rather than through the player.
-    "tests.e2e.test_audiobooks.AudiobookPlaybackTest",
+    "tests.e2e.test_audiobooks_playback",
     # An extra and the local trailers through the real play path.
-    "tests.e2e.test_special_features.PlayingAnExtraTest",
+    "tests.e2e.test_special_features_playback",
     # The comic reader, which is the one browser screen the contract-tier
     # route walk cannot open: a comic page is PLAYED, so showing one imports
     # player.py and opens a window. Per backend because what it asserts on

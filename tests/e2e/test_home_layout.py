@@ -63,7 +63,7 @@ UUID = _e2e.SOURCE_UUID
 WEB_CLIENT = "emby"
 
 
-class _PrefsTest(_e2e.E2ETestCase):
+class _PrefsTest(_e2e.ServerTestCase):
     """A real LibrarySource, with the user's DisplayPreferences document put
     back exactly as it was found."""
 
@@ -235,7 +235,7 @@ class HomeLayoutRoundTripTest(_PrefsTest):
 
 
 @_e2e.require_server
-class LatestExcludesTest(_e2e.E2ETestCase):
+class LatestExcludesTest(_e2e.ServerTestCase):
     """"Display in home screen sections", which the server applies for some
     rows and we apply for the others."""
 

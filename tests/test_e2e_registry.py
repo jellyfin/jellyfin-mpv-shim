@@ -66,6 +66,36 @@ class E2ERegistryTest(unittest.TestCase):
         gone = sorted(UNREGISTERED - _modules_on_disk())
         self.assertEqual(gone, [])
 
+    def test_the_contract_tier_builds_no_player(self):
+        """run_e2e runs CONTRACT modules whole, once, with no display and no
+        xvfb. A real-player class in one ran there too: it put mpv windows
+        on the developer's desktop during the 3.3.0 gate, and with the
+        display stripped it hung in cleanup instead. Such a class goes in
+        its own module on PER_BACKEND."""
+        import ast
+        path = os.path.join(E2E, "run_e2e.py")
+        with open(path, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read())
+        contract = next(ast.literal_eval(node.value) for node in tree.body
+                        if isinstance(node, ast.Assign)
+                        and any(getattr(t, "id", None) == "CONTRACT"
+                                for t in node.targets))
+        markers = ("E2ETestCase", "require_server_and_mpv",
+                   "ensure_real_player", "import_real_player")
+        offenders = []
+        for module in contract:
+            name = module.rsplit(".", 1)[-1]
+            with open(os.path.join(E2E, name + ".py"),
+                      encoding="utf-8") as fh:
+                source = fh.read()
+            for node in ast.walk(ast.parse(source)):
+                ident = (node.id if isinstance(node, ast.Name) else
+                         node.attr if isinstance(node, ast.Attribute)
+                         else None)
+                if ident in markers:
+                    offenders.append("%s:%d %s" % (name, node.lineno, ident))
+        self.assertEqual(offenders, [])
+
     def test_one_backend_names_only_per_backend_modules(self):
         """ONE_BACKEND trims a leg from the light run. A contract module
         there would do nothing, and a misspelled one would silently keep

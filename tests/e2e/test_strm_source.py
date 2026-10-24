@@ -60,7 +60,7 @@ DECOYS = ("decoy-in-a-comment", "second-url-never-read")
 
 @_strm.require_origin(_strm.LOCAL_MOVIE)
 @_e2e.require_server
-class StrmSourceShapeTest(_e2e.E2ETestCase):
+class StrmSourceShapeTest(_e2e.ServerTestCase):
     """What the shim is handed for a stream file that resolves cleanly.
 
     Local origin: the questions here are about the *shape* of a remote source,
@@ -137,7 +137,7 @@ class StrmSourceShapeTest(_e2e.E2ETestCase):
 
 @_strm.require_origin(_strm.COMMENTED)
 @_e2e.require_server
-class StrmParsingTest(_e2e.E2ETestCase):
+class StrmParsingTest(_e2e.ServerTestCase):
     """The file format, read back off the resolved source.
 
     Catalogue origin, because the commented fixture is the one built out of
@@ -165,7 +165,7 @@ class StrmParsingTest(_e2e.E2ETestCase):
 
 @_strm.require_origin(_strm.VERSIONS)
 @_e2e.require_server
-class StrmVersionTest(_e2e.E2ETestCase):
+class StrmVersionTest(_e2e.ServerTestCase):
     """A stream file grouped as an alternate version beside real media.
 
     Multi-version grouping compares filenames without their extensions, so a
@@ -287,7 +287,7 @@ class StrmVersionTest(_e2e.E2ETestCase):
 
 @_strm.require_origin(_strm.PROBED_VERSIONS)
 @_e2e.require_server
-class ProbedVersionSetTest(_e2e.E2ETestCase):
+class ProbedVersionSetTest(_e2e.ServerTestCase):
     """A version set whose sources *both* carry a runtime.
 
     `StrmVersionTest` covers the set that goes unprobed, and every assertion
@@ -357,7 +357,7 @@ class ProbedVersionSetTest(_e2e.E2ETestCase):
 
 
 @_e2e.require_server
-class RefusedStrmTest(_e2e.E2ETestCase):
+class RefusedStrmTest(_e2e.ServerTestCase):
     """The two fixtures the server declines, and what a client gets instead.
 
     Neither reaches anybody: the rtsp one names a loopback port with nothing
@@ -429,7 +429,7 @@ class RefusedStrmTest(_e2e.E2ETestCase):
 
 
 @_e2e.require_server
-class NoRuntimeResumeTest(_e2e.E2ETestCase):
+class NoRuntimeResumeTest(_e2e.ServerTestCase):
     """**The mechanism behind "resume does not work on my .strm".**
 
     Not a shim assertion — a pinned *server* rule, in the same spirit as the
@@ -485,7 +485,7 @@ class NoRuntimeResumeTest(_e2e.E2ETestCase):
 
 @_strm.require_origin(_strm.LOCAL_MOVIE)
 @_e2e.require_server
-class PlaybackInfoPrecedesReportingTest(_e2e.E2ETestCase):
+class PlaybackInfoPrecedesReportingTest(_e2e.ServerTestCase):
     """Resolving a `.strm`'s URL teaches the server its runtime.
 
     `PlaybackInfo` is what makes the server probe the origin, and the probe is
