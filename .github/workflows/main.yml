@@ -386,3 +386,53 @@ jobs:
       with:
         name: flatpak-${{ matrix.arch }}
         path: ${{ github.workspace }}/publish/Flatpak/*.flatpak
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: arm64
+          runner: macos-15
+          mpv: 'mpv-v0.41.0-macos-15-arm.zip'
+          target: '15.0'
+        - arch: x86_64
+          runner: macos-15-intel
+          mpv: 'mpv-v0.41.0-macos-15-intel.zip'
+          target: '15.0'
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v7
+    - name: Setup Python 3.14
+      uses: actions/setup-python@v7
+      with:
+        python-version: 3.14
+    - name: Download mpv
+      id: mpv
+      uses: robinraju/release-downloader@v1
+      with:
+        repository: 'mpv-player/mpv'
+        tag: 'v0.41.0'
+        fileName: ${{ matrix.mpv }}
+        out-file-path: macos
+    - name: Install dependencies
+      run: |
+        unzip -o "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}" -d macos
+        tar xzf macos/mpv.tar.gz -C macos
+        pip install wheel
+        pip install .[all] pyinstaller dmgbuild meson ninja
+        ./gen_pkg.sh --skip-build
+        python tools/build_win_fribidi.py --output-dir macos
+    - name: Main Build
+      run: |
+        ./macos/build.sh
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh macos ${{ matrix.arch }}
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: macos-${{ matrix.arch }}
+        path: ${{ github.workspace }}/publish/macOS/*.dmg

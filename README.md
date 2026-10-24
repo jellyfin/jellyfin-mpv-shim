@@ -95,7 +95,12 @@ a current one with `libmpv` by default; run `sudo ldconfig` afterwards. Add
 
 ### macOS
 
-The application is not tested on Mac OS and is not formally supported. PRs to improve support and third-party packaging are welcome.
+Download the DMG from [Releases](https://github.com/jellyfin/jellyfin-mpv-shim/releases),
+`macOS_arm64` for Apple Silicon or `macOS_x86_64` for Intel, and drag the app to Applications.
+It is not notarized, so allow the first launch in System Settings > Privacy & Security. See
+[macos/README.md](macos/README.md).
+
+Or install from PyPI:
 
 ```bash
 brew install python mpv pipx
