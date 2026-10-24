@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-23 20:12+0000\n"
+"PO-Revision-Date: 2026-10-24 07:09+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -1282,10 +1282,8 @@ msgstr "Lemmik"
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "Värskenda"
+msgstr "Värskenda metaandmed"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -1294,31 +1292,27 @@ msgstr "Värskenda"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Kustuta kettalt"
 
 #. Button on a film's, episode's, show's or season's page that opens a short
 #. menu of less common actions (refresh metadata, delete from disk). Means
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Rohkem"
 
 # seeded from jellyfin-web: Features
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Features"
 msgid "Special Features"
-msgstr "Funktsioonid"
+msgstr "Eriomadused"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "Nurjumine"
+msgstr "Treiler"
 
 # seeded from jellyfin-web: LabelWeb
 #. Button on an item's page that opens the same item in Jellyfin's browser
@@ -1333,65 +1327,53 @@ msgstr "Veeb"
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. promotional film about the making of the film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Features"
 msgctxt "kind of special feature"
 msgid "Featurette"
-msgstr "Funktsioonid"
+msgstr "Lisamaterjal"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
 #. production.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Panel behind the controls"
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr "Paneel juhtnuppude taga"
+msgstr "Kulisside taga"
 
 # seeded from jellyfin-web: DeleteUser
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
 #. from the finished film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Delete User"
 msgctxt "kind of special feature"
 msgid "Deleted Scene"
-msgstr "Kustuta kasutaja"
+msgstr "Väljajäetud stseen"
 
 # seeded from jellyfin-web: MediaInfoInterlaced
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. An interview
 #. with the cast or crew.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Interlaced"
 msgctxt "kind of special feature"
 msgid "Interview"
-msgstr "Ülerealaotusega"
+msgstr "Intervjuu"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
 #. the film itself.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Scenes"
 msgctxt "kind of special feature"
 msgid "Scene"
-msgstr "Stseenid"
+msgstr "Stseen"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short sample
 #. of the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Sample rate"
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr "Diskreetimissagedus"
+msgstr "Näidis"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
@@ -1399,7 +1381,7 @@ msgstr "Diskreetimissagedus"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr ""
+msgstr "Videoklipp"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1407,7 +1389,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "Lühifilm"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
@@ -1575,7 +1557,7 @@ msgstr "Anamorfne"
 #. interlaced fields rather than whole frames.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Interlaced"
-msgstr "Ülerealaotusega"
+msgstr "Reavaheldusega"
 
 # seeded from jellyfin-web: Framerate
 #. Row label in the Media Info panel: how many frames a second the video
@@ -1937,7 +1919,7 @@ msgstr "Anamorfset videot ei toetata"
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Interlaced video is not supported"
-msgstr "Ülerealaotusega video pole toetatud"
+msgstr "Reavaheldusega videot ei toetata"
 
 # seeded from jellyfin-web: AudioChannelsNotSupported
 #. One reason the server gives for having to re-encode, listed on the
@@ -2654,7 +2636,7 @@ msgstr "Riistvaraline dekodeerimine"
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Eemalda reavaheldus automaatselt"
 
 #. Label of the dropdown for the "motion_interpolation" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3241,6 +3223,13 @@ msgid ""
 "player's settings menu, which lasts until you return to the library. Needs "
 "MPV 0.38 or newer."
 msgstr ""
+"Eemaldab reavahelduse videolt, mille failitunnus märgib selle "
+"ülerealiseerituks. Vaikimisi väljas, nagu ka MPV-s endas: see lipp pole "
+"kummaski suunas täiesti usaldusväärne ja järjestikuse (progressive) video "
+"puhul reavahelduse eemaldamine muudab korras pildi hägusaks. Funktsiooni "
+"jõuga sisselülitamiseks failil, mis on ülerealiseeritud ilma vastava "
+"märketa, kasuta pleieri seadete menüüs valikut \"Eemalda reavaheldus\", mis "
+"kehtib meediakogusse naasmiseni. Nõuab MPV versiooni 0.38 või uuemat."
 
 #. Explanation shown under the "Debanding" setting (Settings > Playback >
 #. Video Enhancement).
@@ -4753,9 +4742,8 @@ msgstr "Kuvasuhe"
 #. on for this video only, for a file that is interlaced without saying so.
 #. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Deinterlace"
-msgstr "Ülerealaotusega"
+msgstr "Eemalda reavaheldus"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing how large subtitles are drawn.
