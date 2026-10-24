@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-24 07:19+0000\n"
+"PO-Revision-Date: 2026-10-24 08:00+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -2898,13 +2898,13 @@ msgstr "Koomiksite lugemisrežiim"
 #. General tab of Settings).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr "Meedia vastuvõtja režiim (meediakogu sirvimine puudub)"
+msgstr "Vastuvõtuseadme režiim (meediakogu lehitsemiseta)"
 
 #. Label of the checkbox for the "display_mirror_summon" setting (Settings
 #. > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "Voogedastus teisest seadmest avab meediakogu"
 
 #. Label of the checkbox for the "browser_fullscreen" setting (Settings >
 #. General > Window).
@@ -3054,10 +3054,10 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
-"Koos sätetega \"Käivita minimeeritult\" ja \"Täisekraan\" on see "
-"klassikaline meediamängija seadistus: rakendus ootab taustal, mängib "
-"taasesituse suunamisel videot täisekraanil ning naaseb ooterežiimi, kui "
-"video lõppeb või vajutad klahvi Q."
+"Koos seadistustega \"Käivita minimeeritult\" ja \"Täisekraan\" on see "
+"klassikaline vastuvõtuseadme seadistus: rakendus ootab taustal, mängib sisu "
+"täisekraanil, kui keegi sellesse midagi edastab, ning naaseb ooterežiimi, "
+"kui video lõppeb või vajutad klahvi Q."
 
 #. Explanation shown under the "Language Filter" list of language codes
 #. (Settings > Playback > Subtitles & Languages). The "two switches below it"
@@ -3186,6 +3186,11 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"Ooteaeg pärast vaatamise või kuulamise lõpetamist: meedia jääb allalaadituks "
+"selleks ajaks, et saaksid seda uuesti vaadata või keegi teine leibkonnast "
+"saaks järele vaadata, selle asemel et see järgmise kontrolliga eemaldataks. "
+"Salvestusruumi otsasaamisel kustutatakse vaadatud allalaadimised siiski enne "
+"selle aja möödumist."
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
@@ -3195,6 +3200,9 @@ msgid ""
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
 msgstr ""
+"Jäta need väljad tühjaks, kui just allalaadimised ei ärata kettaid liiga "
+"sageli. Määra mõlemad esimesed seaded korraga: kui sarja allalaaditud osad "
+"hakkavad otsa saama, laaditakse uued osad alla ühe paketina, mitte ükshaaval."
 
 #. Explanation shown under the "Show Episode Thumbnails on Detail Pages"
 #. setting (Settings > Browse > Library Browser).
@@ -3202,6 +3210,7 @@ msgstr ""
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
 msgstr ""
+"Episoodi pisipilt on kaader osast, mida sa ei pruugi olla veel vaadanud."
 
 #. Explanation shown under the "Left Click Pauses Playback" setting
 #. (Settings > Playback > Player Controls).
@@ -3211,6 +3220,9 @@ msgid ""
 "window, and the right button does whatever your MPV config gives it. Double "
 "click is full screen either way."
 msgstr ""
+"Väljalülitatuna kasutatakse selle asemel MPV enda hiirekäitumist: akna "
+"liigutamiseks lohista videot ja parem nupp teeb seda, mida sinu MPV "
+"seadistus määrab. Topeltklõps avab mõlemal juhul täisekraani."
 
 #. Explanation shown under the "Deinterlace Automatically" setting
 #. (Settings > Playback > Video Enhancement).
@@ -3243,6 +3255,14 @@ msgid ""
 "if you set the deband options in mpv.conf yourself — Off writes nothing at "
 "all, so your values are left alone."
 msgstr ""
+"Silub sujuvates värviüleminekutes (nt taevas, pimedad stseenid, hajutused) "
+"tekkivaid astmelisi triipe. Enim võidavad sellest animatsioon ja anime, kuna "
+"lamedad värviüleminekud moodustavad suure osa pildist; mängufilme see "
+"suuresti ei mõjuta, kuigi tugev seadistus võib kergelt pehmendada väga "
+"peeneid detaile. Nõuab GPU-jõudlust sõltumata sisust, mida tasub nõrgema või "
+"vanema seadme puhul arvestada. Jäta valikule \"Väljas\", kui seadistad "
+"deband-suvandeid ise failis mpv.conf — väljalülitatuna ei kirjutata midagi "
+"üle ja sinu väärtused jäävad kehtima."
 
 #. Explanation shown under the "HDR Tone Mapping" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3254,6 +3274,11 @@ msgid ""
 "is the reference curve, and Clip is what to try if highlights look grey "
 "rather than bright."
 msgstr ""
+"Kuidas HDR-video sobitatakse SDR-ekraanile. See ei tee midagi, kui HDR-"
+"signaal edastatakse otse HDR-ekraanile, kuna muudetavat toonikaardistamist "
+"ei toimu. Jäta see sättele \"Automaatne\", välja arvatud juhul, kui HDR-"
+"filmid näevad valed välja; BT.2390 on etalonkõver ning \"Kärpimine\" (Clip) "
+"on see, mida proovida, kui eredad kohad mõjuvad heledate asemel hallina."
 
 #. Explanation shown under the "Rendering Quality" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3264,6 +3289,10 @@ msgid ""
 "files and does not use up your shader profile, so it is the thing to try "
 "before the shader pack below."
 msgstr ""
+"Kõrge kvaliteet rakendab samasid suvandeid mis MPV enda kõrge kvaliteedi "
+"eelhäälestus: parem skaleerimine ja HDR-i töötlemine mõningase GPU-koormuse "
+"hinnaga. See ei vaja shrader-faile ega kasuta sinu sharader-profiili, seega "
+"on see esimene asi, mida enne allolevat shrader-pakettii proovida."
 
 #. Explanation shown under the "Extract Image Subtitles" setting (Settings >
 #. Playback > Transcoding). PGS and VobSub are subtitle format names; keep
@@ -3277,6 +3306,12 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"Video transkodeerimisel kuvatakse sisseehitatud Blu-ray või DVD (PGS, "
+"VobSub) subtiitrid eraldi rajana, mitte ei põletata neid pildi sisse. Nii "
+"jäävad need teravaks ja neid saab vahetada ilma taasesitust taaskäivitamata. "
+"Ühe subtiitri kuvamine paneb serveri esmalt eraldama kõiki failis olevaid "
+"subtiitriradu, mis võtab suure faili puhul aega ja serveri kettaruumi. "
+"Eraldi failis olevaid subtiitreid see ei mõjuta."
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3287,6 +3322,11 @@ msgid ""
 "this if playback keeps stopping for buffering. Larger buffers use more "
 "memory and make the first few seconds of a file slower to start."
 msgstr ""
+"Kui palju esituskohast ettepoole andmeid loetakse. MPV vaikeväärtus on üks "
+"sekund, mis on üle interneti ühendatud serveri või aeglase ühenduse puhul "
+"liiga lühike — suurenda seda, kui taasesitus jääb puhverdamiseks pidevalt "
+"seisma. Suuremad puhvrid kasutavad rohkem mälu ja muudavad taasesituse "
+"alguse paar sekundit aeglasemaks."
 
 #. Explanation shown under the "Motion Interpolation" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3297,6 +3337,10 @@ msgid ""
 "display. May cause dropped frames if your displays have mismatched frame "
 "rates."
 msgstr ""
+"Kaadrite sulandamine (sulandab kaadrid omavahel kokku, see pole sama mis SVP/"
+"DLSS/framegen). Vähendab pildi hakkimist ja värinat, mida põhjustab sisu ja "
+"ekraani erinev kaadrisagedus. Võib põhjustada vahelejäänud kaadreid, kui "
+"sinu ekraanidel on erinevad kaadrisagedused."
 
 #. Explanation shown under the "Hardware Decoding" setting (Settings >
 #. Playback > Playback).
@@ -3329,6 +3373,11 @@ msgid ""
 "way back is to edit conf.json. This is for a shared TV nobody should be able "
 "to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
+"Kuvab ainult sellesse seadmesse edastatud sisu. Meediakogule ja sellele "
+"seadete ekraanile ei pääse siit ligi ning ilma süsteemisalve ikoonita on "
+"ainus viis naasta faili conf.json muutmine. See on mõeldud ühiskasutuses "
+"telerile, kus keegi ei tohiks meediakogu lehitseda; tavalise vastuvõtuseadme "
+"jaoks kasuta kasutajaliidese seadete valikuid."
 
 #. Explanation shown under the "Window Buttons in the Top Bar" setting
 #. (Settings > General > Window).
