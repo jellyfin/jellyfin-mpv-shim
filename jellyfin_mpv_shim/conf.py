@@ -1039,14 +1039,13 @@ class Settings(SettingsBase):
         if not os.path.exists(path):
             try:
                 _fh = open(path, mode, encoding=encoding)
-            except IOError as e:
-                if e.errno == 2 and create:
-                    fh = open(path, "w", encoding=self.WRITE_ENCODING)
-                    json.dump(self.dict(), fh, indent=4, sort_keys=True)
-                    fh.close()
-                    created = True
-                else:
-                    raise e
+            except FileNotFoundError:
+                if not create:
+                    raise
+                fh = open(path, "w", encoding=self.WRITE_ENCODING)
+                json.dump(self.dict(), fh, indent=4, sort_keys=True)
+                fh.close()
+                created = True
             except Exception:
                 log.error("Error opening settings from path: %s" % path)
                 return None
