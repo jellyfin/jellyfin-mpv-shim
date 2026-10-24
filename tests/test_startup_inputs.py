@@ -27,6 +27,7 @@ from jellyfin_mpv_shim import conffile, log_utils  # noqa: E402
 from jellyfin_mpv_shim.conf import Settings  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.config import ENUMS  # noqa: E402
 from jellyfin_mpv_shim.sync.db import SyncDB  # noqa: E402
+from jellyfin_mpv_shim.sync.manager import resolve_root  # noqa: E402
 
 
 class AppLogLevelTest(unittest.TestCase):
@@ -98,6 +99,34 @@ class ConfigDirTest(unittest.TestCase):
                 mock.patch.object(conffile.os, "name", "nt"):
             self.assertIsNone(conffile._for_platform(conffile.confdirs,
                                                      conffile.posix))
+
+
+class DownloadFolderTest(unittest.TestCase):
+    """A hand-edited relative `sync_path` reached SyncDB as-is: the same
+    crash as #847, and a different folder for every launch directory."""
+
+    def setUp(self):
+        self.conf = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.conf, ignore_errors=True)
+        p = mock.patch("jellyfin_mpv_shim.sync.manager.confdir",
+                       return_value=self.conf)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_a_relative_path_is_inside_the_config_directory(self):
+        self.assertEqual(resolve_root("dl"), os.path.join(self.conf, "dl"))
+
+    def test_the_default_is_the_offline_folder(self):
+        self.assertEqual(resolve_root(None),
+                         os.path.join(self.conf, "offline"))
+
+    def test_an_absolute_path_is_kept(self):
+        other = os.path.abspath(os.path.join(os.sep, "srv", "dl"))
+        self.assertEqual(resolve_root(other), other)
+
+    def test_home_is_expanded(self):
+        self.assertEqual(resolve_root("~/dl"),
+                         os.path.join(os.path.expanduser("~"), "dl"))
 
 
 class MissingConfigFileTest(unittest.TestCase):

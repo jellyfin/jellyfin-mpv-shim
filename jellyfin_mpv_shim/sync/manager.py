@@ -262,7 +262,8 @@ def normalize_root(path):
     double quote is not a legal filename character on NTFS, so the quoted
     spelling can never name anything.
 
-    Applied by `start()` as well as `relocate()`: `sync_path` is a JSON key a
+    Applied by `start()` as well as `relocate()`, through `resolve_root`:
+    `sync_path` is a JSON key a
     person can edit by hand, and a root the app declines to normalize is a
     root it silently treats as a different folder from the one the settings
     field will show.
@@ -275,6 +276,17 @@ def normalize_root(path):
             text = text[1:-1].strip()
             break
     return text or None
+
+
+def resolve_root(path):
+    """The absolute download folder ``sync_path`` names. A relative path is
+    inside the config directory: against the cwd it would name a different
+    folder per launch, and SyncDB's read-only open cannot take it (#847)."""
+    path = normalize_root(path)
+    base = confdir(APP_NAME)
+    if not path:
+        return os.path.join(base, "offline")
+    return os.path.abspath(os.path.join(base, os.path.expanduser(path)))
 
 
 #: What `_destination_is_writable` writes to prove it can. Named once
@@ -670,8 +682,7 @@ class SyncManager:
         self.auto = AutoDownloader(self, get_clients=get_clients,
                                    is_busy=is_busy,
                                    should_stop=lambda: self._stop)
-        self.root = (normalize_root(settings.sync_path)
-                     or os.path.join(confdir(APP_NAME), "offline"))
+        self.root = resolve_root(settings.sync_path)
         self._open_and_run()
 
     def _open_and_run(self):
@@ -967,11 +978,7 @@ class SyncManager:
             return False, _("Downloads are unavailable: the saved logins "
                             "could not be read.")
         old_root = self.root
-        new_path = normalize_root(new_path)
-        if new_path:
-            new_root = os.path.abspath(os.path.expanduser(new_path))
-        else:
-            new_root = os.path.join(confdir(APP_NAME), "offline")
+        new_root = resolve_root(new_path)
         if same_directory(old_root, new_root):
             # Truthfully, rather than as a successful move. The caller shows
             # `message or "Download folder moved"`, so an empty string here
