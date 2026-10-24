@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-24 08:12+0000\n"
+"PO-Revision-Date: 2026-10-24 08:22+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -3400,6 +3400,12 @@ msgid ""
 "it. On \"Only when the window has no title bar\", MPV is asked whether this "
 "window got one, so desktops that draw a title bar are left alone."
 msgstr ""
+"Mõned töölauakeskkonnad, eriti GNOME Waylandil, ei kuva pleieri aknale "
+"tiitliriba, mis ei võimalda seda liigutada ega sulgeda. See säte paigutab "
+"minimeerimise, maksimeerimise ja sulgemise nupud ülaribale ning võimaldab "
+"akent sellest lohistada. Valiku \"Ainult juhul, kui aknal puudub "
+"tiitliriba\" puhul päritakse MPV-lt, kas see aken sai tiitliriba, jättes "
+"tiitliribaga töölauakeskkonnad muutmata."
 
 #. Explanation shown under the "Keep Window Buttons in Full Screen" setting
 #. (Settings > General > Window).
@@ -3409,6 +3415,10 @@ msgid ""
 "the buttons are normally hidden there. Turn this on to keep a way out of "
 "full screen that is not a keyboard shortcut."
 msgstr ""
+"Täisekraanvaates puudub tiitliriba ja pole midagi liigutada ega "
+"maksimeerida, mistõttu on nupud seal tavaliselt peidetud. Lülita see sisse, "
+"et säilitada viis täisekraanist väljumiseks ilma klaviatuuri kiirklahve "
+"kasutamata."
 
 #. Explanation shown under the "Hide the Desktop Title Bar" setting
 #. (Settings > General > Window).
@@ -3420,6 +3430,12 @@ msgid ""
 "unless you want them, since a window with neither can be awkward to move on "
 "some desktops."
 msgstr ""
+"Eemaldab pleieri aknalt töölauakeskkonna tiitliriba, muutes ülaloleva "
+"ülariba ainukeseks tiitliribaks. Säte töötab paaris ülaloleva seadistusega: "
+"valiku \"Ainult juhul, kui aknal puudub tiitliriba\" korral ilmuvad nupud "
+"kohe, kui see on sisse lülitatud. Jäta mõlemad väljalülitatuks, kui sa neid "
+"ei vaja, sest ilma mõlema elemendita akna nihutamine võib mõnel töölaual "
+"osutuda tülikaks."
 
 #. Explanation shown under the "Enable Trickplay Thumbnails" setting
 #. (Settings > Playback > Player Controls).
@@ -3430,6 +3446,11 @@ msgid ""
 "images are fetched from the server per video, which costs disk space and "
 "memory -- tens of MB for an episode, a few hundred for a long film."
 msgstr ""
+"Kuvab kerimisribal lohistamisel pildi eelvaatekaadrit. Töötab kõigi pleieri "
+"juhtelementide stiilidega, sealhulgas sinu enda OSC-skriptiga, kui see "
+"toetab thumbfasti. Pildid laaditakse iga video kohta serverist, mis kulutab "
+"kettaruumi ja mälu — sarja osa puhul kümneid megabaite, pika filmi puhul "
+"mõnisada."
 
 #. Explanation shown under the "Preferred Language" setting (Settings >
 #. Playback > Subtitles & Languages), which only appears when a Dubbed or
@@ -3443,6 +3464,9 @@ msgid ""
 "preference heuristics are built around English naming conventions, your "
 "mileage may vary. Use a language code such as eng."
 msgstr ""
+"Dubleeritud või subtiitritega sisu jaoks kasutatav keel. Arvesta, et "
+"eelistuste loogika põhineb ingliskeelsetel nimetamisreeglitel, seega võivad "
+"tulemused varieeruda. Kasuta keelekoodi, näiteks eng."
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
