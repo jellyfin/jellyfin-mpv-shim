@@ -95,10 +95,19 @@ a current one with `libmpv` by default; run `sudo ldconfig` afterwards. Add
 
 ### macOS
 
-Download the DMG from [Releases](https://github.com/jellyfin/jellyfin-mpv-shim/releases),
-`macOS_arm64` for Apple Silicon or `macOS_x86_64` for Intel, and drag the app to Applications.
-It is not notarized, so allow the first launch in System Settings > Privacy & Security. See
-[macos/README.md](macos/README.md).
+MacOS is not officially supported or released by this project, but unsigned builds are provided on a
+best-effort basis via CI. If anything breaks, feel free to to submit a PR (AI is allowed subject to review) to fix it.
+
+Download the latest development build here:
+- [Apple Silicon](https://nightly.link/jellyfin/jellyfin-mpv-shim/workflows/main/master/macos-arm64.zip)
+- [Intel](https://nightly.link/jellyfin/jellyfin-mpv-shim/workflows/main/master/macos-x86_64.zip)
+
+Then to actually use the application, since it is unsigned, use **System Settings > Privacy & Security > Open Anyway**
+to run the application or use the following command in your terminal to allow it:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Jellyfin MPV Shim.app"
+```
 
 Or install from PyPI:
 
