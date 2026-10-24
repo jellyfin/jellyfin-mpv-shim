@@ -79,7 +79,7 @@ class PlaybackMixin(GatewayCore):
     #: Cached ``audio-device-list``: (monotonic stamp, value). See
     #: audio_devices for why this exists at all.
     _DEVICE_TTL = 5.0
-    _device_cache = (0.0, None)
+    _device_cache: tuple = (0.0, None)
 
     def audio_devices(self):
         """``[(label, value), ...]`` for the audio-device picker.

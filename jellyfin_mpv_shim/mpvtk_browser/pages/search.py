@@ -86,7 +86,7 @@ class SearchPage(Page):
             # /Search/Hints media types — and only where there is a tuner,
             # so the overwhelming majority of users pay nothing for it. Both
             # halves are getattr'd: the offline source has neither.
-            live = {}
+            live: dict = {}
             if getattr(source, "has_live_tv", lambda _s: False)(srv):
                 search_live = getattr(source, "search_live_tv", None)
                 if search_live is not None:
@@ -196,7 +196,7 @@ class SearchPage(Page):
                     row_geom, row_itype = tiles.auto_geom(
                         group, default=art.geom, default_type="Primary")
                 rows.append(tiles.tile_row(
-                    label, group, "search-" + label, geom=row_geom,
+                    label, group, "search-%s" % label, geom=row_geom,
                     image_type=row_itype, inherit=inherit,
                     autofocus_first=claim(), lazy=True))
         # Programs before Channels, which is the rest of web's order: what

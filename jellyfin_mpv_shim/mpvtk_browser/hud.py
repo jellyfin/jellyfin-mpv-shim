@@ -247,7 +247,7 @@ def _pickers(b, menu_state, pos, chapters, icon_size=None):
     whole row can be measured. The track pickers are None because a file
     with two audio languages and no way to pick between them is not a
     narrower bar, it is a broken one."""
-    out = []
+    out: list[tuple[Optional[str], Element]] = []
     if chapters:
         cur = 0
         for i, ch in enumerate(chapters):
@@ -400,7 +400,7 @@ def _shed(items, avail, gap):
                 + gap * (len(keep) - 1)) <= avail
 
     present = {key for key, _el in items if key}
-    dropped = set()
+    dropped: set[str] = set()
     for key in SHED_ORDER:
         if fits(dropped):
             break
@@ -737,11 +737,12 @@ def _info_dialog(b, size):
     # scroll of two rows inside the window beats a panel whose Close
     # button is off the bottom of the screen.
     body_h = max(60, min(INFO_MAX_H, win_h - 220))
-    blocks = [Text(_("Playback Info"), size="title", bold=True)]
+    blocks: list[Element] = [Text(_("Playback Info"), size="title",
+                                  bold=True)]
     if info.get("title"):
         blocks.append(Text(info["title"], size="normal", color=theme.SUBTLE_FG,
                            wrap=True, w=w - 48))
-    body = []
+    body: list[Element] = []
     stats = _ctl_get(b, "player_stats", {}) or {}
     for heading, rows in _info_rows(info, stats):
         body.append(Text(heading, size="normal", bold=True, color=theme.ACCENT))
@@ -957,7 +958,8 @@ def build_hud(b, size):
     # A condition that is not about ROOM stays a condition: a photo has no
     # seek row and no sound, and there are no chapter buttons for a file
     # with no chapters.
-    items = [(None, tbtn("skip_previous", "hud-prev",
+    items: list[tuple[Optional[str], Element]] = [(None, tbtn(
+        "skip_previous", "hud-prev",
                          lambda: b._ctl(lambda c: c.prev()),
                          tip=_("Previous")))]
     if chapters:

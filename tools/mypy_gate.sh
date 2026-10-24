@@ -10,8 +10,7 @@
 #   tools/mypy_gate.sh              # check for new errors
 #   tools/mypy_gate.sh --update     # re-baseline after INTENTIONAL changes
 #
-# The run takes under a second, so there is no reason not to run it beside
-# the unit suite.
+# tools/run_tests_parallel.py runs it beside the unit suite.
 #
 # WHAT THIS DOES AND DOES NOT CATCH. It does not currently catch the
 # "forgotten move" class -- a lambda calling a method that no longer exists

@@ -18,8 +18,8 @@ from ...books import page_count as stored_page_count, progress_of, \
     ticks_for_page
 from ...comic import ComicArchive, ComicError
 from ...i18n import _
-from ...mpvtk.widgets import Button, Column, Dropdown, Row, Spacer, Text, \
-    TextBox
+from ...mpvtk.widgets import Button, Column, Dropdown, Element, Row, Spacer, \
+    Text, TextBox
 from .. import theme
 from ..components import chrome
 from ..gateway.picture import fit_scale, fit_zoom, pan_bounds
@@ -506,7 +506,7 @@ class ComicPage(Page):
             # otherwise fine comic. Keeping the bars means the next/prev
             # buttons are still there, and `done` clears `_error` on the
             # first page that does read.
-            body = Column([Spacer(), chrome.error(route["_error"]),
+            body: Element = Column([Spacer(), chrome.error(route["_error"]),
                            Spacer()], flex=1, align="center")
         elif self.archive is None:
             body = self._waiting(data)

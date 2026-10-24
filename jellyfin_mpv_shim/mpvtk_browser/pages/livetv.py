@@ -16,7 +16,7 @@ import datetime
 
 from ...i18n import _, _p
 from ...mpvtk.widgets import (
-    Button, Column, Icon, Row, Spacer, Text, VScroll)
+    Button, Column, Element, Icon, Row, Spacer, Text, VScroll)
 from .. import components, guide_view, live_tv, theme
 from ..components import chrome, controls
 from ..repository import CHANNEL_PAGE
@@ -1032,7 +1032,7 @@ class ChannelPage(Page):
             y += measure(block)[1] + self.GAP
         offset = max(0.0, self.ctx.art.scroll.offset("channel"))
         view = max(240.0, float(size[1]))
-        out = []
+        out: list[Element] = []
         for day, items in self._groups():
             heading = Text(day, size="large", bold=True)
             out.append(heading)

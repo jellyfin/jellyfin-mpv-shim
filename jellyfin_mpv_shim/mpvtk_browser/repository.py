@@ -1680,7 +1680,7 @@ class LibrarySource:
     @staticmethod
     def _filter_kwargs(filters):
         """Translate the UI's filter dict into ``get_items`` arguments."""
-        kwargs: dict[str, str] = {}
+        kwargs: dict[str, Any] = {}
         if not filters:
             return kwargs
         # Status. web's `Filters` enum, sent as one comma-joined value --
@@ -1854,7 +1854,7 @@ class LibrarySource:
                         "items": items, "types": types}
             return work
 
-        rows = []
+        rows: list = []
         if not genres:
             return rows
         with ThreadPoolExecutor(
@@ -3034,7 +3034,7 @@ class OfflineLibrarySource:
     #: `_apply_filters` stays, and the four keys it honours still work --
     #: the A-Z rail writes `letter`, and Genres is a door rather than a
     #: filter. What goes is the panel.
-    supported_filters = frozenset()
+    supported_filters: frozenset = frozenset()
 
     #: See mark_stale. Class defaults so a source built without __init__
     #: (tests set `_snap` directly) reads as up to date.
@@ -3274,7 +3274,7 @@ class OfflineLibrarySource:
         an ambiguous tile, and the pair is still told apart by its contents
         and its art.
         """
-        counts = {}
+        counts: dict = {}
         for dto in dtos:
             counts[dto.get("Name")] = counts.get(dto.get("Name"), 0) + 1
         for dto in dtos:
@@ -3382,7 +3382,9 @@ class OfflineLibrarySource:
         an untagged rip has. A recording with neither is treated as loose,
         which is the honest answer — nothing joins those files.
         """
-        loose, groups, order = [], {}, []
+        loose: list = []
+        groups: dict = {}
+        order: list = []
         for item in items:
             kind = item.get("Type")
             if kind == BOOK_TYPE:
@@ -3606,7 +3608,9 @@ class OfflineLibrarySource:
         # tags are only as complete as the Fields the downloader asked
         # for -- an absent one leaves that picker empty, which is the
         # same thing the pre-Items/Filters fallback does online.
-        years, ratings, tags = set(), set(), set()
+        years: set = set()
+        ratings: set = set()
+        tags: set = set()
         for i in self._snap.items:
             if i.get("ProductionYear"):
                 years.add(i["ProductionYear"])

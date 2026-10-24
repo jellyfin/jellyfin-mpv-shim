@@ -960,7 +960,7 @@ class GridPage(Page):
             "title": _("Networks"),
             "list": {"type": "studios", "parent_id": route.get("parent_id"),
                      "include_item_types": GENRE_ITEM_TYPES.get(
-                         route.get("collection_type")),
+                         route.get("collection_type") or ""),
                      "shape": "landscape"}})
 
     def _open_genres(self):

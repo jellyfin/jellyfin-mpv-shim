@@ -13,6 +13,8 @@ because it is a layout constant, not shell state.
 import html
 import re
 
+from typing import Any
+
 from ...mpvtk.widgets import Box, Busy, Column, Row, Spacer, Text
 from .. import theme
 
@@ -94,14 +96,16 @@ def wrap_row(items, avail, gap=8, align="center", row_gap=None):
     # is dropped on the way to wrapping (and only then: a row that fits keeps
     # the tree it always had).
     packable = [i for i in items
-                if not (isinstance(i, Spacer) and getattr(i, "flex", 0))]
+                if not (isinstance(i, Spacer) and getattr(i, "flex", None))]
     try:
         widths = [measure(i)[0] for i in packable]
     except Exception:
         # Never fail a render over a decoration: an unmeasurable item keeps
         # the old behaviour, which is one row that may be too wide.
         return one_row
-    rows, cur, used = [], [], 0.0
+    rows: list[list[Any]] = []
+    cur: list[Any] = []
+    used = 0.0
     for item, iw in zip(packable, widths):
         need = iw if not cur else used + gap + iw
         if cur and need > avail:
@@ -151,7 +155,8 @@ def split_bleed(blocks, px, gap, align="start"):
     instead. That is invisible on a Text and loud on a Table, whose columns
     are shares of whatever width it was given -- every cell ellipsized.
     """
-    out, run = [], []
+    out: list[Any] = []
+    run: list[Any] = []
 
     def flush():
         if not run:

@@ -120,7 +120,7 @@ def extra_type_label(item):
         "Sample": _p("kind of special feature", "Sample"),
         "Clip": _p("kind of special feature", "Clip"),
         "Short": _p("kind of special feature", "Short"),
-    }.get((item or {}).get("ExtraType"), "")
+    }.get((item or {}).get("ExtraType") or "", "")
 
 
 #: Item types whose tile caption is structurally one line: they are not

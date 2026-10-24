@@ -74,7 +74,9 @@ means **the mouse cursor never hides again** for the rest of the session.
   ~5,500 tests one process per module, **~30s**. Same import semantics as
   `discover`; a per-module timeout means a hang is a reported failure, and each
   worker gets its own process group so a kill cannot orphan an mpv. Put
-  `xvfb-run` in front of *it*, not the workers. Do not parallelize the
+  `xvfb-run` in front of *it*, not the workers. It also runs
+  `tools/mypy_gate.sh` (new findings against `tools/mypy-baseline.txt`) and
+  fails on it; the summary says when mypy is missing and the gate was skipped. Do not parallelize the
   integration matrix — its legs are serial on purpose (docs/testing.md §9).
   (Runtimes measured 2026-09-05 on a 16-core box, and they had drifted in both
   directions — the unit suite was quoted at 7 minutes and the matrix at 6.5.

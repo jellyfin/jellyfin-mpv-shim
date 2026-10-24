@@ -281,7 +281,7 @@ class DetailPage(Page):
         # (chaptercardbuilder.js:30-39); same rule, same threshold.
         streams = ((item.get("MediaSources") or [{}])[0]
                    .get("MediaStreams") or [])
-        video = next((s for s in streams if s.get("Type") == "Video"), {})
+        video: dict = next((s for s in streams if s.get("Type") == "Video"), {})
         vw, vh = video.get("Width"), video.get("Height")
         geom = (art.geom_square if vw and vh and (vw / vh) <= 1.2
                 else art.geom_wide)

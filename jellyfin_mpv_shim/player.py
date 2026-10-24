@@ -26,7 +26,7 @@ import random
 from threading import RLock, Lock, Thread, Event
 from queue import Queue, Empty as queue_empty
 from collections import deque
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from . import conffile
 import threading
@@ -830,7 +830,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Optional callback (set by the UI) fed a compact now-playing dict on
         # every playback state change, for the browser's music bar. Kept as a
         # plain attribute so the player has no hard dependency on the GUI.
-        self.on_playstate = None
+        self.on_playstate: Optional[Callable[[dict], None]] = None
         # Also set by the UI: told the position a stop reported, so a page
         # showing that item can say Resume from there before the server's
         # UserDataChanged (and the re-read after it) arrives.

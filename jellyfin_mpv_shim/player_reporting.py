@@ -25,7 +25,7 @@ Before editing this file, read ``docs/mpv-backends.md``.
 
 import logging
 import time
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from .books import AUDIOBOOK_TYPE
 from .i18n import _
@@ -88,7 +88,7 @@ class ReportingMixin:
 
     #: Set by the UI (see PlayerManager.__init__); a class default so the
     #: mixin reports a stop without one.
-    on_stopped_at = None
+    on_stopped_at: Optional[Callable[..., None]] = None
 
     if TYPE_CHECKING:
         # Owned by PlayerManager, not by this mixin. Listed so the coupling
