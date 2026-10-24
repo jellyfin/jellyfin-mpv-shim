@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-17 13:33-0400\n"
+"POT-Creation-Date: 2026-10-24 02:13-0400\n"
 "PO-Revision-Date: 2026-09-27 20:36+0000\n"
 "Last-Translator: Acrotos <alexandrufly@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -1360,6 +1360,50 @@ msgstr "Renunță și Marchează ca Nevăzut"
 msgid "Favorite"
 msgstr "Favorit"
 
+# seeded from jellyfin-web: Refresh
+#. An entry in the right-click menu on a library tile, shown only to server
+#. administrators: it asks the server to look again for this item's metadata
+#. and artwork. Sentence case, like the other entries in that menu.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+#| msgid "Refresh"
+msgid "Refresh metadata"
+msgstr "Reîmprospătează"
+
+#. Deletes the media file from the server itself, not just the entry. Used
+#. as the action on an item's menu and as the title and confirming button
+#. of the dialog it opens. An imperative verb phrase.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Delete from Disk"
+msgstr ""
+
+#. Button on a film's, episode's, show's or season's page that opens a short
+#. menu of less common actions (refresh metadata, delete from disk). Means
+#. "more options", not "more of this item"; Jellyfin Web uses the same word.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+msgid "More"
+msgstr ""
+
+# seeded from jellyfin-web: Features
+#. Heading over the row of a film's or show's extras (featurettes, deleted
+#. scenes, interviews) on its page. Jellyfin Web uses the same words.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#, fuzzy
+#| msgid "Features"
+msgid "Special Features"
+msgstr "Caracteristici"
+
+#. Button on an item's page that plays its trailer, or opens it in the web
+#. browser when the server only has a link to one.
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#, fuzzy
+#| msgid "Fail"
+msgid "Trailer"
+msgstr "Eșuat"
+
 # seeded from jellyfin-web: LabelWeb
 #. Button on an item's page that opens the same item in Jellyfin's browser
 #. client. Short for the web client, since the button sits in a row of
@@ -1367,6 +1411,85 @@ msgstr "Favorit"
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
 msgstr "Web"
+
+# seeded from jellyfin-web: Features
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A short
+#. promotional film about the making of the film.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+#, fuzzy
+#| msgid "Features"
+msgctxt "kind of special feature"
+msgid "Featurette"
+msgstr "Caracteristici"
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
+#. production.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Behind the Scenes"
+msgstr ""
+
+# seeded from jellyfin-web: DeleteUser
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
+#. from the finished film.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+#, fuzzy
+#| msgid "Delete User"
+msgctxt "kind of special feature"
+msgid "Deleted Scene"
+msgstr "Șterge utilizator"
+
+# seeded from jellyfin-web: MediaInfoInterlaced
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. An interview
+#. with the cast or crew.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+#, fuzzy
+#| msgid "Interlaced"
+msgctxt "kind of special feature"
+msgid "Interview"
+msgstr "Întrețesut"
+
+# seeded from jellyfin-web: HeaderScenes
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A scene from
+#. the film itself.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+#, fuzzy
+#| msgid "Scenes"
+msgctxt "kind of special feature"
+msgid "Scene"
+msgstr "Scene"
+
+# seeded from jellyfin-web: MediaInfoSampleRate
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A short sample
+#. of the video.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+#, fuzzy
+#| msgid "Sample rate"
+msgctxt "kind of special feature"
+msgid "Sample"
+msgstr "Rata monstrei"
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A short
+#. excerpt.
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Clip"
+msgstr ""
+
+#. Caption under a special feature's tile on a film's or show's page, naming
+#. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
+#. noun, not the adjective).
+#: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
+msgctxt "kind of special feature"
+msgid "Short"
+msgstr ""
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
@@ -3966,6 +4089,18 @@ msgstr "Informații media"
 msgid "OK"
 msgstr "OK"
 
+#. Error in the Download modal for a special feature (an extra belonging to a
+#. film or show). They can only be played from the server.
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Special features cannot be downloaded."
+msgstr ""
+"Nu s-a putut adăuga serverul.\n"
+"Vă rugăm să verificați informațiile conexiunii."
+
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -5079,15 +5214,6 @@ msgstr ""
 "Nu s-a putut adăuga serverul.\n"
 "Vă rugăm să verificați informațiile conexiunii."
 
-#. Deletes the media file from the server itself, not just the entry. Used
-#. as the action on an item's menu and as the title and confirming button
-#. of the dialog it opens. An imperative verb phrase.
-#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Delete from Disk"
-msgstr ""
-
 # seeded from jellyfin-web: ConfirmDeleteItem
 #. Warning in the dialog that deletes media from the server. This removes
 #. the actual file, not just the library entry.
@@ -5810,14 +5936,6 @@ msgstr "Mai multe ca acesta"
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
 msgstr ""
-
-#. Button on an item's page that plays its trailer.
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
-#| msgid "Fail"
-msgid "Trailer"
-msgstr "Eșuat"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Heading over an item's chapter thumbnails on its page. Jellyfin Web uses
@@ -7516,16 +7634,6 @@ msgstr "Renunță și Marchează ca Nevăzut"
 #| msgid "Remove Server"
 msgid "Add to playlist"
 msgstr "Eliminați Serverul"
-
-# seeded from jellyfin-web: Refresh
-#. An entry in the right-click menu on a library tile, shown only to server
-#. administrators: it asks the server to look again for this item's metadata
-#. and artwork. Sentence case, like the other entries in that menu.
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
-msgid "Refresh metadata"
-msgstr "Reîmprospătează"
 
 #. Action on an item's menu, and the title of the dialog it opens, taking
 #. the item out of the playlist being viewed. An imperative verb phrase.
