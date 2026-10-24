@@ -360,6 +360,13 @@ def run_leg(module, backend, use_xvfb, verbosity):
     env["JMS_CHECK_SCENES"] = "1"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
+    else:
+        # The contract tier is displayless by convention only: a screen whose
+        # render reaches `_act` imports player.py and opens an mpv window.
+        # With the developer's DISPLAY inherited that window landed on their
+        # desktop (2026-10-22); without one, the leg fails and names itself.
+        env.pop("DISPLAY", None)
+        env.pop("WAYLAND_DISPLAY", None)
     # tests._outcomes is `-m unittest` plus a per-test record, which is what
     # the skip counts and the manifest check read (tests/_manifest.py).
     fd, outcomes = tempfile.mkstemp(prefix="jms-e2e-outcomes-",
