@@ -654,6 +654,36 @@ def _mark_own_close(handle):
         _set_shutdown_seen(handle)
 
 
+#: How long a libmpv quit may take before the handle is destroyed anyway.
+MPV_QUIT_WAIT = 3.0
+
+
+def _quiesce_libmpv(handle):
+    """Shut the core down and wait for its "shutdown" event before
+    `terminate()` destroys the handle.
+
+    python-mpv's `terminate()` destroys first and joins its event thread
+    after, so an observer still running reads a freed handle: a SIGSEGV in
+    `mpv_get_property` (12 of 20 idle-quit re-opens on a slow VM). After
+    "shutdown" mpv sends no more property changes, so nothing is left to
+    overlap the destroy. This is the order python-mpv's own warning gives.
+    Never from the event thread: every caller runs `_terminate_mpv` on a
+    thread of its own. A wedged core is destroyed anyway, after
+    `MPV_QUIT_WAIT`."""
+    try:
+        if handle.core_shutdown:
+            return              # the user closed the window: already down
+        with handle.prepare_and_wait_for_event("shutdown",
+                                               timeout=MPV_QUIT_WAIT):
+            handle.quit()
+    except Exception as exc:
+        # By name: a stand-in backend without the class would make the
+        # except clause itself raise, killing the terminate thread.
+        if type(exc).__name__ != "ShutdownError":  # waiting ends in this
+            log.debug("mpv did not shut down cleanly before terminate",
+                      exc_info=True)
+
+
 class MpvShutDownDuringBuild(RuntimeError):
     """The mpv being built shut down before the build published it."""
 
@@ -5360,6 +5390,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             player = self._player
         self._mark_mpv_dead(player)
         _mark_own_close(player)
+        if not is_using_ext_mpv:
+            _quiesce_libmpv(player)
         try:
             player.terminate()
         except Exception:

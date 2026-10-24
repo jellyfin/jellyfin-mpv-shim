@@ -25,6 +25,7 @@ Contents:
 * ``make_test_clip`` — ffmpeg-generated deterministic sample media (Tier 2).
 """
 
+import contextlib
 import functools
 import atexit
 import os
@@ -878,6 +879,22 @@ class FakeMPVLibmpv(FakeMPV):
 
     def _get_property(self, name):
         return self._read_raw(name)
+
+    # python-mpv's shutdown surface, which player._quiesce_libmpv drives:
+    # without it the quiesce failed on an AttributeError here and every
+    # libmpv leg skipped the order it exists for.
+    core_shutdown = False
+
+    def quit(self, code=None):
+        self._journal.record("mpv", "quit")
+        self.core_shutdown = True
+
+    @contextlib.contextmanager
+    def prepare_and_wait_for_event(self, *event_types, timeout=None):
+        yield
+        if "shutdown" in event_types and self.core_shutdown:
+            raise ShutdownError("libmpv core has been shutdown")
+        raise TimeoutError()
 
 
 class FakeMPVJsonIPC(FakeMPV):
