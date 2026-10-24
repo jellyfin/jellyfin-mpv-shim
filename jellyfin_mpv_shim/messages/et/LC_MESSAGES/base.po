@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-24 08:49+0000\n"
+"PO-Revision-Date: 2026-10-24 10:16+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -3513,6 +3513,11 @@ msgid ""
 "notches spans one row, in every scroll mode, so a trackpad or trackball "
 "never leaves you a sliver of a row off."
 msgstr ""
+"Pikslite hulk, mida hiireratta üks aste kerib. Tõsta seda kiirema kerimise "
+"jaoks ja vähenda täpsema kerimise saavutamiseks. Ruudustikus ümardatakse see "
+"väärtus nii, et täisarv astmeid vastaks alati ühele täisreale igas "
+"kerimisrežiimis, seega ei jäta puuteplaat ega juhtkuul ekraanile osaliselt "
+"nähtavaid ridu."
 
 #. Explanation shown under the "Scroll Mode" setting (Settings > Browse >
 #. Library Browser).
@@ -3524,14 +3529,18 @@ msgid ""
 "remote display, or with an external MPV. Pick \"One row per notch\" to move "
 "a whole row, or one home-screen section, at a time."
 msgstr ""
+"\"Pidev\" kerib pikslikaupa ja peatub seal, kuhu hiireratas selle viib, "
+"seades read ise kohakuti, kui ekraan ei jõua sammu pidada. Vali \"Ridade "
+"järgi joondatud\", kui kerimine ikka hakib — nagu see võib juhtuda väga "
+"suurel, aeglasel või kaugühendusega ekraanil või välise MPV kasutamisel. "
+"Vali \"Üks rida astme kohta\", et liikuda korraga terve rea või ühe avakuva "
+"osa võrra."
 
 #. Explanation shown under the "Show What You're Watching in Discord"
 #. setting (Settings > General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Discord Rich Presence"
+msgstr "Discord Rich Presence."
 
 #. Help note under the "mpris" setting (Settings > General > This Device).
 #. MPRIS is the name of the Linux standard; leave it untranslated.
@@ -3541,6 +3550,9 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"Võimaldab klaviatuuri meediaklahvidel, peakomplekti nuppudel, lukustuskuval "
+"ja töölaua meediavidinatel esitada, pausile panna ning lugusid vahele jätta, "
+"samuti kuvab mängitavat sisu koos kaanepildiga (MPRIS, ainult Linux)."
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3551,6 +3563,11 @@ msgid ""
 "before it'll let *any* audio through in passthrough mode. In my tests I got "
 "silence otherwise, but results may vary."
 msgstr ""
+"Jäta siin valikuks \"Vaikimisi\", v.a juhul, kui häälestad heli läbilaset. "
+"Arvesta, et teatud heliserverid (nt Pipewire) ei ühildu otsese läbilaskega "
+"ning vajavad helikaardil väljalülitamist, et saaks läbilaskeheli edastada. "
+"Katsetamisel oli tulemuseks täielik vaikus, kuid eri süsteemides võivad "
+"tulemused erineda."
 
 #. Explanation shown under the "Take the Device Exclusively" setting
 #. (Settings > Playback > Audio).
