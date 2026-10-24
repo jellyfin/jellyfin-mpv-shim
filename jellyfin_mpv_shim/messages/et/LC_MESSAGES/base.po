@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-24 07:09+0000\n"
+"PO-Revision-Date: 2026-10-24 07:19+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -3787,7 +3787,7 @@ msgstr "Nurjumine"
 #. to items with bonus material (deleted scenes, featurettes).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr ""
+msgstr "Omab lisamaterjali"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme song attached.
@@ -3977,14 +3977,8 @@ msgstr "OK"
 #. Error in the Download modal for a special feature (an extra belonging to a
 #. film or show). They can only be played from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Special features cannot be downloaded."
-msgstr ""
-"Serveri lisamine nurjus.\n"
-"Kontrolli ühenduse andmeid."
+msgstr "Lisamaterjale pole võimalik alla laadida."
 
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
