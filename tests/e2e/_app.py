@@ -193,6 +193,13 @@ class _Watch:
 WATCH = _Watch()
 
 
+#: Config dirs an App in this process created. A relaunch on one owns it too,
+#: so whichever App closes last removes it: ownership by object leaked every
+#: relaunched test's dir -- a 1 GiB big.bin per test_store_safety run, which
+#: filled a RAM-backed /tmp until the OOM killer took the desktop.
+_CREATED = set()
+
+
 class App:
     """One launch of the app against one config directory.
 
@@ -207,8 +214,11 @@ class App:
         if backend not in ("libmpv", "jsonipc"):
             raise ValueError(backend)
         self.backend = backend
-        self.owns_dir = config_dir is None
-        self.config_dir = config_dir or tempfile.mkdtemp(prefix="jms-app-")
+        if config_dir is None:
+            config_dir = tempfile.mkdtemp(prefix="jms-app-")
+            _CREATED.add(config_dir)
+        self.config_dir = config_dir
+        self.owns_dir = config_dir in _CREATED
         name = "jms-e2e-%s" % uuid.uuid4().hex[:12]
         # A bare name on Windows (the pipe namespace is implied), a socket
         # path elsewhere. What the *app* is told differs by backend: mpv.conf
@@ -411,6 +421,7 @@ class App:
         # JMS_E2E_KEEP_CONFIG keeps it (with log.txt) for reading afterwards.
         if self.owns_dir and not os.environ.get("JMS_E2E_KEEP_CONFIG"):
             shutil.rmtree(self.config_dir, ignore_errors=True)
+            _CREATED.discard(self.config_dir)
 
     def _detach(self):
         if self.mpv is not None:
