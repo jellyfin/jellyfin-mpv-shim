@@ -395,8 +395,11 @@ def _terminate_player():
     except Exception:
         pass
     if not getattr(_PLAYER, "is_using_ext_mpv", False) and handle is not None:
+        # The app's own teardown, not handle.terminate(): that skipped
+        # _mark_mpv_dead and the quiesce, and an observer firing during the
+        # destroy segfaulted the run after it had printed OK.
         try:
-            handle.terminate()
+            manager._terminate_mpv(handle)
         except Exception:
             pass
 
