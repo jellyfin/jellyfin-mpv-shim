@@ -1104,12 +1104,23 @@ failed for a reporter on Fedora KDE 44.
 
 ## 12. The on-screen controls, and the user's own OSC
 
-`osc_style` has four values and only three of them are ours. `default` means
-"whatever your mpv would normally do, plus your own scripts", and it is the
-supported way to run a third-party OSC (uosc, ModernZ, ModernX) against the
-shim — `mpv_scripts` loads `thumbfast.lua` whenever the TrickPlay worker
-started, regardless of style, so a thumbfast-aware OSC gets Jellyfin's
-trickplay previews for free. Three things about that path are not obvious.
+`osc_style` is `mpvtk` (the in-window HUD), `mpv` (mpv's own OSC, or our
+fork of it before 0.41), `custom` or `none`. **`custom` is the supported way
+to run a third-party OSC** (uosc, ModernZ, ModernX): the shim loads no OSC of
+its own and keeps mpv's off, and `mpv_scripts` loads `thumbfast.lua` whenever
+the TrickPlay worker started, regardless of style, so a thumbfast-aware OSC
+gets Jellyfin's trickplay previews for free.
+
+A user OSC in `<config>/scripts/` under `mpv` is a misconfiguration, not a
+case to handle: there are then two OSCs, and since mpv names script clients
+first come first served, theirs is `osc` and ours `osc2` -- so DEL's
+`script-binding osc/visibility` cycles theirs while ours keeps drawing
+(measured for #844; the answer is `custom`).
+
+`default` is no longer a style. It is an inbound legacy value that
+`resolve_osc_style` folds into `mpv` (CONFIG_VERSION 5), and survives only as
+the meaning `build_mpv_options` still gives it. The first subsection below
+describes that mapping; the rest applies to `custom`.
 
 ### libmpv turns the OSC off, and the user's mpv.conf outranks us
 
@@ -1141,8 +1152,8 @@ against a real libmpv rather than trusting it.
 Writing the property onto the live player instead — which is what
 `enable_osc` used to do for every style — cannot be declined, and so it loaded
 mpv's built-in OSC underneath the user's. `enable_osc` therefore never writes
-`osc` under `default`. It still writes it for the three styles that answer
-the OSC question themselves, and there the un-decline-ability is the point:
+`osc` under `default`. It still writes it for every style that answers
+the OSC question itself (`REPLACES_OSC`, which is all four now), and there the un-decline-ability is the point:
 it is how `osc=yes` in an mpv.conf is held off.
 
 ### `osc` reaches mpv's own OSC and nothing else
@@ -1185,8 +1196,8 @@ draw. After that there may be no way back: ModernZ parks the logo on a
 `render_wipe` on it lives only in `tick()`'s non-idle branches — which
 `osc-visibility never` makes unreachable, because tick returns at the top
 once `state.enabled` is false. So under "No player controls" a logo drawn
-before we spoke survives into playback; under `default` it survives only
-until playback starts, when tick reaches a branch that wipes it. Both were
+before we spoke survives into playback; under the old `default` it survived only
+until playback started, when tick reaches a branch that wipes it. Both were
 reported, and the difference between them is what identified the overlay.
 
 Hence `osc_style: custom`, which is two things, and it took both.
@@ -1221,8 +1232,8 @@ fork that honours it the logo is never drawn at all.
 
 ### What a third-party OSC does not get, deliberately
 
-Trickplay works. Tracks and the queue do not, under `custom` and `default`
-alike, and neither is going to.
+Trickplay works. Tracks and the queue do not, under `custom`, and neither is
+going to.
 
 **Tracks.** A foreign OSC's subtitle and audio pickers read mpv's track list,
 and two of Jellyfin's three subtitle flavours are not in it: an external
