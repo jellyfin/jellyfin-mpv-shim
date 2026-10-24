@@ -697,6 +697,26 @@ class TestTileShapes(unittest.TestCase):
         self.assertNotIn("rpt", left)
         self.assertTrue(right.get("rpt"))
 
+    def test_page_buttons_are_clickable_but_never_a_key_stop(self):
+        """Nav mode drops the page buttons (_page_state), so an arrow key
+        that landed on one lost focus on the very next frame -- DOWN from
+        the top bar did exactly that on the Windows e2e run. Both modes,
+        both directions, the live one included."""
+        for name in ("default", "nebula"):
+            theme.apply(name)
+            try:
+                self.b.route["_data"] = {"libraries": [
+                    dict(self.b.source.libraries[0], Id="lib%d" % i)
+                    for i in range(30)], "rows": []}
+                nodes, handlers = build_scene(self.b)
+                by_id = {n["id"]: n for n in nodes}
+                for nid in ("row-libs-pl", "row-libs-pr"):
+                    with self.subTest(theme=name, node=nid):
+                        self.assertTrue(by_id[nid].get("nnav"))
+                        self.assertIn("click", handlers[nid])
+            finally:
+                theme.apply("default")
+
     def test_the_disabled_state_follows_the_row_as_it_is_paged(self):
         """The row's scroll lives entirely in the renderer, which only reports
         back when the container asks to be watched. Without that watch the
