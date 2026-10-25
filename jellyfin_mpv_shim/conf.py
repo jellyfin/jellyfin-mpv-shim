@@ -1094,8 +1094,20 @@ class Settings(SettingsBase):
             self.config_version = CONFIG_VERSION
             self.save()
         if not created:
+            # Only torn bytes are restored from the .bak. A file that parses
+            # and then fails in our own code is the user's current config,
+            # and swapping it for an older copy would hide the bug.
             try:
                 data = json.loads(raw)
+                if not isinstance(data, dict):
+                    raise ValueError("not a JSON object")
+            except ValueError as e:
+                log.error("Error loading settings from json: %s" % e)
+                if not _restored and self._restore_backup(path):
+                    return self.load(path, create, _restored=True)
+                self.__dict__["_unreadable"] = True
+                return False
+            try:
                 safe_data = self.parse_obj(data)
 
                 # Copy and count items
@@ -1131,8 +1143,6 @@ class Settings(SettingsBase):
                     self.save()
             except Exception as e:
                 log.error("Error loading settings from json: %s" % e)
-                if not _restored and self._restore_backup(path):
-                    return self.load(path, create, _restored=True)
                 self.__dict__["_unreadable"] = True
                 return False
 
@@ -1143,12 +1153,14 @@ class Settings(SettingsBase):
 
         The backup exists only when a save had to write in place (see
         `durable.replace_file`) and did not finish, or the user made one. It
-        is used only if it parses, and the unreadable file is kept beside it
-        rather than overwritten: it may be somebody's hand edit."""
+        is used only if it parses to an object, and the unreadable file is
+        kept beside it rather than overwritten: it may be somebody's hand
+        edit."""
         bak = path + durable.BACKUP_SUFFIX
         try:
             with open(bak, encoding=self.READ_ENCODING) as fh:
-                json.loads(fh.read())
+                if not isinstance(json.loads(fh.read()), dict):
+                    return False
             aside = "%s.unreadable-%d" % (path, int(time.time()))
             os.replace(path, aside)
             shutil.copyfile(bak, path)
@@ -1171,10 +1183,10 @@ class Settings(SettingsBase):
         # a log.txt that the next launch truncates.
         #
         # That is a worse failure than the crash this guard's sibling was
-        # added to prevent: an unlaunchable app keeps your settings, and
-        # there is no `conf.json.bak` here the way there is for `cred.json`
-        # and `catalog.db`. So a failed load makes this session read-only,
-        # and the user's file waits intact for them to fix the encoding.
+        # added to prevent: an unlaunchable app keeps your settings. A torn
+        # file is restored from `conf.json.bak` where one exists (`load`);
+        # anything else that fails to load makes this session read-only, and
+        # the user's file waits intact for them to fix it.
         if self.__dict__.get("_unreadable"):
             log.error("Refusing to save: the config file could not be read, "
                       "and writing defaults over it would discard settings "

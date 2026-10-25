@@ -121,8 +121,8 @@ class ConfigFileEncodingTest(unittest.TestCase):
         launch truncates.
 
         That is worse than the crash: an unlaunchable app keeps your
-        settings, and there is no `conf.json.bak` here the way there is for
-        `cred.json` and `catalog.db`.
+        settings. (`conf.json.bak` is restored only over torn bytes, and
+        there is none in these cases.)
 
         Both failure modes, because the rule is about the LOAD failing and
         not about encoding -- the corrupt-JSON half predates the decode half

@@ -202,6 +202,38 @@ class TornWriteRecoveryTest(unittest.TestCase):
                             for n in os.listdir(self.dir)),
                         "the unreadable file was not kept")
 
+    def _conf_with_backup(self, body, backup):
+        path = os.path.join(self.dir, "conf.json")
+        for p, text in ((path, body), (path + ".bak", backup)):
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write(text)
+        return path
+
+    def test_a_conf_json_that_parses_is_never_swapped_for_its_backup(self):
+        """Only torn bytes are restored. A file that parses and then fails
+        in our own code (a migration bug) is the user's current config, and
+        an old or hand-made `.bak` must not replace it."""
+        from jellyfin_mpv_shim.conf import Settings
+        body = '{"player_name": "current"}'
+        path = self._conf_with_backup(body, '{"player_name": "old"}')
+        with mock.patch.object(Settings, "_migrate",
+                               side_effect=RuntimeError("migration bug")):
+            self.assertFalse(Settings().load(path, create=False))
+        self.assertEqual(body, self.read_file(path))
+        self.assertEqual(["conf.json", "conf.json.bak"],
+                         sorted(os.listdir(self.dir)))
+
+    def test_a_backup_that_is_not_a_settings_object_is_not_restored(self):
+        from jellyfin_mpv_shim.conf import Settings
+        path = self._conf_with_backup('{"player_name": "half', "[]")
+        self.assertFalse(Settings().load(path, create=False))
+        self.assertEqual('{"player_name": "half', self.read_file(path))
+
+    @staticmethod
+    def read_file(path):
+        with open(path, encoding="utf-8") as fh:
+            return fh.read()
+
     def test_a_torn_conf_json_with_no_backup_is_still_unreadable(self):
         """The control: with nothing to restore, the existing guard holds
         -- load says no, and save will not write defaults over the file."""
