@@ -35,7 +35,17 @@ normalise() {
     grep -E "^[^ ].*: error:" | sed -E 's/^([^:]+):[0-9]+:/\1:/' | sort -u
 }
 
-current="$(mypy jellyfin_mpv_shim/ 2>&1 | normalise)"
+raw="$(mypy jellyfin_mpv_shim/ 2>&1)"
+rc=$?
+current="$(printf '%s\n' "$raw" | normalise)"
+
+# A mypy that crashed prints no `: error:` lines, which would read as every
+# finding fixed. rc 1 alone is not enough to trust: a traceback exits 1 too.
+if [ "$rc" -ge 2 ] || { [ "$rc" -ne 0 ] && [ -z "$current" ]; }; then
+    echo "mypy did not run cleanly (exit $rc):"
+    printf '%s\n' "$raw" | tail -20 | sed 's/^/  /'
+    exit 1
+fi
 
 if [ "${1:-}" = "--update" ]; then
     printf '%s\n' "$current" > "$BASELINE"
