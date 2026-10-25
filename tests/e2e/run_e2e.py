@@ -365,6 +365,8 @@ def run_leg(module, backend, use_xvfb, verbosity):
         # render reaches `_act` imports player.py and opens an mpv window.
         # With the developer's DISPLAY inherited that window landed on their
         # desktop (2026-10-22); without one, the leg fails and names itself.
+        # X11/Wayland only: Windows and macOS have no such variable to take
+        # away, and there test_e2e_registry's no-player guard is all there is.
         env.pop("DISPLAY", None)
         env.pop("WAYLAND_DISPLAY", None)
     # tests._outcomes is `-m unittest` plus a per-test record, which is what
