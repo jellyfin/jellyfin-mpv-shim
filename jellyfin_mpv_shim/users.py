@@ -42,7 +42,7 @@ DEFAULT_USER_NAME = _("(default)")
 #: can restore if the power fails mid-write or something."* Distinct from the
 #: `.unreadable-<ts>` file `load` sets aside, which rescues the **corrupt**
 #: bytes after the fact and can restore nothing.
-BACKUP_SUFFIX = durable.BACKUP_SUFFIX
+BACKUP_SUFFIX = ".bak"   # users.json's own rolling spare, not durable's
 
 
 def _has_users(data):
@@ -198,7 +198,7 @@ class UserManager:
             if self._loaded:
                 return
             path = self._path()
-            # users.json* takes in the .bak, a leftover .tmp and the
+            # users.json* takes in the .bak, a leftover .tmp/.tmprec and the
             # .unreadable-* set-asides: every one of them holds tokens.
             _restrict_existing(glob.glob(glob.escape(path) + "*")
                                + [conffile.get(APP_NAME, "cred.json")])
@@ -343,7 +343,7 @@ class UserManager:
         """
         try:
             durable.replace_file(path, json.dumps(payload, indent=4),
-                                 keep_backup=True, mode=0o600)
+                                 mode=0o600)
             return True
         except Exception:
             log.error("Failed to write %s", path, exc_info=True)

@@ -1080,10 +1080,8 @@ class Settings(SettingsBase):
             # (a `sync_path` under `D:/Filme/Übersicht`) does not, and before
             # `READ_ENCODING` was introduced it was read with the locale
             # codec and worked. Measured, both directions.
+            # Never restored over, for the same reason: not our torn write.
             log.error("Could not read settings from json: %s" % e)
-            fh.close()      # before the restore moves this file aside
-            if not _restored and self._restore_backup(path):
-                return self.load(path, create, _restored=True)
             self.__dict__["_unreadable"] = True
             return False
         finally:
@@ -1094,16 +1092,13 @@ class Settings(SettingsBase):
             self.config_version = CONFIG_VERSION
             self.save()
         if not created:
-            # Only torn bytes are restored from the .bak. A file that parses
-            # and then fails in our own code is the user's current config,
-            # and swapping it for an older copy would hide the bug.
-            try:
-                data = json.loads(raw)
-                if not isinstance(data, dict):
-                    raise ValueError("not a JSON object")
-            except ValueError as e:
-                log.error("Error loading settings from json: %s" % e)
-                if not _restored and self._restore_backup(path):
+            # Only torn bytes are restored, from durable's recovery copy. A
+            # file that parses and then fails in our own code is the user's
+            # current config, and swapping it for an older copy would hide
+            # the bug.
+            data = self._json_object(raw)
+            if data is None:
+                if not _restored and self._restore_recovery(path):
                     return self.load(path, create, _restored=True)
                 self.__dict__["_unreadable"] = True
                 return False
@@ -1145,29 +1140,53 @@ class Settings(SettingsBase):
                 log.error("Error loading settings from json: %s" % e)
                 self.__dict__["_unreadable"] = True
                 return False
+            # Loaded cleanly, so a recovery copy beside it is from a write
+            # that finished; kept, a later hand-edit typo would restore it.
+            durable.discard_recovery(path)
 
         return True
 
-    def _restore_backup(self, path):
-        """Put ``conf.json.bak`` back over a config that will not load.
-
-        The backup exists only when a save had to write in place (see
-        `durable.replace_file`) and did not finish, or the user made one. It
-        is used only if it parses to an object, and the unreadable file is
-        kept beside it rather than overwritten: it may be somebody's hand
-        edit."""
-        bak = path + durable.BACKUP_SUFFIX
+    @staticmethod
+    def _json_object(text):
+        """``text`` parsed, if it is a JSON object; None otherwise. Anything
+        json raises counts (RecursionError on deep nesting included): this
+        runs before logging is configured, so nothing may escape."""
         try:
-            with open(bak, encoding=self.READ_ENCODING) as fh:
-                if not isinstance(json.loads(fh.read()), dict):
-                    return False
-            aside = "%s.unreadable-%d" % (path, int(time.time()))
-            os.replace(path, aside)
-            shutil.copyfile(bak, path)
+            data = json.loads(text)
+        except Exception as e:
+            log.error("Error loading settings from json: %s" % e)
+            return None
+        if not isinstance(data, dict):
+            log.error("Error loading settings from json: not an object")
+            return None
+        return data
+
+    def _restore_recovery(self, path):
+        """Put durable's recovery copy back over a conf.json that is torn.
+
+        The copy exists only while an in-place save has not finished
+        (`durable.replace_file`). The torn file is copied aside first and
+        the copy then renamed over it in one step, so conf.json is never
+        missing -- a missing one reads as a first run, which saves
+        defaults -- and nothing stale is left to be restored again."""
+        rec = path + durable.RECOVERY_SUFFIX
+        try:
+            with open(rec, encoding=self.READ_ENCODING) as fh:
+                text = fh.read()
         except (OSError, ValueError):
             return False
+        if self._json_object(text) is None:
+            return False
+        aside = "%s.unreadable-%d" % (path, int(time.time()))
+        try:
+            shutil.copyfile(path, aside)
+            os.replace(rec, path)
+        except OSError:
+            log.warning("conf.json would not load, and %s could not be put "
+                        "in its place.", rec, exc_info=True)
+            return False
         log.warning("conf.json would not load; restored it from %s. The "
-                    "unreadable copy is %s.", bak, aside)
+                    "unreadable copy is %s.", rec, aside)
         return True
 
     def save(self):
@@ -1184,7 +1203,7 @@ class Settings(SettingsBase):
         #
         # That is a worse failure than the crash this guard's sibling was
         # added to prevent: an unlaunchable app keeps your settings. A torn
-        # file is restored from `conf.json.bak` where one exists (`load`);
+        # file is restored from durable's `conf.json.tmprec` (`load`);
         # anything else that fails to load makes this session read-only, and
         # the user's file waits intact for them to fix it.
         if self.__dict__.get("_unreadable"):

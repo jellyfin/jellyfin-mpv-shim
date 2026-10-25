@@ -66,12 +66,14 @@ class ShaderOverrides:
         raw = self._read(self.path)
         if raw is None:
             # A save written in place that did not finish leaves the previous
-            # copy at .bak (durable.replace_file). Read, not restored: the
+            # copy at .tmprec (durable.replace_file). Read, not restored: the
             # next save rewrites the file from what is loaded here.
-            raw = self._read(self.path + durable.BACKUP_SUFFIX)
+            raw = self._read(self.path + durable.RECOVERY_SUFFIX)
             if raw is not None:
                 log.warning("Could not read %s; using %s.", self.path,
-                            self.path + durable.BACKUP_SUFFIX)
+                            self.path + durable.RECOVERY_SUFFIX)
+        else:
+            durable.discard_recovery(self.path)
         if raw is None:
             # A file somebody hand-edited into invalid JSON must not stop
             # playback. Empty overrides means the global profile, which is

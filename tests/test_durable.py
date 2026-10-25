@@ -3,8 +3,10 @@
 Windows refuses `os.replace` onto a file another program has open (WinError
 5) and still allows writing to it. The e2e suite's own polling of users.json
 lost a profile switch that way; an antivirus scan or an indexer does the same
-to a user. So a refused rename falls back to writing in place, with a `.bak`
-of the previous contents made first and removed once the write reads back.
+to a user. So a refused rename falls back to writing in place, with a
+`.tmprec` of the previous contents made first and removed once the write
+reads back. `.tmprec` is ours alone: a `.bak` may be the user's, and
+users.json's `.bak` is its own rolling spare.
 """
 
 # Run as a script, this is what puts the repo root on sys.path -- without
@@ -29,6 +31,7 @@ from unittest import mock
 from jellyfin_mpv_shim import durable
 
 REFUSED = PermissionError(13, "Access is denied")
+REC = ".tmprec"
 
 
 class Crash(BaseException):
@@ -78,11 +81,34 @@ class ReplaceFileTest(unittest.TestCase):
         self.assertEqual([], self.debris(),
                          "the backup outlived a write that read back true")
 
-    def test_keep_backup_leaves_the_previous_contents(self):
-        with mock.patch("os.replace", side_effect=REFUSED):
-            durable.replace_file(self.path, "new", keep_backup=True)
-        self.assertEqual("new", self.read())
-        self.assertEqual("old", self.read(self.path + ".bak"))
+    def test_a_successful_rename_clears_a_leftover_recovery_copy(self):
+        with open(self.path + REC, "w", encoding="utf-8") as fh:
+            fh.write("older")
+        durable.replace_file(self.path, "new")
+        self.assertEqual([], self.debris())
+
+    def test_a_recovery_copy_already_there_is_not_overwritten(self):
+        """One that exists is the last good copy of a write that never
+        finished, and the file beside it may be torn: copying that over it
+        and crashing again would leave nothing."""
+        with open(self.path, "w", encoding="utf-8") as fh:
+            fh.write("torn")
+        with open(self.path + REC, "w", encoding="utf-8") as fh:
+            fh.write("good")
+        with mock.patch("os.replace", side_effect=REFUSED), torn_in_place():
+            with self.assertRaises(Crash):
+                durable.replace_file(self.path, "new")
+        self.assertEqual("good", self.read(self.path + REC))
+
+    def test_the_backup_name_is_never_touched(self):
+        """`.bak` is the user's, or users.json's own spare."""
+        with open(self.path + ".bak", "w", encoding="utf-8") as fh:
+            fh.write("theirs")
+        for refuse in (False, True):
+            with mock.patch("os.replace", side_effect=REFUSED if refuse
+                            else os.replace):
+                durable.replace_file(self.path, "new")
+        self.assertEqual("theirs", self.read(self.path + ".bak"))
 
     def test_a_write_that_reads_back_wrong_raises_and_keeps_the_backup(self):
         real = durable._write
@@ -94,7 +120,7 @@ class ReplaceFileTest(unittest.TestCase):
                 mock.patch.object(durable, "_write", write):
             with self.assertRaises(OSError):
                 durable.replace_file(self.path, "new")
-        self.assertEqual("old", self.read(self.path + ".bak"))
+        self.assertEqual("old", self.read(self.path + REC))
         self.assertNotIn("x.json.tmp", self.debris())
 
     def test_no_backup_no_write(self):
@@ -115,14 +141,14 @@ class ReplaceFileTest(unittest.TestCase):
 
         def write(path, text, encoding, mode=None):
             real(path, text, encoding, mode)
-            modes[os.path.basename(path)] = os.stat(path).st_mode & 0o777
+            for name in os.listdir(self.dir):
+                modes[name] = os.stat(
+                    os.path.join(self.dir, name)).st_mode & 0o777
         with mock.patch("os.replace", side_effect=REFUSED), \
                 mock.patch.object(durable, "_write", write):
-            durable.replace_file(self.path, "new", keep_backup=True,
-                                 mode=0o600)
+            durable.replace_file(self.path, "new", mode=0o600)
         self.assertEqual(0o600, modes["x.json.tmp"])
-        self.assertEqual(
-            0o600, os.stat(self.path + ".bak").st_mode & 0o777)
+        self.assertEqual(0o600, modes["x.json" + REC])
 
     def test_a_refusal_with_no_file_there_is_not_papered_over(self):
         os.remove(self.path)
@@ -196,38 +222,121 @@ class TornWriteRecoveryTest(unittest.TestCase):
                 s.save()
         again = Settings()
         self.assertTrue(again.load(path, create=False),
-                        "a torn conf.json was not restored from its .bak")
+                        "a torn conf.json was not restored from its recovery copy")
         self.assertEqual("before", again.player_name)
         self.assertTrue(any(n.startswith("conf.json.unreadable-")
                             for n in os.listdir(self.dir)),
                         "the unreadable file was not kept")
 
-    def _conf_with_backup(self, body, backup):
+    def _conf(self, body, **siblings):
+        """conf.json holding ``body``; each sibling is a suffix -> text,
+        e.g. ``rec=...`` for conf.json.tmprec, ``bak=...`` for .bak."""
         path = os.path.join(self.dir, "conf.json")
-        for p, text in ((path, body), (path + ".bak", backup)):
-            with open(p, "w", encoding="utf-8") as fh:
-                fh.write(text)
+        names = {"rec": REC, "bak": ".bak"}
+        files = [(path, body)] + [(path + names[k], v)
+                                  for k, v in siblings.items()]
+        for p, data in files:
+            with open(p, "wb") as fh:
+                fh.write(data.encode("utf-8") if isinstance(data, str)
+                         else data)
         return path
 
     def test_a_conf_json_that_parses_is_never_swapped_for_its_backup(self):
         """Only torn bytes are restored. A file that parses and then fails
         in our own code (a migration bug) is the user's current config, and
-        an old or hand-made `.bak` must not replace it."""
+        an older copy must not replace it."""
         from jellyfin_mpv_shim.conf import Settings
         body = '{"player_name": "current"}'
-        path = self._conf_with_backup(body, '{"player_name": "old"}')
+        old = '{"player_name": "old"}'
+        path = self._conf(body, rec=old, bak=old)
         with mock.patch.object(Settings, "_migrate",
                                side_effect=RuntimeError("migration bug")):
             self.assertFalse(Settings().load(path, create=False))
         self.assertEqual(body, self.read_file(path))
-        self.assertEqual(["conf.json", "conf.json.bak"],
+        self.assertEqual(["conf.json", "conf.json.bak", "conf.json" + REC],
                          sorted(os.listdir(self.dir)))
 
-    def test_a_backup_that_is_not_a_settings_object_is_not_restored(self):
+    def test_a_recovery_copy_that_is_not_a_settings_object_is_not_used(self):
         from jellyfin_mpv_shim.conf import Settings
-        path = self._conf_with_backup('{"player_name": "half', "[]")
+        path = self._conf('{"player_name": "half', rec="[]", bak="[]")
         self.assertFalse(Settings().load(path, create=False))
         self.assertEqual('{"player_name": "half', self.read_file(path))
+
+    def test_a_users_own_conf_json_bak_is_never_used(self):
+        from jellyfin_mpv_shim.conf import Settings
+        path = self._conf('{"player_name": "half',
+                          bak='{"player_name": "theirs"}')
+        self.assertFalse(Settings().load(path, create=False))
+        self.assertEqual('{"player_name": "half', self.read_file(path))
+        self.assertEqual('{"player_name": "theirs"}',
+                         self.read_file(path + ".bak"))
+
+    def test_an_undecodable_conf_json_is_never_replaced(self):
+        """We write pure ASCII, so bytes that do not decode are a hand edit
+        (Notepad's ANSI), never a write of ours that was cut short."""
+        from jellyfin_mpv_shim.conf import Settings
+        body = '{"sync_path": "D:/Filme/\u00dcbersicht"}'.encode("cp1252")
+        good = '{"player_name": "older"}'
+        path = self._conf(body, rec=good, bak=good)
+        self.assertFalse(Settings().load(path, create=False))
+        with open(path, "rb") as fh:
+            self.assertEqual(body, fh.read())
+
+    def test_a_torn_conf_json_comes_back_and_leaves_no_recovery_copy(self):
+        from jellyfin_mpv_shim.conf import Settings
+        path = self._conf('{"player_name": "ha',
+                          rec='{"player_name": "before"}')
+        s = Settings()
+        self.assertTrue(s.load(path, create=False))
+        self.assertEqual("before", s.player_name)
+        names = os.listdir(self.dir)
+        self.assertNotIn("conf.json" + REC, names,
+                         "a used recovery copy stayed to be used again")
+        self.assertTrue(any(n.startswith("conf.json.unreadable-")
+                            for n in names))
+
+    def test_a_refused_restore_leaves_conf_json_where_it_was(self):
+        """If the recovery copy cannot be put in place, conf.json must still
+        be there: a missing one reads as a first run, which writes defaults."""
+        from jellyfin_mpv_shim.conf import Settings
+        good = '{"player_name": "before"}'
+        path = self._conf('{"player_name": "ha', rec=good, bak=good)
+        real_replace, real_copy = os.replace, shutil.copyfile
+
+        def refuse_into(real):
+            def call(src, dst, *a, **k):
+                if os.path.abspath(dst) == os.path.abspath(path):
+                    raise REFUSED
+                return real(src, dst, *a, **k)
+            return call
+        with mock.patch("os.replace", refuse_into(real_replace)), \
+                mock.patch("shutil.copyfile", refuse_into(real_copy)):
+            self.assertFalse(Settings().load(path, create=False))
+        self.assertEqual('{"player_name": "ha', self.read_file(path))
+        self.assertEqual(good, self.read_file(path + REC))
+
+    def test_a_clean_load_clears_a_stale_recovery_copy(self):
+        """conf.json loaded, so a recovery copy beside it is from a write
+        that did finish. Left there, a later hand-edit typo would bring the
+        old settings back."""
+        from jellyfin_mpv_shim.conf import Settings
+        path = self._conf('{"player_name": "now"}',
+                          rec='{"player_name": "old"}')
+        self.assertTrue(Settings().load(path, create=False))
+        self.assertNotIn("conf.json" + REC, os.listdir(self.dir))
+
+    def test_deep_nesting_is_unreadable_not_a_crash(self):
+        """load() runs before logging is up; anything json raises has to
+        end in "unreadable", including RecursionError."""
+        from jellyfin_mpv_shim.conf import Settings
+        deep = '{"x": ' + "[" * 100000 + "]" * 100000 + "}"
+        for body, rec in ((deep, None), ('{"player_name": "ha', deep)):
+            with self.subTest(primary_is_deep=rec is None):
+                for n in os.listdir(self.dir):
+                    os.remove(os.path.join(self.dir, n))
+                siblings = {} if rec is None else {"rec": rec, "bak": rec}
+                path = self._conf(body, **siblings)
+                self.assertFalse(Settings().load(path, create=False))
 
     @staticmethod
     def read_file(path):
@@ -244,6 +353,16 @@ class TornWriteRecoveryTest(unittest.TestCase):
         s = Settings()
         self.assertFalse(s.load(path, create=False))
         self.assertFalse(s.save())
+
+    def test_shader_overrides_clear_a_stale_recovery_copy(self):
+        from jellyfin_mpv_shim import shader_overrides
+        path = os.path.join(self.dir, "shader_profiles.json")
+        shader_overrides.ShaderOverrides(path).set("series", "s1", "fsr")
+        with open(path + REC, "w", encoding="utf-8") as fh:
+            fh.write('{"series": {"s1": "anime4k"}}')
+        again = shader_overrides.ShaderOverrides(path)
+        self.assertEqual("fsr", again.get("series", "s1"))
+        self.assertNotIn("shader_profiles.json" + REC, os.listdir(self.dir))
 
     def test_shader_overrides(self):
         from jellyfin_mpv_shim import shader_overrides
