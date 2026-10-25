@@ -55,6 +55,10 @@ level_mapping = {
 }
 
 
+# Named, or a line logged at mpv's `v` level is labelled "Level 15".
+logging.addLevelName(level_mapping["V"], "VERBOSE")
+
+
 def _level(name: str) -> int:
     # A hand-edited typo must not stop the app starting.
     return level_mapping.get(str(name).upper(), logging.INFO)

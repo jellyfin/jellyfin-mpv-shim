@@ -57,6 +57,11 @@ class AppLogLevelTest(unittest.TestCase):
         self.assertLess(self.configure("v"), logging.INFO)
         self.assertLess(self.configure("trace"), logging.DEBUG)
 
+    def test_v_has_a_name_in_the_log(self):
+        """Otherwise every mpv `v` line is labelled "Level 15"."""
+        self.assertNotEqual("Level 15",
+                            logging.getLevelName(log_utils._level("v")))
+
     def test_a_typo_falls_back_to_info(self):
         self.assertEqual(self.configure("verbose!"), logging.INFO)
 
