@@ -46,6 +46,7 @@ level_mapping = {
     "WARNING": 30,
     "INFO": 20,
     "DEBUG": 10,
+    "NOISE": 5,
     "NOTSET": 0,
 }
 
