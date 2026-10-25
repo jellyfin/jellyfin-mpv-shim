@@ -673,8 +673,11 @@ def _quiesce_libmpv(handle):
     try:
         if handle.core_shutdown:
             return              # the user closed the window: already down
+        # catch_errors=False: otherwise any observer raising while the core
+        # winds down ends this wait early, and terminate() races it again.
         with handle.prepare_and_wait_for_event("shutdown",
-                                               timeout=MPV_QUIT_WAIT):
+                                               timeout=MPV_QUIT_WAIT,
+                                               catch_errors=False):
             handle.quit()
     except Exception as exc:
         # By name: a stand-in backend without the class would make the

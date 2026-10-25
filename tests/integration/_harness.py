@@ -889,11 +889,16 @@ class FakeMPVLibmpv(FakeMPV):
         self._journal.record("mpv", "quit")
         self.core_shutdown = True
 
+    # python-mpv's signature: a fake that rejected a keyword the shim passes
+    # would raise inside the quiesce's own except, and skip it silently.
+    # "shutdown" resolves the wait normally, which is python-mpv's usual
+    # exit; tests/test_libmpv_quiesce.py covers its ShutdownError one.
     @contextlib.contextmanager
-    def prepare_and_wait_for_event(self, *event_types, timeout=None):
+    def prepare_and_wait_for_event(self, *event_types, cond=lambda evt: True,
+                                   timeout=None, catch_errors=True):
         yield
         if "shutdown" in event_types and self.core_shutdown:
-            raise ShutdownError("libmpv core has been shutdown")
+            return
         raise TimeoutError()
 
 
