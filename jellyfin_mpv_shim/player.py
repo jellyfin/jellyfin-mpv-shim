@@ -35,6 +35,7 @@ from .utils import (same_origin, synchronous, Timer, get_resource,
                     item_is_audio)
 from .media import segment_labels
 from . import mpv_guard
+from .log_utils import level_mapping
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
 from .player_audio import AudioMixin
@@ -343,11 +344,14 @@ SUBTITLE_POS = {
     "middle": 80,
 }
 
-mpv_log_levels = {
+mpv_log_levels: dict[str, Callable[[str], None]] = {
     "fatal": mpv_log.error,
     "error": mpv_log.error,
     "warn": mpv_log.warning,
     "info": mpv_log.info,
+    # At the level `v` gives the app (log_utils.level_mapping), so that
+    # choosing `v` shows them: everything else not named here is debug.
+    "v": functools.partial(mpv_log.log, level_mapping["V"]),
 }
 
 
