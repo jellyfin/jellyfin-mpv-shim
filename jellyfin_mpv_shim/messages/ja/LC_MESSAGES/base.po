@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-18 11:16+0000\n"
+"PO-Revision-Date: 2026-10-25 11:49+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -1301,13 +1301,11 @@ msgstr "ディスクから削除"
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "もっと"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Has Special Features"
 msgid "Special Features"
 msgstr "特典映像"
 
@@ -1329,51 +1327,41 @@ msgstr "Web"
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. promotional film about the making of the film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Features"
 msgctxt "kind of special feature"
 msgid "Featurette"
-msgstr "機能"
+msgstr "メイキング"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
 #. production.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Panel behind the controls"
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr "コントロールの後ろのパネル"
+msgstr "舞台裏"
 
 # seeded from jellyfin-web: DeleteUser
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
 #. from the finished film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Delete User"
 msgctxt "kind of special feature"
 msgid "Deleted Scene"
-msgstr "ユーザーの削除"
+msgstr "未公開シーン"
 
 # seeded from jellyfin-web: MediaInfoInterlaced
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. An interview
 #. with the cast or crew.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Interlaced"
 msgctxt "kind of special feature"
 msgid "Interview"
-msgstr "インターレース"
+msgstr "インタビュー"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
 #. the film itself.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Scenes"
 msgctxt "kind of special feature"
 msgid "Scene"
 msgstr "シーン"
@@ -1383,21 +1371,17 @@ msgstr "シーン"
 #. what kind of extra it is. Jellyfin Web uses the same word. A short sample
 #. of the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Sample rate"
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr "サンプルレート"
+msgstr "サンプル"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. excerpt.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Clipboard"
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr "クリップボード"
+msgstr "クリップ"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1405,7 +1389,7 @@ msgstr "クリップボード"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "ショート"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
@@ -4147,10 +4131,8 @@ msgstr "OK"
 #. Error in the Download modal for a special feature (an extra belonging to a
 #. film or show). They can only be played from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "%s has not been downloaded."
 msgid "Special features cannot be downloaded."
-msgstr "%s をダウンロードしていません。"
+msgstr "特典映像はダウンロードできません。"
 
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
