@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-24 16:38+0000\n"
+"PO-Revision-Date: 2026-10-25 11:49+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -221,7 +221,7 @@ msgstr "Hüppa reklaamist üle"
 #. Pressing it jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Preview"
-msgstr "Jäta vahele"
+msgstr "Jäta eelvaade vahele"
 
 #. Confirmation drawn over the video after a preview was jumped past. Past
 #. tense.
@@ -233,7 +233,7 @@ msgstr "Eelvaade jäeti vahele"
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Preview"
-msgstr "Hüppa eelvaatest üle"
+msgstr "Keri eelvaate vahelejätmiseks"
 
 #. Button drawn over the video during a "previously on" recap. Pressing it
 #. jumps past it. An imperative verb phrase.
@@ -3007,7 +3007,7 @@ msgstr "Mäleta viimati kasutatud profiili"
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "Graafika API varjutajatele"
 
 #. Label of the checkbox for the "audio_passthrough_ac3" setting (Settings
 #. > Playback > Audio).
@@ -3678,6 +3678,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
+"Alistab teema kaanepildi suuruse. Saadaval ka iga meediakogu menüüs 'Vaade'."
 
 #. Explanation shown under the "12-Hour Clock" setting (Settings > Browse >
 #. Library Browser).
@@ -3687,6 +3688,9 @@ msgid ""
 "and its air times, and the \"Ends at\" labels on a detail page and the "
 "player controls."
 msgstr ""
+"Kuvab kellaaegu kujul \"8:30 PM\" mitte \"20:30\" — telekavas ja "
+"eetriaegades ning üksikasjalehel ja pleieri juhtpaneelil sildil \"Lõpeb "
+"kell\"."
 
 #. Explanation shown under the "Shading Behind the Player Controls" setting
 #. (Settings > Playback > Player Controls).
@@ -3695,6 +3699,9 @@ msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"Esituse juhtelementide tekst ja nupud peavad olema selgelt loetavad igal "
+"videokaadril. Valik \"Puudub\" rakendab tekstile varjutuse, mitte ei tumenda "
+"videot nuppude all."
 
 #. Explanation shown under the "When the Player Controls Hide" setting
 #. (Settings > Playback > Player Controls).
@@ -3703,6 +3710,9 @@ msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"Valik \"Peida, kui kursor pole peal\" hoiab juhtnuppe kuvatuna ainult siis, "
+"kui hiirekursor asub nende kohal sõltumata sellest, kas taasesitus on pausil "
+"või mitte."
 
 #. Explanation shown under the "Hide the Player Controls After (seconds)"
 #. setting (Settings > Playback > Player Controls).
@@ -3711,6 +3721,8 @@ msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"Väärtus 0 peidab juhtelemendid kohe, kui kursor pole nende kohal, ning "
+"rakendab režiimi \"Peida, kui kursor pole peal\"."
 
 #. Explanation shown under the "Shrink the Player Controls on a Narrow
 #. Window" setting (Settings > Playback > Player Controls).
