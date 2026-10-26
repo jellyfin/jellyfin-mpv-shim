@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-25 11:49+0000\n"
+"PO-Revision-Date: 2026-10-26 07:19+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -3732,6 +3732,9 @@ msgid ""
 "the accessibility minimum, instead of dropping buttons sooner. Off keeps the "
 "older, larger floor."
 msgstr ""
+"Akna kitsendamisel vähendatakse juhtnuppe seni, kuni väikseim nupp jõuab "
+"ligipääsetavuse miinimummõõduni, mitte ei eemaldata nuppe varem. "
+"Väljalülitatuna säilitatakse varasem, suurem alampiir."
 
 #. Explanation shown under the "Mouse Back/Forward Buttons Skip Chapters"
 #. setting (Settings > Playback > Player Controls).
@@ -3740,6 +3743,9 @@ msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
+"Kehtib ainult taasesituse ajal; meediakogus navigeerimisel toimivad need "
+"edasi-tagasi nuppudena. Vaikimisi väljalülitatud, vältimaks juhuslikke "
+"vajutusi."
 
 #. Explanation shown under the "Interface Scale" setting (Settings > Browse
 #. > Theme).
@@ -3748,6 +3754,8 @@ msgstr ""
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
+"Valik \"Vastavalt ekraanile\" kasutab töölaua teatatud skaalat, mis X11 "
+"puhul on 100%."
 
 #. Explanation shown under the "Text size" setting (Settings > Browse >
 #. Theme).
