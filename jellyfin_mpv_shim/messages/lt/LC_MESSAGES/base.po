@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 10:43+0000\n"
+"PO-Revision-Date: 2026-10-26 11:04+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -4357,7 +4357,7 @@ msgstr "Žiūrėti toliau"
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Continue Listening"
-msgstr ""
+msgstr "Klausytis toliau"
 
 #. Books opened and not finished. The name of a home-screen row and the
 #. choice for one in the Home Screen settings.
