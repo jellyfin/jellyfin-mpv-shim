@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-09-01 04:42+0000\n"
-"Last-Translator: fredsimon <fredoline.simon@gmail.com>\n"
+"PO-Revision-Date: 2026-10-26 09:21+0000\n"
+"Last-Translator: ZeroAiden <zeroaiden.game@gmail.com>\n"
 "Language-Team: Malay <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ms/>\n"
 "Language: ms\n"
@@ -29,9 +29,9 @@ msgstr "Format tidak diketahui"
 #. Reading Progress dialog. Both placeholders are page numbers.
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy, python-format
+#, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr "Halaman %(page) daripada %(total)"
+msgstr "Halaman %(page)d daripada %(total)d"
 
 #. Position in a book whose length is unknown, so no total can be given. %d
 #. is the page number.
@@ -45,7 +45,7 @@ msgstr "Halaman %d"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% dibaca"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -99,7 +99,6 @@ msgstr "Menetapkan Semasa..."
 #. Instruction printed in the terminal when signing in without a window.
 #. The arrow is a menu path; "Quick Connect" is the Jellyfin feature name.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
@@ -131,23 +130,18 @@ msgstr "Gagal menambahkan pelayan."
 #. Printed in the terminal when the server being added is one already
 #. saved, so its saved login is replaced.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
 msgid "Account already exists. Updating credentials."
 msgstr "Akaun sudah wujud. Mengemas kini kelayakan."
 
 #. Printed in the terminal after a saved login was replaced.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Pelayan berjaya ditambah."
+msgstr "Kelayakan pelayan telah berjaya dikemas kini."
 
 #. Printed in the terminal when replacing a saved login failed.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Gagal menambahkan pelayan."
+msgstr "Kelayakan pelayan gagal dikemas kini."
 
 #. Terminal prompt asking for the Jellyfin server's web address. The
 #. trailing space separates it from what is typed; keep it.
@@ -174,14 +168,8 @@ msgstr "Tambah pelayan lain?"
 
 #. Printed in the terminal when the Jellyfin server could not be reached.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Tidak dapat menyambung ke pelayan."
 
 #. Printed in the terminal when the server administrator has turned the
 #. Quick Connect feature off.
@@ -210,7 +198,7 @@ msgstr "Kredit Dilangkau"
 #. shown when the viewer seeks into them.
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr ""
+msgstr "Lompat untuk Langkau Kredit"
 
 #. Button drawn over the video during an advertisement break. Pressing it
 #. jumps past it. An imperative verb phrase.
@@ -252,7 +240,7 @@ msgstr ""
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Langkau Imbasan Semula"
 
 #. Confirmation drawn over the video after a recap was jumped past. Past
 #. tense.
@@ -815,10 +803,8 @@ msgstr "Halaman pertama"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Pelayan berjaya ditambah."
+msgstr "Halaman sebelumnya"
 
 #. Tooltip of the button that goes forward one page: in a library grid, and
 #. in the book and comic readers.
@@ -1066,10 +1052,8 @@ msgstr ""
 #. Heading above the list of servers already signed in to, on the sign-in
 #. page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Pelayan berjaya ditambah."
+msgstr "Pelayan yang telah ditambah sebelum ini"
 
 #. Button beside a remembered server on the sign-in page, choosing that
 #. server. An imperative verb.
@@ -1100,26 +1084,20 @@ msgstr ""
 #. Label of the field on the sign-in page where the Jellyfin server's web
 #. address is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "URL Pelayan: "
+msgstr "URL Pelayan"
 
 #. Label of the field on the sign-in page where the Jellyfin account name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Nama Pengguna:"
+msgstr "Nama Pengguna"
 
 #. Label of the field on the sign-in page where the Jellyfin account
 #. password is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Kata Laluan:"
+msgstr "Kata Laluan"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #. Button on the sign-in page that signs in with a code instead of a
@@ -1160,14 +1138,8 @@ msgstr ""
 
 #. Status shown while the Quick Connect code is being requested.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Menghubungi pelayan…"
 
 #. Status shown while Quick Connect waits for someone to accept the code in
 #. another Jellyfin app.
@@ -1199,26 +1171,14 @@ msgstr ""
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not sign in. Please check your details."
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Tidak dapat log masuk. Sila semak butiran anda."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Tidak dapat menyambung. Sila semak butiran anda."
 
 #. Heading of the startup screen shown while the saved servers are being
 #. reached.
@@ -1249,19 +1209,19 @@ msgstr ""
 #. Heading of the lock screen, asking for the numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Masukkan PIN anda"
 
 #. Shown under the lock screen's heading. %s is the locked user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s telah dikunci."
 
 #. Button on the lock screen that opens the application with the passcode
 #. typed above. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
-msgstr ""
+msgstr "Buka kunci"
 
 #. Heading above the list of other accounts on the lock screen.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1276,16 +1236,14 @@ msgstr "Sedia untuk pemancaran"
 
 #. Instruction under the idle cast screen's heading.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Pilih media anda dalam Jellyfin dan mainkannya di sini"
+msgstr "Pilih media anda dalam Jellyfin dan mainkannya di sini."
 
 #. Heading over the actors and film-makers on an item's page. Jellyfin Web
 #. uses the same phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Cast & Crew"
-msgstr ""
+msgstr "Pelakon & Kru"
 
 # seeded from jellyfin-web: Download
 #. Button in the Download modal that starts fetching the selected items. An
@@ -1846,10 +1804,8 @@ msgstr ""
 #. re-encoding this video right now.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Transkod)"
+msgstr "Transkod"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel. This and the ones like it are sentence
@@ -1946,13 +1902,13 @@ msgstr ""
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio codec's profile is not supported"
-msgstr ""
+msgstr "Profil kodek audio tidak disokong"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's sample rate is not supported"
-msgstr ""
+msgstr "Kadar sampel audio tidak disokong"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -2030,10 +1986,8 @@ msgstr ""
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Reading"
-msgstr " (Transkod)"
+msgstr "Membaca"
 
 #. Content fetched to this device for offline use. A group heading under
 #. Settings > Browse, the name of the Downloads settings page, and the
@@ -2652,10 +2606,8 @@ msgstr ""
 #. Label of the dropdown for the "deband" setting (Settings > Playback >
 #. Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (Transkod)"
+msgstr "Menyahbanding"
 
 #. Label of the dropdown for the "tone_mapping" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3867,18 +3819,14 @@ msgstr "Buang Pelayan"
 
 #. Shown in the Add to Collection modal when the server has no collections.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Buang Pelayan"
+msgstr "Belum ada koleksi."
 
 #. Placeholder text in the empty text field where a new collection's name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Nama pengguna: "
+msgstr "Nama koleksi baharu…"
 
 # seeded from jellyfin-web: ButtonBack
 #. Goes one step back. The navigation bar's back button, the row that
@@ -4277,10 +4225,8 @@ msgstr ""
 #. Validation message in the Reading Progress dialog when what was typed in
 #. the page field is not a number.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Enter a number."
-msgstr "Tukar Sarikata"
+msgstr "Masukkan nombor."
 
 #. Validation message in the Reading Progress dialog. %d is the last page
 #. of the book.
@@ -4476,10 +4422,9 @@ msgstr "Buang Pelayan"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for authorization..."
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "Menunggu kelulusan..."
+msgstr "Menunggu %s untuk log masuk…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
@@ -4829,10 +4774,8 @@ msgstr "Sebelumnya"
 #. previous chapter.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "Pelayan berjaya ditambah."
+msgstr "Bab sebelumnya"
 
 #. Tooltip of the rewind button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -4922,28 +4865,26 @@ msgstr ""
 #. Question in the dialog confirming a scheduled recording is to be called
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "Configure Servers"
 msgid "Cancel recording?"
-msgstr "Konfigurasikan Pelayan"
+msgstr "Batalkan rakaman?"
 
 #. Status message confirming a scheduled recording was called off.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording cancelled."
-msgstr ""
+msgstr "Rakaman dibatalkan."
 
 #. Button in the recording dialog that calls off this single recording. An
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Cancel Recording"
-msgstr ""
+msgstr "Batalkan Rakaman"
 
 #. Question in the dialog confirming the rule that records every episode is
 #. to be dropped.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
-msgstr ""
+msgstr "Berhenti merakam siri ini?"
 
 #. Status message confirming the rule that records every episode was
 #. dropped.
@@ -4989,14 +4930,9 @@ msgstr ""
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "%s could not be refreshed."
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "%s tidak dapat disegarkan."
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #. Warning in the dialog that deletes media from the server. This removes
@@ -5027,18 +4963,15 @@ msgstr ""
 #. item stays on the server. %s is its name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "Buang Pelayan"
+msgstr "Padam salinan %s yang telah dimuat turun?"
 
 #. Title of the dialog that removes a downloaded copy from this device.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Download"
-msgstr "Buang Pelayan"
+msgstr "Padam Muat Turun"
 
 # seeded from jellyfin-web: Delete
 #. Confirming button of a dialog that removes something for good: a
@@ -5095,22 +5028,16 @@ msgstr ""
 #. Status message when fetching an item to this device failed. %s is its
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "%s tidak dapat dimuat turun."
 
 #. Status message while an item is being fetched to this device. %s is its
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Downloading %s…"
-msgstr "Buang Pelayan"
+msgstr "Memuat turun %s…"
 
 #. Error in the recording options dialog when the server would not return
 #. the recording rule.
@@ -5128,20 +5055,16 @@ msgstr ""
 #. Title of the dialog holding one programme's recording settings. A noun
 #. naming the thing being set up.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (Transkod)"
+msgstr "Rakaman"
 
 #. Label of the dropdown in the series recording dialog choosing which
 #. episodes are recorded. A noun-like form label here, not the button of
 #. the same English word that starts a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgctxt "series recording rule setting"
 msgid "Record"
-msgstr " (Transkod)"
+msgstr "Rakam"
 
 #. Choice in the "Record" dropdown of the series recording dialog: record
 #. first-run episodes and skip repeats.
@@ -5414,22 +5337,14 @@ msgstr ""
 
 #. Error shown when an item would not start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Tidak dapat memainkan item ini"
 
 #. Button on the playback error screen that tries again while asking the
 #. server to re-encode the video. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Retry with Transcode"
-msgstr " (Transkod)"
+msgstr "Cuba semula dengan Transkod"
 
 #. State of the repeat button on the now-playing bar: play the whole queue
 #. again when it ends.
@@ -5528,14 +5443,8 @@ msgstr ""
 #. Status message when a web address could not be handed to the system's
 #. browser.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not open that link."
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Tidak dapat membuka pautan itu."
 
 #. Caption under an audiobook's title, counting its chapters.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -5610,7 +5519,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "Baca"
 
 #. Button on a book's page that hands the file to whatever application the
 #. system opens it with. An imperative verb phrase.
@@ -5620,10 +5529,8 @@ msgstr ""
 
 #. Shown on a book's page while the file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading…"
-msgstr "Buang Pelayan"
+msgstr "Memuat turun…"
 
 #. Shown on a book's page while the stored reading position is being
 #. fetched from the server.
@@ -5634,10 +5541,8 @@ msgstr ""
 #. Shown in place of a grid or list that has no items in it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing here."
-msgstr "Konfigurasi Pelayan"
+msgstr "Tiada apa-apa di sini."
 
 #. Error shown when a comic file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -5698,26 +5603,26 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
-msgstr ""
+msgstr "Versi %d"
 
 #. Label of the dropdown on an item's page choosing between several files
 #. of the same item, such as a 4K and a 1080p copy.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Version"
-msgstr ""
+msgstr "Versi"
 
 #. Prefix on an unnamed subtitle track in the subtitle dropdown on an
 #. item's page. Deliberately clipped, because it sits inside a narrow list.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
+msgstr "Sarikata"
 
 #. Caption on an item's page: the clock time it would finish at if started
 #. now. %s is a time of day, already formatted.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Ends at %s"
-msgstr ""
+msgstr "Berakhir pada %s"
 
 #. Shown on the Favorites page when nothing has been marked.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
@@ -5957,10 +5862,8 @@ msgstr ""
 
 #. Tooltip of the button that moves the Live TV guide back one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "Pelayan berjaya ditambah."
+msgstr "Hari Sebelumnya"
 
 #. Tooltip of the button that scrolls the Live TV guide back a few hours.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -5996,10 +5899,8 @@ msgstr ""
 #. Tooltip of the button that shows the previous group of channels in the
 #. Live TV guide.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "Pelayan berjaya ditambah."
+msgstr "Saluran Terdahulu"
 
 #. Tooltip of the button that shows the next group of channels in the Live
 #. TV guide.
@@ -6035,10 +5936,8 @@ msgstr "Buka Folder Konfigurasi"
 
 #. Shown on the Live TV Recordings tab when there are no recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "Konfigurasi Pelayan"
+msgstr "Belum ada apa-apa yang dirakam."
 
 #. Shown on the Live TV Schedule tab when nothing is set to record.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -6318,10 +6217,8 @@ msgstr ""
 #. on its edit page. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Nama Pengguna:"
+msgstr "Namakan semula"
 
 #. Checkbox on the playlist editor. When on, other users of the server can
 #. see this playlist.
@@ -6340,10 +6237,9 @@ msgstr "Buang Pelayan"
 #. Question in the dialog that removes a playlist from the server. %s is
 #. the playlist's name.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Buang Pelayan"
+msgstr "Padam senarai main %s?"
 
 #. Column heading on the queue and playlist editors: what kind of item the
 #. row is, such as Episode or Song.
@@ -6418,14 +6314,8 @@ msgstr ""
 #. Status message when text could not be put on the clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy"
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Tidak dapat menyalin"
 
 #. Status message when the clipboard could not be reached, so the text was
 #. written to a file instead. %s is that file's path.
@@ -6443,14 +6333,8 @@ msgstr ""
 
 #. Shown while a book file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Getting the book…"
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Mengambil buku…"
 
 #. Error shown when a book was fetched but its pages could not be laid out.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -6483,10 +6367,9 @@ msgstr ""
 
 #. Heading of the search page. %s is what was typed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Pelayan:"
+msgstr "Hasil untuk \"%s\""
 
 # seeded from jellyfin-web: Shows
 #. Name of a search-results and library group holding television series.
@@ -6719,10 +6602,9 @@ msgstr ""
 #. Question in the dialog that removes watched downloads. %s is the group
 #. they are in, such as a series name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Buang Pelayan"
+msgstr "Padam muat turun yang telah ditonton dalam %s?"
 
 #. First entry of the interface language dropdown: follow whatever language
 #. the desktop is set to. Every other entry is a language's own name in
@@ -6994,14 +6876,8 @@ msgstr ""
 #. Status message when the order of the home screen rows could not be
 #. written to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Tidak dapat menyimpan susun atur skrin utama."
 
 # seeded from jellyfin-web: General
 #. Name of the first tab of Settings, holding what belongs to this
@@ -7020,23 +6896,20 @@ msgstr "Semak imbas"
 #. Name of a Settings tab, holding the Jellyfin servers and this
 #. application's local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "URL Pelayan: "
+msgstr "Pelayan dan Pengguna"
 
 #. Name of a Settings tab showing this application's diagnostic output.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Logs"
-msgstr ""
+msgstr "Log"
 
 # seeded from jellyfin-web: Settings
 #. Placeholder in the empty field that searches the settings.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Search settings…"
-msgstr "Tetapan"
+msgstr "Cari tetapan…"
 
 # seeded from jellyfin-web: Copy
 #. Button on the Logs tab that puts the log on the clipboard. An imperative
@@ -7083,34 +6956,26 @@ msgstr ""
 #. typed, in the Users settings. These are this application's own profiles,
 #. each with its own servers, not Jellyfin accounts.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Nama pengguna: "
+msgstr "Nama pengguna baharu…"
 
 #. Button in the Users settings that creates a new local profile. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Add Server"
 msgid "Add User"
-msgstr "Tambah Pelayan"
+msgstr "Tambah Pengguna"
 
 #. Shown in the Servers settings when this profile has signed in to
 #. nothing.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Konfigurasi Pelayan"
+msgstr "Belum ada pelayan yang dikonfigurasikan."
 
 #. Heading of the Users section of Settings, listing this application's
 #. local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Nama Pengguna:"
+msgstr "Pengguna"
 
 #. Subtitle under the Users heading in Settings. These are this
 #. application's own local profiles, not Jellyfin accounts, and a locked
@@ -7124,18 +6989,15 @@ msgstr ""
 #. Heading of the Servers section of Settings. %s is the name of the local
 #. profile whose servers are listed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Pelayan:"
+msgstr "Pelayan untuk %s"
 
 #. Heading of the Servers section of Settings, used when no profile is
 #. named.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Pelayan:"
+msgstr "Pelayan"
 
 #. Button beside a local profile in Settings that alters its numeric
 #. passcode. An imperative verb phrase.
@@ -7148,10 +7010,8 @@ msgstr "Tukar Audio"
 #. Button beside a local profile in Settings that gives it a numeric
 #. passcode. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Pelayan:"
+msgstr "Tetapkan PIN"
 
 #. Question in the dialog that removes a local profile. %s is the profile's
 #. name; "saved logins" are the servers it is signed in to.
@@ -7174,10 +7034,9 @@ msgstr ""
 
 #. Question in the dialog that forgets a server. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "Buang Pelayan"
+msgstr "Buang %s dan maklumat log masuknya yang disimpan?"
 
 #. Title of the dialog that forgets a server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7200,21 +7059,15 @@ msgstr ""
 # seeded from jellyfin-web: Connect
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connect"
+#, python-format
 msgid "Connected to %s."
-msgstr "Sambung"
+msgstr "Disambungkan ke %s."
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "Connecting to %s…"
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Menyambung ke %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7237,14 +7090,9 @@ msgstr ""
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Tidak dapat menyambung ke %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7269,12 +7117,12 @@ msgstr ""
 #. Column heading in a library shown as a list: the item's release year.
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Year"
-msgstr ""
+msgstr "Tahun"
 
 #. Column heading in a library shown as a list: how long the item runs.
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"
-msgstr ""
+msgstr "Panjang"
 
 # seeded from jellyfin-web: Artist
 #. Column heading in a music track table: who performs the track.
@@ -7340,17 +7188,15 @@ msgstr "Buang Pelayan"
 
 #. Question in the confirmation dialog. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "Buang Pelayan"
+msgstr "Buang %s daripada senarai main ini?"
 
 #. Question in the confirmation dialog. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "Buang Pelayan"
+msgstr "Buang %s daripada koleksi ini?"
 
 #. Status message when Add to play queue was chosen on something the app
 #. found no playable item inside.
@@ -7434,18 +7280,14 @@ msgstr ""
 #. Tooltip of the navigation bar's dropdown that switches between Jellyfin
 #. servers.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Pelayan:"
+msgstr "Pelayan"
 
 #. Tooltip of the navigation bar's dropdown that switches between accounts
 #. on this server.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Nama Pengguna:"
+msgstr "Pengguna"
 
 #. Placeholder in the empty search field on the navigation bar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -7575,10 +7417,8 @@ msgstr ""
 #. Marker beside a quality option on the playback controls, meaning the
 #. server would re-encode the video to reach it. A noun here.
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Transkod)"
+msgstr "Transkod"
 
 #. First entry of a video profile list for a narrower scope, meaning "stop
 #. overriding and follow the wider setting".
