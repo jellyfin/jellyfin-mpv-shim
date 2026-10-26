@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 07:19+0000\n"
+"PO-Revision-Date: 2026-10-26 07:55+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -3781,6 +3781,9 @@ msgid ""
 "Nothing renders smaller than this, whatever Text Size works out to. Raises "
 "the smallest labels without enlarging headings, which a percentage cannot do."
 msgstr ""
+"Määrab tekstisuuruse absoluutse alampiiri. See suurendab vaid kõige pisemaid "
+"tekste ja silte ilma pealkirju suurendamata - funktsioon, mida tavaline "
+"protsentuaalne skaleerimine ei võimalda."
 
 #. Explanation shown under the "Audio Output Mode" setting (Settings >
 #. Playback > Audio).
@@ -3789,6 +3792,9 @@ msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
+"\"Vaikimisi\" ei tee muudatusi ning toetub MPV (ja kasutaja mpv.conf) "
+"seadistusele. Vali teine režiim üksnes siis, kui suunad heli eraldiseisvasse "
+"helisüsteemi."
 
 #. Explanation shown under the "Re-encode Others to AC3" setting (Settings
 #. > Playback > Audio).
@@ -3798,6 +3804,9 @@ msgid ""
 "surround fits down an optical cable. Turn this off if the encoder causes "
 "audio delay; those tracks become stereo instead."
 msgstr ""
+"Heli, mida resiiver otse ei toeta, kodeeritakse AC3-ks, mis on ainus viis "
+"ruumilise heli saatmiseks üle optilise kaabli. Kui see tekitab heli "
+"viivitust, lülita säte välja; sel juhul muudetakse helirajad stereoks."
 
 #. Explanation shown under the "Profile Group" setting (Settings > Playback
 #. > Video Enhancement).
@@ -3805,6 +3814,8 @@ msgstr ""
 msgid ""
 "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card."
 msgstr ""
+"Valik \"hq\" sisaldab ressursinõudlikumaid profiile. Soovitatav kasutada "
+"vaid võimsa graafikakaardi korral."
 
 #. Explanation shown under the "Graphics API for Shaders" setting (Settings
 #. > Playback > Video Enhancement).
@@ -3813,6 +3824,9 @@ msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
+"Jäta valikule \"Automaatne\", välja arvatud juhul, kui pilt tõrgub profiili "
+"laadimisel. See kehtib vaid aktiivse profiili korral ning OpenGL võib "
+"piirata HDR-väljundit."
 
 #. Explanation shown under the "Type Size" setting (Settings > Browse >
 #. Reading).
@@ -3821,6 +3835,8 @@ msgid ""
 "In pixels, before interface scaling. The A- and A+ buttons in the reader "
 "change this too."
 msgstr ""
+"Pikslites, enne kasutajaliidese skaleerimist. Seda muudavad ka lugeri nupud "
+"A- ja A+."
 
 #. Explanation shown under the "Comic Reading Mode" setting (Settings >
 #. Browse > Reading).
@@ -3829,6 +3845,8 @@ msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
 msgstr ""
+"Koomiksilehe akna suurusele kohandamise viis selle avamisel. Sama valikut "
+"saab muuta ka otse lugemisvaate nuppudest."
 
 #. Explanation shown under the "Night Mode (Auto Volume Adj)" setting
 #. (Settings > Playback > Audio).
@@ -3838,6 +3856,9 @@ msgid ""
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
+"Tasakaalustab valjud heliefektid ja vaikse dialoogi. Funktsiooni "
+"kasutamisell lülitatakse läbilaskeheli välja, kuna helitugevust tuleb "
+"kohandada enne, kui helisignaal jõuab vastuvõtjasse."
 
 # seeded from jellyfin-web: HeaderStatus
 #. Heading of the first section of the library filter panel, above the
@@ -3969,15 +3990,14 @@ msgstr ""
 #. to items with a theme video attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "Teemavideoga"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading of a filter-panel section, above checkboxes for resolution and
 #. disc format (SD, HD, 4K, 3D, DVD, Blu-ray, ISO).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Video Types"
-msgstr "Videod"
+msgstr "Video tüübid"
 
 # seeded from jellyfin-web: ChannelResolutionSD
 #. Checkbox in the filter panel's Video Types section: standard definition.
@@ -3998,7 +4018,7 @@ msgstr "HD"
 #. Normally left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 # seeded from jellyfin-web: Option3D
 #. Checkbox in the filter panel's Video Types section: stereoscopic 3D
@@ -4018,32 +4038,30 @@ msgstr "DVD"
 #. Blu-ray disc. A trademark, left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr ""
+msgstr "Blu-ray"
 
 #. Checkbox in the filter panel's Video Types section: a whole disc image
 #. file. Left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "ISO"
-msgstr ""
+msgstr "ISO"
 
 #. Title of the modal that puts the selected item into a playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Playlist"
-msgstr "Eemalda server"
+msgstr "Lisa esitusloendisse"
 
 #. Shown in the Add to Playlist modal when the viewer has no playlists on
 #. the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "Esitusloendeid veel ei ole."
 
 #. Placeholder text in the empty text field where a new playlist's name is
 #. typed, in the Add to Playlist modal.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "Uue esitusloendi nimi…"
 
 # seeded from jellyfin-web: Create
 #. Button in the Add to Playlist and Add to Collection modals. Makes the
@@ -4057,15 +4075,13 @@ msgstr "Loo"
 #. is visible to other users of the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
-msgstr ""
+msgstr "Privaatne (nähtav vaid sulle)"
 
 #. Button in the Add to Playlist modal that switches to the Add to
 #. Collection modal. The ellipsis means it opens another view.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "Eemalda server"
+msgstr "Kogumikud…"
 
 #. Button that dismisses something without acting. Used on modals (Add to
 #. Playlist, Reading Progress, SyncPlay, the recording dialogs) and as the
@@ -4080,25 +4096,19 @@ msgstr "Sulge"
 #. Title of the modal that puts the selected item into a collection
 #. (Jellyfin's grouping of related items, such as a film series).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Collection"
-msgstr "Eemalda server"
+msgstr "Lisa kogumikku"
 
 #. Shown in the Add to Collection modal when the server has no collections.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Eemalda server"
+msgstr "Kogumikke veel ei ole."
 
 #. Placeholder text in the empty text field where a new collection's name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Kasutajanimi: "
+msgstr "Uue kogumiku nimi…"
 
 # seeded from jellyfin-web: ButtonBack
 #. Goes one step back. The navigation bar's back button, the row that
@@ -4116,8 +4126,6 @@ msgstr "Tagasi"
 #. Stands in for the name of a media source (a file or version of an item)
 #. that the server did not name, in the Media Info modal.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Unkn"
 msgid "Unknown"
 msgstr "Tundmatu"
 
@@ -4125,7 +4133,7 @@ msgstr "Tundmatu"
 #. or subtitle stream details for the item.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No media information is available."
-msgstr ""
+msgstr "Meediateave pole saadaval."
 
 # seeded from jellyfin-web: MoreMediaInfo
 #. The panel listing an item's video, audio and subtitle stream details.
@@ -4153,22 +4161,14 @@ msgstr "Lisamaterjale pole võimalik alla laadida."
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"Serveri lisamine nurjus.\n"
-"Kontrolli ühenduse andmeid."
+msgstr "Ei saanud kontrollida, mida on vaja allalaadida."
 
 #. Placeholder in the Download modal while the app works out how many items
 #. would be downloaded and how much space they need.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "SVP seaded"
+msgstr "Arvutamine…"
 
 #. Summary line in the Download modal. %(count)d is a number of items,
 #. %(size)s an already-formatted size such as "4.2 GB". The middle
@@ -4177,28 +4177,28 @@ msgstr "SVP seaded"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%(count)d items · %(size)s"
-msgstr ""
+msgstr "%(count)d üksust · %(size)s"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. of the items are on disk already.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d already downloaded"
-msgstr ""
+msgstr "%d on alla laaditud"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. of the items have already been watched.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
-msgstr ""
+msgstr "%d on vaadatud"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. items the server would not give a size for.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "%d teadmata suurusega"
 
 # seeded from jellyfin-web: Download
 #. Title of the modal that downloads items for offline viewing. A noun
@@ -4213,7 +4213,7 @@ msgstr "Lae alla"
 #. left out of the download.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
-msgstr ""
+msgstr "Kaasa ka vaadatud"
 
 #. Shown in the Download modal when every item in the selection is already
 #. on disk.
