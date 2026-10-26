@@ -3767,6 +3767,12 @@ msgid ""
 "captions are ellipsized, and what needs to be bigger is the whole interface, "
 "which is Interface Scale."
 msgstr ""
+"Muudab üksnes tekstisuurust. Eelnev säte \"Kasutajaliidese skaala\" muudab "
+"terve liidese mõõtmeid (sh kaanepildid, vahekaugused ja juhtelemendid) – "
+"kasuta käesolevat valikut siis, kui sooviksid suurendada vaid teksti, mitte "
+"kogu liidest. Ülempiir on 150%: suurema väärtuse puhul lühendatakse enamik "
+"kaartide pealkirju mõttekriipsu/punktireaga ning sel juhul tuleks eelistada "
+"kogu liidese skaleerimist."
 
 #. Explanation shown under the "Minimum Text Size" setting (Settings >
 #. Browse > Theme).
