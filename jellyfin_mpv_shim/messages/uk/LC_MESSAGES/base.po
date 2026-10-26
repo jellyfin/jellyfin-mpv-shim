@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 18:07+0000\n"
+"PO-Revision-Date: 2026-10-26 18:08+0000\n"
 "Last-Translator: kscop-n1 <karpenko.serhii@outlook.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uk/>\n"
@@ -865,14 +865,14 @@ msgstr "Не вдалося розпочати відтворення."
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Nothing is downloaded to browse offline."
-msgstr ""
+msgstr "Нічого не завантажено для офлайн-перегляду."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Черга"
 
 #. Button that tries a failed operation again: reaching a server at
 #. startup, an offline banner, a page that would not load, an item that
