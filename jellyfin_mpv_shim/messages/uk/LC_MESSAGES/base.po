@@ -859,7 +859,7 @@ msgstr "Завантаження…"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Не вдалося розпочати відтворення."
 
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
