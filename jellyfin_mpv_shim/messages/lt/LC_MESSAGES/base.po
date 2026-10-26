@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 22:44+0000\n"
+"PO-Revision-Date: 2026-10-26 23:11+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -4246,7 +4246,7 @@ msgstr "Nesugrupuota"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Episodes"
-msgstr "Epizodai"
+msgstr "Serijos"
 
 #. Name of the season holding episodes outside the numbered seasons, such
 #. as Christmas specials. Jellyfin Web uses this word; follow its wording
@@ -5063,7 +5063,7 @@ msgstr "Tiesioginės transliacijos"
 #. Checkbox in Guide Settings: badge first-run episodes.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "New episodes"
-msgstr "Nauji epizodai"
+msgstr "Naujos serijos"
 
 #. Checkbox in Guide Settings: badge first showings.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -5073,7 +5073,7 @@ msgstr "Premjeros"
 #. Checkbox in Guide Settings: badge episodes shown before.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Repeat episodes"
-msgstr "Pakartoti epizodus"
+msgstr "Kartoti serijas"
 
 #. Checkbox in Guide Settings, colour coding film programmes. Also a
 #. Jellyfin library kind.
@@ -6545,7 +6545,7 @@ msgstr ""
 #. rows; keep them matching those translations.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
-msgstr "Epizodų atvaizdų naudojimas skyriuose 'Toliau' ir 'Žiūrėti toliau'"
+msgstr "Serijųų atvaizdų naudojimas skyriuose 'Toliau' ir 'Žiūrėti toliau'"
 
 #. Explanation under the episode-images checkbox in the Home Screen
 #. settings.
@@ -7152,7 +7152,7 @@ msgstr ""
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
 msgid "Season {0} - Episode {1}"
-msgstr "Sezonas {0} - Epizodas {1}"
+msgstr "Sezonas {0} - Serija {1}"
 
 #. State of the SmoothVideo Project integration on the in-player menu: it
 #. is switched off.
