@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 11:04+0000\n"
+"PO-Revision-Date: 2026-10-26 19:26+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -6545,7 +6545,7 @@ msgstr ""
 #. rows; keep them matching those translations.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
-msgstr ""
+msgstr "Epizodų atvaizdų naudojimas skyriuose 'Toliau' ir 'Žiūrėti toliau'"
 
 #. Explanation under the episode-images checkbox in the Home Screen
 #. settings.
