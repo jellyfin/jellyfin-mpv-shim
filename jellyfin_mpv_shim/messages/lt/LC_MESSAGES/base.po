@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-21 20:15+0000\n"
+"PO-Revision-Date: 2026-10-26 10:08+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -1289,10 +1289,8 @@ msgstr ""
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Features"
 msgid "Special Features"
-msgstr "Funkcijos"
+msgstr "Specialios funkcijos"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
