@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 19:26+0000\n"
+"PO-Revision-Date: 2026-10-26 22:44+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -4309,7 +4309,7 @@ msgstr "Grojaraštis"
 #. Heading of a downloads group whose series could not be identified.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
-msgstr "Nežinoma serialas"
+msgstr "Nežinomas serialas"
 
 #. Heading of the downloads group holding films and standalone videos.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -6121,7 +6121,7 @@ msgstr "Rezultatai pagal užklausą \"%s\""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Shows"
-msgstr "Laidos"
+msgstr "Serialai"
 
 #. Name of a search-results and library group holding standalone videos
 #. that are not films or episodes.
