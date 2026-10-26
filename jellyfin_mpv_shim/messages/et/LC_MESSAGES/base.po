@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 07:55+0000\n"
+"PO-Revision-Date: 2026-10-26 09:21+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -4219,18 +4219,18 @@ msgstr "Kaasa ka vaadatud"
 #. on disk.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Nothing left to download."
-msgstr ""
+msgstr "Midagi pole enam alla laadida."
 
 #. Error shown when the Download modal's button failed to queue anything.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The download could not be started."
-msgstr ""
+msgstr "Allalaadimise alustamine nurjus."
 
 #. Shown in place of the filter controls when the server offers nothing to
 #. filter this library by.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
-msgstr ""
+msgstr "Sellel meediakogul pole filtreid."
 
 # seeded from jellyfin-web: Filters
 #. Title of the modal that filters a library grid.
@@ -4250,24 +4250,22 @@ msgstr "%d üksust"
 
 #. Button in the Filters modal. Removes every filter that is set.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Clear All"
-msgstr "SyncPlay"
+msgstr "Tühjenda kõik"
 
 #. Button that closes the Filters modal, and the View settings modal,
 #. keeping what was chosen. Not "finished" in the sense of a task
 #. completing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
-msgstr ""
+msgstr "Tehtud"
 
 #. First entry of every filter-panel dropdown, meaning no restriction on
 #. this field. Neuter, since it stands for genre, year, rating, tag or
 #. language alike.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Any"
-msgstr ""
+msgstr "Kõik"
 
 #. One English word, two senses. The first choice in a library's Artwork
 #. dropdown, where the tile shape is taken from whatever artwork the item
@@ -4275,10 +4273,8 @@ msgstr ""
 #. playback controls, where it means MPV decides.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "Automaatne esitus"
+msgstr "Automaatne"
 
 # seeded from jellyfin-web: Poster
 #. Choice in the Artwork dropdown of a library's View settings: tall
@@ -4291,15 +4287,13 @@ msgstr "Plakat"
 #. landscape still.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
-msgstr ""
+msgstr "Pisipilt"
 
 #. Choice in the Artwork dropdown of a library's View settings: a wide,
 #. short banner image.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Banner"
-msgstr "Lõpeta ja märgi mittevaadatuks"
+msgstr "Bänner"
 
 # seeded from jellyfin-web: Logo
 #. Choice in the Artwork dropdown of a library's View settings: the title
@@ -4320,7 +4314,7 @@ msgstr "Plaat"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Artwork"
-msgstr ""
+msgstr "Pildimaterjal"
 
 #. Explanation under the Artwork dropdown in a library's View settings.
 #. "Auto" and "Poster" are two of that dropdown's choices; keep them
@@ -4330,27 +4324,26 @@ msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
+"„Automaatne“ kohandab paanid pildi järgi, mis on tavaliselt plakat. Vali „"
+"Plakat“, kui soovid kindlasti plakatite kasutamist."
 
 #. Checkbox in a library's View settings. Draws each item's name under its
 #. tile.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "Subtiitrite suurus: {0}"
+msgstr "Kuva pealkirjad"
 
 #. Checkbox in a library's View settings. Draws each item's release year
 #. under its tile.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Show years"
-msgstr "Sarjad"
+msgstr "Kuva aastaarvud"
 
 #. Checkbox in a library's View settings, switching the layout from tiles
 #. to a single-column list.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
-msgstr ""
+msgstr "Kuva ruudustiku asemel loendina"
 
 #. Explanation in a library's View settings, saying those choices are saved
 #. to the Jellyfin server rather than to this device, so Jellyfin Web sees
@@ -4359,13 +4352,15 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "These are stored on your server and shared with Jellyfin Web."
 msgstr ""
+"Need seaded salvestatakse sinu serverisse ning neid jagatakse Jellyfin "
+"Webiga."
 
 #. Checkbox in a library's View settings, switching the grid from scrolling
 #. to one screenful at a time with page buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr ""
+msgstr "Lehekülgedena"
 
 #. Explanation under the Paginated checkbox in a library's View settings.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -4373,14 +4368,14 @@ msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
 msgstr ""
+"Kuva korraga üks lehekülg paane kerimise asemel. Rakendub selle seadme igale "
+"meediakogule."
 
 #. Title of the modal that chooses how one library's tiles are drawn.
 #. Sentence case in English.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "View settings"
-msgstr "SVP seaded"
+msgstr "Vaate seaded"
 
 #. Explanation under the "Make library logos more legible" checkbox in a
 #. library's View settings. "Plate" here is the solid light rectangle drawn
@@ -4391,24 +4386,26 @@ msgid ""
 "shadows the ones whose own outline is white. Off puts the theme's card "
 "colour behind them instead, with no shadows."
 msgstr ""
+"Lisab läbipaistvatele logodele heleda tausta ja valge kontuuriga logodele "
+"varju. Väljalülitatult kasutatakse taustaks teema kaardivärvi ilma varjudeta."
 
 #. Default title of the plain message dialog, used when the caller supplied
 #. none.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
-msgstr ""
+msgstr "Teade"
 
 #. Message shown when the viewer asked to copy text but this build of MPV
 #. cannot reach the system clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
-msgstr ""
+msgstr "Lõikelauale kopeerimine pole saadaval."
 
 #. Message shown when the viewer asked to paste but this build of MPV
 #. cannot reach the system clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pasting from the clipboard is not available."
-msgstr ""
+msgstr "Lõikelaualt kleepimine pole saadaval."
 
 #. Follows the message saying the clipboard is unavailable. %(package)s is
 #. a software package name and the parenthesis holds a shell command; leave
@@ -4419,6 +4416,8 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
+"Paigalda pakett „%(package)s“ (näiteks „apt install %(package)s“) või kasuta "
+"MPV versiooni 0.41 või uuemat."
 
 #. Follows the message saying the clipboard is unavailable. %(package)s is
 #. a software package name and the parenthesis holds a shell command; leave
@@ -4428,18 +4427,18 @@ msgstr ""
 msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\")."
-msgstr ""
+msgstr "Paigalda pakett „%(package)s“ (näiteks „apt install %(package)s“)."
 
 #. Follows the clipboard message above, naming the MPV version that gained
 #. clipboard support.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Use MPV 0.41 or newer."
-msgstr ""
+msgstr "Kasuta MPV versiooni 0.41 või uuemat."
 
 #. Title of the dialog explaining that copy or paste is unavailable.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Clipboard"
-msgstr ""
+msgstr "Lõikelaud"
 
 #. Default title of the yes/no dialog, used when the caller supplied none.
 #. A noun naming the dialog, not an instruction to the reader. Split from
@@ -4447,7 +4446,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgctxt "dialog heading"
 msgid "Confirm"
-msgstr ""
+msgstr "Kinnita"
 
 #. Shown in the Reading Progress dialog. %s is another application's name.
 #. Jellyfin stores an ebook position as a fraction of the whole book, not
@@ -4459,52 +4458,51 @@ msgid ""
 "shows you a number for — so there is nothing meaningful to set by hand. It "
 "is still read from the server and shown above."
 msgstr ""
+"%s jätab asukoha meelde e-raamatu lugemisjärjena, mille kohta ükski rakendus "
+"täpset numbrit ei näita — seega ei saa seda käsitsi sisestada. Andmed "
+"loetakse siiski serverist ja neid kuvatakse ülal."
 
 #. Shown in the Reading Progress dialog. %s is another application's name.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%s stores no reading position."
-msgstr ""
+msgstr "%s ei salvesta lugemiskohta."
 
 #. Title of the dialog that reads or writes how far through a book the
 #. viewer is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Reading Progress"
-msgstr "Ava seadistuste kaust"
+msgstr "Lugemisjärg"
 
 #. Shown in the Reading Progress dialog while the stored position is being
 #. fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr ""
+msgstr "Lugemisjärje laadimine…"
 
 #. Button in the Reading Progress dialog. Takes the position stored on the
 #. server and applies it here. An imperative verb, paired with Push.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr ""
+msgstr "Tõmba"
 
 #. Button in the Reading Progress dialog. Sends the position reached here
 #. up to the server. An imperative verb, paired with Pull.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr ""
+msgstr "Saada"
 
 #. Error in the Reading Progress dialog when the stored reading position
 #. could not be fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be read."
-msgstr ""
+msgstr "Lugemisjärge ei õnnestunud laadida."
 
 #. Validation message in the Reading Progress dialog when what was typed in
 #. the page field is not a number.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Enter a number."
-msgstr "Vaheta subtiitrid"
+msgstr "Sisesta number."
 
 #. Validation message in the Reading Progress dialog. %d is the last page
 #. of the book.
@@ -5140,30 +5138,26 @@ msgstr "Vaigista"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "SVP seaded"
+msgstr "Seaded"
 
 #. Tooltip of the button on the playback controls that fills the screen
 #. with the video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Fullscreen"
 msgid "Fullscreen"
-msgstr "Automaatne täisekraan"
+msgstr "Täisekraan"
 
 #. Status message after clicking a row on the Play Queue page when playback
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr ""
+msgstr "Taasesitus peatati, seega on see järjekord kadunud."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Those items could not be added to the queue."
-msgstr ""
+msgstr "Nende üksuste järjekorda lisamine nurjus."
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #. Status message confirming every episode of a show is now set to record.
