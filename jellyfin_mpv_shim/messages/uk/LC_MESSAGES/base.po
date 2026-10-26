@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-08-04 00:34+0000\n"
-"Last-Translator: potuzhnyj <ivvvvvca@gmail.com>\n"
+"PO-Revision-Date: 2026-10-26 17:58+0000\n"
+"Last-Translator: kscop-n1 <karpenko.serhii@outlook.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uk/>\n"
 "Language: uk\n"
@@ -24,7 +24,7 @@ msgstr ""
 #. is. Shown where EPUB or PDF would otherwise appear.
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Невідомий формат"
 
 #. Position in a book or comic, shown in the reader's bottom bar and in the
 #. Reading Progress dialog. Both placeholders are page numbers.
@@ -32,21 +32,21 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "Сторінка %(page)d з %(total)d"
 
 #. Position in a book whose length is unknown, so no total can be given. %d
 #. is the page number.
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "Сторінка %d"
 
 #. How far through a book the reader has got, as a percentage. Shown under
 #. the book's tile.
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% прочитано"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -116,7 +116,7 @@ msgstr "Очікування на авторизацію..."
 #. signing in again.
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Очищення всіх наявних облікових записів."
 
 #. Printed in the terminal after a server was signed in to.
 #: jellyfin_mpv_shim/clients.py
@@ -425,10 +425,8 @@ msgstr "Змінити профіль відтворення відео"
 #. settings menu of the playback controls.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "Вийти та відмітити як непереглянуте"
+msgstr "Вийти та позначити як непереглянуте"
 
 #. Saves a still of the current frame. On the in-player menu and on the
 #. settings menu of the playback controls. An imperative verb here.
@@ -716,38 +714,31 @@ msgstr "Присутність Discord Rich"
 #. A toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Пропущений вступ"
+msgstr "Пропустити вступи"
 
 #. Toggle on the in-player Player Preferences menu, and a settings
 #. dropdown: what to do when an episode's closing credits start. Set to
 #. Never, Ask or Always. Carries a context because "Skip Credits" is also
 #. the name of a button on the video itself.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Пропущені титри"
+msgstr "Пропуск титрів"
 
 #. What to do at an advertisement break: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
 #. Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "Спецепізоди"
+msgstr "Пропускати рекламу"
 
 #. What to do at a preview of a coming episode: Never, Ask or Always. A
 #. toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Пропущені титри"
+msgstr "Пропускати анонси"
 
 #. What to do at a "previously on" recap: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
