@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 07:19+0000\n"
+"PO-Revision-Date: 2026-10-26 07:55+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -1318,7 +1318,7 @@ msgstr "Web"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Featurette"
-msgstr "Featurette"
+msgstr "Approfondimento"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
@@ -1359,21 +1359,17 @@ msgstr "Scena"
 #. what kind of extra it is. Jellyfin Web uses the same word. A short sample
 #. of the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Sample rate"
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr "Frequenza di campionamento"
+msgstr "Estratto"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. excerpt.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Clipboard"
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr "Appunti"
+msgstr "Filmato"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -3961,7 +3957,7 @@ msgstr "Ha un trailer"
 #. to items with bonus material (deleted scenes, featurettes).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr "Ha funzionalità speciali"
+msgstr "Ha contenuti speciali"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme song attached.
