@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 17:58+0000\n"
+"PO-Revision-Date: 2026-10-26 18:07+0000\n"
 "Last-Translator: kscop-n1 <karpenko.serhii@outlook.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uk/>\n"
@@ -744,10 +744,8 @@ msgstr "Пропускати анонси"
 #. the in-player Player Preferences menu and a dropdown under Settings >
 #. Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Пропущені титри"
+msgstr "Пропускати перекази"
 
 #. Toggle on the in-player Player Preferences menu: show a preview frame
 #. while seeking.
@@ -762,27 +760,27 @@ msgstr "Увімкнути попередній перегляд мініатю�
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Нічний режим (автовирівнювання гучності)"
 
 #. Title of the screen shown when the application is locked behind a
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Заблоковано"
 
 #. Status message when a page's content could not be fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Не вдалося завантажити. Перевірте з'єднання."
 
 #. Label beside the number field in the Reading Progress dialog, where a
 #. page to jump to is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Сторінка"
 
 #. Follows a page-number field, giving the total, as in "of 240". In the
 #. Reading Progress dialog, the comic reader and a paged library grid.
@@ -791,23 +789,21 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
-msgstr ""
+msgstr "з %d"
 
 #. Tooltip of the paging button that jumps to the first page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Перша сторінка"
 
 #. Tooltip of the button that goes back one page: in a library grid, and in
 #. the book and comic readers.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Сервер успішно додано."
+msgstr "Попередня сторінка"
 
 #. Tooltip of the button that goes forward one page: in a library grid, and
 #. in the book and comic readers.
@@ -815,13 +811,13 @@ msgstr "Сервер успішно додано."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Наступна сторінка"
 
 #. Tooltip of the paging button that jumps to the last page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Остання сторінка"
 
 #. Status message when the server refused an edit, such as marking an item
 #. watched or removing it from a playlist.
@@ -829,7 +825,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "Не вдалося застосувати зміну."
 
 # seeded from jellyfin-web: LiveTV
 #. Name of the broadcast television area of Jellyfin, used as a library
@@ -846,7 +842,7 @@ msgstr "Телеканали"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Обрано: %s"
 
 #. Shown in a dialog or page while its content is being fetched from the
 #. server.
@@ -856,7 +852,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Завантаження…"
 
 #. Status message when starting an item failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
