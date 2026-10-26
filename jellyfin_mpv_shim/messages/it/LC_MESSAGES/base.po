@@ -1350,11 +1350,9 @@ msgstr "Intervista"
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
 #. the film itself.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Scenes"
 msgctxt "kind of special feature"
 msgid "Scene"
-msgstr "Scene"
+msgstr "Scena"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #. Caption under a special feature's tile on a film's or show's page, naming
