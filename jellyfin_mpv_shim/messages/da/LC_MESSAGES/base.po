@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-23 20:12+0000\n"
+"PO-Revision-Date: 2026-10-27 00:42+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -1283,10 +1283,8 @@ msgstr "Favorit"
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "Genopfrisk"
+msgstr "Genopfrisk metadata"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -1295,31 +1293,27 @@ msgstr "Genopfrisk"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Slet fra disk"
 
 #. Button on a film's, episode's, show's or season's page that opens a short
 #. menu of less common actions (refresh metadata, delete from disk). Means
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Flere"
 
 # seeded from jellyfin-web: Features
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Features"
 msgid "Special Features"
-msgstr "Funktioner"
+msgstr "Specielle funktioner"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "Fejl"
+msgstr "Trailer"
 
 # seeded from jellyfin-web: LabelWeb
 #. Button on an item's page that opens the same item in Jellyfin's browser
@@ -1344,55 +1338,45 @@ msgstr "Funktioner"
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
 #. production.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Panel behind the controls"
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr "Panel under betjeningen"
+msgstr "Bag kulisserne"
 
 # seeded from jellyfin-web: DeleteUser
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
 #. from the finished film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Delete User"
 msgctxt "kind of special feature"
 msgid "Deleted Scene"
-msgstr "Slet bruger"
+msgstr "Slettet scene"
 
 # seeded from jellyfin-web: MediaInfoInterlaced
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. An interview
 #. with the cast or crew.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Interlaced"
 msgctxt "kind of special feature"
 msgid "Interview"
-msgstr "Interlaceret"
+msgstr "Interview"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
 #. the film itself.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Scenes"
 msgctxt "kind of special feature"
 msgid "Scene"
-msgstr "Scener"
+msgstr "Scene"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short sample
 #. of the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Sample rate"
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr "Samplingsfrekvens"
+msgstr "Prøve"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
@@ -1400,7 +1384,7 @@ msgstr "Samplingsfrekvens"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr ""
+msgstr "Klip"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1408,7 +1392,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "Kort"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
@@ -2821,10 +2805,8 @@ msgstr "Vis hvad du ser på Discord"
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "Spørg om at springe introer over"
+msgstr "Desktop Media-kontroller"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
@@ -2873,10 +2855,8 @@ msgstr "Gitter mellemrum"
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remember Last Used Profile"
 msgid "Remember Library Filters"
-msgstr "Husk den sidst brugte profil"
+msgstr "Husk biblioteksfiltre"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -3207,6 +3187,10 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"Du får en grace-periode når du er færdig med noget: Den forbliver downloadet "
+"så du kan se den igen - eller en anden i huset kan få fornøjelsen - i stedet "
+"for at fortsætte til næste download. Hvis du løber tør for lagerplads vil "
+"overvågede downloads stadig blive fjernet før tiden er gået."
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
