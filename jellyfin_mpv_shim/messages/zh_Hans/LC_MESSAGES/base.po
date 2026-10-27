@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 18:26+0000\n"
+"PO-Revision-Date: 2026-10-27 18:29+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -3808,7 +3808,7 @@ msgstr "字幕语言"
 #. may have (subtitles, a trailer, a theme song).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Features"
-msgstr "功能"
+msgstr "附加内容"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items that carry subtitles.
@@ -3826,7 +3826,7 @@ msgstr "有预告片"
 #. to items with bonus material (deleted scenes, featurettes).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr "具有特殊功能"
+msgstr "有花絮"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme song attached.
