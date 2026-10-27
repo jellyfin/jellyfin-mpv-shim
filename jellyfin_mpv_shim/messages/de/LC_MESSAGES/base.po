@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-20 14:48+0000\n"
+"PO-Revision-Date: 2026-10-27 15:17+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -1291,15 +1291,13 @@ msgstr "Von Disk löschen"
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Weitere"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Has Special Features"
 msgid "Special Features"
-msgstr "Hat Extras"
+msgstr "Extras"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
@@ -1319,42 +1317,34 @@ msgstr "Web"
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. promotional film about the making of the film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Features"
 msgctxt "kind of special feature"
 msgid "Featurette"
-msgstr "Funktionen"
+msgstr "Featurette"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
 #. production.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Panel behind the controls"
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr "Bereich hinter dem Bedienfeld"
+msgstr "Hinter den Kulissen"
 
 # seeded from jellyfin-web: DeleteUser
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
 #. from the finished film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Delete User"
 msgctxt "kind of special feature"
 msgid "Deleted Scene"
-msgstr "Benutzer löschen"
+msgstr "Gelöschte Szenen"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. An interview
 #. with the cast or crew.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Interlaced"
 msgctxt "kind of special feature"
 msgid "Interview"
-msgstr "Interlaced"
+msgstr "Interview"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Caption under a special feature's tile on a film's or show's page, naming
