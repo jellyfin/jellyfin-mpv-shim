@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 09:13+0000\n"
+"PO-Revision-Date: 2026-10-27 09:42+0000\n"
 "Last-Translator: Lukas Förström <chillabiffen@gmail.com>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sv/>\n"
@@ -2669,147 +2669,141 @@ msgstr "Rörelseinterpolering"
 #. Label of the dropdown for the "deband" setting (Settings > Playback >
 #. Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (Omkoda)"
+msgstr "Bandningsborttagning"
 
 #. Label of the dropdown for the "tone_mapping" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "HDR Tonmappning"
 
 #. Label of the dropdown for the "render_quality" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Rendering Quality"
-msgstr "Ändra filmkvalité"
+msgstr "Renderingskvalitet"
 
 #. Label of the dropdown for the "network_buffer" setting (Settings >
 #. Playback > Playback).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Nätverksbuffert"
 
 #. Label of the checkbox for the "auto_download_enable" setting (Settings >
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Ladda ner kommande avsnitt automatiskt"
 
 #. Label of the checkbox for the "auto_download_next_up" setting (Settings
 #. > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Inkludera kommande"
 
 #. Label of the number field for the "auto_download_next_up_limit" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "Gräns för automatisk nedladdning från Nästa på tur"
 
 #. Label of the number field for the "auto_download_lookahead" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Avsnitt att ladda ner i förväg (0=av)"
 
 #. Label of the number field for the "auto_download_max_gb" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Lagringsgräns för automatiska nedladdningar (GB)"
 
 #. Label of the checkbox for the "auto_download_delete_watched" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Ta bort server"
+msgstr "Ta bort automatiska nedladdningar när de har setts"
 
 #. Settings label, Browse tab, Downloads group. A number of hours an
 #. automatically downloaded episode is kept after you finish watching it,
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "Behåll sedda nedladdningar i (timmar, 0 = ta bort omedelbart)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Ta bort ej sedda efter (dagar, 0 = aldrig)"
 
 #. Label of the number field for the "auto_download_interval_mins" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Kontrollera efter (minuter)"
 
 #. Label of the number field for the "auto_download_lookahead_min" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "Fyll på när färre än (avsnitt)"
 
 #. Label of the number field for the "auto_download_lookahead_max" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "Fyll på upp till (avsnitt)"
 
 #. Label of the number field for the "auto_download_max_per_pass" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Maximalt antal nedladdningar per kontroll"
 
 #. Label of the checkbox for the "close_to_tray" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "Minimera (fortsätt köra)"
 
 #. Label of the checkbox for the "allow_background" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
-msgstr ""
+msgstr "Fortsätt köra i bakgrunden"
 
 #. Label of the checkbox for the "remember_window_size" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
-msgstr ""
+msgstr "Kom ihåg fönsterstorlek"
 
 #. Label of the dropdown for the "window_controls" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "Fönsterknappar i den översta raden"
 
 #. Label of the checkbox for the "window_controls_fullscreen" setting
 #. (Settings > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Window Buttons in Full Screen"
-msgstr ""
+msgstr "Behåll fönsterknappar i helskärmsläge"
 
 #. Label of the checkbox for the "hide_title_bar" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "Dölj skrivbordets namnlist"
 
 #. Label of the dropdown for the "osc_style" setting (Settings > Playback >
 #. Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
-msgstr ""
+msgstr "Stil för spelarkontroller"
 
 #. Label of the checkbox for the "thumbnail_enable" setting (Settings >
 #. Playback > Player Controls).
@@ -2823,27 +2817,25 @@ msgstr "Använd miniatyr-förhandsvisning"
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "Läs in alla sökförhandsvisningar på en gång"
 
 #. Label of the checkbox for the "discord_presence" setting (Settings >
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
-msgstr ""
+msgstr "Visa vad du tittar på i Discord"
 
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "Fråga om att hoppa över intron"
+msgstr "Mediakontroller på skrivbordet"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr ""
+msgstr "Gränssnittsskala"
 
 # seeded from jellyfin-web: LabelTextSize
 #. Label of the dropdown for the "ui_text_scale" setting (Settings > Browse
@@ -2856,76 +2848,75 @@ msgstr "Textstorlek"
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "Minsta textstorlek"
 
 #. Label of the dropdown for the "poster_scale" setting (Settings > Browse
 #. > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
-msgstr ""
+msgstr "Omslagsstorlek"
 
 #. Label of the checkbox for the "backdrop_full_width" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
-msgstr ""
+msgstr "Bakgrunder i full bredd"
 
 #. Label of the checkbox for the "clock_12h" setting (Settings > Browse >
 #. Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "12-Hour Clock"
-msgstr ""
+msgstr "12-timmarsklocka"
 
 #. Label of the dropdown for the "grid_fill" setting (Settings > Browse >
 #. Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
-msgstr ""
+msgstr "Rutnätsavstånd"
 
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Library Filters"
-msgstr ""
+msgstr "Kom ihåg biblioteksfilter"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "Gör logotyper för direktsänd tv mer lättlästa"
 
 #. Label of the checkbox for the "logo_legibility_library" setting
 #. (Settings > Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "Gör bibliotekslogotyper mer lättlästa"
 
 # seeded from jellyfin-web: LabelType
 #. Label of the number field for the "reader_font_size" setting (Settings >
 #. Browse > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Type Size"
-msgstr "Typ"
+msgstr "Typstorlek"
 
 #. Label of the dropdown for the "reader_theme" setting (Settings > Browse
 #. > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "Sidfärg"
 
 #. Label of the checkbox for the "reader_justify" setting (Settings >
 #. Browse > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "Justera text"
 
 #. Label of the dropdown for the "comic_fit" setting (Settings > Browse >
 #. Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "Serieläsningsläge"
 
 #. Label of the checkbox for the "headless" setting (under Advanced on the
 #. General tab of Settings).
@@ -2943,19 +2934,19 @@ msgstr ""
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "Biblioteksvisning i helskärm"
 
 #. Label of the checkbox for the "browse_block_keys" setting (Settings >
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "Blockera kortkommandon för spelaren vid bläddring"
 
 #. Label of the checkbox for the "hud_grab_keys" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "Bind alltid piltangenterna till spelarstyrningen"
 
 #. Label of the text field for the "hud_wake_key" setting (Settings >
 #. Playback > Player Controls).
@@ -2967,34 +2958,32 @@ msgstr ""
 #. Label of the text field for the "ui_select_key" setting (under Advanced
 #. on the General tab of Settings).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Select All"
 msgid "Select Key"
-msgstr "Välj alla"
+msgstr "Välj"
 
 #. Label of the dropdown for the "hud_scrim" setting (Settings > Playback >
 #. Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Skuggning bakom spelarkontrollerna"
 
 #. Label of the dropdown for the "hud_autohide" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "När spelarkontrollerna döljs"
 
 #. Label of the number field for the "hud_hide_secs" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "Dölj spelarkontrollerna efter (sekunder)"
 
 #. Label of the checkbox for the "hud_auto_scale" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shrink the Player Controls on a Narrow Window"
-msgstr ""
+msgstr "Krympa spelarkontrollerna i ett smalt fönster"
 
 #. Label of the checkbox for the "mouse_chapter_nav" setting (Settings >
 #. Playback > Player Controls).
