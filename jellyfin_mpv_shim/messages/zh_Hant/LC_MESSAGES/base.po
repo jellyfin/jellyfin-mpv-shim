@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 02:45+0000\n"
+"PO-Revision-Date: 2026-10-27 03:35+0000\n"
 "Last-Translator: Keith Chan <keithchan921@hotmail.com>\n"
 "Language-Team: Chinese (Traditional Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant/>\n"
@@ -2671,7 +2671,7 @@ msgstr "自訂（在設定檔中設定）"
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "請告知我更新"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
@@ -2808,7 +2808,7 @@ msgstr "刪除伺服器"
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "保留已觀看的下載 (小時，0 = 立即刪除)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
@@ -3180,6 +3180,9 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"此列表本身沒有任何作用 -- 請打開下方兩個開關中的一個。它會改變音訊和字幕選單"
+"中顯示的軌道，而不是自動選擇哪個軌道；自動選擇軌道的功能由上方的預設選項控制"
+"。 「und」表示未標記，因此移除它也會隱藏未標記的軌道。"
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -3195,6 +3198,10 @@ msgid ""
 "assume the original audio is Japanese; if yours is not, choose Custom and "
 "write the rules yourself."
 msgstr ""
+"「字幕」模式保留原聲，並添加您所選語言的完整字幕。 「配音」模式優先使用您所選"
+"語言的音頻，並添加字幕（例如標語和歌曲），如果沒有配音，則預設使用字幕。「僅"
+"播放」選項會讓影片保持伺服器選擇的狀態。假設「字幕」模式預設的原聲為日文；而"
+"如果您的原聲不是日語，請選擇「自訂」並自行設定規則。"
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
@@ -3204,6 +3211,8 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"該百分比表示目前該應用程式已翻譯成該語言的部分內容；其餘部分仍為英文。翻譯內"
+"容可透過 translate.jellyfin.org 提交。"
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
@@ -3213,6 +3222,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"如設定為「自動」，在 Flatpak 系統中會關閉此功能（在Flatpak 系統中，桌面會自動"
+"通知更新，且「flatpak update」指令會自動安裝更新），但在其他所有系統中會保持"
+"開啟。"
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3271,6 +3283,9 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"觀看完畢後會有一段寬限期：影片會保留一段時間，方便您重新觀看，或者讓家裡的其"
+"他人也能跟上觀看進度，而不需要再次檢查該影片。當儲存空間不足時，已觀看的下載"
+"內容也會在寬限期結束前被刪除。"
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
