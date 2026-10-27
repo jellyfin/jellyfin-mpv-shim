@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 12:27+0000\n"
+"PO-Revision-Date: 2026-10-27 18:37+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -3939,7 +3939,7 @@ msgstr "Diskas"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Artwork"
-msgstr "Meno kūrinys"
+msgstr "Iliustracija"
 
 #. Explanation under the Artwork dropdown in a library's View settings.
 #. "Auto" and "Poster" are two of that dropdown's choices; keep them
