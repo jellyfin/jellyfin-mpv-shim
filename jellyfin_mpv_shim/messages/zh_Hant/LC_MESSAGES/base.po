@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-09-20 10:04+0000\n"
-"Last-Translator: \"李恩霆 (Lee,EN-TING)\" <timothylee0802@outlook.com>\n"
+"PO-Revision-Date: 2026-10-27 02:45+0000\n"
+"Last-Translator: Keith Chan <keithchan921@hotmail.com>\n"
 "Language-Team: Chinese (Traditional Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant/>\n"
 "Language: zh_Hant\n"
@@ -1039,7 +1039,7 @@ msgstr "新增伺服器"
 msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
-msgstr ""
+msgstr "您儲存的 %s 登入資訊已失效。重新登入將保留下載內容和設定。"
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1173,7 +1173,7 @@ msgstr "快速連線未獲核准。"
 msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
-msgstr ""
+msgstr "那個位址指向的是另一個伺服器。若要登入該伺服器，請將其新增為新的伺服器。"
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1331,7 +1331,7 @@ msgstr "從磁碟刪除"
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "更多"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
@@ -1437,21 +1437,21 @@ msgstr "剪貼板"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "短"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "未播出"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "缺少"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading over the video stream's rows in the Media Info panel. A stream
