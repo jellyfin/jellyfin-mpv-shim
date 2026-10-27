@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 04:28+0000\n"
+"PO-Revision-Date: 2026-10-27 05:42+0000\n"
 "Last-Translator: Keith Chan <keithchan921@hotmail.com>\n"
 "Language-Team: Chinese (Traditional Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant/>\n"
@@ -1020,10 +1020,8 @@ msgstr "無法儲存此 PIN 碼。"
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "登入"
+msgstr "再次登入"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1077,7 +1075,7 @@ msgstr "請在 Jellyfin 應用程式或網頁端輸入此代碼："
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Requesting…"
-msgstr "請求…"
+msgstr "正在發出請求…"
 
 #. Label of the field on the sign-in page where the Jellyfin server's web
 #. address is typed.
@@ -1180,7 +1178,7 @@ msgstr "無法登入。請檢查您的登入資訊。"
 #. address, name or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Could not connect. Please check your details."
-msgstr "無法連接。請檢查您的登入資訊。"
+msgstr "無法連接。請檢查您的連線資訊。"
 
 #. Heading of the startup screen shown while the saved servers are being
 #. reached.
@@ -1217,7 +1215,7 @@ msgstr "請輸入PIN碼"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr "%s 已被鎖定"
+msgstr "%s 已被鎖定。"
 
 #. Button on the lock screen that opens the application with the passcode
 #. typed above. An imperative verb.
@@ -1238,10 +1236,8 @@ msgstr "準備投放"
 
 #. Instruction under the idle cast screen's heading.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "在Jellyfin中選擇您的媒體並在此處播放"
+msgstr "在Jellyfin中選擇您的媒體並在此處播放。"
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #. Heading over the actors and film-makers on an item's page. Jellyfin Web
@@ -1736,10 +1732,8 @@ msgstr "預設"
 #. shown even when subtitles are off, such as translations of on-screen
 #. signs.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " 強制"
+msgstr "強制"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #. Flag row in the Media Info panel, marking a stream that lives in a
@@ -1833,7 +1827,7 @@ msgstr "杜比視界 bl 訊號相容性 id"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f Mbps"
-msgstr "%.1f Mbps"
+msgstr ""
 
 #. How the video is reaching this device: the server is sending the
 #. original file untouched. Shown on the playback information panel.
@@ -1866,10 +1860,8 @@ msgstr "重新封裝中"
 #. re-encoding this video right now.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (轉碼)"
+msgstr "轉碼中"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #. One reason the server gives for having to re-encode, listed on the
@@ -2076,10 +2068,8 @@ msgstr "媒體庫瀏覽"
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Reading"
-msgstr " (轉碼)"
+msgstr "閱讀中"
 
 # seeded from jellyfin-web: DownloadManager
 #. Content fetched to this device for offline use. A group heading under
@@ -2248,7 +2238,7 @@ msgstr "停用"
 #. Enhancement); stored as "reinhard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr "Reinhard"
+msgstr ""
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "clip".
@@ -2571,7 +2561,7 @@ msgstr "自動（建議）"
 #. Video Enhancement); stored as "vulkan".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Vulkan"
-msgstr "Vulkan"
+msgstr ""
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "d3d11".
@@ -2718,10 +2708,8 @@ msgstr "動態插值"
 #. Label of the dropdown for the "deband" setting (Settings > Playback >
 #. Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (轉碼)"
+msgstr "去帶環"
 
 #. Label of the dropdown for the "tone_mapping" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3566,10 +3554,8 @@ msgstr ""
 #. Explanation shown under the "Show What You're Watching in Discord"
 #. setting (Settings > General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Discord 整合"
+msgstr "Discord 整合。"
 
 #. Help note under the "mpris" setting (Settings > General > This Device).
 #. MPRIS is the name of the Linux standard; leave it untranslated.
@@ -4020,7 +4006,7 @@ msgstr "DVD"
 #. Blu-ray disc. A trademark, left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr "Blu-ray"
+msgstr "藍光光碟"
 
 #. Checkbox in the filter panel's Video Types section: a whole disc image
 #. file. Left as-is.
@@ -4064,10 +4050,8 @@ msgstr "私人（僅自己可見）"
 #. Button in the Add to Playlist modal that switches to the Add to
 #. Collection modal. The ellipsis means it opens another view.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "刪除伺服器"
+msgstr "合集 …"
 
 #. Button that dismisses something without acting. Used on modals (Add to
 #. Playlist, Reading Progress, SyncPlay, the recording dialogs) and as the
@@ -4089,18 +4073,14 @@ msgstr "刪除伺服器"
 
 #. Shown in the Add to Collection modal when the server has no collections.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "刪除伺服器"
+msgstr "目前還沒有合集。"
 
 #. Placeholder text in the empty text field where a new collection's name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "使用者名稱: "
+msgstr "新合集名稱 …"
 
 # seeded from jellyfin-web: ButtonBack
 #. Goes one step back. The navigation bar's back button, the row that
@@ -4157,22 +4137,14 @@ msgstr "%s 尚未下載。"
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法查看需要下載的內容。"
 
 #. Placeholder in the Download modal while the app works out how many items
 #. would be downloaded and how much space they need.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "SVP 設定"
+msgstr "估算…"
 
 #. Summary line in the Download modal. %(count)d is a number of items,
 #. %(size)s an already-formatted size such as "4.2 GB". The middle
@@ -4519,10 +4491,8 @@ msgstr "無法讀取進度。"
 #. Validation message in the Reading Progress dialog when what was typed in
 #. the page field is not a number.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Enter a number."
-msgstr "更換字幕"
+msgstr "請輸入一個數字。"
 
 #. Validation message in the Reading Progress dialog. %d is the last page
 #. of the book.
@@ -4567,10 +4537,8 @@ msgstr "新的群組"
 #. Shown in the SyncPlay dialog when nobody on this server has a watch-
 #. together group open.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "新的群組"
+msgstr "沒有活躍群組。"
 
 #. Button that starts a new SyncPlay watch-together group. On the SyncPlay
 #. dialog and on the playback controls.
@@ -4606,47 +4574,23 @@ msgstr "重新整理"
 
 #. Error shown when joining a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法加入 SyncPlay 群組。"
 
 #. Error shown when starting a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法建立 SyncPlay 群組。"
 
 #. Error shown when leaving a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法退出 SyncPlay 群組。"
 
 #. Error shown when returning to synchronised playback failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not resume SyncPlay playback."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法恢復 SyncPlay 播放。"
 
 #. Heading of a downloads group: episodes fetched automatically because
 #. they are next to watch in a series being followed.
@@ -4731,10 +4675,9 @@ msgstr "刪除伺服器"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "等待核准…"
+msgstr "正在等待 %s 登入…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
@@ -5104,10 +5047,8 @@ msgstr "上一個"
 #. previous chapter.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "成功新增伺服器。"
+msgstr "上一章"
 
 #. Tooltip of the rewind button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -5205,9 +5146,8 @@ msgstr "無法排定錄影。"
 #. Question in the dialog confirming a scheduled recording is to be called
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Cancel recording?"
-msgstr "取消錄製"
+msgstr "取消錄製？"
 
 # seeded from jellyfin-web: RecordingCancelled
 #. Status message confirming a scheduled recording was called off.
@@ -5305,10 +5245,9 @@ msgstr "無法刪除 %s。"
 #. item stays on the server. %s is its name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "要刪除 %s 的已下載副本嗎？"
+msgstr "要刪除下載副本%s 嗎？"
 
 #. Title of the dialog that removes a downloaded copy from this device.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5405,10 +5344,8 @@ msgstr "系列選項"
 #. Title of the dialog holding one programme's recording settings. A noun
 #. naming the thing being set up.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (轉碼)"
+msgstr "錄製"
 
 # seeded from jellyfin-web: LabelRecord
 #. Label of the dropdown in the series recording dialog choosing which
@@ -5713,14 +5650,8 @@ msgstr "載入此項目逾時"
 
 #. Error shown when an item would not start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法播放此項目"
 
 #. Button on the playback error screen that tries again while asking the
 #. server to re-encode the video. An imperative verb phrase.
@@ -5833,14 +5764,8 @@ msgstr "音量"
 #. Status message when a web address could not be handed to the system's
 #. browser.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not open that link."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法開啟該連結。"
 
 #. Caption under an audiobook's title, counting its chapters.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -5935,17 +5860,14 @@ msgstr "正在下載…"
 #. Shown on a book's page while the stored reading position is being
 #. fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Progress…"
-msgstr "節目"
+msgstr "進度…"
 
 #. Shown in place of a grid or list that has no items in it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing here."
-msgstr "伺服器設置"
+msgstr "這裡沒有什麼。"
 
 #. Error shown when a comic file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -6287,10 +6209,8 @@ msgstr "目前沒有列出節目。"
 
 #. Tooltip of the button that moves the Live TV guide back one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "成功新增伺服器。"
+msgstr "前一天"
 
 #. Tooltip of the button that scrolls the Live TV guide back a few hours.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -6328,10 +6248,8 @@ msgstr "頻道 %(from)d-%(to)d，共 %(total)d 個"
 #. Tooltip of the button that shows the previous group of channels in the
 #. Live TV guide.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "成功新增伺服器。"
+msgstr "之前的頻道"
 
 #. Tooltip of the button that shows the next group of channels in the Live
 #. TV guide.
@@ -6367,10 +6285,8 @@ msgstr "開啟設置資料夾"
 
 #. Shown on the Live TV Recordings tab when there are no recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "伺服器設置"
+msgstr "目前還沒有任何記錄。"
 
 #. Shown on the Live TV Schedule tab when nothing is set to record.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -6532,14 +6448,8 @@ msgstr "歌曲"
 
 #. Status message when music would not start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not start playback."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法開始播放。"
 
 # seeded from jellyfin-web: Edit
 #. Appended to a playlist's name in the page title, marking that the
@@ -6760,14 +6670,8 @@ msgstr "無法複製。"
 #. Status message when text could not be put on the clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy"
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法複製"
 
 #. Status message when the clipboard could not be reached, so the text was
 #. written to a file instead. %s is that file's path.
@@ -6785,14 +6689,8 @@ msgstr "目錄"
 
 #. Shown while a book file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Getting the book…"
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "正在下載書本…"
 
 #. Error shown when a book was fetched but its pages could not be laid out.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -6885,25 +6783,13 @@ msgstr "季"
 
 #. Status message when fetching the next batch of a long list failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法加載更多項目。"
 
 #. Status message when fetching one page of a paged grid failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法載入此頁面。"
 
 # seeded from jellyfin-web: HeaderOnNow
 #. Heading of the home-screen row holding Live TV programmes airing at this
@@ -6916,9 +6802,9 @@ msgstr "現正播放"
 #. Heading of a home-screen row of newly added items. {0} is a library's
 #. name, such as "Movies" or "Anime".
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "最新"
+msgstr "最近新增於 {0}"
 
 #. Heading of a Live TV row listing episodes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -7069,10 +6955,9 @@ msgstr "退出並標為未觀看"
 #. Question in the dialog that removes watched downloads. %s is the group
 #. they are in, such as a series name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "要刪除 %s 裡已看過的下載嗎？"
+msgstr "要刪除在 %s 裡已看過的下載嗎？"
 
 #. First entry of the interface language dropdown: follow whatever language
 #. the desktop is set to. Every other entry is a language's own name in
@@ -7233,14 +7118,8 @@ msgstr "沒有可離線瀏覽的下載內容。"
 
 #. Status message when no Jellyfin server answered.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法連接到伺服器。"
 
 #. Name of the Settings section that chooses which rows the home screen
 #. shows.
@@ -7319,14 +7198,8 @@ msgstr "預設關閉：改用節目本身的圖，因為單集圖片可能劇透
 #. Status message when the home screen settings would not come back from
 #. the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen settings."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法載入主畫面設定。"
 
 #. Status message confirming the home screen settings reached the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -7336,14 +7209,8 @@ msgstr "首頁設定已儲存。"
 #. Status message when the home screen settings could not be written to the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen settings."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法儲存主畫面設定。"
 
 #. Status message confirming the order of the home screen rows reached the
 #. server.
@@ -7354,14 +7221,8 @@ msgstr "首頁版面已儲存。"
 #. Status message when the order of the home screen rows could not be
 #. written to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法儲存主畫面佈局。"
 
 # seeded from jellyfin-web: General
 #. Name of the first tab of Settings, holding what belongs to this
@@ -7380,10 +7241,8 @@ msgstr "瀏覽"
 #. Name of a Settings tab, holding the Jellyfin servers and this
 #. application's local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "伺服器 URL: "
+msgstr "伺服器與用戶"
 
 # seeded from jellyfin-web: LabelLogs
 #. Name of a Settings tab showing this application's diagnostic output.
@@ -7394,10 +7253,8 @@ msgstr "日誌"
 
 #. Placeholder in the empty field that searches the settings.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Search settings…"
-msgstr "SVP 設定"
+msgstr "搜尋設定…"
 
 # seeded from jellyfin-web: Copy
 #. Button on the Logs tab that puts the log on the clipboard. An imperative
@@ -7444,10 +7301,8 @@ msgstr "離線"
 #. typed, in the Users settings. These are this application's own profiles,
 #. each with its own servers, not Jellyfin accounts.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "使用者名稱: "
+msgstr "新用戶名稱…"
 
 #. Button in the Users settings that creates a new local profile. An
 #. imperative verb phrase.
@@ -7460,10 +7315,8 @@ msgstr "新增伺服器"
 #. Shown in the Servers settings when this profile has signed in to
 #. nothing.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "伺服器設置"
+msgstr "尚未配置任何伺服器。"
 
 #. Heading of the Users section of Settings, listing this application's
 #. local profiles.
@@ -7560,17 +7413,15 @@ msgstr "正在重新連線。"
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connected"
+#, python-format
 msgid "Connected to %s."
-msgstr "已連線"
+msgstr "已連線到 %s。"
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connecting…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "連線中…"
+msgstr "正在連接到 %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7593,10 +7444,9 @@ msgstr "%s 沒有回應。它可能已關機，或者本機目前無法連接到
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "無法連線至伺服器。"
+msgstr "無法連線到 %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7698,17 +7548,15 @@ msgstr "刪除伺服器"
 
 #. Question in the confirmation dialog. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "要把 %s 從這個播放清單移除嗎？"
+msgstr "要從這個播放清單移除 %s 嗎？"
 
 #. Question in the confirmation dialog. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "要把 %s 從這個合集移除嗎？"
+msgstr "要從這個合集移除 %s 嗎？"
 
 #. Status message when Add to play queue was chosen on something the app
 #. found no playable item inside.
@@ -7958,10 +7806,8 @@ msgstr "使用預設值"
 #. Value shown beside the SyncPlay row on the playback controls when this
 #. device is watching in sync with a group.
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay已啟用。"
+msgstr "已啟用同步播放"
 
 #. Shown over the video while the next item is being opened.
 #: jellyfin_mpv_shim/player.py
@@ -8206,10 +8052,9 @@ msgstr "{0}已離開。"
 #. Shown over the video while somebody in the watch-together group is still
 #. loading, so everyone waits. {0} is their name.
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0}正在緩衝。"
+msgstr "{0} 正在緩衝…"
 
 #. Warning shown when no tray icon could be created on GNOME. The quoted
 #. extension name is how it appears in the GNOME extensions site; leave it
