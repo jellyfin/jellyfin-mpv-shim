@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 08:05+0000\n"
+"PO-Revision-Date: 2026-10-27 08:22+0000\n"
 "Last-Translator: David <david.rbrt@icloud.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
@@ -3075,7 +3075,6 @@ msgstr ""
 #. translated there. "Signs and songs" subtitles translate on-screen text and
 #. song lyrics only, for a viewer listening to a dub.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid ""
 "\"Subbed\" keeps the original audio and adds full subtitles in your "
 "language. \"Dubbed\" prefers audio in your language with signs and songs "
@@ -3107,7 +3106,6 @@ msgstr ""
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid ""
 "\"Automatic\" turns this off inside a Flatpak, where your desktop already "
 "announces updates and \"flatpak update\" installs them, and leaves it on "
