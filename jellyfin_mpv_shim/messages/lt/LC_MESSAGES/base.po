@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 23:11+0000\n"
+"PO-Revision-Date: 2026-10-27 12:27+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -811,7 +811,7 @@ msgstr "Ankstesnis puslapis"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr "Sekantis puslapis"
+msgstr "Kitas puslapis"
 
 #. Tooltip of the paging button that jumps to the last page of a library
 #. grid.
@@ -4622,7 +4622,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Next chapter"
-msgstr "Sekantis skyrius"
+msgstr "Kitas skyrius"
 
 #. Tooltip of the button that goes forward one: the next item in the queue
 #. on the playback controls and the now-playing bar, and the next batch on
@@ -5659,7 +5659,7 @@ msgstr "Vėliau"
 #. Tooltip of the button that moves the Live TV guide forward one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Next Day"
-msgstr "Sekanti diena"
+msgstr "Kita diena"
 
 #. Button that jumps the Live TV guide back to the current time. An adverb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -6841,7 +6841,7 @@ msgstr "Paleisti nuo pradžių"
 #. now. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Play next"
-msgstr "Paleisti sekantį"
+msgstr "Paleisti kitą"
 
 #. Action on an item's menu that tells the server it has not been watched.
 #. An imperative verb phrase.
