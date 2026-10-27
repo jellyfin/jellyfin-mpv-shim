@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 18:23+0000\n"
+"PO-Revision-Date: 2026-10-27 18:26+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -1341,8 +1341,6 @@ msgstr "采访"
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
 #. the film itself.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Scenes"
 msgctxt "kind of special feature"
 msgid "Scene"
 msgstr "场景"
@@ -3999,10 +3997,8 @@ msgstr "确定"
 #. Error in the Download modal for a special feature (an extra belonging to a
 #. film or show). They can only be played from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "%s has not been downloaded."
 msgid "Special features cannot be downloaded."
-msgstr "%s 尚未下载。"
+msgstr "花絮无法下载。"
 
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
