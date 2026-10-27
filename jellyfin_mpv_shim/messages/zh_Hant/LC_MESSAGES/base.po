@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 03:35+0000\n"
+"PO-Revision-Date: 2026-10-27 04:28+0000\n"
 "Last-Translator: Keith Chan <keithchan921@hotmail.com>\n"
 "Language-Team: Chinese (Traditional Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant/>\n"
@@ -1076,18 +1076,14 @@ msgstr "請在 Jellyfin 應用程式或網頁端輸入此代碼："
 #. Stands in for the Quick Connect code while it is being fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "SVP 設定"
+msgstr "請求…"
 
 #. Label of the field on the sign-in page where the Jellyfin server's web
 #. address is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "伺服器 URL: "
+msgstr "伺服器 URL"
 
 #. Label of the field on the sign-in page where the Jellyfin account name
 #. is typed.
@@ -1144,14 +1140,8 @@ msgstr "請先輸入伺服器網址。"
 
 #. Status shown while the Quick Connect code is being requested.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "正在連接伺服器…"
 
 #. Status shown while Quick Connect waits for someone to accept the code in
 #. another Jellyfin app.
@@ -1183,26 +1173,14 @@ msgstr "連線中…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not sign in. Please check your details."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法登入。請檢查您的登入資訊。"
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"無法添加伺服器。\n"
-"請檢查您的連接資訊。"
+msgstr "無法連接。請檢查您的登入資訊。"
 
 #. Heading of the startup screen shown while the saved servers are being
 #. reached.
@@ -3388,6 +3366,10 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"視訊轉碼時，應將內建的藍光或DVD字幕（PGS、VobSub）作為單獨的字幕軌道顯示，而"
+"不是將其嵌入畫面，這樣字幕就能保持清晰，並且可以在不重啟視頻的情況下切換。如"
+"果將字幕直接嵌入畫面，伺服器需要先提取檔案中的所有字幕軌道，這會耗費大量時間"
+"和伺服器磁碟空間 (尤其是在處理大型檔案時) 。單獨的字幕文件不受影響。"
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3521,6 +3503,8 @@ msgid ""
 "preference heuristics are built around English naming conventions, your "
 "mileage may vary. Use a language code such as eng."
 msgstr ""
+"用於配音音訊或字幕的語言。請注意，偏好設定是基於英語命名規則建構的，實際效果"
+"可能因人而異。請使用語言代碼，例如 eng。"
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
@@ -3595,6 +3579,8 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"允許鍵盤媒體鍵、耳機按鈕、鎖定螢幕和桌面媒體小部件播放、暫停和跳過，並透過其"
+"封面顯示正在播放的內容 (僅限 MPRIS，Linux)。"
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3639,6 +3625,8 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"重新開啟每個媒體庫時，將保留上次的篩選條件 (類型、未播放、收藏等)，這些篩選條"
+"件已儲存到您伺服器上的帳戶。關閉此功能後，篩選條件僅在您離開媒體庫時才有效。"
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -5188,7 +5176,7 @@ msgstr "自動全螢幕"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr ""
+msgstr "播放已停止，因此該佇列已消失。"
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5280,7 +5268,7 @@ msgstr "無法儲存錄影設定。"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "The server is refreshing %s."
-msgstr ""
+msgstr "伺服器正在刷新 %s。"
 
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
@@ -5940,10 +5928,8 @@ msgstr "外部"
 
 #. Shown on a book's page while the file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading…"
-msgstr "刪除伺服器"
+msgstr "正在下載…"
 
 # seeded from jellyfin-web: Programs
 #. Shown on a book's page while the stored reading position is being
@@ -6132,7 +6118,7 @@ msgstr "新增日期"
 #. says the library is not empty, only filtered.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "No items match these filters."
-msgstr ""
+msgstr "沒有符合這些篩選條件的項目。"
 
 # seeded from jellyfin-web: Filters
 #. Button under "No items match these filters." on an empty library grid.
@@ -6986,7 +6972,7 @@ msgstr "電視節目"
 #. the sense of "has no parent server", not "damaged".
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Orphaned Items"
-msgstr ""
+msgstr "孤立項目"
 
 # seeded from jellyfin-web: Playlists
 #. Name of the offline library holding downloaded playlists.
@@ -7093,7 +7079,7 @@ msgstr "要刪除 %s 裡已看過的下載嗎？"
 #. that language and is not translated.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the system language"
-msgstr ""
+msgstr "使用系統語言"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #. Checkbox at the top of Settings that reveals the rows not sorted into a
@@ -7447,7 +7433,7 @@ msgstr "已連線"
 #. other two states are "Connected" and "Offline".
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Signed out"
-msgstr ""
+msgstr "已登出"
 
 #. State beside a server in Settings: the application cannot reach it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7570,7 +7556,7 @@ msgstr "自動下載"
 #. was already connecting to it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Already reconnecting."
-msgstr ""
+msgstr "正在重新連線。"
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7594,7 +7580,7 @@ msgstr "連線中…"
 msgid ""
 "%s answered, but it no longer accepts the saved login. Signing in again "
 "keeps its downloads and settings."
-msgstr ""
+msgstr "%s 已回答，但不再接受已儲存的登入資訊。重新登入後，下載內容和設定將保留。"
 
 #. Body of the same dialog, for a server that did not respond at all. %s is
 #. the server's name.
@@ -7603,7 +7589,7 @@ msgstr ""
 msgid ""
 "%s did not answer. It may be switched off, or this machine may not be able "
 "to reach it right now."
-msgstr ""
+msgstr "%s 沒有回應。它可能已關機，或者本機目前無法連接到它。"
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7766,7 +7752,7 @@ msgstr "搜尋"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "%s (needs reconnect)"
-msgstr ""
+msgstr "%s (需要重新連接)"
 
 #. Tooltip of the window button that hides the window to the taskbar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -7861,7 +7847,7 @@ msgstr "更晚"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s — run “flatpak update”"
-msgstr ""
+msgstr "有可用更新：%s — 執行 “flatpak update”"
 
 #. Banner announcing a newer release of this application. %s is the version
 #. number.
@@ -7874,7 +7860,7 @@ msgstr "有新版本：%s"
 #. means it opens something else.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Details…"
-msgstr ""
+msgstr "細節…"
 
 #. Button on the update banner that puts the notice off for now, so it
 #. returns next time. "Not now", not a direction in time. Two other buttons
@@ -7890,19 +7876,19 @@ msgstr "更晚"
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Ignore"
-msgstr ""
+msgstr "忽略"
 
 #. Tooltip of the update banner's Ignore button.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Do not mention this version again"
-msgstr ""
+msgstr "不要再提及這個版本了"
 
 #. Banner across the top of the library after something the user asked
 #. for failed because the server could not be reached. Followed by the
 #. "Retry" and "Go Offline" buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "The server isn't answering."
-msgstr ""
+msgstr "伺服器沒有響應。"
 
 #. Button on the "server isn't answering" banner: browse only what is
 #. downloaded to this computer instead.
@@ -7960,10 +7946,8 @@ msgstr "播放資訊"
 #. Marker beside a quality option on the playback controls, meaning the
 #. server would re-encode the video to reach it. A noun here.
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (轉碼)"
+msgstr "轉碼"
 
 #. First entry of a video profile list for a narrower scope, meaning "stop
 #. overriding and follow the wider setting".
@@ -7999,7 +7983,7 @@ msgstr ""
 #. "Could not play this item: <title> — "; "it" is that item.
 #: jellyfin_mpv_shim/player.py
 msgid "The server stopped sending it partway through."
-msgstr ""
+msgstr "伺服器在發送過程中停止了。"
 
 #. Shown over the video when playback reaches the end of a downloaded
 #. episode and the one after it is not on this device.
@@ -8058,7 +8042,7 @@ msgstr "啟用SVP"
 #. accounts the user has signed in to their Jellyfin servers with.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Downloads are unavailable: the saved logins could not be read."
-msgstr ""
+msgstr "下載內容無法使用：無法讀取已儲存的登入資訊。"
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
@@ -8112,7 +8096,7 @@ msgstr "無法建立該資料夾，請檢查路徑與權限。"
 msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
-msgstr ""
+msgstr "此應用程式無權寫入該資料夾。請選擇您擁有的資料夾，或變更其權限，然後重試。"
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
@@ -8134,7 +8118,7 @@ msgstr "該磁碟空間不足以搬移下載內容。請清出空間再試——
 msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
-msgstr ""
+msgstr "此應用程式無權寫入該資料夾。下載的檔案已保留；請檢查資料夾權限並重試。"
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
