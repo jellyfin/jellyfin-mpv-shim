@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-28 08:56+0000\n"
+"PO-Revision-Date: 2026-10-28 20:14+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -4380,7 +4380,7 @@ msgstr "Toliau"
 #. in the Home Screen settings. Jellyfin Web uses the same phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "Recently Added"
-msgstr "Neseniai pridėta"
+msgstr "Neseniai pridėti"
 
 #. Heading over the Live TV programmes being recorded at this moment. Used
 #. on the Recordings tab and as a home-screen row.
@@ -6186,7 +6186,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "Neseniai pridėta į {0}"
+msgstr "Neseniai pridėti į {0}"
 
 #. Heading of a Live TV row listing episodes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
