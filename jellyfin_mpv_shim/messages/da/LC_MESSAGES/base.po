@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 00:42+0000\n"
+"PO-Revision-Date: 2026-10-29 00:41+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -3216,18 +3216,14 @@ msgstr ""
 #. Explanation shown under the "Left Click Pauses Playback" setting
 #. (Settings > Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Off gives MPV's own mouse behaviour instead: drag the video to move the "
-#| "window, and right click to pause. Double click is full screen either way."
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and the right button does whatever your MPV config gives it. Double "
 "click is full screen either way."
 msgstr ""
-"Fra vil gøre at MPV's egen musse adfærd bruges i stedet: ryk vinduet ved at "
-"trække videoen, pause når der højreklikkes. Dobbeltklik vil være fuldskærm "
-"uanset hvad."
+"Når deaktiveret får du i stedet MPV's egen museadfærd: Træk videoen for at "
+"flytte vinduet - og den højre knap gør det, som din MPV-konfiguration "
+"dikterer. Dobbeltklik er i begge tilfælde fuldskærm."
 
 #. Explanation shown under the "Deinterlace Automatically" setting
 #. (Settings > Playback > Video Enhancement).
@@ -3313,6 +3309,12 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"Er en video omkodet skal du vise dens indbyggede Blu-ray eller DVD (PGS, "
+"VobSub)-undertekster som et separat spor, i stedet for at brænde dem ind i "
+"billedet. Så forbliver de skarpe og kan skiftes uden at genstarte. "
+"Afspilning får serveren til at udtrække hvert undertekstspor i filen først, "
+"hvilket tager tid og  beslaglægger serverdiskplads ved en stor fil. "
+"Undertekster i deres egen fil påvirkes ikke."
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
