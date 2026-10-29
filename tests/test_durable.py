@@ -209,6 +209,22 @@ class TornWriteRecoveryTest(unittest.TestCase):
         self.assertEqual(["(default)", "Second"],
                          [u["name"] for u in again.users])
 
+    def test_a_clean_users_json_load_drops_stale_recovery_copies(self):
+        # Left by an in-place write whose open was refused; they hold tokens
+        # and nothing reads them, since users.json recovers from its .bak.
+        from jellyfin_mpv_shim.users import UserManager
+        with mock.patch("jellyfin_mpv_shim.users.conffile.get",
+                        side_effect=lambda app, f, create=False:
+                        os.path.join(self.dir, f)):
+            UserManager().load()
+            stale = [os.path.join(self.dir, name + durable.RECOVERY_SUFFIX)
+                     for name in ("users.json", "users.json.bak")]
+            for p in stale:
+                with open(p, "w", encoding="utf-8") as fh:
+                    fh.write('{"old": "token"}')
+            UserManager().load()
+        self.assertEqual([], [p for p in stale if os.path.exists(p)])
+
     def test_conf_json(self):
         from jellyfin_mpv_shim.conf import Settings
         path = os.path.join(self.dir, "conf.json")

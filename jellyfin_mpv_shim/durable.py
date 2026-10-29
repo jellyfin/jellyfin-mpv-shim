@@ -75,7 +75,8 @@ def replace_file(path, text, encoding="utf-8", mode=None):
     suite polling users.json -- but it still lets the file be written. So
     then: copy what is there to ``path.tmprec``, write over ``path`` in
     place, and read it back. A crash part-way leaves ``path`` torn and
-    ``.tmprec`` whole, which is what the loaders recover from. Once the write
+    ``.tmprec`` whole, which conf.json and the shader overrides recover from
+    (users.json recovers from its own ``.bak``). Once the write
     reads back true the copy is removed.
 
     ``mode`` creates the temp file and the ``.tmprec`` with those permission

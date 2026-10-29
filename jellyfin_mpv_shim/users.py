@@ -215,7 +215,12 @@ class UserManager:
             present = os.path.exists(path)
             if present:
                 data = self._read_json(path)
-            if not _has_users(data):
+            if _has_users(data):
+                # Recovery here is from .bak, so durable's copies are
+                # only stale tokens.
+                durable.discard_recovery(path)
+                durable.discard_recovery(path + BACKUP_SUFFIX)
+            else:
                 # Damaged: it is missing, it did not parse, or it parsed to
                 # something with nobody in it. This build never writes the
                 # third (`delete_user` refuses to remove the last user), so
