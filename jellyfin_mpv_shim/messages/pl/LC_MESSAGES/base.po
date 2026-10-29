@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-22 06:55+0000\n"
-"Last-Translator: Karol Smigowski <smigowski@gmail.com>\n"
+"PO-Revision-Date: 2026-10-29 15:41+0000\n"
+"Last-Translator: Włodzimierz Gajewski <zzizzy@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/pl/>\n"
 "Language: pl\n"
@@ -1163,10 +1163,8 @@ msgstr "Łączenie…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "Nie udało się połączyć. Sprawdź swoje dane."
+msgstr "Nie udało się zalogować. Sprawdź swoje dane logowania."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1280,10 +1278,8 @@ msgstr "Ulubione"
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "Odśwież"
+msgstr "Odśwież metadane"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -1299,15 +1295,13 @@ msgstr "Usuń z dysku"
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Więcej"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Has Special Features"
 msgid "Special Features"
-msgstr "Posiada dodatki"
+msgstr "Dodatki specjalne"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
@@ -1327,74 +1321,60 @@ msgstr "Sieć"
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. promotional film about the making of the film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Features"
 msgctxt "kind of special feature"
 msgid "Featurette"
-msgstr "Dodatki"
+msgstr "Materiały dodatkowe"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
 #. production.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Panel behind the controls"
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr "Panel za kontrolkami"
+msgstr "Materiały zakulisowe"
 
 # seeded from jellyfin-web: DeleteUser
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
 #. from the finished film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Delete User"
 msgctxt "kind of special feature"
 msgid "Deleted Scene"
-msgstr "Usuń użytkownika"
+msgstr "Usunięta scena"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. An interview
 #. with the cast or crew.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Interlaced"
 msgctxt "kind of special feature"
 msgid "Interview"
-msgstr "Z przeplotem"
+msgstr "Wywiad"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
 #. the film itself.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Scenes"
 msgctxt "kind of special feature"
 msgid "Scene"
-msgstr "Sceny"
+msgstr "Scena"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short sample
 #. of the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Sample rate"
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr "Próbkowanie"
+msgstr "Próbka"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. excerpt.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Clipboard"
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr "Schowek"
+msgstr "Klip"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1402,21 +1382,21 @@ msgstr "Schowek"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "Fragment"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Niewyemitowany"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Brakujący"
 
 # seeded from jellyfin-web: Video
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -2137,25 +2117,25 @@ msgstr "Łączenie klatek"
 #. Video Enhancement); stored as "hq".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Płynne (wysoka jakość)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "light".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Lekkie (dla filmów aktorskich)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "standard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Standardowe (dla animacji)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "strong".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Silne"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "auto".
@@ -2197,7 +2177,7 @@ msgstr "Reinhard"
 #. Enhancement); stored as "clip".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Przytnij (bez mapowania tonów)"
 
 #. Choice in the "Rendering Quality" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "default".
@@ -2250,10 +2230,8 @@ msgstr "Niestandardowy OSC"
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "none".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "No player controls"
-msgstr "Styl kontrolek odtwarzacza"
+msgstr "Brak kontrolek odtwarzacza"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "0.75".
@@ -2392,7 +2370,7 @@ msgstr "Sepia"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "Jasny"
 
 #. Choice in the "Comic Reading Mode" dropdown (Settings > Browse >
 #. Reading); stored as "width".
@@ -2405,10 +2383,8 @@ msgstr "Dopasuj szerokość"
 #. Reading); stored as "page".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "Page"
 msgid "Fit Page"
-msgstr "Strona"
+msgstr "Dopasuj do strony"
 
 #. Choice in the "Shading Behind the Player Controls" dropdown (Settings >
 #. Playback > Player Controls), meaning change nothing and let MPV decide.
@@ -2429,16 +2405,14 @@ msgstr "Panel za kontrolkami"
 #. Choice in the "Shading Behind the Player Controls" dropdown (Settings >
 #. Playback > Player Controls); stored as "none".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "Brak (wyłączone)"
+msgstr "Brak (tekst cieniowany)"
 
 #. Choice in the "When the Player Controls Hide" dropdown (Settings >
 #. Playback > Player Controls); stored as "hover".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr ""
+msgstr "Ukryj gdy nieużywane"
 
 #. Choice in the "When the Player Controls Hide" dropdown (Settings >
 #. Playback > Player Controls); stored as "always".
@@ -2450,13 +2424,13 @@ msgstr "Zawsze ukryte"
 #. Playback > Player Controls); stored as "paused".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Nie ukrywaj podczas pauzy"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "justify".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Poszerz przerwy"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "center".
@@ -2468,7 +2442,7 @@ msgstr "Wyśrodkuj miniatury"
 #. Browser); stored as "off".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Pozostaw na lewej stronie"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "None".
@@ -2480,13 +2454,13 @@ msgstr "Motyw domyślny"
 #. as "0.75".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Ekstra kompaktowe"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "0.85".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Kompaktowe"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "1.2".
@@ -2624,13 +2598,13 @@ msgstr "Lewy przycisk wstrzymuje odtwarzanie"
 #. > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Pokaż plakaty na stronie ze szczegółami"
 
 #. Label of the checkbox for the "detail_episode_image" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Pokaż miniaturki odcinków na stronie ze szczegółami"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #. Label of the dropdown for the "hwdec" setting (Settings > Playback >
@@ -2728,7 +2702,7 @@ msgstr "Usuń nieobejrzane po (w dniach, 0 = nigdy)"
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Sprawdzaj co (minuty)"
 
 #. Label of the number field for the "auto_download_lookahead_min" setting
 #. (Settings > Browse > Download Tuning).
@@ -2906,7 +2880,7 @@ msgstr "Wyjustuj tekst"
 #. Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "Tryb czytania komiksów"
 
 #. Label of the checkbox for the "headless" setting (under Advanced on the
 #. General tab of Settings).
@@ -2981,13 +2955,13 @@ msgstr "Zmniejsz kontrolki odtwarzacza w wąskim oknie"
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "Przyciski Wstecz/Dalej na myszce do nawigacji po rozdziałach"
 
 #. Label of the dropdown for the "audio_mode" setting (Settings > Playback
 #. > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "Rodzaj wyjścia audio"
 
 #. Label of the text field for the "audio_device" setting (Settings >
 #. Playback > Audio).
@@ -2999,7 +2973,7 @@ msgstr "Urządzenie wyjścia audio"
 #. Playback > Audio).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "Używaj urządzenia na wyłączność"
 
 #. Label of the checkbox for the "shader_pack_enable" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3023,7 +2997,7 @@ msgstr "Zapamiętaj ostatnio używany profil"
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "API graficzne dla shaderów"
 
 #. Label of the checkbox for the "audio_passthrough_ac3" setting (Settings
 #. > Playback > Audio).
