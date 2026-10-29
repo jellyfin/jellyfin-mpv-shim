@@ -1046,6 +1046,10 @@ class Settings(SettingsBase):
                 json.dump(self.dict(), fh, indent=4, sort_keys=True)
                 fh.close()
                 created = True
+            except OSError:
+                # Raised as itself: returning None only crashes the caller
+                # on unpacking, before logging is up to say why.
+                raise
             except Exception:
                 log.error("Error opening settings from path: %s" % path)
                 return None

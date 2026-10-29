@@ -148,6 +148,15 @@ class MissingConfigFileTest(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             Settings().load(self.path, create=False)
 
+    @unittest.skipUnless(os.name == "posix" and os.geteuid() != 0,
+                         "needs a directory this user cannot enter")
+    def test_a_config_dir_it_cannot_enter_names_the_error(self):
+        # os.path.exists answers False for it, so this reaches the open.
+        os.chmod(self.tmp, 0)
+        self.addCleanup(os.chmod, self.tmp, 0o700)
+        with self.assertRaises(PermissionError):
+            Settings().load(self.path)
+
 
 if __name__ == "__main__":
     unittest.main()
