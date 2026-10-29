@@ -101,6 +101,11 @@ jellyfin_mpv_shim = [
 module = ["jellyfin_apiclient_python.*"]
 ignore_missing_imports = true
 
+# Optional, platform-specific, and shipped without stubs.
+[[tool.mypy.overrides]]
+module = ["gi", "gi.*", "pillow_jxl"]
+ignore_missing_imports = true
+
 [[tool.mypy.overrides]]
 module = [
     "jellyfin_mpv_shim.mpvtk_browser.async_runner",

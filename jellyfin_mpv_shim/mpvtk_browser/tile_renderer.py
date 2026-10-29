@@ -1649,6 +1649,10 @@ class TileRenderer:
                           hover=None if off else {"fill": theme.ACCENT,
                                                   "circle": True},
                           repeat=not off,
+                          # Pointer-only: nav mode drops these buttons
+                          # (_page_state), so a key that focused one lost
+                          # focus on the next frame.
+                          nav_skip=True,
                           on_click=lambda: self.page_row(
                               row_id, direction, count, geom))
 
@@ -1726,7 +1730,7 @@ class TileRenderer:
             return Image(bm["src"], bm["iw"], bm["ih"],
                          v=bm.get("v", 0), w=bm["lw"], h=bm["lh"],
                          id=node_id, anchor=anchor, dx=dx, dy=dy,
-                         repeat=not off,
+                         repeat=not off, nav_skip=True,
                          on_click=lambda: self.page_row(row_id, direction,
                                                         count, geom))
 

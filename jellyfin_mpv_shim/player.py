@@ -26,7 +26,7 @@ import random
 from threading import RLock, Lock, Thread, Event
 from queue import Queue, Empty as queue_empty
 from collections import deque
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from . import conffile
 import threading
@@ -35,6 +35,7 @@ from .utils import (same_origin, synchronous, Timer, get_resource,
                     item_is_audio)
 from .media import segment_labels
 from . import mpv_guard
+from .log_utils import level_mapping
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
 from .player_audio import AudioMixin
@@ -343,11 +344,14 @@ SUBTITLE_POS = {
     "middle": 80,
 }
 
-mpv_log_levels = {
+mpv_log_levels: dict[str, Callable[[str], None]] = {
     "fatal": mpv_log.error,
     "error": mpv_log.error,
     "warn": mpv_log.warning,
     "info": mpv_log.info,
+    # At the level `v` gives the app (log_utils.level_mapping), so that
+    # choosing `v` shows them: everything else not named here is debug.
+    "v": functools.partial(mpv_log.log, level_mapping["V"]),
 }
 
 
@@ -654,6 +658,39 @@ def _mark_own_close(handle):
         _set_shutdown_seen(handle)
 
 
+#: How long a libmpv quit may take before the handle is destroyed anyway.
+MPV_QUIT_WAIT = 3.0
+
+
+def _quiesce_libmpv(handle):
+    """Shut the core down and wait for its "shutdown" event before
+    `terminate()` destroys the handle.
+
+    python-mpv's `terminate()` destroys first and joins its event thread
+    after, so an observer still running reads a freed handle: a SIGSEGV in
+    `mpv_get_property` (12 of 20 idle-quit re-opens on a slow VM). After
+    "shutdown" mpv sends no more property changes, so nothing is left to
+    overlap the destroy. This is the order python-mpv's own warning gives.
+    Never from the event thread: every caller runs `_terminate_mpv` on a
+    thread of its own. A wedged core is destroyed anyway, after
+    `MPV_QUIT_WAIT`."""
+    try:
+        if handle.core_shutdown:
+            return              # the user closed the window: already down
+        # catch_errors=False: otherwise any observer raising while the core
+        # winds down ends this wait early, and terminate() races it again.
+        with handle.prepare_and_wait_for_event("shutdown",
+                                               timeout=MPV_QUIT_WAIT,
+                                               catch_errors=False):
+            handle.quit()
+    except Exception as exc:
+        # By name: a stand-in backend without the class would make the
+        # except clause itself raise, killing the terminate thread.
+        if type(exc).__name__ != "ShutdownError":  # waiting ends in this
+            log.debug("mpv did not shut down cleanly before terminate",
+                      exc_info=True)
+
+
 class MpvShutDownDuringBuild(RuntimeError):
     """The mpv being built shut down before the build published it."""
 
@@ -830,7 +867,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Optional callback (set by the UI) fed a compact now-playing dict on
         # every playback state change, for the browser's music bar. Kept as a
         # plain attribute so the player has no hard dependency on the GUI.
-        self.on_playstate = None
+        self.on_playstate: Optional[Callable[[dict], None]] = None
         # Also set by the UI: told the position a stop reported, so a page
         # showing that item can say Resume from there before the server's
         # UserDataChanged (and the re-read after it) arrives.
@@ -5360,6 +5397,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             player = self._player
         self._mark_mpv_dead(player)
         _mark_own_close(player)
+        if not is_using_ext_mpv:
+            _quiesce_libmpv(player)
         try:
             player.terminate()
         except Exception:

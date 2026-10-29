@@ -47,7 +47,21 @@ level_mapping = {
     "INFO": 20,
     "DEBUG": 10,
     "NOTSET": 0,
+    # mpv_log_level also sets the app's own level, so mpv's names need a
+    # place here too (#849). `noise` is the app's, not mpv's: see player.py.
+    "V": 15,
+    "TRACE": 5,
+    "NOISE": 10,
 }
+
+
+# Named, or a line logged at mpv's `v` level is labelled "Level 15".
+logging.addLevelName(level_mapping["V"], "VERBOSE")
+
+
+def _level(name: str) -> int:
+    # A hand-edited typo must not stop the app starting.
+    return level_mapping.get(str(name).upper(), logging.INFO)
 
 
 def _redact(text):
@@ -116,7 +130,7 @@ def enable_sanitization():
 
 
 def configure_log(destination, level: str = "info"):
-    lvl = level_mapping[level.upper()]
+    lvl = _level(level)
     # Records below the logger's level never reach handlers, so widen the root
     # logger if a handler asks for something more permissive.
     if lvl < root_logger.level:
@@ -129,7 +143,7 @@ def configure_log(destination, level: str = "info"):
 
 
 def configure_log_file(destination: str, level: str = "info"):
-    lvl = level_mapping[level.upper()]
+    lvl = _level(level)
     if lvl < root_logger.level:
         root_logger.level = lvl
 

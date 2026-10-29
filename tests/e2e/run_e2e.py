@@ -244,9 +244,9 @@ PER_BACKEND = [
     # A real audiobook, a real stream, a real seek: the half of the resume
     # loop the contract tier cannot see, because it drives the server
     # directly rather than through the player.
-    "tests.e2e.test_audiobooks.AudiobookPlaybackTest",
+    "tests.e2e.test_audiobooks_playback",
     # An extra and the local trailers through the real play path.
-    "tests.e2e.test_special_features.PlayingAnExtraTest",
+    "tests.e2e.test_special_features_playback",
     # The comic reader, which is the one browser screen the contract-tier
     # route walk cannot open: a comic page is PLAYED, so showing one imports
     # player.py and opens a window. Per backend because what it asserts on
@@ -360,6 +360,15 @@ def run_leg(module, backend, use_xvfb, verbosity):
     env["JMS_CHECK_SCENES"] = "1"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
+    else:
+        # The contract tier is displayless by convention only: a screen whose
+        # render reaches `_act` imports player.py and opens an mpv window.
+        # With the developer's DISPLAY inherited that window landed on their
+        # desktop (2026-10-22); without one, the leg fails and names itself.
+        # X11/Wayland only: Windows and macOS have no such variable to take
+        # away, and there test_e2e_registry's no-player guard is all there is.
+        env.pop("DISPLAY", None)
+        env.pop("WAYLAND_DISPLAY", None)
     # tests._outcomes is `-m unittest` plus a per-test record, which is what
     # the skip counts and the manifest check read (tests/_manifest.py).
     fd, outcomes = tempfile.mkstemp(prefix="jms-e2e-outcomes-",

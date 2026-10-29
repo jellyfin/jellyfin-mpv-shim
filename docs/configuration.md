@@ -195,7 +195,7 @@ Downloads are managed from **Downloads** in the sidebar; these settings control 
 and what is fetched automatically.
 
 - `sync_path` - Where downloads are stored. Default: `null` (a `downloads` folder in the
-  config folder)
+  config folder). A relative path is inside the config folder.
   - **Change it in Settings, not by hand** — Settings moves the existing files; editing the
     path leaves them behind. The new folder must be empty, and the app owns it afterwards.
 - `prefer_downloaded` - Play the downloaded copy when there is one. Default: `true`

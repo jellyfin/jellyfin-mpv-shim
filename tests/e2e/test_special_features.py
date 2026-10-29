@@ -10,7 +10,8 @@ on was read in the server source, and these are the measurements:
   download door (`extras.is_extra`, docs/offline-sync.md §6);
 * extras never surface in a library query;
 * a season owns the extras in its own folder, on both versions;
-* the trailers route answers both trailers, and an extra plays and reports;
+* the trailers route answers both trailers (playing them, and an extra, is
+  test_special_features_playback);
 * the row and the Trailer button, rendered by a real browser on real DTOs,
   on the film's page and on Season 1's (`_InTheBrowser`);
 * the auto-download lookahead's own query holds no extras.
@@ -267,45 +268,6 @@ class SpecialFeaturesContractAltTest(_Contract, unittest.TestCase):
     """The same against JMS_E2E_SERVER_ALT (10.11); skipped when unset."""
 
     SERVER_ENV = "JMS_E2E_SERVER_ALT"
-
-
-@_e2e.require_server_and_mpv
-class PlayingAnExtraTest(_e2e.E2ETestCase):
-    def _film_extras(self):
-        film = self.session.find(FILM, library="Movies", item_type="Movie")
-        source = self.session.library_source()
-        self.addCleanup(source.stop)
-        return film, source
-
-    def test_an_extra_plays_and_the_server_hears_about_it(self):
-        film, source = self._film_extras()
-        extra = next(e for e in source.get_special_features(
-            _e2e.SOURCE_UUID, film["Id"]) if e["ExtraType"] == "Featurette")
-        self.session.reset_played(extra["Id"])
-        self.addCleanup(self.session.reset_played, extra["Id"])
-        before = self.session.user_data(extra["Id"]).get("LastPlayedDate")
-        self.pm.play(_e2e.build_media(self.session, [extra["Id"]]).video,
-                     is_initial_play=True)
-        self.assertTrue(_e2e.wait_for(lambda: self.pm._player.duration),
-                        "mpv never opened the extra")
-        self.pump_until(lambda: (self.pm._player.playback_time or 0) > 1)
-        self.pm.stop()
-        self.assertTrue(
-            _e2e.wait_for(lambda: self.session.user_data(extra["Id"]).get(
-                "LastPlayedDate") not in (None, before), timeout=20),
-            "the server recorded no playback of the extra")
-
-    def test_the_local_trailers_play_as_one_queue(self):
-        film, source = self._film_extras()
-        ids = [t["Id"] for t in source.get_trailers(_e2e.SOURCE_UUID,
-                                                    film["Id"])]
-        self.assertEqual(len(ids), 2)
-        self.addCleanup(self.session.reset_played, *ids)
-        media = _e2e.build_media(self.session, ids)
-        self.pm.play(media.video, is_initial_play=True)
-        self.assertTrue(_e2e.wait_for(lambda: self.pm._player.duration),
-                        "mpv never opened the first trailer")
-        self.assertEqual(len(media.queue), 2)
 
 
 if __name__ == "__main__":

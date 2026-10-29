@@ -19,6 +19,8 @@ import json
 import logging
 import os
 
+from . import durable
+
 log = logging.getLogger("shader_overrides")
 
 #: Narrowest first. This *is* the resolution order — series beats library
@@ -61,15 +63,23 @@ class ShaderOverrides:
     def load(self):
         if not self.path or not os.path.isfile(self.path):
             return
-        try:
-            with open(self.path, encoding="utf-8") as fh:
-                raw = json.load(fh)
-        except Exception:
+        raw = self._read(self.path)
+        if raw is None:
+            # A save written in place that did not finish leaves the previous
+            # copy at .tmprec (durable.replace_file). Read, not restored: the
+            # next save rewrites the file from what is loaded here.
+            raw = self._read(self.path + durable.RECOVERY_SUFFIX)
+            if raw is not None:
+                log.warning("Could not read %s; using %s.", self.path,
+                            self.path + durable.RECOVERY_SUFFIX)
+        else:
+            durable.discard_recovery(self.path)
+        if raw is None:
             # A file somebody hand-edited into invalid JSON must not stop
             # playback. Empty overrides means the global profile, which is
             # the behaviour this feature is an addition to.
             log.warning("Could not read %s; ignoring shader overrides.",
-                        self.path, exc_info=True)
+                        self.path)
             return
         if not isinstance(raw, dict):
             return
@@ -81,6 +91,17 @@ class ShaderOverrides:
                 str(k): (v if isinstance(v, str) else None)
                 for k, v in table.items()
             }
+
+    @staticmethod
+    def _read(path):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                return json.load(fh)
+        except FileNotFoundError:
+            return None
+        except Exception:
+            log.debug("Could not parse %s", path, exc_info=True)
+            return None
 
     def save(self):
         """Persist the overrides. Returns whether they reached disk.
@@ -103,22 +124,12 @@ class ShaderOverrides:
             return True
         payload = {"version": 1}
         payload.update({scope: self._data[scope] for scope in SCOPES})
-        tmp = self.path + ".tmp"
         try:
-            with open(tmp, "w", encoding="utf-8") as fh:
-                json.dump(payload, fh, indent=4)
-                fh.flush()
-            os.replace(tmp, self.path)
+            durable.replace_file(self.path, json.dumps(payload, indent=4),
+                                 encoding="utf-8")
             return True
         except Exception:
             log.warning("Could not write %s.", self.path, exc_info=True)
-            # Our own debris rather than the user's data. Left behind it is
-            # confusing, and a later partial write would be indistinguishable
-            # from a good one.
-            try:
-                os.remove(tmp)
-            except OSError:
-                pass
             return False
 
     # -- reads -----------------------------------------------------------

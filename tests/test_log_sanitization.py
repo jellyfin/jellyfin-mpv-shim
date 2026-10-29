@@ -185,6 +185,21 @@ class MpvNoiseFilter(unittest.TestCase):
         self.player.mpv_log_handler("error", "vo/gpu-next", "context init failed")
         self.assertIn("context init failed", self.player.last_mpv_error() or "")
 
+    def test_v_lines_reach_a_log_set_to_v(self):
+        """`v` sets the app's level between DEBUG and INFO, so mpv's `v`
+        lines have to be logged at that level, not at debug."""
+        import io
+        root = logging.getLogger()
+        before = set(root.handlers)
+        self.addCleanup(setattr, root, "level", root.level)
+        out = io.StringIO()
+        log_utils.configure_log(out, "v")
+        for h in set(root.handlers) - before:
+            self.addCleanup(root.removeHandler, h)
+        self.settings.mpv_log_level = "v"
+        self.player.mpv_log_handler("v", "demux", "probing done")
+        self.assertIn("probing done", out.getvalue())
+
     def test_noise_is_not_handed_to_mpv(self):
         """mpv has no such level; it would refuse to start."""
         self.assertEqual(self.player.mpv_loglevel_for("noise"), "debug")

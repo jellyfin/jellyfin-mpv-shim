@@ -109,9 +109,15 @@ class ArrowsFollowTheLayoutTest(_InputCase):
     def press(self, key):
         was = self.app.frame().get("nav")
         self.app.key(key)
-        f = self.app.wait_for(lambda f: f.get("nav") not in (None, was),
-                              timeout=5, what="%s to move focus from %s"
-                              % (key, was))
+        try:
+            f = self.app.wait_for(lambda f: f.get("nav") not in (None, was),
+                                  timeout=5, what="%s to move focus from %s"
+                                  % (key, was))
+        except _app.AppError as exc:
+            # Whether focus was dropped by a later frame or never moved.
+            trail = [(h.get("rev"), h.get("nav"), h.get("top"))
+                     for h in self.app.history()[-40:]]
+            raise _app.AppError("%s\ntrail %r" % (exc, trail))
         return f, _app.node(f, f["nav"])
 
     def test_down_right_left_up_go_where_the_screen_says(self):

@@ -151,7 +151,7 @@ class HomePage(Page):
     #: chevron in any layout. A resume row is not the top of a longer list --
     #: it *is* the list -- and "see all of what you have not finished" is not
     #: a screen anyone asked for.
-    SEE_ALL_ROWS = {
+    SEE_ALL_ROWS: dict[str, dict] = {
         home_sections.NEXT_UP: {"type": "nextup"},
         # jellyfin-web's On Now chevron is #/list?type=Programs&IsAiring=true
         # -- the plain guide query, not the recommendations endpoint the row

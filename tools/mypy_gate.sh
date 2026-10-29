@@ -10,8 +10,7 @@
 #   tools/mypy_gate.sh              # check for new errors
 #   tools/mypy_gate.sh --update     # re-baseline after INTENTIONAL changes
 #
-# The run takes under a second, so there is no reason not to run it beside
-# the unit suite.
+# tools/run_tests_parallel.py runs it beside the unit suite.
 #
 # WHAT THIS DOES AND DOES NOT CATCH. It does not currently catch the
 # "forgotten move" class -- a lambda calling a method that no longer exists
@@ -36,7 +35,17 @@ normalise() {
     grep -E "^[^ ].*: error:" | sed -E 's/^([^:]+):[0-9]+:/\1:/' | sort -u
 }
 
-current="$(mypy jellyfin_mpv_shim/ 2>&1 | normalise)"
+raw="$(mypy jellyfin_mpv_shim/ 2>&1)"
+rc=$?
+current="$(printf '%s\n' "$raw" | normalise)"
+
+# A mypy that crashed prints no `: error:` lines, which would read as every
+# finding fixed. rc 1 alone is not enough to trust: a traceback exits 1 too.
+if [ "$rc" -ge 2 ] || { [ "$rc" -ne 0 ] && [ -z "$current" ]; }; then
+    echo "mypy did not run cleanly (exit $rc):"
+    printf '%s\n' "$raw" | tail -20 | sed 's/^/  /'
+    exit 1
+fi
 
 if [ "${1:-}" = "--update" ]; then
     printf '%s\n' "$current" > "$BASELINE"

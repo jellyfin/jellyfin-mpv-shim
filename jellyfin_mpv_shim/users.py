@@ -27,7 +27,7 @@ import threading
 import time
 import uuid
 
-from . import conffile
+from . import conffile, durable
 from .conf import settings
 from .constants import APP_NAME
 from .i18n import _
@@ -42,7 +42,7 @@ DEFAULT_USER_NAME = _("(default)")
 #: can restore if the power fails mid-write or something."* Distinct from the
 #: `.unreadable-<ts>` file `load` sets aside, which rescues the **corrupt**
 #: bytes after the fact and can restore nothing.
-BACKUP_SUFFIX = ".bak"
+BACKUP_SUFFIX = ".bak"   # users.json's own rolling spare, not durable's
 
 
 def _has_users(data):
@@ -75,30 +75,6 @@ def _restrict_existing(paths):
             log.warning("Could not restrict permissions on %s", p,
                         exc_info=True)
 
-
-def _fsync_dir(directory):
-    """Flush the directory entry itself, so a rename survives a power cut.
-
-    `os.replace` is atomic with respect to other *readers*; it says nothing
-    about whether the new name has reached the disk. Without this, a crash
-    can leave the old name, the new name, or -- on ext4 with the default
-    `data=ordered` -- a correctly renamed file of zero length.
-
-    Best effort on purpose: Windows cannot open a directory as a file and
-    raises here, and a filesystem that refuses the descriptor must not stop
-    the app saving. The file's own fsync is the part that matters most and it
-    has already happened by the time this runs.
-    """
-    try:
-        fd = os.open(directory, os.O_RDONLY)
-    except OSError:
-        return
-    try:
-        os.fsync(fd)
-    except OSError:
-        pass
-    finally:
-        os.close(fd)
 
 # PBKDF2 parameters. This gates a parental-control PIN, not a real secret, so
 # the cost is kept modest; it still beats storing the PIN in the clear.
@@ -222,7 +198,7 @@ class UserManager:
             if self._loaded:
                 return
             path = self._path()
-            # users.json* takes in the .bak, a leftover .tmp and the
+            # users.json* takes in the .bak, a leftover .tmp/.tmprec and the
             # .unreadable-* set-asides: every one of them holds tokens.
             _restrict_existing(glob.glob(glob.escape(path) + "*")
                                + [conffile.get(APP_NAME, "cred.json")])
@@ -239,7 +215,12 @@ class UserManager:
             present = os.path.exists(path)
             if present:
                 data = self._read_json(path)
-            if not _has_users(data):
+            if _has_users(data):
+                # Recovery here is from .bak, so durable's copies are
+                # only stale tokens.
+                durable.discard_recovery(path)
+                durable.discard_recovery(path + BACKUP_SUFFIX)
+            else:
                 # Damaged: it is missing, it did not parse, or it parsed to
                 # something with nobody in it. This build never writes the
                 # third (`delete_user` refuses to remove the last user), so
@@ -365,24 +346,12 @@ class UserManager:
 
         Returns whether the file landed.
         """
-        tmp = path + ".tmp"
         try:
-            # Owner-only: the payload is every profile's server tokens, and
-            # the default umask leaves a plain open() world-readable.
-            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-            with os.fdopen(fd, "w") as f:
-                json.dump(payload, f, indent=4)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp, path)
-            _fsync_dir(os.path.dirname(path) or ".")
+            durable.replace_file(path, json.dumps(payload, indent=4),
+                                 mode=0o600)
             return True
         except Exception:
             log.error("Failed to write %s", path, exc_info=True)
-            try:
-                os.remove(tmp)
-            except OSError:
-                pass
             return False
 
     def save(self):

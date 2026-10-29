@@ -240,7 +240,7 @@ def _paste_poster(canvas, poster, slot):
         # taken from its WIDTH, is the bug that made a wider window shrink
         # the thumbnail.
         max_h = int(max_h * THUMB_H_FRAC)
-    art.thumbnail((max_w, max_h), Image.LANCZOS)
+    art.thumbnail((max_w, max_h), Image.LANCZOS)  # type: ignore[attr-defined]
     aw, ah = art.size
     ay = baseline - ah
 

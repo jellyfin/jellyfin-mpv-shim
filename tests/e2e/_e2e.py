@@ -395,8 +395,11 @@ def _terminate_player():
     except Exception:
         pass
     if not getattr(_PLAYER, "is_using_ext_mpv", False) and handle is not None:
+        # The app's own teardown, not handle.terminate(): that skipped
+        # _mark_mpv_dead and the quiesce, and an observer firing during the
+        # destroy segfaulted the run after it had printed OK.
         try:
-            handle.terminate()
+            manager._terminate_mpv(handle)
         except Exception:
             pass
 
@@ -963,14 +966,30 @@ def wait_for(predicate, timeout=15, interval=0.25):
         return None
 
 
-class E2ETestCase(unittest.TestCase):
-    """Base: an isolated config, a real player, one qa-user session."""
+class ServerTestCase(unittest.TestCase):
+    """Base: an isolated config and one qa-user session, and no player.
+
+    For a test that asks the server and never plays. E2ETestCase builds a
+    real mpv -- a window -- in setUpClass, which is wrong in the contract
+    tier (tests/test_e2e_registry.py)."""
 
     account = "qa-user"
 
     @classmethod
     def setUpClass(cls):
         isolate_config()
+
+    def setUp(self):
+        self.session = Session(self.account)
+        self.addCleanup(self.session.stop)
+
+
+class E2ETestCase(ServerTestCase):
+    """Base: an isolated config, a real player, one qa-user session."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
         cls.player_module = ensure_real_player()
         cls.pm = cls.player_module.playerManager
         # Own the pump rather than starting the real ActionThread singleton.
@@ -982,8 +1001,7 @@ class E2ETestCase(unittest.TestCase):
     # See ensure_real_player.
 
     def setUp(self):
-        self.session = Session(self.account)
-        self.addCleanup(self.session.stop)
+        super().setUp()
         # Never leave a player running into the next test: a live session keeps
         # reporting and the next test's assertions read its progress. Kept as
         # a cleanup as well as the tearDown below, because a setUp that raises

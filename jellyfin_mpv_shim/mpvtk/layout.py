@@ -524,6 +524,8 @@ def _base(el, t, x, y, w, h, sc, path):
         node["dis"] = True
     if getattr(el, "nav_gravity", False):
         node["grav"] = True
+    if getattr(el, "nav_skip", False):
+        node["nnav"] = True
     return node
 
 

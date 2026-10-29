@@ -47,7 +47,7 @@ import _e2e  # noqa: E402
 
 
 @_e2e.require_server
-class MusicPlaylistShapeTest(_e2e.E2ETestCase):
+class MusicPlaylistShapeTest(_e2e.ServerTestCase):
 
     @classmethod
     def _make(cls, session, name, media_type, ids):

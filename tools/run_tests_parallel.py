@@ -40,6 +40,7 @@ than the serial run gives it.
 
 import argparse
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -48,6 +49,18 @@ import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(ROOT, "tests")
+
+
+def _start_mypy_gate():
+    """tools/mypy_gate.sh beside the suite: with nothing running it, the
+    baseline drifted for two months unseen. None where it cannot run --
+    Windows, where `bash` may be WSL's, or a machine without mypy."""
+    if os.name == "nt" or not shutil.which("mypy"):
+        return None
+    return subprocess.Popen(
+        ["bash", os.path.join(ROOT, "tools", "mypy_gate.sh")], cwd=ROOT,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        encoding="utf-8", errors="replace")
 
 
 #: What a worker prints once its tests are done. The parent reads THIS, not
@@ -195,6 +208,7 @@ def main():
         print("warning: no DISPLAY. Importing player.py opens a real mpv "
               "window, so run this under `xvfb-run -a`.", file=sys.stderr)
 
+    gate = _start_mypy_gate()
     pending = list(modules)
     running = {}          # Popen -> (module, started)
     done = []             # (module, rc, seconds, output, count)
@@ -309,8 +323,20 @@ def main():
           % (total, len(done), jobs, elapsed))
     print("slowest: " + ", ".join("%s %.1fs" % (m, s) for m, _r, s, _o, _n
                                   in slowest))
+    gate_failed = False
+    if gate is None:
+        print("mypy gate: SKIPPED (needs mypy, and not Windows)")
+    else:
+        out, _ = gate.communicate()
+        gate_failed = gate.returncode != 0
+        if gate_failed:
+            print("\n" + "=" * 70 + "\nFAILED: tools/mypy_gate.sh\n"
+                  + "=" * 70 + "\n" + out.rstrip())
+        else:
+            print("mypy gate: ok")
     if failed:
         print("FAILED modules: " + " ".join(sorted(m for m, *_ in failed)))
+    if failed or gate_failed:
         return 1
     print("OK")
     return 0

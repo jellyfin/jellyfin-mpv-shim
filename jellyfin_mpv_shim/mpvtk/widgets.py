@@ -28,7 +28,8 @@ class Element:
     def __init__(self, id=None, w=None, h=None, flex=0,
                  anchor=None, dx=0, dy=0, occlude=False, tip=None,
                  min_w=None, max_w=None, min_h=None, max_h=None,
-                 autofocus=False, disabled=False, nav_gravity=False):
+                 autofocus=False, disabled=False, nav_gravity=False,
+                 nav_skip=False):
         self.id = id
         self.w = w
         self.h = h
@@ -61,6 +62,10 @@ class Element:
         # along a row, and a control that pulled every LEFT/RIGHT to itself
         # could not be stepped past.
         self.nav_gravity = nav_gravity
+        # Clickable, but never a stop for the arrow keys (`nnav`, GUIDE.md
+        # sec. 3): a pointer-only control. Unlike `disabled` it keeps its
+        # handler, its hover and its id.
+        self.nav_skip = nav_skip
 
 
 class Box(Element):

@@ -5,9 +5,18 @@ import getpass
 
 from .args import get_args
 
-# If no platform is matched, use the current directory.
-_confdir = None
 username = getpass.getuser()
+
+
+def _for_platform(table, posix_fallback):
+    found = None
+    for platform, directory in table:
+        if sys.platform.startswith(platform):
+            found = directory
+    # An unlisted POSIX system (FreeBSD, Haiku, ...) still follows XDG (#848).
+    if found is None and os.name == "posix":
+        found = posix_fallback
+    return found
 
 
 def posix(app: str):
@@ -37,14 +46,16 @@ confdirs = (
     ),
 )
 
-for platform, directory in confdirs:
-    if sys.platform.startswith(platform):
-        _confdir = directory
+_confdir = _for_platform(confdirs, posix)
+
 
 def confdir(app: str):
     custom_config = get_args().config
     if custom_config is not None:
-        return custom_config
+        # Absolute because sqlite's read-only open needs a file URI, which a
+        # relative path cannot be (#847), and because a later chdir would
+        # otherwise move the whole config.
+        return os.path.abspath(custom_config)
     elif _confdir is not None:
         return _confdir(app)
     else:
@@ -81,10 +92,7 @@ cachedirs = (
     ),
 )
 
-_cachedir = None
-for platform, directory in cachedirs:
-    if sys.platform.startswith(platform):
-        _cachedir = directory
+_cachedir = _for_platform(cachedirs, posix_cache)
 
 
 def cachedir(app: str):
@@ -110,7 +118,7 @@ def cachedir(app: str):
     """
     custom_config = get_args().config
     if custom_config is not None:
-        return os.path.join(custom_config, "cache")
+        return os.path.join(os.path.abspath(custom_config), "cache")
     if _cachedir is not None:
         return _cachedir(app)
     base = confdir(app)

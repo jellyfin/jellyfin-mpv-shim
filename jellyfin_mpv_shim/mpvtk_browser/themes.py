@@ -38,7 +38,7 @@ THEME_DIR = "themes"
 # --- the stock Jellyfin-ish dark look (unchanged upstream default) ----------
 # This dict is also the schema: a theme file may set these keys and no others,
 # and each value is coerced to the type here.
-DEFAULT = {
+DEFAULT: dict = {
     "name": "Default",
     "palette": {
         "WINDOW_BG": "15171a", "CARD_BG": "1e2024", "PANEL_BG": "26292f",
