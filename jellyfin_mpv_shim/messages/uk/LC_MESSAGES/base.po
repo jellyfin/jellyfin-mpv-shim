@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-29 17:04+0000\n"
+"PO-Revision-Date: 2026-10-29 17:21+0000\n"
 "Last-Translator: kscop-n1 <karpenko.serhii@outlook.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uk/>\n"
@@ -1172,78 +1172,68 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Ця адреса належить іншому серверу. Щоб увійти на нього, додайте його як "
+"новий сервер."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr ""
+msgstr "Підключення…"
 
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not sign in. Please check your details."
-msgstr ""
-"Не вдалося додати сервер.\n"
-"Перевірте дані для підключення."
+msgstr "Не вдалося увійти. Будь ласка, перевірте свої дані."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Не вдалося додати сервер.\n"
-"Перевірте дані для підключення."
+msgstr "Не вдалося підключитися. Будь ласка, перевірте свої дані."
 
 #. Heading of the startup screen shown while the saved servers are being
 #. reached.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "Підключення до вашого сервера…"
 
 #. Button on the startup screen. Browses what has been downloaded to this
 #. device instead of waiting for the server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
+msgstr "Автономний режим"
 
 #. Shown when Work Offline was pressed but nothing has been downloaded to
 #. this device.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "Немає завантаженого вмісту для перегляду."
 
 #. Error on the startup screen when none of the remembered servers
 #. answered. The bracketed plural is because there may be one server or
 #. several.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Couldn't reach your saved server(s)."
-msgstr ""
+msgstr "Не вдалося зв’язатися зі збереженим сервером(ами)."
 
 #. Heading of the lock screen, asking for the numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Введіть свій PIN-код"
 
 #. Shown under the lock screen's heading. %s is the locked user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s заблоковано."
 
 #. Button on the lock screen that opens the application with the passcode
 #. typed above. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
-msgstr ""
+msgstr "Розблокувати"
 
 #. Heading above the list of other accounts on the lock screen.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
