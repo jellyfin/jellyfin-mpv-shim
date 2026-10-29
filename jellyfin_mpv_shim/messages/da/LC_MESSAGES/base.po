@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-29 00:41+0000\n"
+"PO-Revision-Date: 2026-10-29 16:14+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -3373,6 +3373,10 @@ msgid ""
 "you get MPV's own on-screen controls; use Player Controls Style under "
 "Interface for that."
 msgstr ""
+"Off betyder kommandolinjetilstand: intet vindue, ingen systembakke og ingen "
+"indstillingsskærm. Den eneste vej tilbage er at redigere conf.json i hånden. "
+"Det er ikke sådan, du får MPV's egne kontroller på skærmen; brug Player "
+"Controls Style under Interface til det."
 
 #. Explanation shown under the "Cast-target mode (no library browsing)"
 #. setting (under Advanced on the General tab of Settings).
@@ -3383,6 +3387,11 @@ msgid ""
 "way back is to edit conf.json. This is for a shared TV nobody should be able "
 "to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
+"Vis kun det, der castes til denne maskine. Biblioteket, herunder denne "
+"indstillingsskærm, kan ikke nås herfra, og uden et systembakkeikon er den "
+"eneste vej tilbage at redigere conf.json. Dette gælder for et delt tv, som "
+"ingen bør være i stand til at browse fra. For et almindeligt cast-mål skal "
+"du bruge grænsefladeindstillingerne."
 
 #. Explanation shown under the "Window Buttons in the Top Bar" setting
 #. (Settings > General > Window).
@@ -3403,6 +3412,9 @@ msgid ""
 "the buttons are normally hidden there. Turn this on to keep a way out of "
 "full screen that is not a keyboard shortcut."
 msgstr ""
+"Fuld skærm har ingen titellinje nogen steder og intet kan flyttes eller "
+"maksimeres. Derfor er knapperne normalt skjult. Slå dette til for at bevare "
+"en vej ud af fuld skærm, der ikke er en tastaturgenvej."
 
 #. Explanation shown under the "Hide the Desktop Title Bar" setting
 #. (Settings > General > Window).
