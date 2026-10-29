@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-26 18:08+0000\n"
+"PO-Revision-Date: 2026-10-29 17:04+0000\n"
 "Last-Translator: kscop-n1 <karpenko.serhii@outlook.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uk/>\n"
@@ -1102,18 +1102,14 @@ msgstr "URL серверу: "
 #. Label of the field on the sign-in page where the Jellyfin account name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Ім'я користувача:"
+msgstr "Ім'я користувача"
 
 #. Label of the field on the sign-in page where the Jellyfin account
 #. password is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Пароль:"
+msgstr "Пароль"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #. Button on the sign-in page that signs in with a code instead of a
@@ -1141,38 +1137,30 @@ msgstr "Підключитись"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Конфігурація сервера"
+msgstr "Сервери у вашій мережі"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "Спочатку введіть URL сервера."
 
 #. Status shown while the Quick Connect code is being requested.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Не вдалося додати сервер.\n"
-"Перевірте дані для підключення."
+msgstr "Зв’язок із сервером…"
 
 #. Status shown while Quick Connect waits for someone to accept the code in
 #. another Jellyfin app.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "Очікування схвалення…"
 
 #. Error shown when the Quick Connect code expired or was refused.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "Швидке підключення не було схвалено."
 
 #. Error shown on the Sign In Again page when the address typed there
 #. belongs to a different Jellyfin server than the saved one being signed
