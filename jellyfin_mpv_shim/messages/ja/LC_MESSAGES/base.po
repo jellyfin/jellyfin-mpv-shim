@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-28 12:54+0000\n"
+"PO-Revision-Date: 2026-10-29 13:00+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -45,14 +45,14 @@ msgstr "%dページ"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr "%d%%読書済"
+msgstr "%d%% 読了"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
 #. below it are appended as each episode is done.
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
-msgstr "トラックを選択する..."
+msgstr "トラックを選択中..."
 
 #. One line of the bulk track-selection report. {0} is an episode's name;
 #. the episode has no subtitle track to pick.
