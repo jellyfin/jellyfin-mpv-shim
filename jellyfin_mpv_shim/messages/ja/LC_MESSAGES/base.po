@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-29 13:00+0000\n"
+"PO-Revision-Date: 2026-10-29 15:41+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -370,7 +370,7 @@ msgstr "極大"
 #. pressing M during playback.
 #: jellyfin_mpv_shim/menu.py
 msgid "Main Menu"
-msgstr "メイン・メニュー"
+msgstr "メインメニュー"
 
 #. Entry on the in-player menu that opens the audio track chooser. An
 #. imperative verb.
@@ -467,12 +467,12 @@ msgstr "メニューを閉じる"
 #. Title of the in-player submenu listing the item's audio tracks.
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Audio Track"
-msgstr "音声の選択"
+msgstr "音声トラックの選択"
 
 #. Title of the in-player submenu listing the item's subtitle tracks.
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Subtitle Track"
-msgstr "字幕の選択"
+msgstr "字幕トラックの選択"
 
 #. Entry at the top of a subtitle or audio track list, meaning no track at
 #. all. Used on the in-player menu and in the browser's track pickers. It
@@ -689,12 +689,12 @@ msgstr "メディアキー探索"
 #. abbreviates "preference".
 #: jellyfin_mpv_shim/menu.py
 msgid "Use Web Seek Pref"
-msgstr "Web探索の設定を使用"
+msgstr "Web でのシーク設定を使用"
 
 #. Toggle on the in-player Player Preferences menu.
 #: jellyfin_mpv_shim/menu.py
 msgid "Write Logs to File"
-msgstr "ファイルにログを書き込む"
+msgstr "ログをファイルに書き込む"
 
 #. Toggle on the in-player Player Preferences menu: look for a newer
 #. release of this application.
@@ -707,7 +707,7 @@ msgstr "更新を確認する"
 #. name; leave it as Discord does in this language.
 #: jellyfin_mpv_shim/menu.py
 msgid "Discord Rich Presence"
-msgstr "Discordのアクティビティステータス"
+msgstr "Discord リッチプレゼンス"
 
 #. What to do when an episode's opening titles start: Never, Ask or Always.
 #. A toggle on the in-player Player Preferences menu and a dropdown under
@@ -1752,7 +1752,7 @@ msgstr "DV レベル"
 #. server; several languages keep them as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV rpu preset flag"
-msgstr "Dolby VisionのRPUプリセットのフラグ"
+msgstr "Dobly Vision RPU プリセットフラグ"
 
 # seeded from jellyfin-web: MediaInfoElPresentFlag
 #. Row label in the Media Info panel: whether the Dolby Vision enhancement
