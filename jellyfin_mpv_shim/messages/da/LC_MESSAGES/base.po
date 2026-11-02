@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 10:18+0000\n"
+"PO-Revision-Date: 2026-11-02 10:25+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -4649,13 +4649,13 @@ msgstr "Film & Video"
 #. always lower case.
 #: jellyfin_mpv_shim/mpvtk_browser/gateway/playback.py
 msgid "Default (mpv decides)"
-msgstr ""
+msgstr "Default (mpv afgør)"
 
 #. Shown on the Live TV Channels tab when the server offers no channels.
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No channels available."
-msgstr ""
+msgstr "Ingen kanaler tilgængelige."
 
 # seeded from jellyfin-web: None
 #. Choice for a home-screen row, leaving that slot empty. It agrees with
@@ -4731,7 +4731,7 @@ msgstr "Aktive optagelser"
 #. first. The ellipsis means it opens another menu.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Secondary…"
-msgstr ""
+msgstr "Sekundære…"
 
 #. Tooltip of the subtitle button on the playback controls drawn over the
 #. video.
@@ -4747,7 +4747,7 @@ msgstr "Undertekstspor"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Chapter %d"
-msgstr ""
+msgstr "Kapitel %d"
 
 #. The chapter list of what is playing. The tooltip of the chapter button
 #. on the playback controls and the now-playing bar, and the heading over
@@ -4756,7 +4756,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Chapters"
-msgstr ""
+msgstr "Kapitler"
 
 #. Tooltip of the audio button on the playback controls drawn over the
 #. video.
@@ -4767,10 +4767,8 @@ msgstr "Lydspor"
 #. Tooltip of the quality button on the playback controls, which limits how
 #. much bandwidth the server may use.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video Quality"
-msgstr "Skift videokvalitet"
+msgstr "Videokvalitet"
 
 # seeded from jellyfin-web: PlaybackRate
 #. Row on the settings menu of the playback controls, opening a list of
@@ -4791,43 +4789,35 @@ msgstr "Billedformat"
 #. on for this video only, for a file that is interlaced without saying so.
 #. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Deinterlace"
-msgstr "Interlaceret"
+msgstr "De-interlacér"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing how large subtitles are drawn.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Size"
-msgstr "Undertekststørrelse: {0}"
+msgstr "Undertekststørrelse"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing where on screen subtitles are drawn.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Position: {0}"
 msgid "Subtitle Position"
-msgstr "Undertekstplacering: {0}"
+msgstr "Undertekstplacering"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing the colour subtitles are drawn in. American
 #. spelling of "colour".
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Color: {0}"
 msgid "Subtitle Color"
-msgstr "Farve på undertekster: {0}"
+msgstr "Farve på undertekster"
 
 # seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #. Row on the settings menu of the playback controls, and the title of the
 #. panel it opens, listing how the video is reaching this device and what
 #. MPV is doing with it.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Playback Info"
-msgstr "Afspilning"
+msgstr "Afspilningsoplysninger"
 
 #. Means "nothing chosen, and the feature is off". The first entry of the
 #. SyncPlay list on the playback controls, and of the video-profile list.
@@ -4846,10 +4836,8 @@ msgstr "Hardwareacceleration"
 #. Row in the Playback Info panel: which MPV video output driver is drawing
 #. the picture.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video output"
-msgstr "Skift videokvalitet"
+msgstr "Video-udgang"
 
 # seeded from jellyfin-web: LabelDroppedFrames
 #. Row in the Playback Info panel: how many frames were skipped rather than
@@ -4863,62 +4851,57 @@ msgstr "Tabte frames"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%(vo)d output, %(dec)d decoder"
-msgstr ""
+msgstr "%(vo)d udgang, %(dec)d dekoder"
 
 #. Row in the Playback Info panel: how far the audio and video have drifted
 #. apart, in seconds. Short for audio/video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "A/V sync"
-msgstr ""
+msgstr "A/V-synkronisering"
 
 #. Row in the Playback Info panel: how many seconds of the stream have been
 #. read ahead.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Buffered"
-msgstr ""
+msgstr "Lagt i buffer"
 
 #. Value of the Buffered row in the Playback Info panel. The unit is
 #. seconds.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f s"
-msgstr ""
+msgstr "%.1fs"
 
 # seeded from jellyfin-web: DownloadManager
 #. Row in the Playback Info panel: how fast the stream is arriving from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Download speed"
-msgstr "Downloadede filer"
+msgstr "Downloaded-hastighed"
 
 #. Row in the Playback Info panel: what kind of item is playing, such as
 #. Movie or Episode.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Media Key Seek"
 msgid "Media type"
-msgstr "Medie nøgle søger"
+msgstr "Medie-type"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. being played was downloaded to this device earlier.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "downloaded copy"
-msgstr "Automatisk afspilning"
+msgstr "Downloadet kopi"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. is being read from a shared folder rather than streamed.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
-msgstr ""
+msgstr "Lokal fil"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. is arriving over the network from the Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "stream from server"
-msgstr ""
+msgstr "stream fra server"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #. Row in the Playback Info panel: how the video is reaching this device.
@@ -4933,17 +4916,14 @@ msgstr "Afspilningsmetode"
 #. server had to re-encode. Do not confuse with "Seasons": an earlier
 #. translation sweep put a translation of that word here.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Reasons"
-msgstr "Sæsoner"
+msgstr "Årsager"
 
 #. Heading of a block in the Playback Info panel holding MPV's own
 #. statistics. The player program, not a person.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Player"
-msgstr "SyncPlay"
+msgstr "Afspiller"
 
 # seeded from jellyfin-web: File
 #. Heading of a block in the Playback Info panel holding the media file's
@@ -4955,7 +4935,7 @@ msgstr "Fil"
 #. Shown in the Playback Info panel when nothing is playing.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Nothing is playing."
-msgstr ""
+msgstr "Intet afspilles."
 
 # seeded from jellyfin-web: Previous
 #. Tooltip of the button that goes back one: the previous item in the queue
@@ -4977,21 +4957,20 @@ msgstr "Forrige kapitel"
 #. Tooltip of the rewind button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
-msgstr ""
+msgstr "Spol 10 sekunder tilbage"
 
 #. Tooltip of the fast-forward button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Forward 30 Seconds"
-msgstr ""
+msgstr "Spol 30 sekunder frem"
 
 # seeded from jellyfin-web: NextUp
 #. Tooltip of the button on the playback controls that jumps to the next
 #. chapter.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Next chapter"
-msgstr "Næste"
+msgstr "Næste kapitel"
 
 # seeded from jellyfin-web: Next
 #. Tooltip of the button that goes forward one: the next item in the queue
@@ -5030,10 +5009,8 @@ msgstr "Indstillinger"
 #. Tooltip of the button on the playback controls that fills the screen
 #. with the video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Fullscreen"
 msgid "Fullscreen"
-msgstr "Automatisk fuldskærm"
+msgstr "Fuldskærm"
 
 #. Status message after clicking a row on the Play Queue page when playback
 #. has already ended, so there is no queue left to jump within.
