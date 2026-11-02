@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 08:05+0000\n"
+"PO-Revision-Date: 2026-11-02 08:08+0000\n"
 "Last-Translator: bammanx <faxekondistyrer@gmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -3455,6 +3455,8 @@ msgid ""
 "preference heuristics are built around English naming conventions, your "
 "mileage may vary. Use a language code such as eng."
 msgstr ""
+"Sproget til dubbet lyd eller undertekster. Bemærk at præferenceheuristikker "
+"er bygget om Engelske navnetraditioner. Brug en sprogkode som f.eks. dan."
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
