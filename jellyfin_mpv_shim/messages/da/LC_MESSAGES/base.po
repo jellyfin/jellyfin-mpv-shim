@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-29 16:14+0000\n"
-"Last-Translator: ErikNLM <erik2980@pm.me>\n"
+"PO-Revision-Date: 2026-11-02 08:05+0000\n"
+"Last-Translator: bammanx <faxekondistyrer@gmail.com>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
 "Language: da\n"
@@ -3403,6 +3403,8 @@ msgid ""
 "it. On \"Only when the window has no title bar\", MPV is asked whether this "
 "window got one, so desktops that draw a title bar are left alone."
 msgstr ""
+"Forklaring vises under \"Vindueknapper i Top Bar\"-indstillingen "
+"(Indstillinger > Generelt > Vindue)."
 
 #. Explanation shown under the "Keep Window Buttons in Full Screen" setting
 #. (Settings > General > Window).
@@ -3426,6 +3428,8 @@ msgid ""
 "unless you want them, since a window with neither can be awkward to move on "
 "some desktops."
 msgstr ""
+"Forklaring vises under \"Gem Desktop Titel Baren\"-indstillingen "
+"(Indstillinger > Generelt > Vindue)."
 
 #. Explanation shown under the "Enable Trickplay Thumbnails" setting
 #. (Settings > Playback > Player Controls).
@@ -3436,6 +3440,8 @@ msgid ""
 "images are fetched from the server per video, which costs disk space and "
 "memory -- tens of MB for an episode, a few hundred for a long film."
 msgstr ""
+"Forklaring vises under \"Tænd Trickplay Thumbnails\"-indstillingen "
+"(Indstillinger > Afspilning > Afspillerstyring)."
 
 #. Explanation shown under the "Preferred Language" setting (Settings >
 #. Playback > Subtitles & Languages), which only appears when a Dubbed or
