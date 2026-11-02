@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-29 17:21+0000\n"
+"PO-Revision-Date: 2026-11-02 18:22+0000\n"
 "Last-Translator: kscop-n1 <karpenko.serhii@outlook.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uk/>\n"
@@ -893,31 +893,27 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Не вдалося автоматично перезапуститися — перезапустіть програму, щоб "
+"застосувати зміни."
 
 #. Status message when a retry after a connection failure also failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Не вдалося додати сервер.\n"
-"Перевірте дані для підключення."
+msgstr "Все ще не виходить зв'язатися з сервером."
 
 #. Title of the dialog that changes to another user of this server. %s is
 #. that user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Переключитися на %s"
 
 #. Placeholder in the empty field where a numeric passcode is typed, on the
 #. switch-user and lock screens. The abbreviation is widely kept as-is; use
 #. whatever word the local Jellyfin apps use for a numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "PIN"
 
 # seeded from jellyfin-web: ButtonCancel
 #. Button that dismisses a dialog without doing what it asked about. The
@@ -935,33 +931,32 @@ msgstr "Скасувати"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Переключитися"
 
 #. Error shown when the passcode typed to switch user or unlock does not
 #. match.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "Неправильний PIN-код."
 
 #. Title of the dialog that gives a user a numeric passcode. %s is that
 #. user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Сервер:"
+msgstr "Встановити PIN-код для %s"
 
 #. Label of the field asking for the passcode already in use, in the Set
 #. PIN dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "Поточний PIN-код"
 
 #. Label of the field asking for the passcode to change to, in the Set PIN
 #. dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "Новий PIN-код"
 
 #. Label of the field in the Set PIN dialog asking for the new passcode a
 #. second time, to check it was typed correctly. A verb. Split from the
