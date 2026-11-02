@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 18:22+0000\n"
+"PO-Revision-Date: 2026-11-03 03:10+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -3649,6 +3649,10 @@ msgid ""
 "gaps keeps the page margins the same on every screen size; centring keeps "
 "the covers evenly spaced and moves both margins instead."
 msgstr ""
+"Bredde, som ikke bruges på et helt antal omslag, vises, hvor den slutter. "
+"Forøgelse af afstanden bevarer sidekanterne ens på hver skærmstørrelse; "
+"centrering holder omslagene jævnt fordelt, mens begge kanter flyttes i "
+"stedet."
 
 #. Explanation shown under the "Full-Width Backdrops" setting (Settings >
 #. Browse > Library Browser).
@@ -3755,6 +3759,11 @@ msgid ""
 "captions are ellipsized, and what needs to be bigger is the whole interface, "
 "which is Interface Scale."
 msgstr ""
+"Skalerer kun teksten. Overfladeskaleringen ovenfor ændrer størrelsen på alt, "
+"herunder illustrationer, afstand og kontrolelementer. Brug derfor denne "
+"indstilling, når kun ordene er for små og ikke hele overfladen. Den stopper "
+"ved 150%: derudover er de fleste flisetekster afskåret, og det, der så skal "
+"være større, er hele overfladen (brug overfladeskalering)."
 
 #. Explanation shown under the "Minimum Text Size" setting (Settings >
 #. Browse > Theme).
@@ -3785,6 +3794,9 @@ msgid ""
 "surround fits down an optical cable. Turn this off if the encoder causes "
 "audio delay; those tracks become stereo instead."
 msgstr ""
+"Lyd, som receiveren ikke kan modtage direkte, er kodet til AC3, den eneste "
+"måde at få surroundlyd på er via et optisk kabel. Slå dette fra, hvis "
+"encoderen forårsager lydforsinkelse; disse spor vil i stedet være i stereo."
 
 #. Explanation shown under the "Profile Group" setting (Settings > Playback
 #. > Video Enhancement).
@@ -6851,6 +6863,11 @@ msgid ""
 "Hardware Decoding is the exception: set hwdec there and this app leaves it "
 "alone."
 msgstr ""
+"Avancerede MPV-indstillinger findes i filen `mpv.conf` i denne mappe. MPV "
+"læser filen ved opstart og anvender de indstillinger, den indeholder. I de "
+"fleste tilfælde vil disse overskrive de eksisterende standardindstillinger. "
+"Hardware-dekodning er undtagelsen: Hvis du konfigurerer `hwdec` her, ændrer "
+"appen ikke denne indstilling."
 
 # seeded from jellyfin-web: Restart
 #. Caption under a settings row whose change does nothing until the
@@ -7808,6 +7825,8 @@ msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
 msgstr ""
+"Denne app måtte ikke skrive til denne mappe. Downloadene blev efterladt på "
+"plads; tjek mappens tilladelser og prøv igen."
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
@@ -7816,6 +7835,8 @@ msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"Flytning af downloads mislykkedes. De forblev hvor de var; downloadmappen "
+"blev ikke ændret."
 
 #. Error when the watch-together group asked for is gone.
 #: jellyfin_mpv_shim/syncplay.py
@@ -7908,6 +7929,9 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"GNOME opretter ikke sin egen systemmappe. Installér udvidelsen "
+"\"AppIndicator and KStatusNotifierItem Support\" for at få en, eller aktivér "
+"\"Tillad baggrund\" i indstillingerne så den afvikles uden et vindue."
 
 #. Warning shown when no tray icon could be created. "Allow Background" is
 #. a setting on this application's Settings screen; keep it matching that
@@ -7917,12 +7941,14 @@ msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
+"Der kører ingen systembakke på dette skrivebord. Slå \"Tillad baggrund\" til "
+"i Indstillinger for helt at køre uden et vindue."
 
 #. Entry on this application's system tray menu that brings the window up.
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr ""
+msgstr "Vis biblioteksbrowser"
 
 #. Entry on this application's system tray menu, on Windows, that reveals
 #. the terminal window. An imperative verb phrase.
@@ -7964,29 +7990,29 @@ msgstr ""
 #. terminal's user list. Lower case and bracketed, appended after a name.
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
-msgstr ""
+msgstr "(default)"
 
 #. Terminal menu entry that creates a local profile of this application.
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Ny bruger"
 
 #. Printed in the terminal when the profile asked to be deleted is the one
 #. in use.
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Skift til en anden bruger før du nedlægger brugeren."
 
 #. Printed in the terminal when deleting the last remaining local profile
 #. was refused.
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Der kræves som minimum 1 bruger."
 
 #. Printed in the terminal when the named local profile does not exist.
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "Bruger findes ikke."
 
 #. Stands in for a track's language when the file does not say.
 #. Deliberately clipped to four characters, because it sits inside a track
@@ -8055,25 +8081,25 @@ msgstr "Anime4K x2 Perceptual + anti-sløring (til HD)"
 #. the bracketed words say what it does.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN (Denoise + Sharpen)"
-msgstr ""
+msgstr "ArtCNN (Støjreduktion + Skærpning)"
 
 #. Name of a video shader profile. The bracketed code is the model's own
 #. name; leave it as it is.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN High (C4F32)"
-msgstr ""
+msgstr "ArtCNN Høj (C4F32)"
 
 #. Name of the widest video-profile scope: the profile used when nothing
 #. narrower is set.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Default (all media)"
-msgstr ""
+msgstr "Default (alle medier)"
 
 #. Name of a video-profile scope: the profile applies to everything in the
 #. library being viewed.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "Dette bibliotek"
 
 # seeded from jellyfin-web: Series
 #. Name of a video-profile scope: the profile applies to every episode of
@@ -8086,7 +8112,7 @@ msgstr "Denne serie"
 #. follows a wider one.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "Ikke angivet"
 
 #. Marks which video-profile scope is actually deciding right now. {0} is
 #. that scope's name; the arrow is drawn from plain characters and should
@@ -8094,7 +8120,7 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr ""
+msgstr "{0}   <-- i kraft"
 
 #. Title of the in-player screen that chooses a video profile per scope. A
 #. video profile is a saved set of MPV shader and rendering options.
