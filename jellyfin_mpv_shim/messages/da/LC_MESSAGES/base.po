@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 10:10+0000\n"
+"PO-Revision-Date: 2026-11-02 10:13+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -4399,7 +4399,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%s stores no reading position."
-msgstr ""
+msgstr "%s gemmer ingen læseposition."
 
 #. Title of the dialog that reads or writes how far through a book the
 #. viewer is.
@@ -4411,25 +4411,25 @@ msgstr "Læsefremgang"
 #. fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr ""
+msgstr "Læser positionen…"
 
 #. Button in the Reading Progress dialog. Takes the position stored on the
 #. server and applies it here. An imperative verb, paired with Push.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr ""
+msgstr "Hent"
 
 #. Button in the Reading Progress dialog. Sends the position reached here
 #. up to the server. An imperative verb, paired with Pull.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr ""
+msgstr "Send"
 
 #. Error in the Reading Progress dialog when the stored reading position
 #. could not be fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be read."
-msgstr ""
+msgstr "Positionen kunne ikke læses."
 
 #. Validation message in the Reading Progress dialog when what was typed in
 #. the page field is not a number.
@@ -4442,18 +4442,18 @@ msgstr "Indtast et nummer."
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Enter a page between 1 and %d."
-msgstr ""
+msgstr "Angiv en side mellem 1 og %d."
 
 #. Validation message in the Reading Progress dialog, used when the book's
 #. length is unknown.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Enter a page of 1 or more."
-msgstr ""
+msgstr "Angiv en side på mindst 1."
 
 #. Status message confirming the reading position was sent to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading position saved."
-msgstr ""
+msgstr "Læsepositionen gemt."
 
 #. Error in the Reading Progress dialog when the reading position could not
 #. be sent to the server.
