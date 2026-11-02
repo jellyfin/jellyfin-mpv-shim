@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-01 18:52+0000\n"
+"PO-Revision-Date: 2026-11-02 00:49+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -4234,7 +4234,7 @@ msgstr "すべてクリアー"
 #. completing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
-msgstr "選択完了"
+msgstr "完了"
 
 #. First entry of every filter-panel dropdown, meaning no restriction on
 #. this field. Neuter, since it stands for genre, year, rating, tag or
