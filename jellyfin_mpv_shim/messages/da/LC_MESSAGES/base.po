@@ -6830,7 +6830,7 @@ msgstr "Kræver genstart"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "No settings match \"%s\"."
-msgstr ""
+msgstr "Ingen indstillinger matcher \"%s\"."
 
 #. Explanation shown when a settings search found nothing. General, Browse
 #. and Playback are tab names on this screen; keep them matching those
