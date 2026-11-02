@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 00:49+0000\n"
+"PO-Revision-Date: 2026-11-02 12:43+0000\n"
 "Last-Translator: INOUE Daisuke <inoue.daisuke@gmail.com>\n"
 "Language-Team: Japanese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ja/>\n"
@@ -4455,7 +4455,7 @@ msgstr "読書の進行状況"
 #. fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr "場所を読み込み中…"
+msgstr "位置を読み込み中…"
 
 #. Button in the Reading Progress dialog. Takes the position stored on the
 #. server and applies it here. An imperative verb, paired with Push.
@@ -4473,7 +4473,7 @@ msgstr "プッシュ"
 #. could not be fetched from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be read."
-msgstr "場所を読み込めませんでした。"
+msgstr "位置を読み込めませんでした。"
 
 #. Validation message in the Reading Progress dialog when what was typed in
 #. the page field is not a number.
@@ -4497,13 +4497,13 @@ msgstr "ページを 1 以上で入力してください。"
 #. Status message confirming the reading position was sent to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading position saved."
-msgstr "読んでいる場所を保存しました。"
+msgstr "読んでいる位置を保存しました。"
 
 #. Error in the Reading Progress dialog when the reading position could not
 #. be sent to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be saved."
-msgstr "場所を保存できませんでした。"
+msgstr "位置を保存できませんでした。"
 
 #. One row of the SyncPlay group list. %s is a group's name, and the suffix
 #. marks the group this device is currently in.
@@ -4724,7 +4724,7 @@ msgstr "マイメディア"
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Continue Watching"
-msgstr "再生を続ける"
+msgstr "視聴を続ける"
 
 # seeded from jellyfin-web: HeaderContinueListening
 #. Music and audiobooks started and not finished. The name of a home-screen
@@ -4732,7 +4732,7 @@ msgstr "再生を続ける"
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Continue Listening"
-msgstr "続けて聴く"
+msgstr "再生を続ける"
 
 # seeded from jellyfin-web: HeaderContinueWatching
 #. Books opened and not finished. The name of a home-screen row and the
@@ -4867,7 +4867,7 @@ msgstr "再生情報"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
 msgid "None (Disabled)"
-msgstr "無し（無効）"
+msgstr "なし（無効）"
 
 # seeded from jellyfin-web: LabelHardwareAccelerationType
 #. Row in the Playback Info panel: whether the graphics card is decoding
@@ -5071,13 +5071,13 @@ msgstr "アイテムをキューに追加できませんでした。"
 #. Status message confirming every episode of a show is now set to record.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording scheduled."
-msgstr "シリーズの録画スケジュール。"
+msgstr "シリーズを録画予約しました。"
 
 # seeded from jellyfin-web: RecordingScheduled
 #. Status message confirming one programme is now set to record.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording scheduled."
-msgstr "録画をスケジュールしました。"
+msgstr "録画を予約しました。"
 
 #. Status message when the server refused to set up a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5089,7 +5089,7 @@ msgstr "録画予約できませんでした。"
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Cancel recording?"
-msgstr "録画を中止しますか？"
+msgstr "録画をキャンセルしますか？"
 
 # seeded from jellyfin-web: RecordingCancelled
 #. Status message confirming a scheduled recording was called off.
@@ -5103,7 +5103,7 @@ msgstr "録画をキャンセルしました。"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Cancel Recording"
-msgstr "録画の停止"
+msgstr "録画のキャンセル"
 
 #. Question in the dialog confirming the rule that records every episode is
 #. to be dropped.
@@ -5217,7 +5217,7 @@ msgstr "ダウンロードを削除できませんでした。"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr "%s を開き中…"
+msgstr "%s を読み込み中…"
 
 #. Status message when the operating system has no application registered
 #. for that file type. %s is the item's name.
@@ -5291,7 +5291,7 @@ msgstr "録画"
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgctxt "series recording rule setting"
 msgid "Record"
-msgstr "レコード"
+msgstr "録画"
 
 # seeded from jellyfin-web: NewEpisodesOnly
 #. Choice in the "Record" dropdown of the series recording dialog: record
