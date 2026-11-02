@@ -3403,8 +3403,12 @@ msgid ""
 "it. On \"Only when the window has no title bar\", MPV is asked whether this "
 "window got one, so desktops that draw a title bar are left alone."
 msgstr ""
-"Forklaring vises under \"Vindueknapper i Top Bar\"-indstillingen "
-"(Indstillinger > Generelt > Vindue)."
+"Nogle computere, specielt dem der kører GNOME med Wayland, tegner ikke en "
+"titelbar på afspillervinduet, så der ikke er en måde at flytte eller lukke "
+"det. Dette sætter minimer, maksimer og luk i topbaren istedet, og leder dig "
+"trække vinduet fra den. På \"Kun når vinduet ikke har en titelbar\", bliver "
+"MPV spurgt om vinduet har en, så computeren der tegner en titelbar ikke "
+"forstyrres."
 
 #. Explanation shown under the "Keep Window Buttons in Full Screen" setting
 #. (Settings > General > Window).
