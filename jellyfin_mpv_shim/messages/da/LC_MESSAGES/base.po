@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
 "PO-Revision-Date: 2026-11-02 09:51+0000\n"
-"Last-Translator: bammanx <faxekondistyrer@gmail.com>\n"
+"Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
 "Language: da\n"
@@ -3479,6 +3479,12 @@ msgid ""
 "the next time you seek somewhere new; turning it off applies to the next "
 "video."
 msgstr ""
+"Forhåndsvisning af søgninger hentes normalt et par minutter ad gangen på det "
+"tidspunkt, hvor du søger, så skrubning sf et nyt sted forsinkes kortvarigt. "
+"Slå dette til for at indlæse dem alle på forhånd i stedet: intet venter, men "
+"en lang film kan koste flere hundrede MB hukommelse. Aktivering gælder for "
+"det, du ser, næste gang du søger et nyt sted; de-aktivering gælder for den "
+"næste video."
 
 #. Explanation shown under the "Player Controls Style" setting (Settings >
 #. Playback > Player Controls).
@@ -3491,6 +3497,12 @@ msgid ""
 "library a solid background, so the script's idle screen cannot show through "
 "it."
 msgstr ""
+"MPV tastatur-bindinger bruges som standard. Tryk ENTER for at styre "
+"afspillerens kontrolelementer med tastatur. \"Ingen spillerkontroller\" "
+"efterlader afspilning blottet; biblioteket, tastaturgenvejene og menutasten "
+"fungerer stadig. Vælg \"Brugerdefineret OSC\", når du har installeret dit "
+"eget OSC-script: det slukker for MPV's eget og giver biblioteket en udfyldt "
+"baggrund, så scriptets inaktive skærm ikke kan vises igennem det."
 
 #. Explanation shown under the "Scroll Wheel Pixels" setting (Settings >
 #. Browse > Library Browser).
@@ -3501,6 +3513,10 @@ msgid ""
 "notches spans one row, in every scroll mode, so a trackpad or trackball "
 "never leaves you a sliver of a row off."
 msgstr ""
+"Antal pixler som et trin på musehjulet ruller. Hæv værdien for at rulle "
+"hurtigere, sænk den for finere kontrol. På et gitter er værdien afrundet så "
+"et helt antal hak spænder over en række i alle rulletilstande, så et "
+"pegefelt eller en trackball aldrig efterlader dig en flig af en række."
 
 #. Explanation shown under the "Scroll Mode" setting (Settings > Browse >
 #. Library Browser).
@@ -3512,6 +3528,12 @@ msgid ""
 "remote display, or with an external MPV. Pick \"One row per notch\" to move "
 "a whole row, or one home-screen section, at a time."
 msgstr ""
+"\"Kontinuerlig\" ruller i pixels og slutter hvor hjulet sætter det. Rækker "
+"justeres automatisk hvis displayet ikke kan følge med. Vælg \"Justér til "
+"rækker\" hvis rulning stadig hakker, som det kan være tilfældet på et meget "
+"stort, et langsomt eller et eksternt display - eller med en ekstern MPV. "
+"Vælg \"Én række pr. hak\" for at flytte en hel række eller en "
+"hjemmeskærmsektion ad gangen."
 
 #. Explanation shown under the "Show What You're Watching in Discord"
 #. setting (Settings > General > This Device).
@@ -3527,6 +3549,9 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"Tillader tastaturmedietaster, headsetknapper, låseskærmen og "
+"skrivebordsmediewidgets at afspille, at sætte på pause og springe over, og "
+"viser, hvad der afspilles, med deres cover (MPRIS, kun Linux)."
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3537,6 +3562,10 @@ msgid ""
 "before it'll let *any* audio through in passthrough mode. In my tests I got "
 "silence otherwise, but results may vary."
 msgstr ""
+"Efterlad dette i standard-tilstand medmindre du indstiller passthrough. "
+"Bemærk: Nogle lydservere - som Pipewire - kan ikke lide passthrough og skal "
+"deaktiveres for kortet før det slipper *enhver* lyd igennem i passthrough-"
+"tilstand. I mine prøver fik jeg stilhed, men resultaterne kan variere."
 
 #. Explanation shown under the "Take the Device Exclusively" setting
 #. (Settings > Playback > Audio).
@@ -3545,6 +3574,9 @@ msgid ""
 "Stop anything else using the device while playing. Needed for passthrough on "
 "some systems, and it means other applications will be silent."
 msgstr ""
+"Stop alt andet ved hjælp af enheden mens du spiller. Nødvendig til "
+"passthrough på nogle systemer, hvilket betyder, at andre applikationer vil "
+"være tavse."
 
 #. Explanation shown under the "Paginated" setting (Settings > Browse >
 #. Library Browser).
@@ -3554,6 +3586,9 @@ msgid ""
 "screenful with First / Previous / Next / Last controls and a page number you "
 "can type into. Easier than precise scrolling on a trackpad."
 msgstr ""
+"Sideopdel biblioteket og musikgitrene i stedet for at rulle: hver side "
+"udfylder en skærm og viser kontrolelementerne Første/Forrige/Næste/Sidste og "
+"et sidetal, som du kan indtaste. Nemmere end bare at rulle med pegefelt."
 
 #. Explanation shown under the "Remember Library Filters" setting (Settings >
 #. Browse > Library Browser). "Filters" are the choices in a library's Filter
@@ -3564,6 +3599,9 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"Genåbn hvert bibliotek med de filtre, det havde sidst (genre, uafspillet, "
+"favoritter og andet), gemt på din konto på serveren. Fra betyder at filtrene "
+"kun forbliver aktive indtil du forlader biblioteket."
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3575,6 +3613,11 @@ msgid ""
 "get a drop shadow so they keep an edge against it. Off, they get the theme's "
 "card colour and no shadow, as Jellyfin Web does."
 msgstr ""
+"Kanallogoer tegnes som blæk på en gennemsigtig baggrund på den hvide "
+"overflade, der bruges af andre kunder. På en mørk overflade forsvinder de "
+"sorte derfor. 'På' giver hvert logo den lyse plade, det er skabt til, og de "
+"få med hvidt omrids får en skygge, så kanten er synlig. 'Af' viser temaets "
+"farve og uden skygger, som på Jellyfin Web."
 
 #. Explanation shown under the "Make library logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3592,6 +3635,9 @@ msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"Palette, glød, omslagsstil og standardomslagsstørrelse. Farverne ændres med "
+"det samme; omslags- og overskriftsstørrelser træder i kraft efter en "
+"genstart."
 
 #. Explanation shown under the "Grid Spacing" setting (Settings > Browse >
 #. Library Browser).
@@ -3616,6 +3662,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
+"Tilsidesætter temaets omslagsstørrelse. Også på menuen Vis i alle "
+"biblioteker."
 
 #. Explanation shown under the "12-Hour Clock" setting (Settings > Browse >
 #. Library Browser).
@@ -3625,6 +3673,9 @@ msgid ""
 "and its air times, and the \"Ends at\" labels on a detail page and the "
 "player controls."
 msgstr ""
+"Vis tidspunkter på dagen som \"16:30\" i stedet for \"4:30 PM\" — i Live TV-"
+"guiden og dens sendetider samt etiketterne \"Slutter kl.\" på en detaljeside "
+"og i afspillerens betjeningspanel."
 
 #. Explanation shown under the "Shading Behind the Player Controls" setting
 #. (Settings > Playback > Player Controls).
