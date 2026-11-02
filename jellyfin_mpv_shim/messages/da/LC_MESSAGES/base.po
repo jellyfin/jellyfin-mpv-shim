@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 09:51+0000\n"
+"PO-Revision-Date: 2026-11-02 10:07+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -3684,6 +3684,8 @@ msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"Betjeningselementerne skal være læselige på tværs af hver ramme. \"Ingen\" "
+"giver teksten en skygge i stedet for at nedtone billedet bagved."
 
 #. Explanation shown under the "When the Player Controls Hide" setting
 #. (Settings > Playback > Player Controls).
@@ -3692,6 +3694,8 @@ msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"\"Skjul, medmindre du svæver\" holder dem kun oppe mens markøren er på dem, "
+"sat på pause eller ej."
 
 #. Explanation shown under the "Hide the Player Controls After (seconds)"
 #. setting (Settings > Playback > Player Controls).
@@ -3700,6 +3704,8 @@ msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"0 skjuler dem så snart markøren ikke er på dem og gennemtvinger \"Skjul, "
+"medmindre svævet\"."
 
 #. Explanation shown under the "Shrink the Player Controls on a Narrow
 #. Window" setting (Settings > Playback > Player Controls).
@@ -3725,6 +3731,8 @@ msgstr ""
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
+"\"Følg display\" bruger den skala, som dit skrivebord rapporterer, hvilket "
+"er 100% på X11."
 
 #. Explanation shown under the "Text size" setting (Settings > Browse >
 #. Theme).
@@ -3768,6 +3776,8 @@ msgstr ""
 msgid ""
 "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card."
 msgstr ""
+"\"hq\" tilbyder kraftigere profiler. Vælg det, hvis du har et hurtigt "
+"grafikkort."
 
 #. Explanation shown under the "Graphics API for Shaders" setting (Settings
 #. > Playback > Video Enhancement).
@@ -3856,7 +3866,6 @@ msgstr "Genrer"
 #. Heading of a filter-panel section, above a dropdown listing the release
 #. years in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Years"
 msgstr "År"
 
@@ -3879,7 +3888,7 @@ msgstr "Mærker"
 #. languages available in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Audio Language"
-msgstr ""
+msgstr "Audio-sprog"
 
 #. Heading of a filter-panel section, above a dropdown of the subtitle
 #. languages available in this library.
@@ -3910,19 +3919,19 @@ msgstr "Har trailer"
 #. to items with bonus material (deleted scenes, featurettes).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr ""
+msgstr "Har specielle funktioner"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme song attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "Har tema-sang"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme video attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "Har tema-video"
 
 # seeded from jellyfin-web: HeaderVideos
 #. Heading of a filter-panel section, above checkboxes for resolution and
@@ -3950,7 +3959,7 @@ msgstr "HD"
 #. Normally left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 # seeded from jellyfin-web: Option3D
 #. Checkbox in the filter panel's Video Types section: stereoscopic 3D
@@ -3970,13 +3979,13 @@ msgstr "DVD"
 #. Blu-ray disc. A trademark, left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr ""
+msgstr "Blu-ray"
 
 #. Checkbox in the filter panel's Video Types section: a whole disc image
 #. file. Left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "ISO"
-msgstr ""
+msgstr "ISO"
 
 #. Title of the modal that puts the selected item into a playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -3987,13 +3996,13 @@ msgstr "Tilføj til playliste"
 #. the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "Endnu ingen playlister."
 
 #. Placeholder text in the empty text field where a new playlist's name is
 #. typed, in the Add to Playlist modal.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "Ny playliste benævnt…"
 
 # seeded from jellyfin-web: Create
 #. Button in the Add to Playlist and Add to Collection modals. Makes the
@@ -4007,7 +4016,7 @@ msgstr "Opret"
 #. is visible to other users of the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
-msgstr ""
+msgstr "Privat (kun synlig for dig)"
 
 #. Button in the Add to Playlist modal that switches to the Add to
 #. Collection modal. The ellipsis means it opens another view.
@@ -4065,7 +4074,7 @@ msgstr "Ukendt"
 #. or subtitle stream details for the item.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No media information is available."
-msgstr ""
+msgstr "Ingen medie-information fundet."
 
 # seeded from jellyfin-web: MoreMediaInfo
 #. The panel listing an item's video, audio and subtitle stream details.
@@ -4088,19 +4097,19 @@ msgstr "OK"
 #. film or show). They can only be played from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Special features cannot be downloaded."
-msgstr ""
+msgstr "Specielle funktioner kan ikke downloades."
 
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Could not check what needs downloading."
-msgstr ""
+msgstr "Det kunne ikke kontrolleres, hvad der kræves downloadet."
 
 #. Placeholder in the Download modal while the app works out how many items
 #. would be downloaded and how much space they need.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Estimating…"
-msgstr ""
+msgstr "Anslår…"
 
 #. Summary line in the Download modal. %(count)d is a number of items,
 #. %(size)s an already-formatted size such as "4.2 GB". The middle
@@ -4109,28 +4118,28 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%(count)d items · %(size)s"
-msgstr ""
+msgstr "%(count)d elementer · %(size)s"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. of the items are on disk already.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d already downloaded"
-msgstr ""
+msgstr "%d er allerede downloadet"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. of the items have already been watched.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
-msgstr ""
+msgstr "%d set(e)"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. items the server would not give a size for.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "%d af ukendt størrelse"
 
 # seeded from jellyfin-web: Download
 #. Title of the modal that downloads items for offline viewing. A noun
@@ -4145,24 +4154,24 @@ msgstr "Download"
 #. left out of the download.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
-msgstr ""
+msgstr "Inkludér sete"
 
 #. Shown in the Download modal when every item in the selection is already
 #. on disk.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Nothing left to download."
-msgstr ""
+msgstr "Intet efterladt til download."
 
 #. Error shown when the Download modal's button failed to queue anything.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The download could not be started."
-msgstr ""
+msgstr "Download kunne ikke starte."
 
 #. Shown in place of the filter controls when the server offers nothing to
 #. filter this library by.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
-msgstr ""
+msgstr "Biblioteket tilbyder ikke filtre."
 
 # seeded from jellyfin-web: Filters
 #. Title of the modal that filters a library grid.
@@ -4190,14 +4199,14 @@ msgstr "Ryd alt"
 #. completing.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
-msgstr ""
+msgstr "Afsluttet"
 
 #. First entry of every filter-panel dropdown, meaning no restriction on
 #. this field. Neuter, since it stands for genre, year, rating, tag or
 #. language alike.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Any"
-msgstr ""
+msgstr "Alle"
 
 #. One English word, two senses. The first choice in a library's Artwork
 #. dropdown, where the tile shape is taken from whatever artwork the item
@@ -4219,7 +4228,7 @@ msgstr "Plakater"
 #. landscape still.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
-msgstr ""
+msgstr "Miniature"
 
 #. Choice in the Artwork dropdown of a library's View settings: a wide,
 #. short banner image.
@@ -4246,7 +4255,7 @@ msgstr "Disk"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Artwork"
-msgstr ""
+msgstr "Billedmateriale"
 
 #. Explanation under the Artwork dropdown in a library's View settings.
 #. "Auto" and "Poster" are two of that dropdown's choices; keep them
@@ -4273,7 +4282,7 @@ msgstr "Show år"
 #. to a single-column list.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
-msgstr ""
+msgstr "Liste i stedet for gitter"
 
 #. Explanation in a library's View settings, saying those choices are saved
 #. to the Jellyfin server rather than to this device, so Jellyfin Web sees
@@ -4281,14 +4290,14 @@ msgstr ""
 #. as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "These are stored on your server and shared with Jellyfin Web."
-msgstr ""
+msgstr "Disse gemmes på din server og deles med Jellyfin Web."
 
 #. Checkbox in a library's View settings, switching the grid from scrolling
 #. to one screenful at a time with page buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr ""
+msgstr "Sideinddelt(e)"
 
 #. Explanation under the Paginated checkbox in a library's View settings.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -4296,6 +4305,8 @@ msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
 msgstr ""
+"Vis én side med fliser ad gangen i stedet for at rulle. Gælder for alle "
+"biblioteker på denne enhed."
 
 #. Title of the modal that chooses how one library's tiles are drawn.
 #. Sentence case in English.
@@ -4317,13 +4328,13 @@ msgstr ""
 #. none.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
-msgstr ""
+msgstr "Meddelelse"
 
 #. Message shown when the viewer asked to copy text but this build of MPV
 #. cannot reach the system clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
-msgstr ""
+msgstr "Kopiering til udklipsholderen er ikke tilgængelig."
 
 #. Message shown when the viewer asked to paste but this build of MPV
 #. cannot reach the system clipboard.
