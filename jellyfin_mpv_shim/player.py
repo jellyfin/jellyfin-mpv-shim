@@ -43,8 +43,8 @@ from .player_reporting import ReportingMixin
 from . import player_window
 from .player_window import WindowMixin, wlog
 from .mpv_options import (REPLACES_OSC, build_mpv_options, mpv_scripts,
-                          osc_script_opts,
-                          resolve_osc_style)
+                          osc_script_opts, resolve_osc_style,
+                          volume_pinned_by_config)
 from .session_reporter import SessionReporter
 from . import conf
 from .conf import settings
@@ -996,6 +996,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._session_ready = Event()
         self._session_ready.set()
 
+        # #768: seeded once per launch, never per mpv re-open -- see
+        # _seed_startup_volume. Deliberately NOT reset in _configure_new_mpv.
+        self._startup_volume_seeded = False
+
         self._init_mpv()
 
     def _teardown_player(self):
@@ -1240,6 +1244,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except BaseException:
             self._abandon_build()
             raise
+        try:
+            self._seed_startup_volume()
+        except Exception:
+            # Seeding is a launch default, never a reason to fail init.
+            log.debug("startup volume seed failed", exc_info=True)
         return reopen
 
     def _abandon_build(self):
@@ -5194,6 +5203,48 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if getattr(settings, key) != vol:
             setattr(settings, key, vol)
             settings.save()
+
+    def _seed_startup_volume(self):
+        """Seed both volume buckets from mpv's own launch volume, once.
+
+        #768: a ``volume`` in mpv.conf is what mpv starts at, but the first
+        ``_play_media`` overwrote it with the persisted per-type volume, so
+        the conf value was ignored on every launch and only the last
+        session's value survived. The seed is the launch volume, in
+        memory only -- deliberately NOT saved, so a launch default never
+        rewrites conf.json and the next launch re-reads it the same way.
+
+        The pin in the file wins: it is the one case the live volume
+        cannot see, because mpv's default is 100 and an explicit
+        ``volume=100`` is indistinguishable from no setting. Without a
+        pin, the live volume seeds only when it is not the default, so a
+        remembered 90 is never clobbered by "mpv started at 100".
+
+        With an external mpv the shim's mpv.conf is not read at all when
+        ``mpv_ext_no_ovr`` is set, so the pin is skipped there and only
+        the live volume can seed. Nothing here may raise: a volume that
+        cannot be read is not a reason to fail mpv init, and the flag is
+        set on the first attempt either way so a re-open never re-seeds.
+        """
+        if getattr(self, "_startup_volume_seeded", False):
+            return
+        self._startup_volume_seeded = True
+        try:
+            seed = None
+            if not (is_using_ext_mpv and settings.mpv_ext_no_ovr):
+                seed = volume_pinned_by_config()
+            if seed is None:
+                try:
+                    live = int(self._player.volume)
+                except Exception:
+                    return
+                if live == 100:
+                    return          # mpv's default; see the docstring
+                seed = live
+            settings.music_volume = seed
+            settings.video_volume = seed
+        except Exception:
+            log.debug("could not seed the startup volume", exc_info=True)
 
 
     # How long playback has to sit at an unchanged position, at the end of the
