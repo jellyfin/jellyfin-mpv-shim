@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 10:37+0000\n"
+"PO-Revision-Date: 2026-11-02 11:00+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -5530,51 +5530,46 @@ msgstr "Planlagt"
 #. Error shown when an item took too long to start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Timed out loading this item"
-msgstr ""
+msgstr "Tiden løb ud i indlæsningen af dette element"
 
 #. Error shown when an item would not start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Could not play this item"
-msgstr ""
+msgstr "Dette element kunne ikke afspilles"
 
 #. Button on the playback error screen that tries again while asking the
 #. server to re-encode the video. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid "No Transcode"
 msgid "Retry with Transcode"
-msgstr "Ingen omkodning"
+msgstr "Prøv igen med omkodning"
 
 # seeded from jellyfin-web: Repeat
 #. State of the repeat button on the now-playing bar: play the whole queue
 #. again when it ends.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat all"
-msgstr "Gentag"
+msgstr "Gentag alle"
 
 # seeded from jellyfin-web: Repeat
 #. State of the repeat button on the now-playing bar: play the current
 #. track over and over.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat one"
-msgstr "Gentag"
+msgstr "Gentag én"
 
 # seeded from jellyfin-web: Repeat
 #. State of the repeat button on the now-playing bar: stop when the queue
 #. ends.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Repeat off"
-msgstr "Gentag"
+msgstr "Gentag deaktiveret"
 
 #. Tooltip of the rewind button on the now-playing bar. %d is how many
 #. seconds it jumps.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, python-format
 msgid "Back %d seconds"
-msgstr ""
+msgstr "Spol %d sekunder tilbage"
 
 #. Action on an item's menu that starts it. An imperative verb, and it must
 #. not read the same as "Played": in one language it did, and a filter row
@@ -5585,10 +5580,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play"
-msgstr "SyncPlay"
+msgstr "Afspil"
 
 # seeded from jellyfin-web: ButtonPause
 #. Tooltip of the button on the now-playing bar that halts playback. An
@@ -5602,7 +5595,7 @@ msgstr "Pause"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, python-format
 msgid "Forward %d seconds"
-msgstr ""
+msgstr "Spol %d sekunder frem"
 
 # seeded from jellyfin-web: ButtonStop
 #. Tooltip of the button on the now-playing bar that ends playback. An
@@ -5616,20 +5609,16 @@ msgstr "Stop"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Remove from favorites"
-msgstr "Automatisk afspilning"
+msgstr "Fjern fra Favoritter"
 
 #. Button that marks an item, channel or track as a favourite. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to favorites"
-msgstr "Automatisk afspilning"
+msgstr "Føj til Favoritter"
 
 #. Tooltip of the loop button on the now-playing bar, in the state where
 #. nothing repeats. A verb, and the family word behind "Repeat all" and
@@ -5643,21 +5632,19 @@ msgstr "Gentag"
 #. Tooltip of the loudness slider on the now-playing bar.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Volume"
-msgstr ""
+msgstr "Volume"
 
 #. Status message when a web address could not be handed to the system's
 #. browser.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
-#, fuzzy
-#| msgid "Could not start Quick Connect."
 msgid "Could not open that link."
-msgstr "Kunne ikke starte Lyn-forbind."
+msgstr "Kunne ikke åbne linket."
 
 #. Caption under an audiobook's title, counting its chapters.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d chapters"
-msgstr ""
+msgstr "%d kapitler"
 
 # seeded from jellyfin-web: ButtonResume
 #. Action on an item's menu that carries on from where watching stopped. An
@@ -5681,31 +5668,29 @@ msgstr "Genstart"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to play queue"
-msgstr "Automatisk afspilning"
+msgstr "Føj til afspilningskøen"
 
 #. Button on a book or audiobook's page that marks it as read or listened
 #. to, drawn ticked when it already is. It replaces "Watched", which is
 #. wrong for something you read or listen to.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
-msgstr ""
+msgstr "Afsluttet"
 
 #. Shown in place of a page's content when the item could not be fetched
 #. from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Item not available."
-msgstr ""
+msgstr "Elementet ikke tilgængeligt."
 
 #. Caption on an audiobook's page saying how far in the listener has got,
 #. as in "1h 12m in". %s is an already-formatted duration.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%s in"
-msgstr ""
+msgstr "%s i"
 
 # seeded from jellyfin-web: ButtonStart
 #. Column heading in an audiobook's chapter table: the time each chapter
@@ -5718,7 +5703,7 @@ msgstr "Start"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d pages"
-msgstr ""
+msgstr "%d sider"
 
 #. Action on a book's menu that opens it in the reader. An imperative verb.
 #. It carries a context because the English word is also the past tense
@@ -5727,15 +5712,14 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "Læs"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #. Button on a book's page that hands the file to whatever application the
 #. system opens it with. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Open Externally"
-msgstr "Ekstern"
+msgstr "Åbn ekstern"
 
 #. Shown on a book's page while the file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -5758,35 +5742,35 @@ msgstr "Her er ingenting."
 #. Error shown when a comic file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This comic could not be opened."
-msgstr ""
+msgstr "Denne tegneserie kunne ikke åbnes."
 
 #. Error shown when one page of a comic could not be decoded.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This page could not be read."
-msgstr ""
+msgstr "Denne side kunne ikke læses."
 
 #. Error shown when fetching a book or comic to this device did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "The download failed."
-msgstr ""
+msgstr "Downloaden mislykkedes."
 
 #. Shown while a comic file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
-msgstr ""
+msgstr "Henter tegneserien…"
 
 #. Tooltip of the comic reader's button that makes the page smaller. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
-msgstr ""
+msgstr "Zoom ud"
 
 #. Tooltip of the comic reader's button that makes the page larger. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "Zoom ind"
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #. Heading of the row of items similar to the one being viewed. Jellyfin
@@ -5801,7 +5785,7 @@ msgstr "Mere som dette"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
-msgstr ""
+msgstr "Gå til serien"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Heading over an item's chapter thumbnails on its page. Jellyfin Web uses
@@ -5816,7 +5800,7 @@ msgstr "Scener"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
-msgstr ""
+msgstr "Version %d"
 
 # seeded from jellyfin-web: LabelVersion
 #. Label of the dropdown on an item's page choosing between several files
@@ -5829,7 +5813,7 @@ msgstr "Version"
 #. item's page. Deliberately clipped, because it sits inside a narrow list.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
+msgstr "Sub"
 
 # seeded from jellyfin-web: EndsAtValue
 #. Caption on an item's page: the clock time it would finish at if started
@@ -5842,12 +5826,12 @@ msgstr "Slutter %s"
 #. Shown on the Favorites page when nothing has been marked.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
 msgid "Nothing is marked as a favourite yet."
-msgstr ""
+msgstr "Endnu intet markeret som Favorit."
 
 #. Shown on the Genres page when the server listed none.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/genres.py
 msgid "No genres to show for this library."
-msgstr ""
+msgstr "Ingen genrer kan vises for dette bibliotek."
 
 # seeded from jellyfin-web: LabelName
 #. Two uses. A choice in a library's Sort dropdown, ordering items
@@ -5882,10 +5866,8 @@ msgstr "Fællesskabsvurdering"
 #. Choice in a library's Sort dropdown: order items by when they were last
 #. watched.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Date Played"
-msgstr "Automatisk afspilning"
+msgstr "Afspillet dato"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Choice in a library's Sort dropdown: order items by how many times they
@@ -5897,15 +5879,14 @@ msgstr "Gange afspillet"
 #. Choice in a library's Sort dropdown: order items by how long they run.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Runtime"
-msgstr ""
+msgstr "Spilletid"
 
 # seeded from jellyfin-web: OptionCommunityRating
 #. Choice in a library's Sort dropdown: order items by the score
 #. professional reviewers have given them.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Critics Rating"
-msgstr "Fællesskabsvurdering"
+msgstr "Kritikervurdering"
 
 # seeded from jellyfin-web: OptionRandom
 #. Choice in a library's Sort dropdown: order items unpredictably.
@@ -5916,53 +5897,48 @@ msgstr "Tilfældig"
 #. Choice in a television library's Sort dropdown: order series by when
 #. their newest episode arrived.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Date Episode Added"
-msgstr "Dato for tilføjelse"
+msgstr "Dato for tilføjelse af episode"
 
 #. Shown in place of the grid when a library's filters match nothing. The
 #. filters may have been chosen on an earlier visit and remembered, so this
 #. says the library is not empty, only filtered.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "No items match these filters."
-msgstr ""
+msgstr "Ingen elementer matcher disse filtre."
 
 # seeded from jellyfin-web: Filters
 #. Button under "No items match these filters." on an empty library grid.
 #. Removes every filter set on the library. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Filters"
 msgid "Clear Filters"
-msgstr "Filtre"
+msgstr "Ryd filtre"
 
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
-msgstr ""
+msgstr "Se"
 
 #. Button above a library grid, and the title of the page it opens, listing
 #. the broadcasters that made the items.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Networks"
-msgstr ""
+msgstr "Netværk"
 
 #. Button above a library grid, and the title of the page it opens, listing
 #. groups of related items. Also a row heading on the Favorites page.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Collections"
-msgstr "Automatisk afspilning"
+msgstr "Samlinger"
 
 #. Button above a library grid that opens the filter panel, when filters
 #. are set. %d is how many are set.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "Filter (%d)"
-msgstr ""
+msgstr "Filter (%d)"
 
 # seeded from jellyfin-web: Filter
 #. Button above a library grid that opens the filter panel, when no filters
@@ -5975,10 +5951,8 @@ msgstr "Filtrér"
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play All"
-msgstr "SyncPlay"
+msgstr "Afspil alle"
 
 # seeded from jellyfin-web: Shuffle
 #. Button on a library grid, an album, a playlist, a series or a season that
@@ -5998,19 +5972,15 @@ msgstr "Bland"
 #. server refused to remember which sort order the user picked. The sort
 #. itself has already been applied; only remembering it failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "That sort could not be saved."
-msgstr "PIN kunne ikke gemmes."
+msgstr "Sorteringen kunne ikke gemmes."
 
 #. A one-line status message at the bottom of the library screen, after the
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "Those filters could not be saved."
-msgstr "PIN kunne ikke gemmes."
+msgstr "Filtrene kunne ikke gemmes."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
@@ -6022,14 +5992,14 @@ msgstr "Sortér"
 #. reach the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "That view setting could not be saved."
-msgstr ""
+msgstr "Afspilningsindstillingen kunne ikke gemmes."
 
 #. Status message when Play was chosen on something the app found no
 #. playable item inside.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to play."
-msgstr ""
+msgstr "Intet at afspille."
 
 # seeded from jellyfin-web: HeaderLibraries
 #. Heading of the home-screen row holding the viewer's libraries.
@@ -6040,7 +6010,7 @@ msgstr "Biblioteker"
 #. Shown on the home screen when the server returned nothing to list.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Nothing to show yet."
-msgstr ""
+msgstr "Endnu intet at vise."
 
 # seeded from jellyfin-web: Programs
 #. Name of a tab on the Live TV page, listing what is on now and coming up.
@@ -6091,7 +6061,7 @@ msgstr "Serier"
 #. Shown on the Live TV Programs tab when the server returned no listings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No programs are listed right now."
-msgstr ""
+msgstr "Ingen programmer listet lige nu."
 
 #. Tooltip of the button that moves the Live TV guide back one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -6101,7 +6071,7 @@ msgstr "Forrige dag"
 #. Tooltip of the button that scrolls the Live TV guide back a few hours.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
-msgstr ""
+msgstr "Tidligere"
 
 #. Tooltip of the button that scrolls the Live TV guide forward a few
 #. hours. Later in time, and the counterpart of "Earlier" beside it. A
@@ -6110,24 +6080,24 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgctxt "guide navigation"
 msgid "Later"
-msgstr ""
+msgstr "Senere"
 
 #. Tooltip of the button that moves the Live TV guide forward one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Next Day"
-msgstr ""
+msgstr "Næste dag"
 
 #. Button that jumps the Live TV guide back to the current time. An adverb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Now"
-msgstr ""
+msgstr "Nu"
 
 #. Caption above the Live TV guide, saying which slice of the channel list
 #. is on screen, as in "Channels 1-12 of 240".
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Channels %(from)d-%(to)d of %(total)d"
-msgstr ""
+msgstr "Kanaler %(from)d-%(to)d of %(total)d"
 
 #. Tooltip of the button that shows the previous group of channels in the
 #. Live TV guide.
@@ -6139,33 +6109,31 @@ msgstr "Forrige kanaler"
 #. TV guide.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
-msgstr ""
+msgstr "Flere kanaler"
 
 #. Shown on the Live TV Channels tab when it is filtered to favourites and
 #. none are marked.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No favorite channels yet."
-msgstr ""
+msgstr "Endnu ingen Favorit-kanaler."
 
 #. Caption on the Live TV Channels tab, counting how many channels there
 #. are.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "%d channels"
-msgstr ""
+msgstr "%d kanaler"
 
 #. Heading over the most recent recordings on the Live TV Recordings tab.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Latest Recordings"
-msgstr ""
+msgstr "Seneste optagelser"
 
 #. Heading over the folders the server files recordings into, on the Live
 #. TV Recordings tab. A noun phrase: folders holding recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Recording Folders"
-msgstr "Åbn konfigurationsmappen"
+msgstr "Optagelsesmapper"
 
 #. Shown on the Live TV Recordings tab when there are no recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -6175,35 +6143,35 @@ msgstr "Der er ikke optaget noget endnu."
 #. Shown on the Live TV Schedule tab when nothing is set to record.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
-msgstr ""
+msgstr "Ingen optagelser er planlagt."
 
 #. Shown on the Live TV Series tab when no show is set to record every
 #. episode.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No series are set to record."
-msgstr ""
+msgstr "Ingen serie er planlagt til optagelse."
 
 #. State of a Live TV programme: it will be recorded when it airs.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Scheduled to record"
-msgstr ""
+msgstr "Planlagt optaget"
 
 #. State of a Live TV programme: it is being recorded at this moment.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording now"
-msgstr ""
+msgstr "Optager nu"
 
 #. State of a Live TV programme: a rule is recording every episode of this
 #. show.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording this series"
-msgstr ""
+msgstr "Optager denne serie"
 
 #. State of a Live TV programme: a rule records the show, but this
 #. particular airing falls outside it, for instance because it is a repeat.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "This series is set to record, but this showing is not scheduled"
-msgstr ""
+msgstr "Denne serie er sat til optagelse, men denne visning er ikke planlagt"
 
 #. Button that starts playing a Live TV channel that is on air now. An
 #. imperative verb, and it must not read the same as "Watched": in one
@@ -6249,29 +6217,25 @@ msgstr "Optag"
 #. verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Record series"
-msgstr "Fjern server"
+msgstr "Optag serie"
 
 #. Shown on a channel's page when the server has no listings for it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
-msgstr ""
+msgstr "Ingen Guide-oplysninger til denne kanal."
 
 #. Caption on a channel's page, saying how many upcoming programmes are
 #. listed. American spelling of "programmes".
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "Showing the next %d programs."
-msgstr ""
+msgstr "Viser de næste %d programmer."
 
 #. Stands in for the name of a Live TV channel the server did not name.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Channel"
-msgstr "Afslut og markér som Ikke-set"
+msgstr "Kanal"
 
 # seeded from jellyfin-web: Albums
 #. Name of a tab on the music page, and of a search-results and library
@@ -6286,15 +6250,14 @@ msgstr "Albummer"
 #. Heading of the row of musicians similar to the one being viewed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
-msgstr ""
+msgstr "Lignende kunstnere"
 
 # seeded from jellyfin-web: HeaderInstantMix
 #. Button that starts a queue of tracks like the one chosen. Jellyfin Web
 #. uses the same phrase; follow its wording in this language.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Instant mix"
-msgstr "Øjeblikkelig Mix"
+msgstr "Her-og-nu mix"
 
 #. Caption under an album or playlist, counting its songs.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -6306,9 +6269,8 @@ msgstr "%d spor"
 #. Name of a tab on the music page, listing the artists credited on whole
 #. albums as opposed to individual tracks.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Album artists"
-msgstr "Albummer"
+msgstr "Albumkunstnere"
 
 #. Name of a tab on the music page, and of a search-results group, holding
 #. musicians and bands.
@@ -6316,7 +6278,7 @@ msgstr "Albummer"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Artists"
-msgstr ""
+msgstr "Kunstnere"
 
 # seeded from jellyfin-web: Songs
 #. Name of a tab on the music page, and of a search-results and library
@@ -6330,7 +6292,7 @@ msgstr "Sange"
 #. Status message when music would not start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Could not start playback."
-msgstr ""
+msgstr "Afspilning kunne ikke startes."
 
 # seeded from jellyfin-web: Edit
 #. Appended to a playlist's name in the page title, marking that the
