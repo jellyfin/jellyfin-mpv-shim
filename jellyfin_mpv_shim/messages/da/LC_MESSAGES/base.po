@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 10:15+0000\n"
+"PO-Revision-Date: 2026-11-02 10:18+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -4563,7 +4563,7 @@ msgstr "Bøger"
 #. folder, so there is nothing to file them under.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Ungrouped"
-msgstr ""
+msgstr "U-grupperet"
 
 # seeded from jellyfin-web: Episodes
 #. Name of a search-results and library group holding single episodes of a
@@ -4588,14 +4588,14 @@ msgstr "Særudsendelser"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Season %s"
-msgstr ""
+msgstr "Sæson %s"
 
 #. State of a download in progress. %d is the percentage finished; the
 #. doubled percent sign prints one.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Downloading %d%%"
-msgstr ""
+msgstr "Downloader %d%%"
 
 #. State of a download that has started but has no progress figure yet.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -4613,15 +4613,13 @@ msgstr "Venter på at %s logger ind…"
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Waiting for approval…"
 msgid "Waiting for its profile to sign in…"
-msgstr "Venter på godkendelse…"
+msgstr "Venter på dens profil logger ind…"
 
 #. State of a download waiting for its turn.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Queued"
-msgstr ""
+msgstr "Lagt i kø"
 
 #. State of a download that did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -4639,12 +4637,12 @@ msgstr "Playliste"
 #. Heading of a downloads group whose series could not be identified.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
-msgstr ""
+msgstr "Ukendte serier"
 
 #. Heading of the downloads group holding films and standalone videos.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Movies & Videos"
-msgstr ""
+msgstr "Film & Video"
 
 #. First entry of the audio or video track list on the playback controls:
 #. no explicit choice, so MPV picks. "mpv" is the media player's name,
