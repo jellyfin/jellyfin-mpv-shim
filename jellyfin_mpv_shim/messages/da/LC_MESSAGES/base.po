@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 10:25+0000\n"
+"PO-Revision-Date: 2026-11-02 10:37+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -5016,13 +5016,13 @@ msgstr "Fuldskærm"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr ""
+msgstr "Afspilningen er stoppet så denne kø er væk."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Those items could not be added to the queue."
-msgstr ""
+msgstr "Disse elementer kunne ikke tilføjes køen."
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #. Status message confirming every episode of a show is now set to record.
@@ -5039,7 +5039,7 @@ msgstr "Optagelse planlagt."
 #. Status message when the server refused to set up a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording could not be scheduled."
-msgstr ""
+msgstr "Optagelsen kunne ikke planlægges."
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #. Question in the dialog confirming a scheduled recording is to be called
@@ -5066,13 +5066,13 @@ msgstr "Annullér optagelse"
 #. to be dropped.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
-msgstr ""
+msgstr "Afslut optagelse af denne serie?"
 
 #. Status message confirming the rule that records every episode was
 #. dropped.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording cancelled."
-msgstr ""
+msgstr "Optagelse af serie annulleret."
 
 #. Button that stops the rule recording every episode of a show, and the
 #. title of the dialog confirming it. An imperative verb.
@@ -5080,26 +5080,24 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Configure Servers"
 msgid "Cancel Series"
-msgstr "Konfigurér servere"
+msgstr "Afslut serie"
 
 #. Status message when the server refused to call off a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording could not be cancelled."
-msgstr ""
+msgstr "Optagelsen kunne ikke annulleres."
 
 #. Status message confirming the recording dialog's changes reached the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording settings saved."
-msgstr ""
+msgstr "Optagelses-indstillinger blev gemt."
 
 #. Status message when the server refused the recording dialog's changes.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording settings could not be saved."
-msgstr ""
+msgstr "Optagelses-indstillingerne kunne ikke gemmes."
 
 #. A one-line status message at the bottom of the screen after the menu entry
 #. above was used. %s is the name of the film, show or album. It reports that
@@ -5107,7 +5105,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "The server is refreshing %s."
-msgstr ""
+msgstr "Serveren opdaterer %s."
 
 #. A one-line status message: the server refused the refresh request. %s is
 #. the name of the film, show or album.
@@ -5132,14 +5130,14 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s blev slettet."
 
 #. Status message when the server refused to delete an item. %s is its
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s could not be deleted."
-msgstr ""
+msgstr "%s kunne ikke slettes."
 
 #. Question in the dialog that removes a download from this device. The
 #. item stays on the server. %s is its name.
@@ -5152,10 +5150,8 @@ msgstr "Slet den downloadede kopi af %s?"
 #. Title of the dialog that removes a downloaded copy from this device.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Delete Download"
-msgstr "Automatisk afspilning"
+msgstr "Slet download"
 
 # seeded from jellyfin-web: Delete
 #. Confirming button of a dialog that removes something for good: a
@@ -5171,28 +5167,28 @@ msgstr "Slet"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
-msgstr ""
+msgstr "Downloaden kunne ikke fjernes."
 
 #. Status message while a file is being handed to whatever application the
 #. system opens it with. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "Åbner %s…"
 
 #. Status message when the operating system has no application registered
 #. for that file type. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Nothing on this system could open %s."
-msgstr ""
+msgstr "Intet på dette system kunne åbne %s."
 
 #. Status message when the item asked for is already on this device. %s is
 #. its name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s is already downloaded."
-msgstr ""
+msgstr "%s er allerede downloadet."
 
 #. Status message when opening a book fails because the Jellyfin account
 #. lacks the permission that allows downloading.
@@ -5201,20 +5197,22 @@ msgid ""
 "Your account is not allowed to download from this server, and a book can "
 "only be read by downloading it."
 msgstr ""
+"Din konto må ikke downloade fra denne server, og en bog kan kun læses ved at "
+"downloade den."
 
 #. Status message when something was asked of a download that is not on
 #. this device. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s has not been downloaded."
-msgstr ""
+msgstr "%s er ikke downloadet."
 
 #. Status message when fetching an item to this device failed. %s is its
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s could not be downloaded."
-msgstr ""
+msgstr "%s kunne ikke downloades."
 
 #. Status message while an item is being fetched to this device. %s is its
 #. name.
@@ -5227,7 +5225,7 @@ msgstr "Downloader %s…"
 #. the recording rule.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
-msgstr ""
+msgstr "Optagelsen kunne ikke læses."
 
 # seeded from jellyfin-web: HeaderSeriesOptions
 #. Button on a programme page, and the title of the dialog it opens,
@@ -5278,7 +5276,7 @@ msgstr "Optag ej episoder, som allerede findes i mit bibliotek"
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "Only %s"
-msgstr ""
+msgstr "Kun %s"
 
 # seeded from jellyfin-web: OneChannel
 #. Choice in the "Channels" dropdown of the series recording dialog, used
@@ -5323,15 +5321,14 @@ msgstr "Cirka %s"
 #. showings at the time the series normally airs.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Original air time"
-msgstr ""
+msgstr "Oprindelig sendetid"
 
 # seeded from jellyfin-web: LabelAirTime
 #. Choice in the "Air time" dropdown of the series recording dialog: record
 #. the show whenever it airs.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Anytime"
-msgstr "Sendetid"
+msgstr "Nårsomhelst"
 
 # seeded from jellyfin-web: LabelKeepUpTo
 #. Label of the dropdown in the series recording dialog limiting how many
@@ -5345,13 +5342,13 @@ msgstr "Bevar op til"
 #. many minutes before the programme starts.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Start early (minutes)"
-msgstr ""
+msgstr "Start tidligere (minutter)"
 
 #. Label of the number field in the recording dialog: keep recording this
 #. many minutes after the programme ends.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Stop late (minutes)"
-msgstr ""
+msgstr "Stop senere (minutter)"
 
 # seeded from jellyfin-web: AsManyAsPossible
 #. Choice in the "Keep up to" dropdown of the series recording dialog:
@@ -5385,18 +5382,14 @@ msgstr "Sortér kanaler efter"
 #. Choice in the "Sort channels by" dropdown of Guide Settings: order
 #. channels by the number the provider gives them.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Channel number"
-msgstr "Skift undertekster"
+msgstr "Kanalnummer"
 
 #. Choice in the "Sort channels by" dropdown of Guide Settings: put the
 #. channels watched most recently first.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Recently watched"
-msgstr "Afslut og markér som Ikke-set"
+msgstr "Nyligt set"
 
 # seeded from jellyfin-web: PlaceFavoriteChannelsAtBeginning
 #. Checkbox in Guide Settings, moving channels marked as favourites to the
@@ -5430,23 +5423,20 @@ msgstr "Kategorier"
 #. holding how channels are sorted and which badges are shown.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Guide Settings"
-msgstr "SVP-indstillinger"
+msgstr "Guide-indstillinger"
 
 #. Error shown when Guide Settings could not be written to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Guide settings could not be saved."
-msgstr ""
+msgstr "Guide-indstillinger kunne ikke gemmes."
 
 # seeded from jellyfin-web: Programs
 #. Checkbox in Guide Settings: badge programmes broadcast in high
 #. definition. American spelling of "programmes".
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "HD programs"
-msgstr "Programmer"
+msgstr "HD-programmer"
 
 # seeded from jellyfin-web: LiveBroadcasts
 #. Checkbox in Guide Settings: badge programmes going out as they happen.
@@ -5457,9 +5447,8 @@ msgstr "Live-udsending"
 # seeded from jellyfin-web: NewEpisodesOnly
 #. Checkbox in Guide Settings: badge first-run episodes.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "New episodes"
-msgstr "Kun nye episoder"
+msgstr "Nye episoder"
 
 # seeded from jellyfin-web: Premieres
 #. Checkbox in Guide Settings: badge first showings.
@@ -5470,9 +5459,8 @@ msgstr "Premiere"
 # seeded from jellyfin-web: AllEpisodes
 #. Checkbox in Guide Settings: badge episodes shown before.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Repeat episodes"
-msgstr "Alle episoder"
+msgstr "Gentag episoder"
 
 # seeded from jellyfin-web: Movies
 #. Checkbox in Guide Settings, colour coding film programmes. Also a
@@ -5537,7 +5525,7 @@ msgstr "Gentag"
 #. grouped by day.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Scheduled"
-msgstr ""
+msgstr "Planlagt"
 
 #. Error shown when an item took too long to start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
