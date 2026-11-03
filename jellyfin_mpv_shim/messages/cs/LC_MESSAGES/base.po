@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-03 13:22+0000\n"
+"PO-Revision-Date: 2026-11-03 15:22+0000\n"
 "Last-Translator: Timo Chvatal <timo@chvat.al>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
@@ -2261,97 +2261,97 @@ msgstr ""
 #. Player Controls); stored as "none".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
-msgstr ""
+msgstr "Bez ovládání přehrávače"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "0.75".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "0.85".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "0.9".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #. Choice shared by the "Text size", "Interface Scale" dropdowns (Settings
 #. > Browse > Theme). One translation has to serve all of them.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
-msgstr ""
+msgstr "100% (bez škálování)"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "1.1".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #. Choice shared by the "Text size", "Interface Scale" dropdowns (Settings
 #. > Browse > Theme). One translation has to serve all of them.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
-msgstr ""
+msgstr "125%"
 
 #. Choice shared by the "Text size", "Interface Scale" dropdowns (Settings
 #. > Browse > Theme). One translation has to serve all of them.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "150%"
-msgstr ""
+msgstr "150%"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "0".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No minimum"
-msgstr ""
+msgstr "Žádné minimum"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "14".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "14 px"
-msgstr ""
+msgstr "14 px"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "16".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "16 px"
-msgstr ""
+msgstr "16 px"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "18".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "18 px"
-msgstr ""
+msgstr "18 px"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "20".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "20 px"
-msgstr ""
+msgstr "20 px"
 
 #. Choice in the "Interface Scale" dropdown (Settings > Browse > Theme);
 #. stored as "None".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
-msgstr ""
+msgstr "Podle obrazovky"
 
 #. Choice in the "Interface Scale" dropdown (Settings > Browse > Theme);
 #. stored as "2.0".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "200%"
-msgstr ""
+msgstr "200%"
 
 #. Choice in the "Scroll Mode" dropdown (Settings > Browse > Library
 #. Browser); stored as "continuous".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr ""
+msgstr "Kontinuální"
 
 #. Choice in the "Scroll Mode" dropdown (Settings > Browse > Library
 #. Browser); stored as "aligned".
@@ -2430,7 +2430,7 @@ msgstr "Výchozí"
 #. Playback > Player Controls); stored as "panel".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr ""
+msgstr "Panel za ovládáním"
 
 #. Choice in the "Shading Behind the Player Controls" dropdown (Settings >
 #. Playback > Player Controls); stored as "none".
@@ -2458,49 +2458,49 @@ msgstr "Vždy přeskočit závěrečné titulky"
 #. Playback > Player Controls); stored as "paused".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Neskrývat při stopnutí"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "justify".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Rozšířit mezery"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "center".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Vycentrovat dlaždice"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "off".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Ponechat vpravo"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "None".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Motivu"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "0.75".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Extra kompaktní"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "0.85".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Kompaktní"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "1.2".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Střední"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "1.7".
@@ -2514,37 +2514,37 @@ msgstr "Velký"
 #. Video Enhancement); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
-msgstr ""
+msgstr "Automatické (doporučeno)"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "vulkan".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Vulkan"
-msgstr ""
+msgstr "Vulkan"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "d3d11".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Direct3D 11 (Windows only)"
-msgstr ""
+msgstr "Direct3D 11 (Pouze Windows)"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "opengl".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "OpenGL (compatibility)"
-msgstr ""
+msgstr "kompatibilita"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default (auto)"
-msgstr ""
+msgstr "Výchozí (auto)"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "stereo".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Force Stereo"
-msgstr ""
+msgstr "Vynutit Stereo"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "optical".
@@ -2556,49 +2556,49 @@ msgstr ""
 #. Audio); stored as "hdmi".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDMI Passthrough"
-msgstr ""
+msgstr "HDMI Passthrough"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "unset".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
-msgstr ""
+msgstr "Nenastaveno"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "dubbed_shows".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (shows only)"
-msgstr ""
+msgstr "Nadabováno (pouze seriály)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "subbed_shows".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (shows only)"
-msgstr ""
+msgstr "S titulky (pouze seriály)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "dubbed_all".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (all)"
-msgstr ""
+msgstr "Nadabováno (vše)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "subbed_all".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
-msgstr ""
+msgstr "S titulky (vše)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "custom".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
-msgstr ""
+msgstr "Vlastní (nastav v configu)"
 
 #. Label of the dropdown for the "notify_updates" setting (Settings >
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "Informujte mě o aktualizacích"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
@@ -2612,31 +2612,31 @@ msgstr "Počet přehrání"
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Zpět"
 
 #. Label of the text field for the "sync_path" setting (Settings > Browse >
 #. Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
-msgstr ""
+msgstr "Složka"
 
 #. Label of the checkbox for the "prefer_downloaded" setting (Settings >
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
-msgstr ""
+msgstr "Preferovat staženou kopii"
 
 #. Label of the checkbox for the "mouse_click_pauses" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Přehrávání"
 
 #. Label of the checkbox for the "detail_poster" setting (Settings > Browse
 #. > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Zobrazovat"
 
 #. Label of the checkbox for the "detail_episode_image" setting (Settings >
 #. Browse > Library Browser).
@@ -2696,19 +2696,19 @@ msgstr ""
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Automaticky stahovat nadcházející epizody"
 
 #. Label of the checkbox for the "auto_download_next_up" setting (Settings
 #. > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Další na řadě"
 
 #. Label of the number field for the "auto_download_next_up_limit" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "Další na řadě"
 
 #. Label of the number field for the "auto_download_lookahead" setting
 #. (Settings > Browse > Downloads).
