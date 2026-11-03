@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-03 13:21+0000\n"
+"PO-Revision-Date: 2026-11-03 13:22+0000\n"
 "Last-Translator: Timo Chvatal <timo@chvat.al>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
@@ -2249,7 +2249,7 @@ msgstr "Jellyfin"
 #. Player Controls); stored as "mpv".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "MPV UI"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "custom".
