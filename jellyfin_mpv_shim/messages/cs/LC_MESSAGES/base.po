@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-28 19:10+0000\n"
-"Last-Translator: Fjuro <fjuro@users.noreply.translate.jellyfin.org>\n"
+"PO-Revision-Date: 2026-11-03 13:21+0000\n"
+"Last-Translator: Timo Chvatal <timo@chvat.al>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
 "Language: cs\n"
@@ -1300,7 +1300,7 @@ msgstr ""
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Více"
 
 # seeded from jellyfin-web: Features
 #. Heading over the row of a film's or show's extras (featurettes, deleted
@@ -1396,7 +1396,7 @@ msgstr "Vzorkovací frekvence"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr ""
+msgstr "Výstřižek"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1404,7 +1404,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "Krátkometrážní"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
@@ -2225,13 +2225,13 @@ msgstr "Vysoká kvalita"
 #. Playback); stored as "default".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default (1 second)"
-msgstr ""
+msgstr "MPV výchozí (1 sekunda)"
 
 #. Choice in the "Network Buffer" dropdown (Settings > Playback >
 #. Playback); stored as "large".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Large (20 seconds)"
-msgstr ""
+msgstr "Velký (20 sekund)"
 
 #. Choice in the "Network Buffer" dropdown (Settings > Playback >
 #. Playback); stored as "huge".
