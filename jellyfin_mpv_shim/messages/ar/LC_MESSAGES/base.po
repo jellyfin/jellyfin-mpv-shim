@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 18:22+0000\n"
+"PO-Revision-Date: 2026-11-03 13:21+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -7743,6 +7743,8 @@ msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
 msgstr ""
+"هذا التطبيق لا يسمح بالكتابة لهذا المجلد. اختر مجلدا تمتلكه, أو غير تصريحاته, "
+"و جرب ثانية."
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
@@ -7918,16 +7920,13 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
 "MPV Shim v{0} تحديث متوفر\n"
-"افتح القائمة (اضغط على c) لمزيد من المعلومات."
+"شغل \"تحديث flatpak\" لتنصيبه."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
