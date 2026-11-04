@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-04 16:48+0000\n"
+"PO-Revision-Date: 2026-11-05 02:06+0000\n"
 "Last-Translator: Weblate user 23555 <user-"
 "23555@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -559,7 +559,7 @@ msgstr ""
 #. Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Selalu"
 
 #. Title of the in-player submenu that sets the bandwidth limit used for
 #. remote playback from then on.
@@ -719,47 +719,38 @@ msgstr "Discord Rich Presence"
 #. A toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Pembuka terlewati"
+msgstr "Lewati Pembukaan"
 
 #. Toggle on the in-player Player Preferences menu, and a settings
 #. dropdown: what to do when an episode's closing credits start. Set to
 #. Never, Ask or Always. Carries a context because "Skip Credits" is also
 #. the name of a button on the video itself.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Kredit yang Dilewatkan"
+msgstr "Lewati Kredit"
 
 #. What to do at an advertisement break: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
 #. Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "Spesial"
+msgstr "Lewati Iklan"
 
 #. What to do at a preview of a coming episode: Never, Ask or Always. A
 #. toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Kredit yang Dilewatkan"
+msgstr "Lewati Pratinjau"
 
 #. What to do at a "previously on" recap: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
 #. Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Kredit yang Dilewatkan"
+msgstr "Lewati Rangkuman"
 
 #. Toggle on the in-player Player Preferences menu: show a preview frame
 #. while seeking.
@@ -774,27 +765,27 @@ msgstr "Aktifkan tampilan gambar mini"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Mode Malam (Pengatur Volume Otomatis)"
 
 #. Title of the screen shown when the application is locked behind a
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Terkunci"
 
 #. Status message when a page's content could not be fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Gagal memuat. Periksa koneksi Internet."
 
 #. Label beside the number field in the Reading Progress dialog, where a
 #. page to jump to is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Halaman"
 
 #. Follows a page-number field, giving the total, as in "of 240". In the
 #. Reading Progress dialog, the comic reader and a paged library grid.
@@ -809,17 +800,15 @@ msgstr ""
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Halaman pertama"
 
 #. Tooltip of the button that goes back one page: in a library grid, and in
 #. the book and comic readers.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Berhasil menambahkan server."
+msgstr "Halaman sebelumnya"
 
 #. Tooltip of the button that goes forward one page: in a library grid, and
 #. in the book and comic readers.
@@ -827,13 +816,13 @@ msgstr "Berhasil menambahkan server."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Halaman berikutnya"
 
 #. Tooltip of the paging button that jumps to the last page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Halaman terakhir"
 
 #. Status message when the server refused an edit, such as marking an item
 #. watched or removing it from a playlist.
@@ -858,7 +847,7 @@ msgstr "Siaran TV Langsung"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Terpilih: %s"
 
 #. Shown in a dialog or page while its content is being fetched from the
 #. server.
@@ -868,14 +857,14 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Memuat…"
 
 #. Status message when starting an item failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Pemutaran tidak dapat dimulai."
 
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
@@ -888,7 +877,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Antrean"
 
 #. Button that tries a failed operation again: reaching a server at
 #. startup, an offline banner, a page that would not load, an item that
@@ -909,31 +898,27 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Tidak dapat memulai ulang totomatis - keluar dan buka aplikasi kembali untuk "
+"menerapkan perubahan."
 
 #. Status message when a retry after a connection failure also failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Tidak dapat menambahkan server.\n"
-"Harap cek kembali koneksi Anda."
+msgstr "Masih tidak dapat terhubung dengan server."
 
 #. Title of the dialog that changes to another user of this server. %s is
 #. that user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Ganti ke %s"
 
 #. Placeholder in the empty field where a numeric passcode is typed, on the
 #. switch-user and lock screens. The abbreviation is widely kept as-is; use
 #. whatever word the local Jellyfin apps use for a numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "PIN"
 
 # seeded from jellyfin-web: ButtonCancel
 #. Button that dismisses a dialog without doing what it asked about. The
@@ -951,33 +936,32 @@ msgstr "Batal"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Beralih"
 
 #. Error shown when the passcode typed to switch user or unlock does not
 #. match.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "PIN salah."
 
 #. Title of the dialog that gives a user a numeric passcode. %s is that
 #. user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Server:"
+msgstr "Ubah PIN untuk %s"
 
 #. Label of the field asking for the passcode already in use, in the Set
 #. PIN dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "PIN saat ini"
 
 #. Label of the field asking for the passcode to change to, in the Set PIN
 #. dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "PIN baru"
 
 #. Label of the field in the Set PIN dialog asking for the new passcode a
 #. second time, to check it was typed correctly. A verb. Split from the
@@ -985,7 +969,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgctxt "form label"
 msgid "Confirm"
-msgstr ""
+msgstr "Konfirmasi"
 
 #. Checkbox in the Set PIN dialog. When on, the passcode is asked for every
 #. time the application opens.
@@ -996,10 +980,8 @@ msgstr ""
 #. Button in the Set PIN dialog that takes the passcode off this user. An
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Hapus Server"
+msgstr "Hapus PIN"
 
 # seeded from jellyfin-web: Save
 #. Button in the Set PIN dialog that stores the new passcode. An imperative
@@ -1013,30 +995,30 @@ msgstr "Simpan"
 #. wrongly.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "PIN saat ini salah."
 
 #. Error in the Set PIN dialog when the new-passcode field was left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Masukkan PIN baru."
 
 #. Error in the Set PIN dialog when the passcode and its confirmation
 #. differ.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "PIN yang dimasukkan tidak sesuai."
 
 #. Error in the Set PIN dialog when the server refused to take the passcode
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "PIN tidak dapat dihapus."
 
 #. Error in the Set PIN dialog when the server refused to store the
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "PIN tidak dapat disimpan."
 
 # seeded from jellyfin-web: ButtonSignIn
 #. Button, and the title of the screen it opens. Signs back in to a server
@@ -1044,10 +1026,8 @@ msgstr ""
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Masuk"
+msgstr "Masuk kembali"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1064,26 +1044,26 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Login tersimpan untuk %s tidak lagi diterima. Masuk kembali untuk "
+"mempertahankan unduhan dan pengaturannya."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Hubungkan ke Jellyfin"
 
 #. Heading above the list of servers already signed in to, on the sign-in
 #. page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Berhasil menambahkan server."
+msgstr "Server ditambahkan sebelumnya"
 
 #. Button beside a remembered server on the sign-in page, choosing that
 #. server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Gunakan"
 
 # seeded from jellyfin-web: QuickConnect
 #. A Jellyfin feature that signs a device in by typing a short code into an
