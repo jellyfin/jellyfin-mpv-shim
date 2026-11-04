@@ -1665,6 +1665,67 @@ do
     local step = offset("g-one")
     ok(step > 0, "measured one notch", tostring(step))
 
+    -- ROOT CAUSE of the touchpad running ~30x too fast: the wheel bindings
+    -- went through mp.set_key_bindings, which calls its callbacks with no
+    -- arguments and drops mpv's scale, so every pointer frame was a whole
+    -- notch. Only `complex` bindings receive the event table. The fake used
+    -- to hand a table to ANY callback, which is why nothing saw it.
+    for _, name in ipairs({ "mpvtk-wheel_up", "mpvtk-wheel_down",
+                            "mpvtk-wheel_left", "mpvtk-wheel_right",
+                            "mpvtk-shift-wheel_up", "mpvtk-shift-wheel_down" }) do
+        local o = fake.log.keyopts[name]
+        ok(o and o.complex == true and o.scalable == true,
+           "the wheel binding " .. name .. " is scale-aware (complex, scalable)",
+           "without that mpv calls it with no scale and a touchpad frame is a full notch")
+    end
+    ok(fake.log.sections["mpvtk_wheel"] and fake.log.sections["mpvtk_wheel"]["wheel_down"],
+       "and the mpvtk_wheel section still carries the wheel keys")
+
+    -- A fractional delta (touchpad) moves the content in proportion to the
+    -- finger, at state.fine_gain of a notch's worth; an exact 1.0 is a notch.
+    fresh("g-fine", 0)
+    fake.advance(0.03)
+    fake.key("wheel_down", { scale = 0.1 })
+    ok(math.abs(offset("g-fine") - 0.1 * step * 0.25) < 0.01,
+       "a 0.1 delta moves 0.1 * 0.25 of a notch",
+       string.format("moved %s, notch is %s", tostring(offset("g-fine")), tostring(step)))
+    for _ = 1, 99 do
+        fake.advance(0.007)
+        fake.key("wheel_down", { scale = 0.05 })
+    end
+    ok(math.abs(offset("g-fine") - (0.1 + 99 * 0.05) * step * 0.25) < 0.5,
+       "a hundred small deltas add up in proportion to the finger",
+       string.format("moved %s", tostring(offset("g-fine"))))
+    ok(offset("g-fine") < step * 2,
+       "and a 100-frame touchpad drag does not travel a hundred notches",
+       string.format("moved %s, a notch is %s", tostring(offset("g-fine")), tostring(step)))
+    fresh("g-notch", 0)
+    fake.advance(0.03)
+    fake.key("wheel_down", { scale = 1.0 })
+    ok(math.abs(offset("g-notch") - step) < 0.01,
+       "an exact 1.0 is a whole notch, unchanged by the touchpad gain",
+       string.format("moved %s, notch is %s", tostring(offset("g-notch")), tostring(step)))
+
+    -- The gain is about what a NOTCH moves, so it follows the scroll mode.
+    -- `aligned` (force_snap) only changes what is drawn between notches and
+    -- still takes it; `row` (snapped) steps by detents -- a fractional delta
+    -- is that fraction of a detent, and the gain is not applied.
+    fake.send("mpvtk-wheel", fake.token({ force_snap = true }))
+    fresh("g-aligned", 0)
+    fake.advance(0.03)
+    fake.key("wheel_down", { scale = 0.1 })
+    ok(math.abs(offset("g-aligned") - 0.1 * step * 0.25) < 0.01,
+       "aligned mode: a fractional delta still takes the gain",
+       string.format("moved %s, notch is %s", tostring(offset("g-aligned")), tostring(step)))
+    fake.send("mpvtk-wheel", fake.token({ snapped = true, force_snap = true }))
+    fresh("g-row", 0)
+    fake.advance(0.03)
+    fake.key("wheel_down", { scale = 0.1 })
+    ok(math.abs(offset("g-row") - 0.1 * SNAP) < 0.01,
+       "row mode: a fractional delta is that fraction of a detent, without the gain",
+       string.format("moved %s, a detent is %s", tostring(offset("g-row")), tostring(SNAP)))
+    fake.send("mpvtk-wheel", fake.token({ snapped = false, force_snap = false }))
+
     -- Several notches inside one frame interval accumulate on the destination.
     fresh("g-rapid", 0)
     fake.advance(0.03)

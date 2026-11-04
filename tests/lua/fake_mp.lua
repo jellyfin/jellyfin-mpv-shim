@@ -436,6 +436,28 @@ function mp.set_key_bindings(list, name, _flags)
         section[entry[1]] = true
     end
 end
+-- A section defined from raw input.conf-style lines, the way mpv's own
+-- defaults.lua defines one: "KEY script-binding SCRIPT/NAME". That is the
+-- route to a SCALE-AWARE handler, which set_key_bindings cannot give: it
+-- calls its callbacks with no arguments and drops mpv's `scale` (the
+-- fraction of a notch a touchpad or hi-res wheel reports). Each line is
+-- resolved to the handler registered under NAME with add_key_binding, so
+-- M.key(KEY, {scale = ...}) reaches it exactly as a real event would.
+function mp.input_define_section(name, cfg, _flags)
+    local section = M.log.sections[name or "?"] or {}
+    M.log.sections[name or "?"] = section
+    for line in (cfg or ""):gmatch("[^\n]+") do
+        local key, target = line:match("^(%S+)%s+script%-binding%s+(%S+)$")
+        if key then
+            target = target:match("([^/]+)$")
+            local fn = M.log.keybinds[target]
+            if not fn then error("section " .. name .. " binds " .. key
+                .. " to an unregistered script-binding: " .. target) end
+            M.log.keybinds[key] = fn
+            section[key] = true
+        end
+    end
+end
 -- Recorded, not swallowed. `renderer.lua` reaches Python through
 -- `register_script_message`, but `thumbfast.lua` -- the shim's compatibility
 -- layer for thumbfast-style lua OSCs -- reads the raw `client-message`

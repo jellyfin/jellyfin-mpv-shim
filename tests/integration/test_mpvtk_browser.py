@@ -269,6 +269,97 @@ class TestMpvtkBrowserOnRealMpv(unittest.TestCase):
 
 
 @h.require_real_mpv
+class TestFractionalWheelReachesTheRenderer(unittest.TestCase):
+    """mpv reports a touchpad frame as a FRACTION of a notch (`scale`), and
+    the renderer must see it. It did not: the wheel bindings went through
+    `mp.set_key_bindings`, whose callbacks are called with no arguments, so
+    every pointer frame scrolled a whole 80 px notch -- measured on a real
+    touchpad as 42,966 px of content for 1,398 px of finger travel. The Lua
+    harness could not catch it (its fake handed a table to any callback), so
+    this goes through real mpv's own input layer: `keypress WHEEL_DOWN 0.1`
+    is the same path a Wayland pointer frame takes after mpv has divided the
+    axis value by 10.
+    """
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Spacer, VScroll
+
+        self.handle, ext = _spawn_handle()
+        self.app = MpvtkApp.attach(self.handle, ext=ext)
+        self._thread = threading.Thread(
+            target=lambda: self.app.run(
+                lambda size: VScroll(Column([Spacer(h=4000)]), id="fscroll", flex=1)),
+            daemon=True)
+        self._thread.start()
+
+    def tearDown(self):
+        try:
+            self.app.quit()
+            self._thread.join(timeout=5)
+        finally:
+            try:
+                self.handle.terminate()
+            except Exception:
+                pass
+
+    def _offset(self):
+        return (self.app.scroll_offsets() or {}).get("fscroll", 0)
+
+    def _wait_offset(self, want, timeout=4.0, tol=0.6):
+        end = time.time() + timeout
+        while time.time() < end:
+            if abs(self._offset() - want) <= tol:
+                return True
+            time.sleep(0.05)
+        return False
+
+    def test_a_fraction_of_a_notch_scrolls_a_fraction(self):
+        self.assertTrue(self.app.ready.wait(15), "renderer never ready")
+        time.sleep(0.6)
+        self.handle.command("mouse", 200, 200)
+        time.sleep(0.3)
+        # Half a notch = 5 logical px of finger = 80 * 0.5 * 0.25 = 10 px.
+        # (Single deltas under 0.125 are swallowed by mpv's own wheel dead
+        # zone when they START a gesture -- input.c process_wheel -- which
+        # is why the stream test below exists.)
+        self.handle.command("keypress", "WHEEL_DOWN", "0.5")
+        self.assertTrue(
+            self._wait_offset(10.0),
+            "a 0.5 wheel delta moved the content %s px, not ~10: the scale "
+            "never reached on_wheel (a whole notch is 80)" % self._offset())
+
+    def test_a_touchpad_sized_stream_scrolls_in_proportion(self):
+        """What a real two-finger drag looks like: many small deltas close
+        together. Forty frames of 0.05 are 2.0 notches of finger travel; the
+        old behaviour made each one a whole notch (3,200 px). mpv's dead zone
+        may swallow up to 0.125 of it at the start of the gesture."""
+        self.assertTrue(self.app.ready.wait(15), "renderer never ready")
+        time.sleep(0.6)
+        self.handle.command("mouse", 200, 200)
+        time.sleep(0.3)
+        for _ in range(40):
+            self.handle.command("keypress", "WHEEL_DOWN", "0.05")
+            time.sleep(0.01)
+        time.sleep(0.6)
+        got = self._offset()
+        self.assertGreaterEqual(got, 30, "the drag barely moved the content: %s" % got)
+        self.assertLessEqual(
+            got, 41, "forty 0.05 frames moved the content %s px; in "
+            "proportion to the finger it is ~40 (3,200 means every frame "
+            "was a whole notch)" % got)
+
+    def test_a_whole_notch_is_still_a_whole_notch(self):
+        self.assertTrue(self.app.ready.wait(15), "renderer never ready")
+        time.sleep(0.6)
+        self.handle.command("mouse", 200, 200)
+        time.sleep(0.3)
+        self.handle.command("keypress", "WHEEL_DOWN")
+        self.assertTrue(self._wait_offset(80.0),
+                        "a wheel notch moved the content %s px, not 80"
+                        % self._offset())
+
+
 class TestLongDropdownScroll(unittest.TestCase):
     """A picker with more entries than the window is tall (a year filter on
     a big library) drew its overflow past the bottom edge, unreachable.

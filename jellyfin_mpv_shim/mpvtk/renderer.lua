@@ -204,6 +204,18 @@ local state = {
     glide = {},
     glide_busy = false,
     glide_tau = 0.08,
+    -- Gain for FRACTIONAL wheel deltas: touchpads, and any hi-res wheel that
+    -- reports a fraction of a notch (the renderer cannot tell them apart).
+    -- mpv reports a touchpad frame as (finger travel in logical px)/10 of a
+    -- notch, clamped to 1, so a scale of 1.0 stands for ~10 px of finger; at
+    -- 80 px a notch that scrolled the content 8x as far as the finger moved.
+    -- Fractions are multiplied by this, giving 80 * 0.25 / 10 = 2 px of
+    -- content per px of finger. An exact 1.0 (what a mouse wheel reports) is
+    -- untouched. The value was chosen by trying it on one touchpad, not
+    -- derived; a fractional hi-res wheel is scaled the same way and so feels
+    -- slower per notch. If another device needs different, make it a setting
+    -- ("Fine-scroll sensitivity") rather than another constant.
+    fine_gain = 0.25,
     wheel_prev = nil,       -- time of the previous wheel event (rate measure)
     snap_timer = nil,
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
@@ -4195,8 +4207,10 @@ local function on_wheel(dir, axis, e)
             t = mp.get_time(),
         }
     end
+    local move = scale
+    if scale < 0.99 then move = scale * state.fine_gain end
     set_scroll(node,
-        (state.scroll[node.id] or 0) + dir * step * scale)
+        (state.scroll[node.id] or 0) + dir * step * move)
 end
 
 -- Double-click: word-select in a textbox; a 'dbl' event for nodes
@@ -5321,24 +5335,51 @@ mp.set_key_bindings({
     { 'go_back', function() mp.commandv('keypress', 'ESC') end },
     { 'go_forward', function() send({ t = 'forward' }) end },
 }, 'mpvtk_thumb', 'force')
-mp.set_key_bindings({
-    { 'wheel_up', function(e) on_wheel(-1, 'y', e) end },
-    { 'wheel_down', function(e) on_wheel(1, 'y', e) end },
-    { 'wheel_left', function(e) on_wheel(-1, 'x', e) end },
-    { 'wheel_right', function(e) on_wheel(1, 'x', e) end },
-    { 'shift+wheel_up', function(e) on_wheel(-1, 'x', e) end },
-    { 'shift+wheel_down', function(e) on_wheel(1, 'x', e) end },
+-- **Registered as `complex` bindings and defined as a section by hand, because
+-- `mp.set_key_bindings` cannot carry the wheel's scale.** Its dispatcher calls
+-- every callback as `cb()` with NO arguments and throws away the `scale` mpv
+-- passes (mpv 0.40 defaults.lua), so `on_wheel`'s `e.scale` was always nil and
+-- every pointer frame was a whole notch: a touchpad drag, which reports a
+-- fraction of a notch per frame (median 0.05 measured, ~140 frames a second),
+-- scrolled ~30x the finger's travel. Only a `complex` binding is called with
+-- the event table. Same section name and flags as before, so enabling,
+-- disabling and priority work exactly as they did.
+do
+    local binds = {
+        { 'wheel_up', -1, 'y' }, { 'wheel_down', 1, 'y' },
+        { 'wheel_left', -1, 'x' }, { 'wheel_right', 1, 'x' },
+        { 'shift+wheel_up', -1, 'x' }, { 'shift+wheel_down', 1, 'x' },
+    }
+    local cfg = {}
+    local function add(key, fn)
+        local name = 'mpvtk-' .. key:gsub('%+', '-')
+        mp.add_key_binding(nil, name, fn, { complex = true, scalable = true })
+        cfg[#cfg + 1] = key .. ' script-binding '
+            .. mp.get_script_name() .. '/' .. name
+    end
+    for _, b in ipairs(binds) do
+        add(b[1], function(e)
+            -- A wheel notch is one "press"; if a platform ever reports a
+            -- release as well, it is not a second notch.
+            if e and (e.event == 'up' or e.canceled) then return end
+            on_wheel(b[2], b[3], e)
+        end)
+    end
     -- ctrl+wheel is zoom wherever a picture is being panned, and nothing
     -- anywhere else. Sent to the app rather than applied here: a zoom
     -- changes the clamp, and the clamp comes from the page's size and the
     -- bars' heights, neither of which the renderer knows.
-    { 'ctrl+wheel_up', function()
+    add('ctrl+wheel_up', function(e)
+        if e and (e.event == 'up' or e.canceled) then return end
         if state.vpan and state.vpan.on then send({ t = 'vzoom', dir = 1 }) end
-    end },
-    { 'ctrl+wheel_down', function()
+    end)
+    add('ctrl+wheel_down', function(e)
+        if e and (e.event == 'up' or e.canceled) then return end
         if state.vpan and state.vpan.on then send({ t = 'vzoom', dir = -1 }) end
-    end },
-}, 'mpvtk_wheel', 'force')
+    end)
+    mp.input_define_section('mpvtk_wheel', table.concat(cfg, '\n') .. '\n',
+                            'force')
+end
 
 -- Whether we should be holding that section at all, right now.
 --
