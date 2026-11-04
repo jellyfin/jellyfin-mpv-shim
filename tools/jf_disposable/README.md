@@ -1,0 +1,73 @@
+# Disposable Jellyfin 10.11.8 test server and client drivers
+
+Starts a **throw-away Jellyfin 10.11.8 on 127.0.0.1:18097** with a temporary config, two accounts with random
+passwords, and a library you provide, then drives a JellyHome Player client against it. Nothing here touches a real
+server, real credentials or real media. All server and client state lives in a temporary directory that is removed at
+the end; the sanitised logs and a `samples.csv` of memory use stay in `$JH_JF_WORK/out`.
+
+Needs: Linux with systemd user scopes (`tools/limited_run.sh`), `requests`, Xvfb, xdotool, ImageMagick `import` (the
+screenshots of the basic mode), ffmpeg, mpv/libmpv, Pillow (for `make_library.py`) and the repository's Python deps.
+Run it inside `tools/limited_run.sh`: the server and the client share the one memory limit.
+
+## Setup
+
+    W=/path/with/600MB; export JH_JF_WORK=$W; mkdir -p $W/server $W/media/Movies $W/dl
+    # 1. the exact server release (the archive keeps 10.11.8; the stable listing does not). No publisher
+    #    checksum is served; the file used here had sha256
+    #    d7fba5f34da1e12c5095b17a9cd053d603aaf514e293973a31851f0885633ca1
+    curl -L -o $W/dl/jf.tgz https://repo.jellyfin.org/archive/server/linux/stable/v10.11.8/amd64/jellyfin_10.11.8-amd64.tar.gz
+    sha256sum $W/dl/jf.tgz        # compare with the value above before unpacking
+    tar xzf $W/dl/jf.tgz -C $W/server --no-same-owner
+    # 2. a library, either of these:
+    #    a) many posters, for scrolling tests:
+    python3 tools/jf_disposable/make_library.py "$W/media/Movies" 120
+    #    b) one DVD-style film, for playback tests: `make_vobsub.py $W/vob` writes a genuine VobSub .idx/.sub
+    #       drawn from text, then
+    #    ffmpeg -f lavfi -i "testsrc2=size=720x576:rate=50,interlace=scan=tff,setsar=64/45" \
+    #      -f lavfi -i sine=frequency=440:sample_rate=48000 -f lavfi -i sine=frequency=880:sample_rate=48000 \
+    #      -i $W/vob.idx -t 20 -map 0:v -map 1:a -map 2:a -map 3:s -c:v mpeg2video -pix_fmt yuv420p \
+    #      -b:v 4M -maxrate 8M -bufsize 1835k -flags +ildct+ilme -aspect 16:9 -r 25 -c:a ac3 -b:a 192k \
+    #      -ac 2 -c:s copy -metadata:s:a:0 language=eng -metadata:s:a:1 language=spa \
+    #      -metadata:s:s:0 language=eng "$W/media/Movies/SyntheticDVD (2001)/SyntheticDVD (2001).mkv"
+    #       (plus a small `.en.srt` beside it for the external-text case)
+
+Without `JH_JF_WORK` the work directory is `tools/jf_disposable/work/` (gitignored).
+
+## Modes
+
+`jf_run.py server` starts the server only, scans the library and reports what Jellyfin's probe found. `jf_run.py full`
+adds a client, and the environment picks which kind:
+
+| Mode | Selected by | Where the window opens | What it does |
+|---|---|---|---|
+| basic | (default) | virtual display (`xvfb-run`) | Logs in through the GUI form with xdotool, plays the first movie by remote control, pause/seek/track switches, screenshots, clean stop. The client's mpv config forces `vo=x11`. |
+| session | `JH_JF_MODE=session JH_JF_CMDS=<file>` | virtual display (`xvfb-run`) | Keeps server and client up and executes one command per line appended to the file (`click`, `conf`, `ipc`, `key`, `move`, `pause`, `play`, `quit`, `restart`, `shot`, `stop`, `unpause`); answers go to `out/session.out`. Ends on `quit` or after 240 s without a command. Also forces `vo=x11`. |
+| desktop | `JH_JF_DESKTOP=1` | **your real desktop**, one window, normal rendering settings | Seeds the login (below), plays the first movie and reads mpv properties over IPC (video output, decoder, deinterlace state, dropped frames) with window screenshots. |
+| scroll | `JH_JF_MODE=scroll JH_JF_APP=<launcher> JH_JF_FLAG=<file> JH_JF_EXPECT=<N>` | **your real desktop**, one window, normal rendering settings | Waits until the library has N movies that all have a primary image, seeds the login, runs `<launcher> --config <dir> --mpv-loglevel info` once, and leaves it for you to use until the flag file exists, you close the window, or the scope times out; then `<launcher> --config <dir> stop`. Environment variables are passed through to the launcher. |
+
+Run the virtual-display modes like this, **with Wayland unset**:
+
+    JH_MAX_MPV=2 tools/limited_run.sh -t 240 -- env -u WAYLAND_DISPLAY xvfb-run -a -s "-screen 0 1280x720x24 -nolisten tcp" \
+        python3 tools/jf_disposable/jf_run.py full
+
+With `WAYLAND_DISPLAY` set, mpv draws on your real Wayland desktop instead of the virtual display.
+
+## Things to know
+
+* **`vo=x11` is a workaround, not a recommendation.** On an isolated Xvfb mpv refuses software rendering, so its GPU
+  output cannot start. The basic and session modes sidestep that by forcing `vo=x11`; the alternative that keeps the normal
+  output is the opt-in `tools/xvfb_gl_shim/`. The desktop and scroll modes use `vo=x11` only for the one-time login
+  seeding and then run with no rendering option set.
+* **The desktop and scroll modes seed the login through the real sign-in form in a private Xvfb on display `:98`**
+  (xdotool cannot drive a Wayland window, and `add` is not a one-shot command). The script does not check that `:98` is
+  free; make sure it is.
+* The login coordinates in `jf_client.py` assume the 1280x720 sign-in card.
+* The accounts are `tmpadmin` and `viewer`; their passwords are random per run and redacted from the saved logs.
+* The server is Jellyfin 10.11.8 only, started with `--nowebclient`; the port is fixed (18097).
+* **Stopping the server.** The driver asks it to shut down through its API, waits 25 s, sends SIGTERM, waits 20 s more,
+  then SIGKILLs it. Jellyfin 10.11 optimizes its database on the way out (its log ends with "Running query planner
+  optimizations in the database... This might take a while"), and with a 120-movie library the `server` phase was
+  killed in 2 of 2 runs on the development laptop (and in a third that first waited for the whole library to be indexed); earlier `scroll` runs, which had a client connected and had been up
+  longer, exited by themselves (rc 0) and I do not know what made the difference. Nothing is lost either way: the
+  database is a temporary one and is removed afterwards. The timeouts are the driver's own and were not changed.
+* These are test harnesses, not part of the application. They have no unit tests, because they need a real server.

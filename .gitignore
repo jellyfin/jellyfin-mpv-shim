@@ -36,3 +36,5 @@ libfribidi.0.dylib
 
 # Local symlink to STARTHERE.md for tools that look for this name.
 CLAUDE.md
+# Server tree, generated media and logs of tools/jf_disposable (hundreds of MB)
+tools/jf_disposable/work/
