@@ -111,6 +111,11 @@ for you when one changes.
 - `allow_background` - Allow running with no window *and* no tray icon, so `close_to_tray`
   and `start_minimized` work on desktops without a tray. Default: `false`
   - The only ways to stop it then are `jellyhome-player stop` or killing the process.
+- `start_with_computer` - Launch the app (minimized) when you sign in. **Default: `false`.** Writes one
+  per-user entry (Windows: `HKCU\...\Run`; Linux: `~/.config/autostart/`) and removes it when turned
+  off; the Windows uninstaller removes it too. Unsupported inside Flatpak and on macOS (the switch
+  turns itself back off and says why). Pair it with `close_to_tray` so the app stays available as a
+  cast target ("Keep running for casting").
 - `start_minimized` - Start in the tray instead of opening the library. Default: `false`
   - Needs a tray or `allow_background`. The `--minimized` flag starts one launch minimized and
     works even without a tray. Launching the app again shows the window.

@@ -114,6 +114,15 @@ class SettingsBase:
             apply_fs = getattr(ctl, "apply_browser_fullscreen", None)
             if apply_fs is not None:
                 apply_fs()
+        if ok and key == "start_with_computer":
+            from ... import autostart
+
+            applied, why = autostart.set_enabled(bool(value))
+            if not applied and value:
+                # Do not leave a switch on that did nothing.
+                self._set_setting("start_with_computer", False)
+                self.set_status(why or _("Could not set up start with "
+                                         "computer."))
         if ok and key == "work_offline":
             self._apply_work_offline(bool(value))
         if ok and key == "auto_download_enable" and value:

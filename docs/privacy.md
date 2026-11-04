@@ -69,7 +69,8 @@ counts as Local for bandwidth but is not trusted for direct paths. `/System/Endp
   `AccessToken`, `Token="…"` and credentials embedded in a URL are redacted (case-insensitively). Review a log
   before sharing it anyway.
 * The device id (`client_uuid`) is created per config directory. JellyHome and upstream therefore appear as
-  different devices to your server.
+  different devices to your server. `jellyhome-player import-upstream` copies preferences only; it drops the
+  device id and does **not** copy logins.
 * Certificate verification is on unless you set `ignore_ssl_cert`. A server typed without a scheme now defaults to
   `https://` unless it looks like a home-network address (private IP, `localhost`, dotless or `.local`/`.lan`
   names), so a public domain is never silently contacted over plain HTTP.

@@ -12,7 +12,7 @@ id, installer id, desktop-entry id, single-instance lock and executable name.
    desktop shortcut* if wanted; leave *Launch JellyHome Player* ticked to start it.
 3. Upgrade: run a newer installer. It asks (does not force) to close JellyHome Player if it is running, and only
    considers `JellyHomePlayer.exe`/`mpv-2.dll` in its own folder, so other programs are never closed.
-4. Uninstall: Settings → Apps → JellyHome Player. This removes the program; your
+4. Uninstall: Settings → Apps → JellyHome Player. This removes the program and its "Start with computer" entry; your
    settings in `%APPDATA%\jellyhome-player` are left (delete the folder to remove saved logins).
 
 Builds are **unsigned** unless a release says otherwise, so SmartScreen may warn. Check the download source;
@@ -35,15 +35,27 @@ flatpak uninstall --user io.github.braisravina.JellyHomePlayer   # add --delete-
 
 Sandbox: network, display (Wayland/X11 fallback), DRI, PulseAudio/PipeWire, `--device=all` (game controllers
 need it; remove the line if you do not use one), and the GNOME session manager (inhibit screen blanking). No home
-or host-filesystem access.
+or host-filesystem access. "Start with computer" is refused inside the Flatpak (the app says why).
+`import-upstream` has no Flatpak-specific handling: the sandbox cannot see the host's upstream settings folder, so it is
+expected to find nothing there (not tested inside a Flatpak).
 
 Or from a checkout with `libmpv`: `pip3 install '.[all]'` then `jellyhome-player`.
 
 ## Coexistence and migration
 
-Both apps can run at once; they share nothing.
+Both apps can run at once; they share nothing. To copy preferences from an existing upstream install:
+`jellyhome-player import-upstream` (copies `conf.json` preferences, `mpv.conf`, `input.conf`; never logins,
+tokens, device id or downloads; never overwrites). Then sign in (Quick Connect is offered when your server
+has it enabled).
 
 ## Deployment-specific server address
 
 Set `DEFAULT_SERVER_URL` in `jellyfin_mpv_shim/constants.py` (must be `https://`, no credentials) to pre-fill the
 sign-in form; it stays editable and is never connected to automatically. It is empty in this repository.
+
+## Start with computer / keep running for casting
+
+Settings → General → *Start With Computer* (off by default; Windows and non-Flatpak Linux). *Close to Tray (keep
+running)* is the "keep running for casting" switch: closing the window then hides it to the tray and the app stays
+a cast target; *Quit* in the tray menu (or `jellyhome-player stop`) exits. With no tray, use *Keep Running in
+Background*.

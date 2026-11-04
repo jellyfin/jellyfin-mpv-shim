@@ -206,6 +206,7 @@ TAB_SECTIONS = {
                        "remember_window_size", "window_controls",
                        "window_controls_fullscreen", "hide_title_bar",
                        "close_to_tray", "allow_background",
+                       "start_with_computer",
                        "start_minimized", "display_mirror_summon"]),
     ],
     "browse": [
@@ -682,6 +683,7 @@ LABEL_OVERRIDES = {
     "auto_download_lookahead_max": _("Top Up To (episodes)"),
     "auto_download_max_per_pass": _("Maximum Downloads per Check"),
     "close_to_tray": _("Close to Tray (keep running)"),
+    "start_with_computer": _("Start With Computer"),
     "allow_background": _("Keep Running in Background"),
     "remember_window_size": _("Remember Window Size"),
     "window_controls": _("Window Buttons in the Top Bar"),
@@ -950,6 +952,11 @@ NOTES = {
                "that works with video filters, so it is the one to pick if "
                "you run SVP or another VapourSynth filter. If video stops "
                "working, start with --disable-hwdec and change this back."),
+    "start_with_computer": _(
+        "Off by default. Starts the app minimized when you sign in to your "
+        "computer so it is ready as a cast target. It adds one entry for "
+        "your user only, and turning this off removes it. Not available in "
+        "Flatpak or on macOS."),
     "close_to_tray": CAST_TARGET_NOTE,
     "allow_background": CAST_TARGET_NOTE,
     # Advanced-only (see SECTIONS), and the note is why: it reads like "turn

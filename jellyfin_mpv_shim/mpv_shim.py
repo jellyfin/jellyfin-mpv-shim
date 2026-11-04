@@ -135,6 +135,15 @@ def _stop_mpris():
 def main():
     args = get_args()
 
+    # Runs before the config is loaded: loading would create conf.json, and
+    # the import never overwrites one that exists.
+    if "import-upstream" in args.command:
+        from . import upstream_import
+
+        for line in upstream_import.run():
+            print(line)
+        return
+
     conf_file = conffile.get(APP_NAME, "conf.json")
     load_success = settings.load(conf_file)
     i18n.configure()
@@ -151,6 +160,13 @@ def main():
 
     if settings.sanitize_output:
         enable_sanitization()
+
+    try:
+        from . import autostart
+
+        autostart.reconcile(settings.start_with_computer)
+    except Exception:
+        pass
 
     # Trickplay frame files are named per generation and unlinked on the way
     # out; a crash or a kill leaves them behind, and nothing else collects

@@ -13,7 +13,7 @@ _args = None
 
 #: Accepted values for the positional command. Not passed to argparse as
 #: choices= — see _build_parser.
-COMMANDS = ("add", "clear", "stop")
+COMMANDS = ("add", "clear", "stop", "import-upstream")
 
 
 class CliOverride(NamedTuple):
@@ -157,7 +157,8 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="{%s}" % ",".join(COMMANDS),
         help="add: prompt to add a server; clear: remove all stored "
         "credentials; stop: shut down the copy already running against this "
-        "configuration directory",
+        "configuration directory; import-upstream: copy settings (not "
+        "logins) from an existing Jellyfin MPV Shim install",
     )
     return parser
 

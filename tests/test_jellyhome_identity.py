@@ -1,7 +1,8 @@
-"""JellyHome Player identity, packaging and first-run.
+"""JellyHome Player identity, packaging, autostart, import and first-run.
 
 Windows/Flatpak behaviour is checked as far as a Linux host allows: the
-packaging files are parsed and cross-checked rather than built.
+packaging files are parsed and cross-checked rather than built, and the
+registry path is exercised against a fake ``winreg``.
 """
 
 # Run as a script, this is what puts the repo root on sys.path -- without
@@ -18,13 +19,16 @@ import json
 import os
 import re
 import sys
+import types
 import unittest
 import xml.dom.minidom
+from unittest import mock
 
+from tests import _tmpdirs
 
 sys.argv = ["test"]
 
-from jellyfin_mpv_shim import constants   # noqa: E402
+from jellyfin_mpv_shim import autostart, constants, upstream_import   # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPSTREAM_ISS_GUID = "898D84F4-BAD5-4014-B224-6536BFAE0A31"
@@ -73,6 +77,9 @@ class IdentityIsDistinctFromUpstreamTest(unittest.TestCase):
         # Desktop shortcut optional (unchecked); launch-after-install present.
         self.assertRegex(iss, r'(?m)^Name: "desktopicon".*Flags: unchecked')
         self.assertIn("postinstall", iss)
+        # The autostart value the app writes is removed on uninstall.
+        self.assertIn("uninsdeletevalue", iss)
+        self.assertIn('ValueName: "{#MyAppName}"', iss)
         self.assertIn('#define MyAppName "%s"' % constants.USER_APP_NAME, iss)
 
     def test_windows_build_scripts_name_the_exe_the_installer_expects(self):
@@ -140,6 +147,168 @@ class IdentityIsDistinctFromUpstreamTest(unittest.TestCase):
                         if re.search(r"checkip|amazonaws", fh.read(), re.I):
                             hits.append(path)
         self.assertEqual(hits, [])
+
+
+class AutostartTest(unittest.TestCase):
+    def setUp(self):
+        self.home = _tmpdirs.tmpdir("jh-autostart-")
+        patcher = mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": self.home})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        p = mock.patch.object(sys, "platform", "linux")
+        p.start()
+        self.addCleanup(p.stop)
+        from jellyfin_mpv_shim import hostinfo
+        p = mock.patch.object(hostinfo, "is_flatpak", lambda: False)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def _file(self):
+        return os.path.join(self.home, "autostart",
+                            constants.DESKTOP_ID + ".desktop")
+
+    def test_off_by_default_and_nothing_written(self):
+        from jellyfin_mpv_shim.conf import Settings
+        self.assertFalse(Settings().start_with_computer)
+        self.assertFalse(autostart.is_enabled())
+
+    def test_enable_then_disable_removes_exactly_our_entry(self):
+        other = os.path.join(self.home, "autostart", "other.desktop")
+        os.makedirs(os.path.dirname(other))
+        open(other, "w", encoding="utf-8").close()
+        self.assertEqual(autostart.set_enabled(True), (True, ""))
+        text = _text(self._file())
+        self.assertIn("--minimized", text)
+        self.assertIn("Name=" + constants.USER_APP_NAME, text)
+        self.assertTrue(autostart.is_enabled())
+        self.assertEqual(autostart.set_enabled(False), (True, ""))
+        self.assertFalse(os.path.exists(self._file()))
+        self.assertTrue(os.path.exists(other), "unrelated entry was removed")
+        self.assertEqual(autostart.set_enabled(False), (True, ""))  # idempotent
+
+    def test_flatpak_and_macos_refuse_to_enable_with_a_reason(self):
+        from jellyfin_mpv_shim import hostinfo
+        with mock.patch.object(hostinfo, "is_flatpak", lambda: True):
+            ok, why = autostart.set_enabled(True)
+        self.assertFalse(ok)
+        self.assertIn("Flatpak", why)
+        self.assertFalse(os.path.exists(self._file()))
+        with mock.patch.object(sys, "platform", "darwin"):
+            self.assertFalse(autostart.set_enabled(True)[0])
+
+    def test_reconcile_removes_a_stale_entry_when_the_setting_is_off(self):
+        autostart.set_enabled(True)
+        autostart.reconcile(False)
+        self.assertFalse(os.path.exists(self._file()))
+
+    def test_reconcile_does_nothing_when_off_and_absent(self):
+        with mock.patch.object(autostart, "set_enabled") as se:
+            autostart.reconcile(False)
+        se.assert_not_called()
+
+    def test_a_percent_in_the_path_cannot_inject_a_field_code(self):
+        with mock.patch.object(autostart, "_launch_args",
+                               lambda: ["/opt/a%f b/app", "--minimized"]):
+            self.assertIn("%%f", autostart._desktop_text())
+
+    def test_windows_writes_and_deletes_one_run_value(self):
+        store = {}
+
+        class Key:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        fake = types.SimpleNamespace(
+            HKEY_CURRENT_USER="HKCU", REG_SZ=1,
+            CreateKey=lambda root, sub: (store.setdefault("sub", (root, sub)),
+                                         Key())[1],
+            OpenKey=lambda root, sub: Key(),
+            SetValueEx=lambda k, n, r, t, v: store.__setitem__(n, v),
+            DeleteValue=lambda k, n: (store.pop(n) if n in store else
+                                      (_ for _ in ()).throw(
+                                          FileNotFoundError())),
+            QueryValueEx=lambda k, n: (store[n], 1) if n in store
+            else (_ for _ in ()).throw(FileNotFoundError()))
+        with mock.patch.dict(sys.modules, {"winreg": fake}), \
+                mock.patch.object(sys, "platform", "win32"), \
+                mock.patch.object(sys, "frozen", True, create=True), \
+                mock.patch.object(sys, "executable",
+                                  r"C:\Users\me\AppData\Local\Programs"
+                                  r"\JellyHome Player\JellyHomePlayer.exe"):
+            self.assertTrue(autostart.set_enabled(True)[0])
+            self.assertEqual(store["sub"][1], autostart.RUN_KEY)
+            value = store[constants.USER_APP_NAME]
+            self.assertTrue(value.startswith('"C:'), value)
+            self.assertTrue(value.endswith("--minimized"))
+            self.assertTrue(autostart.is_enabled())
+            self.assertTrue(autostart.set_enabled(False)[0])
+            self.assertNotIn(constants.USER_APP_NAME, store)
+            self.assertTrue(autostart.set_enabled(False)[0])
+
+
+class UpstreamImportTest(unittest.TestCase):
+    def _dirs(self):
+        return (_tmpdirs.tmpdir("jh-up-src-"), _tmpdirs.tmpdir("jh-up-dst-"))
+
+    def test_copies_preferences_but_never_identity_or_logins(self):
+        src, dst = self._dirs()
+        with open(os.path.join(src, "conf.json"), "w", encoding="utf-8") as fh:
+            json.dump({"client_uuid": "dev-1", "check_updates": True,
+                       "discord_presence": True, "ui_scale": 1.5,
+                       "config_version": 6}, fh)
+        for name in ("users.json", "cred.json", "users.json.bak"):
+            with open(os.path.join(src, name), "w", encoding="utf-8") as fh:
+                fh.write('{"token": "SECRET"}')
+        with open(os.path.join(src, "mpv.conf"), "w", encoding="utf-8") as fh:
+            fh.write("hwdec=auto\n")
+        report = upstream_import.run(src, dst)
+        got = _json(os.path.join(dst, "conf.json"))
+        self.assertNotIn("client_uuid", got)
+        self.assertIs(got["check_updates"], False)
+        self.assertIs(got["discord_presence"], False)
+        self.assertEqual(got["ui_scale"], 1.5)
+        self.assertEqual(_text(os.path.join(dst, "mpv.conf")), "hwdec=auto\n")
+        self.assertEqual(sorted(os.listdir(dst)),
+                         ["conf.json", "mpv.conf"])
+        self.assertIn("NOT copied", " ".join(report))
+        if os.name == "posix":
+            self.assertEqual(os.stat(os.path.join(dst, "conf.json"))
+                             .st_mode & 0o077, 0)
+
+    def test_never_overwrites(self):
+        src, dst = self._dirs()
+        for d, v in ((src, 1.5), (dst, 2.0)):
+            with open(os.path.join(d, "conf.json"), "w", encoding="utf-8") as fh:
+                json.dump({"ui_scale": v}, fh)
+        with open(os.path.join(dst, "mpv.conf"), "w", encoding="utf-8") as fh:
+            fh.write("mine\n")
+        with open(os.path.join(src, "mpv.conf"), "w", encoding="utf-8") as fh:
+            fh.write("theirs\n")
+        upstream_import.run(src, dst)
+        self.assertEqual(_json(os.path.join(dst, "conf.json"))["ui_scale"],
+                         2.0)
+        self.assertEqual(_text(os.path.join(dst, "mpv.conf")), "mine\n")
+
+    def test_missing_or_broken_source_is_reported_not_raised(self):
+        src, dst = self._dirs()
+        self.assertIn("No upstream", upstream_import.run(
+            os.path.join(src, "nope"), dst)[0])
+        with open(os.path.join(src, "conf.json"), "w", encoding="utf-8") as fh:
+            fh.write("{not json")
+        self.assertTrue(any("Could not read" in l
+                            for l in upstream_import.run(src, dst)))
+        self.assertFalse(os.path.exists(os.path.join(dst, "conf.json")))
+
+    def test_same_directory_is_a_no_op(self):
+        src, _ = self._dirs()
+        self.assertIn("same directory", upstream_import.run(src, src)[0])
+
+    def test_the_command_is_registered(self):
+        from jellyfin_mpv_shim import args
+        self.assertIn("import-upstream", args.COMMANDS)
 
 
 class FirstRunTest(unittest.TestCase):

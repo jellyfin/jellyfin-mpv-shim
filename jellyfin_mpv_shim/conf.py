@@ -307,6 +307,9 @@ class Settings(SettingsBase):
     # (keeping the app alive as a cast target) rather than exiting. Defaults to
     # the historical behaviour; the user is prompted once on first close.
     close_to_tray: bool = True
+    #: Launch (minimized) when you log in. Off by default; see autostart.py
+    #: for what it writes and where it is unsupported.
+    start_with_computer: bool = False
     # The same thing for machines with no system tray, where close_to_tray is
     # ignored because the app would have no way back on screen. Opting in says
     # "an invisible background process is what I want" -- it is off by default
