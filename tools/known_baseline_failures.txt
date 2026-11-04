@@ -1,0 +1,1 @@
+# Documented baseline failures, one full "FAIL:/ERROR:" line each (see docs/direction-assessment.md).

@@ -139,8 +139,101 @@ def _worker(pattern):
         except Exception:
             pass
 
+    closed, signalled = _teardown_players()
+    print("PLAYER-TEARDOWN handles_closed=%d children_signalled=%d "
+          "test_modules_imported=%d backend=%s"
+          % (closed, signalled,
+             len([m for m in sys.modules if m.startswith("test_")]),
+             "external" if getattr(sys.modules.get("jellyfin_mpv_shim.player"),
+                                   "is_using_ext_mpv", None) else
+             ("libmpv" if "jellyfin_mpv_shim.player" in sys.modules else "none")))
+    sys.stdout.flush()
     sys.stderr.flush()
     os._exit(0 if result.wasSuccessful() else 1)
+
+
+def _teardown_players(grace=5.0):
+    """Guaranteed player teardown before the worker's ``os._exit``.
+
+    ``os._exit`` skips atexit and interpreter teardown, so a player created
+    at import time, in setUpModule/setUpClass, in a fixture or by backend
+    initialisation was never closed: with the external-mpv backend (macOS,
+    or no loadable libmpv) its ``mpv`` child outlived the worker as an
+    orphan -- 25 of them in one serial run. Two layers, both bounded:
+
+    1. in-process libmpv handles (``mpv.MPV``) and the external backend's
+       process are terminated through their own API;
+    2. any ``mpv`` process still parented to THIS worker (read from /proc by
+       ppid, so it is provably ours) gets SIGTERM, then SIGKILL after
+       ``grace``.
+
+    Returns ``(handles_closed, children_signalled)``; the worker prints it so
+    the orchestrator can tell a clean module from one this had to rescue.
+    """
+    closed = signalled = 0
+    import gc
+    import threading
+
+    def close_handles():
+        nonlocal closed
+        for modname in ("mpv", "python_mpv_jsonipc"):
+            mod = sys.modules.get(modname)
+            cls = getattr(mod, "MPV", None) if mod else None
+            if not isinstance(cls, type):
+                continue
+            for obj in [o for o in gc.get_objects() if isinstance(o, cls)]:
+                try:
+                    if modname == "mpv" and not getattr(obj, "handle", None):
+                        continue
+                    obj.terminate()
+                    closed += 1
+                except Exception as e:   # reported, never swallowed silently
+                    print("PLAYER-TEARDOWN error: %s: %s"
+                          % (type(e).__name__, e), file=sys.stderr)
+
+    t = threading.Thread(target=close_handles, daemon=True)
+    t.start()
+    t.join(grace)   # a hung terminate() must not hang the worker
+
+    if os.name == "posix" and os.path.isdir("/proc"):
+        me = os.getpid()
+
+        def mine():
+            out = []
+            for pid in filter(str.isdigit, os.listdir("/proc")):
+                try:
+                    with open("/proc/%s/stat" % pid, encoding="utf-8", errors="replace") as f:
+                        stat = f.read()
+                    comm = stat[stat.index("(") + 1:stat.rindex(")")]
+                    fields = stat[stat.rindex(")") + 2:].split()
+                    ppid = int(fields[1])
+                except (OSError, ValueError, IndexError):
+                    continue
+                # A zombie is already dead: it only waits for a wait() this
+                # process is about to skip. Counting it made the teardown
+                # sit out its whole grace period twice (measured: 10 s).
+                if fields[0] == "Z":
+                    continue
+                if ppid == me and comm.startswith("mpv"):
+                    out.append(int(pid))
+            return out
+
+        kids = mine()
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            for pid in kids:
+                try:
+                    os.kill(pid, sig)
+                    if sig == signal.SIGTERM:
+                        signalled += 1
+                except OSError:
+                    pass
+            deadline = time.time() + grace
+            while time.time() < deadline and mine():
+                time.sleep(0.1)
+            kids = mine()
+            if not kids:
+                break
+    return closed, signalled
 
 
 def _default_jobs():
@@ -158,7 +251,12 @@ def _default_jobs():
     slowest single module (~43s here), because that is one process and
     nothing splits it.
     """
-    return max(2, (os.cpu_count() or 4) // 2)
+    # JellyHome: also capped at 3. Tuned on a 32-CPU box, "half the CPUs" is
+    # 6 real-mpv processes on a 12-thread laptop; on a 16-20 GB daily
+    # workstation that was enough to fill RAM. Wrap the run in
+    # tools/limited_run.sh (one shared 3 GiB cgroup) and pass -j higher
+    # deliberately on a machine you know can take it.
+    return min(3, max(2, (os.cpu_count() or 4) // 2))
 
 
 def _modules():

@@ -98,7 +98,31 @@ def main(argv=None):
     # "python -m unittest" as the program name, so a usage line reads the
     # way the command it stands in for does.
     argv[0] = "python -m unittest"
-    unittest.main(module=None, argv=argv, testRunner=runner)
+    try:
+        unittest.main(module=None, argv=argv, testRunner=runner)
+    finally:
+        # The real-player modules share ONE player singleton and, on
+        # purpose, never terminate it (see test_settings_screen). On the
+        # external-mpv backend that player owns a real `mpv` child, and
+        # nothing ended it when this process did: it was orphaned at the end
+        # of every leg that imported the player, and the runner's end-of-leg
+        # group kill quietly swept it up -- reported as "leaked at least one
+        # process" and mistaken for an xvfb-run shutdown race. A `finally`,
+        # so the exit status unittest chose (SystemExit) is preserved.
+        _teardown_players_at_exit()
+
+
+def _teardown_players_at_exit():
+    try:
+        from tools.run_tests_parallel import _teardown_players
+    except ImportError as exc:        # not run from the repo root
+        print("PLAYER-TEARDOWN skipped: %s" % exc, file=sys.stderr)
+        return
+    closed, signalled = _teardown_players()
+    if closed or signalled:
+        print("PLAYER-TEARDOWN handles_closed=%d children_signalled=%d"
+              % (closed, signalled), file=sys.stderr)
+        sys.stderr.flush()
 
 
 if __name__ == "__main__":

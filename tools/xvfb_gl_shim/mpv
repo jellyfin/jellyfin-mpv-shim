@@ -1,0 +1,11 @@
+#!/bin/sh
+# Wrapper for the EXTERNAL-mpv backend on a virtual display: the same --gpu-sw=yes the sitecustomize adds for libmpv.
+# Pure pass-through (no extra option) unless JH_XVFB_GL_SHIM=1 and no Wayland session is visible.
+# Put this directory first in PATH; set JH_REAL_MPV to the real binary (default: the next `mpv` on PATH).
+here="$(cd "$(dirname "$0")" && pwd)"
+real="${JH_REAL_MPV:-$(PATH=$(printf %s "$PATH" | tr ':' '\n' | grep -vx "$here" | paste -sd:) command -v mpv)}"
+if [ -z "$real" ]; then echo "xvfb_gl_shim/mpv: no real mpv found" >&2; exit 127; fi
+if [ "${JH_XVFB_GL_SHIM:-}" = "1" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    exec "$real" --gpu-sw=yes "$@"
+fi
+exec "$real" "$@"

@@ -41,6 +41,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
@@ -165,6 +166,20 @@ def _have_display():
     ) or os.name == "nt"
 
 
+def isolate_display_env(env):
+    """Make a leg that runs under xvfb-run really run there.
+
+    On a Wayland session ``WAYLAND_DISPLAY`` is inherited, and mpv prefers the
+    Wayland compositor to ``DISPLAY``: the "hidden" real-player legs then open
+    their windows on the developer's desktop (and read ``border``/geometry from
+    the real compositor, which fails the window-decoration tests). Found
+    2026-11-04. Mutates and returns ``env``.
+    """
+    for name in ("WAYLAND_DISPLAY", "WAYLAND_SOCKET"):
+        env.pop(name, None)
+    return env
+
+
 def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
          label=None):
     env = dict(os.environ)
@@ -203,6 +218,7 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
         xvfb = shutil.which("xvfb-run")
         if xvfb:
             cmd = [xvfb, "-a", *cmd]
+            isolate_display_env(env)
     label = "%s%s" % (
         label or "/".join(m.rsplit(".", 1)[-1] for m in modules),
         " [%s]" % backend if backend else "",
@@ -262,11 +278,19 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
               flush=True)
         _kill_leg_group(proc)
         reader.join(OUTPUT_DRAIN_SECS)
+        leaked = True
     else:
         # Nothing held the pipe, but a leak with its output closed or
         # redirected would still be here. Cheap to check, and a leaked mpv
         # that survives the run is how a machine collects a graveyard of them.
-        _kill_leg_group(proc, warn=label)
+        leaked = _kill_leg_group(proc, warn=label)
+    if leaked and rc == 0:
+        # A pass that left a process behind is not a clean pass. Measured
+        # rather than assumed: see EXIT_GRACE_SECS for the one benign case.
+        rc = LEAK_RC
+        print("*** %s: the leg's tests passed but it leaked a process; "
+              "reporting the leg as FAILED (rc=%d)." % (label, LEAK_RC),
+              flush=True)
     try:
         proc.stdout.close()
     except Exception:
@@ -284,28 +308,64 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
 OUTPUT_DRAIN_SECS = 5.0
 
 
-def _kill_leg_group(proc, warn=None):
-    """SIGKILL whatever is left of a finished leg's process group.
+#: Exit status given to a leg whose tests passed but which left a process
+#: behind. Same number as tools/limited_run.sh uses for "processes left in the
+#: scope", so the two layers agree.
+LEAK_RC = 79
+
+#: How long a finished leg's group may take to empty before what is left is
+#: called a leak. Measured (40 runs, 1 ms polling): the only member left when
+#: `xvfb-run` returns is its own Xvfb, which `xvfb-run` SIGTERMs on the way out
+#: and which was gone 10-13 ms later every time (see docs/testing.md). Probing
+#: the instant `xvfb-run` exits therefore reported a "leak" on every xvfb leg.
+#: Two seconds is ~150x that, and a genuinely retained process (an mpv, a
+#: test-owned child) is still there when it runs out. Not raised automatically.
+EXIT_GRACE_SECS = 2.0
+_GRACE_POLL_SECS = 0.02
+
+
+def _group_alive(pgid):
+    try:
+        os.killpg(pgid, 0)
+        return True
+    except (ProcessLookupError, PermissionError, OSError):
+        return False
+
+
+def _kill_leg_group(proc, warn=None, grace=None):
+    """SIGKILL whatever is left of a finished leg's process group; True if
+    something genuinely was.
 
     ``proc`` led its own group (``start_new_session``), so its pid *is* the
     group id -- which still resolves after the child itself has been reaped,
     while ``os.getpgid(proc.pid)`` no longer does.
 
-    With ``warn``, says so only when something was actually there: an empty
-    group raises ProcessLookupError, so the probe costs nothing and a silent
-    run means the leg cleaned up after itself.
+    With ``warn``, says so only when something was still there after a
+    bounded grace period (``grace``, default EXIT_GRACE_SECS): members that
+    are merely finishing an orderly shutdown (xvfb-run's Xvfb) are given that
+    long to go, anything that outlasts it is a leak. An empty group raises
+    ProcessLookupError, so the probe costs nothing and a silent run means the
+    leg cleaned up after itself.
     """
     if os.name != "posix":
-        return
+        return False
+    pgid = proc.pid
+    leaked = False
+    if warn is not None:
+        deadline = time.monotonic() + (EXIT_GRACE_SECS if grace is None
+                                       else grace)
+        while _group_alive(pgid):
+            if time.monotonic() >= deadline:
+                leaked = True
+                print("\n*** %s: leaked at least one process; cleaning up."
+                      % warn, flush=True)
+                break
+            time.sleep(_GRACE_POLL_SECS)
     try:
-        pgid = proc.pid
-        if warn is not None:
-            os.killpg(pgid, 0)          # probe; raises if the group is empty
-            print("\n*** %s: leaked at least one process; cleaning up."
-                  % warn, flush=True)
         os.killpg(pgid, signal.SIGKILL)
     except (ProcessLookupError, PermissionError, OSError):
         pass
+    return leaked
 
 
 _RAN_RE = re.compile(r"^Ran (\d+) tests? in ", re.M)

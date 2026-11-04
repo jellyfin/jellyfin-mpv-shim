@@ -673,3 +673,76 @@ config directory, and drives it only from outside:
 A bug the harness has found and that is not fixed yet is marked expected-failure on
 the affected backend only, citing its id (`test_app_smoke`, B7). The day it passes,
 the manifest check reports an unexpected success and the marker has to go.
+
+## Bounded runs on a workstation
+
+Importing `player.py` opens a real mpv window, so every test process that does so is a
+real player. On a daily machine run suites inside one shared memory cgroup instead of
+trusting each process:
+
+    tools/run_modules_serial.sh test_gamepad test_keysweep   # one module, one scope, one at a time
+
+`tools/run_modules_serial.sh` is the safe default on a workstation: exactly one worker, a
+fresh subprocess per module, each in its own limited scope with `JH_MAX_MPV=2`, and it
+stops (no retry) at the first cleanup failure, watchdog stop, >2 players or timeout. Under
+`tools/limited_run.sh` directly: `JH_MAX_MPV=N` stops the scope when more than N processes
+named `mpv` are in its cgroup (nested cgroups and orphans included; polled once a second,
+so it is a monitored threshold, not a kernel limit), and any process left in the scope
+after the command exits is reported as `cleanup=FAILED` (exit 79), never silently killed.
+Exit codes: 75 no headroom, 76 headroom watchdog, 78 too many players, 79 leftovers.
+
+**Lifecycle defect fixed (2026-11-03):** `run_tests_parallel.py` workers end in `os._exit`,
+which skipped teardown. With the external-mpv backend (macOS always; Linux when libmpv does
+not load) each worker's `mpv` child was orphaned: 25 accumulated in one serial run.
+`_teardown_players()` now closes in-process libmpv and external-backend handles, then
+SIGTERM/SIGKILLs only `mpv` children parented to that worker, with bounded waits, and the
+worker prints `PLAYER-TEARDOWN ...` so a rescue is visible. Selecting one module imports
+only that module (`test_modules_imported=` in the same line).
+
+Original wrapped form:
+
+    tools/limited_run.sh -t 900 -- xvfb-run -a python3 tools/run_tests_parallel.py -j 1
+
+`tools/limited_run.sh` (systemd user scope, no root, no global change) enforces
+`MemoryMax=3G`, `MemorySwapMax=0`, `TasksMax=1024` and the timeout for the whole process
+tree; refuses to start under 4 GiB `MemAvailable`; stops the scope if available memory drops
+below 4 GiB while it runs; and prints scope peak, lowest `MemAvailable` and whether the scope
+is gone. Limits are env-overridable (`JH_MEM_MAX`, `JH_MEM_HIGH`, `JH_MIN_AVAIL_MIB`) and are
+never raised automatically. `run_tests_parallel.py` now defaults to at most 3 workers.
+The `oom_kills` figure it prints is read from a cgroup that may already be gone, so treat 0
+as "not observed", not as proof. Needs `mpv`/libmpv and Xvfb on the host (or in a private
+prefix with `LD_LIBRARY_PATH`).
+
+**The integration runner (`tests/integration/run_integration.py`).** Each leg is a child in its own process
+group, run through `python -m tests._outcomes`. Four properties, pinned by `tests/test_integration_runner.py` and
+`tests/test_test_harness_limits.py`:
+
+* **Display isolation.** A leg wrapped in `xvfb-run` has `WAYLAND_DISPLAY` and `WAYLAND_SOCKET` removed from its
+  environment (`isolate_display_env`); see "Never trust `xvfb-run` alone" below.
+* **Player teardown at the entry point.** `tests/_outcomes.py` runs the same bounded, ours-only teardown as the serial
+  driver in a `finally`, so unittest's exit status is kept. The real-player modules share one player singleton and
+  deliberately never terminate it; on the external-mpv backend that player owns a real `mpv` child, which used to be
+  orphaned when the test process exited and was only ever swept up by the runner's group kill.
+* **A bounded grace before a process is called a leak.** After a leg exits, whatever is still in its process group has
+  `EXIT_GRACE_SECS` (2 s, polled every 20 ms) to go. `xvfb-run` SIGTERMs its Xvfb on the way out and that takes about
+  10 ms, so probing at the instant `xvfb-run` returns reported a leak every time. A process that outlasts the grace
+  is a leak: it is reported and the group is SIGKILLed.
+* **A leaking leg fails.** A leg whose tests passed but which leaked is reported as failed with rc 79 (`LEAK_RC`, the
+  code `tools/limited_run.sh` uses for leftovers). It used to pass with only a warning.
+
+### Never trust `xvfb-run` alone on a Wayland desktop (found 2026-11-04)
+
+`xvfb-run` sets `DISPLAY` but leaves `WAYLAND_DISPLAY` inherited, and mpv prefers Wayland. Every
+"virtual display" run in this series that did not force `vo=x11` (the serial unit modules that import
+`player.py`, the first integration legs, the first GUI smoke run) therefore opened real mpv windows on the
+developer's desktop. That is also what made the original pile of "17 open players" visible. Unit-test
+*results* were not affected (they pass identically), but the real-player integration results were: the
+window-decoration and hover tests fail on the real compositor and pass once the leg is truly isolated.
+`tools/run_modules_serial.sh` and `tests/integration/run_integration.py` (`isolate_display_env`) now unset
+`WAYLAND_DISPLAY` (and `WAYLAND_SOCKET`) for virtual-display runs.
+Confirm isolation with `current-gpu-context` / `current-vo`, not by assuming.
+
+On the isolated display mpv also refuses software rendering, so the real-player legs fell back to `sdl` and
+stalled (`test_settings_screen`, 600 s timeout). `tools/xvfb_gl_shim/` adds `gpu-sw=yes` for both backends
+(test environment only; see its README). It is inert unless `JH_XVFB_GL_SHIM=1` is set and no Wayland session is
+visible (`tests/test_xvfb_gl_shim.py`).

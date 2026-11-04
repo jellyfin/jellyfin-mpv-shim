@@ -33,6 +33,32 @@ sys.path.insert(0, os.path.join(
 import run_integration as runner  # noqa: E402
 
 
+class TestVirtualDisplayLegsAreIsolatedFromTheDesktop(unittest.TestCase):
+    """xvfb-run alone does not hide a leg on a Wayland desktop: mpv picks the
+    inherited WAYLAND_DISPLAY over DISPLAY and the windows land on the real
+    screen. The env handed to an xvfb leg must not carry it."""
+
+    def test_the_wayland_variables_are_dropped(self):
+        env = {"DISPLAY": ":99", "WAYLAND_DISPLAY": "wayland-0",
+               "WAYLAND_SOCKET": "3", "HOME": "/h"}
+        out = runner.isolate_display_env(env)
+        self.assertNotIn("WAYLAND_DISPLAY", out)
+        self.assertNotIn("WAYLAND_SOCKET", out)
+        self.assertEqual(out["DISPLAY"], ":99")
+        self.assertEqual(out["HOME"], "/h")
+
+    def test_an_env_without_them_is_untouched(self):
+        self.assertEqual(runner.isolate_display_env({"A": "1"}), {"A": "1"})
+
+    def test_run_applies_it_only_when_xvfb_wraps_the_leg(self):
+        import inspect
+        src = inspect.getsource(runner._run)
+        self.assertLess(src.index('cmd = [xvfb, "-a", *cmd]'),
+                        src.index("isolate_display_env(env)"))
+        self.assertLess(src.index("isolate_display_env(env)"),
+                        src.index("proc = subprocess.Popen"))
+
+
 class TestCounts(unittest.TestCase):
     def test_it_reads_the_run_and_skip_totals(self):
         out = "test_a ... ok\nRan 12 tests in 3.4s\n\nOK (skipped=5)\n"
@@ -275,9 +301,73 @@ class TestALegThatLeaksAProcessStillEnds(unittest.TestCase):
 
         self.assertNotIn("error", result, repr(result.get("error")))
         _label, rc, (ran, _skipped), _records = result["value"]
-        self.assertEqual(rc, 0)
+        # Was assertEqual(rc, 0): a leaked process used to be tolerated. It is
+        # now a failing leg (runner.LEAK_RC), by request -- the point of this
+        # test, that the runner RETURNS, is unchanged.
+        self.assertEqual(rc, runner.LEAK_RC)
         # The leg's real output was still captured, not lost to the shortcut.
         self.assertEqual(ran, 1)
+
+
+@unittest.skipUnless(os.name == "posix", "process groups")
+class TestLeakProbeToleratesOrderlyShutdownOnly(unittest.TestCase):
+    """The end-of-leg probe must not call an orderly exit a leak, and must
+    still catch a process that is really retained.
+
+    Measured cause of the old false positive: `xvfb-run` returns while its
+    Xvfb (SIGTERMed on the way out) is still exiting, ~10-13 ms. Stand-in
+    here is a short-lived background child of the group leader.
+    """
+
+    def _leader(self, shell):
+        import subprocess
+        proc = subprocess.Popen(["/bin/sh", "-c", shell],
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                                start_new_session=True)
+        proc.wait()                  # leader gone, background child may remain
+        return proc
+
+    def test_a_member_that_exits_within_the_grace_period_is_not_a_leak(self):
+        import io
+        import contextlib
+        proc = self._leader("sleep 0.3 &")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            leaked = runner._kill_leg_group(proc, warn="leg")
+        self.assertFalse(leaked)
+        self.assertNotIn("leaked", out.getvalue())
+
+    def test_a_retained_process_is_reported_and_killed(self):
+        import io
+        import contextlib
+        proc = self._leader("sleep 60 &")
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                leaked = runner._kill_leg_group(proc, warn="leg", grace=0.3)
+            self.assertTrue(leaked)
+            self.assertIn("leaked at least one process", out.getvalue())
+            # ...and it was cleaned up, not merely reported.
+            import time
+            deadline = time.time() + 3
+            while runner._group_alive(proc.pid) and time.time() < deadline:
+                time.sleep(0.02)
+            self.assertFalse(runner._group_alive(proc.pid))
+        finally:
+            try:
+                os.killpg(proc.pid, 9)
+            except OSError:
+                pass
+
+    def test_a_clean_leg_is_silent_and_not_a_leak(self):
+        proc = self._leader("true")
+        self.assertFalse(runner._kill_leg_group(proc, warn="leg"))
+
+    def test_a_passing_leg_that_leaks_is_failed_by_run(self):
+        # Covered end to end by TestALegThatLeaksAProcessStillEnds (rc ==
+        # LEAK_RC); this pins the constant to limited_run.sh's exit code.
+        self.assertEqual(runner.LEAK_RC, 79)
 
 
 class TestTheHarnessMakesAModuleRunnableAlone(unittest.TestCase):
