@@ -264,6 +264,13 @@ class FakePlayer:
         raise AttributeError("mpv has no property %r" % name)
 
     def command(self, *args):
+        # The external (jsonipc) backend reads a property as
+        # command("get_property", name) and gets the value back; libmpv reads
+        # it through _get_property. The mixin picks the path per backend, so a
+        # fake that only modelled the second one made every snapshot read None
+        # on the first -- six restore tests failed there and nowhere else.
+        if args[:1] == ("get_property",):
+            return self._get_property(args[1])
         self.commands.append(args)
 
     @property
@@ -541,6 +548,26 @@ class ApplyAudioSettingsTest(unittest.TestCase):
         self.pm._player.commands.append(("af", "add", "@jfac3:lavcac3enc"))
         p = self.apply("hdmi")
         self.assertNotIn("jfac3", p.filters)
+
+
+
+class ApplyAudioSettingsExternalBackendTest(ApplyAudioSettingsTest):
+    """The same apply path with the external-mpv read path selected, whatever
+    backend this host happens to have. ``_mpv_property`` imports the flag per
+    call, so setting it on the module is what a macOS run sees."""
+
+    def setUp(self):
+        super().setUp()
+        from jellyfin_mpv_shim import player
+
+        self._was_ext = player.is_using_ext_mpv
+        player.is_using_ext_mpv = True
+
+    def tearDown(self):
+        from jellyfin_mpv_shim import player
+
+        player.is_using_ext_mpv = self._was_ext
+        super().tearDown()
 
 
 class SettingsFormTest(unittest.TestCase):
