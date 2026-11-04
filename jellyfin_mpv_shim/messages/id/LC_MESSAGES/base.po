@@ -7,8 +7,9 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-19 08:01+0000\n"
-"Last-Translator: EKO MARYONO <koyexmgt@gmail.com>\n"
+"PO-Revision-Date: 2026-11-04 16:48+0000\n"
+"Last-Translator: Weblate user 23555 <user-"
+"23555@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/id/>\n"
 "Language: id\n"
@@ -16,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -184,10 +185,8 @@ msgstr "Tidak dapat menjalankan Quick Connect."
 #. Label of the dropdown for the "segment_outro" setting (Settings >
 #. Playback > Skip Intro / Credits).
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Kredit yang Dilewatkan"
+msgstr "Lewati Kredit"
 
 #. Confirmation drawn over the video after the closing credits were jumped
 #. past. Past tense.
@@ -204,9 +203,8 @@ msgstr "Berusaha untuk Melewati Kredit"
 #. Button drawn over the video during an advertisement break. Pressing it
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Spesial"
+msgstr "Lewati Iklan"
 
 #. Confirmation drawn over the video after an advertisement break was
 #. jumped past. Past tense.
@@ -222,37 +220,31 @@ msgstr "Kredit yang Dilewatkan"
 #, fuzzy
 #| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Berusaha untuk Melewati Kredit"
+msgstr "Lewati segmen iklan"
 
 #. Button drawn over the video during a preview of a coming episode.
 #. Pressing it jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Kredit yang Dilewatkan"
+msgstr "Lewati Pratinjau"
 
 #. Confirmation drawn over the video after a preview was jumped past. Past
 #. tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Kredit yang Dilewatkan"
+msgstr "Pratinjau yang terlewati"
 
 #. Prompt drawn over the video offering to jump past a preview, shown when
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Berusaha untuk Melewati Kredit"
+msgstr "Lewati segmen pratinjau"
 
 #. Button drawn over the video during a "previously on" recap. Pressing it
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Lewati Rangkuman"
 
 #. Confirmation drawn over the video after a recap was jumped past. Past
 #. tense.
@@ -265,18 +257,14 @@ msgstr "Kredit yang Dilewatkan"
 #. Prompt drawn over the video offering to jump past a recap, shown when
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Berusaha untuk Melewati Kredit"
+msgstr "Lewati segmen rangkuman"
 
 #. Button drawn over the video while an episode's opening titles play.
 #. Pressing it jumps past them. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Pembuka terlewati"
+msgstr "Lewati Intro"
 
 #. Confirmation drawn over the video after the opening titles were jumped
 #. past. Past tense.
@@ -442,8 +430,6 @@ msgstr "Ubah Profil Pemutaran Video"
 #. settings menu of the playback controls.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
 msgstr "Keluar dan Tandai Belum Ditonton"
 
