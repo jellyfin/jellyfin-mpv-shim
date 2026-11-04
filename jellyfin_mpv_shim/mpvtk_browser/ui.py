@@ -222,7 +222,7 @@ class UserInterface:
         """True if the app may keep running with no window on screen.
 
         Either the tray can bring it back, or the user set allow_background
-        and accepted that `jellyfin-mpv-shim stop` is the way out. Anything
+        and accepted that `jellyhome-player stop` is the way out. Anything
         else would leave a process nobody can see or reach.
 
         Cast-target mode is the exception: there is no library to come back
@@ -255,8 +255,8 @@ class UserInterface:
 
         if get_args().start_minimized:
             log.info("Started minimized with no system tray. Run "
-                     "jellyfin-mpv-shim again to show the window, or "
-                     "jellyfin-mpv-shim stop to exit.")
+                     "jellyhome-player again to show the window, or "
+                     "jellyhome-player stop to exit.")
             return True
         return False
 

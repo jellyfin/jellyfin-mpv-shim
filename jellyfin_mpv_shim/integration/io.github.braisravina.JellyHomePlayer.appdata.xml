@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2020 Izzie Walton <izzie@iwalton.com> -->
 <component type="desktop-application">
-  <id>com.github.iwalton3.jellyfin-mpv-shim</id>
+  <id>io.github.braisravina.JellyHomePlayer</id>
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-3.0</project_license>
-  <name>Jellyfin MPV Shim</name>
-  <summary>MPV-Based Jellyfin Client with Offline Sync</summary>
-  <developer id="com.github.iwalton3">
-    <name>Izzie Walton</name>
+  <name>JellyHome Player</name>
+  <summary>MPV-based Jellyfin client for easy home streaming</summary>
+  <developer id="io.github.braisravina">
+    <name>JellyHome Player contributors (fork of Jellyfin MPV Shim by Izzie Walton)</name>
   </developer>
 
   <description>
     <p>
-        Jellyfin MPV Shim is a fully featured Jellyfin client built on top of MPV with support
+        JellyHome Player, a fork of Jellyfin MPV Shim, is a fully featured Jellyfin client built on top of MPV with support
         for offline sync, media browsing, background casting, syncplay, music, live TV, books, and photos.
         It does not depend on or use a webview and doesn't mess with MPV's video output pipeline, allowing
         for HDR and tone mapping support.
@@ -26,56 +26,20 @@
     <category>Player</category>
   ​</categories>
 
-  <url type="homepage">https://github.com/jellyfin/jellyfin-mpv-shim</url>
-  <url type="help">https://github.com/jellyfin/jellyfin-mpv-shim/blob/master/README.md</url>
-  <url type="bugtracker">https://github.com/jellyfin/jellyfin-mpv-shim/issues</url>
-  <url type="vcs-browser">https://github.com/jellyfin/jellyfin-mpv-shim</url>
+  <url type="homepage">https://github.com/braisravina/jellyhome-player</url>
+  <url type="help">https://github.com/braisravina/jellyhome-player/blob/master/README.md</url>
+  <url type="bugtracker">https://github.com/braisravina/jellyhome-player/issues</url>
+  <url type="vcs-browser">https://github.com/braisravina/jellyhome-player</url>
 
-  <screenshots>
-    <screenshot type="default">
-      <caption>The MPV-based library browser</caption>
-      <image type="source" width="1134" height="810">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-home.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Media playback</caption>
-      <image type="source" width="1134" height="807">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-player.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Music playback</caption>
-      <image type="source" width="1137" height="810">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-music.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Movie details</caption>
-      <image type="source" width="1133" height="809">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-movie.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>TV library</caption>
-      <image type="source" width="1137" height="806">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-shows.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Live TV guide</caption>
-      <image type="source" width="1135" height="807">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-guide.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Comic book support</caption>
-      <image type="source" width="1137" height="811">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-comics.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Audiobook playback</caption>
-      <image type="source" width="1135" height="807">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-audiobook.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Epub reader</caption>
-      <image type="source" width="1135" height="810">https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-epub.png</image>
-    </screenshot>
-  </screenshots>
+  <!-- No screenshots: upstream's are hosted on a third party's repository and
+       show a different application. Add the fork's own before publishing to a store. -->
 
-  <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop</launchable>
+  <launchable type="desktop-id">io.github.braisravina.JellyHomePlayer.desktop</launchable>
 
   <provides>
     <binary>jellyfin-mpv-shim</binary>
   </provides>
-  <launchable type="desktop-id">com.github.iwalton3.jellyfin-mpv-shim.desktop</launchable>
+  <launchable type="desktop-id">io.github.braisravina.JellyHomePlayer.desktop</launchable>
 
   <content_rating type="oars-1.1" />
   <releases>

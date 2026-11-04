@@ -285,7 +285,10 @@ class AuthMixin:
             # and password stayed here across a profile switch, and one
             # Connect then signed the new profile in AS the previous person
             # (B8). Profiles are people (docs/offline-sync.md section 1).
-            self._login = {"server": "", "user": "", "pass": ""}
+            from ..constants import prefilled_server_address
+
+            self._login = {"server": prefilled_server_address(), "user": "",
+                           "pass": ""}
             self._login_error = None
         # Cleared on every arrival, not accumulated: a stale list from the
         # last time this screen was open would offer addresses that may no

@@ -9,8 +9,8 @@ what Flathub ships.
 ```sh
 git clone --depth=1 https://github.com/flathub/shared-modules.git flatpak/shared-modules
 ./gen_pkg.sh --skip-build   # compiles .mo files, fetches the shader pack
-flatpak-builder build flatpak/com.github.iwalton3.jellyfin-mpv-shim.json --force-clean --repo=repo --user
-./artifacts.sh flatpak amd64   # -> publish/Flatpak/jellyfin-mpv-shim_v<version>_amd64.flatpak
+flatpak-builder build flatpak/io.github.braisravina.JellyHomePlayer.json --force-clean --repo=repo --user
+./artifacts.sh flatpak amd64   # -> publish/Flatpak/jellyhome-player_v<version>_amd64.flatpak
 ```
 
 Run the commands from the repository root, not from this directory. Both
@@ -26,7 +26,7 @@ keyed on this manifest.
 ## How this differs from the Flathub manifest
 
 The packaging Flathub publishes lives in
-[flathub/com.github.iwalton3.jellyfin-mpv-shim](https://github.com/flathub/com.github.iwalton3.jellyfin-mpv-shim).
+[flathub/io.github.braisravina.JellyHomePlayer](https://github.com/flathub/io.github.braisravina.JellyHomePlayer).
 It also pins `libdir` in the top-level `build-options`. flatpak-builder only
 started passing one to meson and cmake in 1.4.4, and Ubuntu 24.04 — what CI
 runs on — ships 1.4.2, where each build system picks for itself and both land
@@ -76,5 +76,5 @@ its keep, since `pypi-dependencies.json` pins several dozen files:
 
 ```sh
 ./tools/check_flatpak_pins.py
-./tools/check_flatpak_pins.py ~/src/flathub-shim/com.github.iwalton3.jellyfin-mpv-shim.json
+./tools/check_flatpak_pins.py ~/src/flathub-shim/io.github.braisravina.JellyHomePlayer.json
 ```

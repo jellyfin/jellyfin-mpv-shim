@@ -158,11 +158,11 @@ fi
 # is not checked here. constants.py is the single source of truth for the
 # Python package; the Inno Setup and Flatpak appdata files must be kept in sync
 # manually.
-current_version=$(get_resource_version jellyfin/jellyfin-mpv-shim)
+current_version=$(get_resource_version braisravina/jellyhome-player)
 current_version=${current_version:1}
 constants_version=$(cat jellyfin_mpv_shim/constants.py | grep '^CLIENT_VERSION' | cut -d '"' -f 2)
-iss_version=$(grep '^#define MyAppVersion' "Jellyfin MPV Shim.iss" | cut -d '"' -f 2)
-appdata_version=$(grep 'release version="' jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml | \
+iss_version=$(grep '^#define MyAppVersion' "JellyHome Player.iss" | cut -d '"' -f 2)
+appdata_version=$(grep 'release version="' jellyfin_mpv_shim/integration/io.github.braisravina.JellyHomePlayer.appdata.xml | \
     head -n 1 | cut -d '"' -f 2)
 
 if [[ "$current_version" == "$constants_version" ]]

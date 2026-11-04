@@ -384,7 +384,7 @@ class BusNameTest(unittest.TestCase):
         import json
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         with open(os.path.join(root, "flatpak",
-                               "com.github.iwalton3.jellyfin-mpv-shim.json"),
+                               "io.github.braisravina.JellyHomePlayer.json"),
                   encoding="utf-8") as f:
             return json.load(f)
 

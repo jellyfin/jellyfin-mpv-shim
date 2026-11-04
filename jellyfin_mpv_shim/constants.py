@@ -1,10 +1,44 @@
-APP_NAME = "jellyfin-mpv-shim"
-USER_APP_NAME = "Jellyfin MPV Shim"
+# JellyHome Player is a fork of Jellyfin MPV Shim. The Python package keeps the
+# upstream name (`jellyfin_mpv_shim`) so upstream merges stay mechanical; only
+# the identity a user, the OS or a server can see is the fork's own. APP_NAME is
+# the config/data/cache directory name and the single-instance key, so it must
+# differ from upstream's or the two installs would share (and overwrite) each
+# other's settings, credentials and running instance.
+APP_NAME = "jellyhome-player"
+USER_APP_NAME = "JellyHome Player"
+#: Upstream's identity, kept only so the opt-in importer can find its files.
+UPSTREAM_APP_NAME = "jellyfin-mpv-shim"
+#: Where "Check for Updates Now" looks, as `owner/repo` on github.com, or ""
+#: to have no release endpoint at all. Taken from this checkout's `origin`
+#: remote (braisravina/jellyhome-player); confirm that repository publishes the
+#: releases you want announced before shipping a build. When empty the manual
+#: check explains that no endpoint is configured and nothing is requested.
+RELEASE_REPO = "braisravina/jellyhome-player"
+#: Optional deployment-specific server address to pre-fill on the first-run
+#: sign-in form (editable, never connected to automatically). Empty in the
+#: public build. Must be https://; anything else is ignored. No credentials
+#: belong here.
+DEFAULT_SERVER_URL = ""
+
+
+def prefilled_server_address(url=None):
+    """`DEFAULT_SERVER_URL` if it is a usable https address, else ""."""
+    from urllib.parse import urlsplit
+
+    url = DEFAULT_SERVER_URL if url is None else url
+    try:
+        parts = urlsplit(str(url).strip())
+        if parts.scheme == "https" and parts.hostname and not parts.username \
+                and not parts.password and not parts.query:
+            return parts.geturl()
+    except ValueError:
+        pass
+    return ""
 # Reverse-DNS desktop-entry id. Must match the basename of the installed
 # .desktop file (integration/) and its StartupWMClass, because that match is
 # how a Linux desktop finds the window's icon — see player.py's x11_name /
 # wayland_app_id. Changing one without the others loses the icon silently.
-DESKTOP_ID = "com.github.iwalton3.jellyfin-mpv-shim"
+DESKTOP_ID = "io.github.braisravina.JellyHomePlayer"
 CLIENT_VERSION = "3.3.0"
 
 #: The uuid the downloads browser uses where a live source would name a

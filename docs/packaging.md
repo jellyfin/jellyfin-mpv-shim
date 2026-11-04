@@ -8,7 +8,7 @@ rules.
 
 Build with `build-win.bat` after `gen_pkg.sh --skip-build`
 (`build-win-arm64.bat` for ARM64, `build-win-dbg.bat` for debug). The installer is
-Inno Setup, from `Jellyfin MPV Shim.iss`; the ARM64 script passes `/DArm64`, which is
+Inno Setup, from `JellyHome Player.iss`; the ARM64 script passes `/DArm64`, which is
 the only thing that file branches on.
 
 Three installers ship: the standard x86-64-v3 one, **LEGACY64** (plain x86-64, for
@@ -188,7 +188,7 @@ Windows on Arm emulates x64, so **every way of getting the architecture wrong pr
 a working build of the wrong thing rather than an error.** That is why:
 
 - `tools/check_win_arch.py` runs **twice** in that job — on `mpv-2.dll` before
-  building, on `run.exe` after — instead of the flags being trusted;
+  building, on `JellyHomePlayer.exe` after — instead of the flags being trusted;
 - the waf invocation is pinned with `--target-arch=64bit-arm --check-c-compiler=msvc`
   for the same reason;
 - there is **no `setup-git-for-windows-sdk` step**: that action's `aarch64` resolves to
@@ -216,7 +216,7 @@ The two places it deliberately matches gettext rather than the naive reading:
 ## 3. Flatpak
 
 ```
-flatpak-builder build flatpak/com.github.iwalton3.jellyfin-mpv-shim.json \
+flatpak-builder build flatpak/io.github.braisravina.JellyHomePlayer.json \
     --force-clean --repo=repo --user
 ./artifacts.sh flatpak amd64
 ```

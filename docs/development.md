@@ -32,9 +32,9 @@ On Windows, see [Building on Windows](#building-on-windows).
 1. Install the dependencies: `pip3 install --upgrade python-mpv jellyfin-apiclient-python pystray pillow python-mpv-jsonipc pypresence`.
     - If you run `./gen_pkg.sh --install`, it will also fetch these for you.
     - Note: Recent distributions make pip unusable by default. Consider using conda or add a virtualenv to your user's path.
-2. Clone this repository: `git clone https://github.com/jellyfin/jellyfin-mpv-shim`
+2. Clone this repository: `git clone https://github.com/braisravina/jellyhome-player`
     - You can also download a zip build.
-3. `cd` to the repository: `cd jellyfin-mpv-shim`
+3. `cd` to the repository: `cd jellyhome-player`
 4. Run prepare script: `./gen_pkg.sh`
     - It downloads the shader pack and compiles the translations.
 5. Ensure you have a copy of `libmpv` or `mpv` available.
@@ -214,7 +214,7 @@ The `window` logger records only the transitions, at INFO, with the caller
 that asked for each one:
 
 ```
-$ grep '^window:' ~/.config/jellyfin-mpv-shim/log.txt
+$ grep '^window:' ~/.config/jellyhome-player/log.txt
 window: CREATE mpv (first) <- jellyfin_mpv_shim.player.__init__:510
 window: browse=on (alive=1 video=0 loading=0 mpvtk=1 bg=0) <- ...gateway.playback.on_browse_enter:23
 window: browse=off (alive=1 video=0 loading=0 mpvtk=0 bg=1) <- ...gateway.playback.on_minimize:41

@@ -192,7 +192,7 @@ class BackgroundNoteTest(unittest.TestCase):
         with mock.patch.object(settings, "allow_background", True):
             note = self._note()
         self.assertIsNotNone(note)
-        self.assertIn("jellyfin-mpv-shim stop", note)
+        self.assertIn("jellyhome-player stop", note)
 
     def test_no_note_while_disabled(self):
         with mock.patch.object(settings, "allow_background", False):
@@ -207,7 +207,7 @@ class BackgroundNoteTest(unittest.TestCase):
         # the way-out warning still has to survive alongside it.
         self.assertIn("allow_background", cfg.NOTES)
         with mock.patch.object(settings, "allow_background", True):
-            self.assertIn("jellyfin-mpv-shim stop", self._note())
+            self.assertIn("jellyhome-player stop", self._note())
 
 
 if __name__ == "__main__":

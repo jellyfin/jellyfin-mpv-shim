@@ -6,6 +6,11 @@ on:
       - master
       - main
       - working
+# The jobs only build and upload workflow artifacts; they need no write
+# access to the repository, issues or releases, and no secrets.
+permissions:
+  contents: read
+
 jobs:
   build-win64:
     runs-on: windows-latest
@@ -326,7 +331,7 @@ jobs:
       # waf's, not the interpreter's -- so it is checked on the built result
       # rather than trusted from the flags that were passed in.
       run: |
-        python tools/check_win_arch.py --skip-interpreter dist/run/run.exe
+        python tools/check_win_arch.py --skip-interpreter dist/JellyHomePlayer/JellyHomePlayer.exe
       shell: bash
     - name: Artifact Rename
       run: |
@@ -376,7 +381,7 @@ jobs:
         ./gen_pkg.sh --skip-build
     - name: Main Build
       run: |
-        flatpak-builder build flatpak/com.github.iwalton3.jellyfin-mpv-shim.json \
+        flatpak-builder build flatpak/io.github.braisravina.JellyHomePlayer.json \
           --force-clean --repo=repo --user --install-deps-from=flathub
     - name: Artifact Rename
       run: |

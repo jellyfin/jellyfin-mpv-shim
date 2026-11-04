@@ -62,7 +62,7 @@ means **the mouse cursor never hides again** for the rest of the session.
   GPU driver installed one, so without it Windows refuses `mpv-2.dll` and the client
   dies at startup with a traceback naming `subprocess`. `docs/packaging.md` §1.
 - Flatpak bundle of the working tree:
-  `flatpak-builder build flatpak/com.github.iwalton3.jellyfin-mpv-shim.json --force-clean --repo=repo --user`,
+  `flatpak-builder build flatpak/io.github.braisravina.JellyHomePlayer.json --force-clean --repo=repo --user`,
   then `./artifacts.sh flatpak amd64`. Clone `flathub/shared-modules` into
   `flatpak/shared-modules` first. `tools/check_flatpak_pins.py [manifest]` verifies
   every pinned sha256 in seconds — pass it the Flathub manifest, which is usually the
@@ -112,8 +112,8 @@ Python package — `pyproject.toml` reads it via `tool.setuptools.dynamic`. The 
 two are not derived and `gen_pkg.sh` warns loudly if they drift:
 
 - `jellyfin_mpv_shim/constants.py` → `CLIENT_VERSION`
-- `Jellyfin MPV Shim.iss` → `#define MyAppVersion`
-- `jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml`
+- `JellyHome Player.iss` → `#define MyAppVersion`
+- `jellyfin_mpv_shim/integration/io.github.braisravina.JellyHomePlayer.appdata.xml`
   → first `<release version="...">`
 
 A version containing `pre` skips the appdata (it is Flathub's changelog and
@@ -264,8 +264,8 @@ annotation must be one of the entries in `object_types`** (`bool`, `int`, `str`,
 `tests/test_docs_coverage.py` fails a setting that has no entry there.
 
 Config and credentials live in a per-platform path from `conffile.py`
-(`~/.config/jellyfin-mpv-shim/`, `%appdata%\jellyfin-mpv-shim\`,
-`~/Library/Application Support/jellyfin-mpv-shim/`).
+(`~/.config/jellyhome-player/`, `%appdata%\jellyhome-player\`,
+`~/Library/Application Support/jellyhome-player/`).
 
 **Themes are not config keys** — they are JSON files, resolved like shader packs:
 built-ins in `jellyfin_mpv_shim/themes/*.json`, shadowed by a same-named file under

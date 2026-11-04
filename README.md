@@ -1,32 +1,13 @@
-# Jellyfin MPV Shim
+# JellyHome Player
 
-[![Current Release](https://img.shields.io/github/v/release/jellyfin/jellyfin-mpv-shim)](https://github.com/jellyfin/jellyfin-mpv-shim/releases)
-[![PyPI](https://img.shields.io/pypi/v/jellyfin-mpv-shim)](https://pypi.org/project/jellyfin-mpv-shim/)
-[![Translation Status](https://translate.jellyfin.org/widgets/jellyfin/-/jellyfin-mpv-shim/svg-badge.svg)](https://translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/)
+An MPV-based Jellyfin desktop client for easy home streaming, with privacy-focused defaults and simple setup. Fork of Jellyfin MPV Shim.
 
-Jellyfin MPV Shim is a fully featured Jellyfin client built on top of MPV with support for offline sync, media browsing, background casting, syncplay, music, live TV, books, and photos. It does not depend on or use a webview and doesn't mess with MPV's video output pipeline, allowing for HDR and tone mapping support.
+> **JellyHome Player is an independent fork of [Jellyfin MPV Shim](https://github.com/jellyfin/jellyfin-mpv-shim)** by Izzie Walton and contributors, licensed GPL-3.0-or-later (see [LICENSE.md](LICENSE.md)). It is not an official Jellyfin project and is not endorsed by Jellyfin. The Python package keeps the upstream name (`jellyfin_mpv_shim`) so upstream changes can be merged. See [docs/privacy.md](docs/privacy.md) for exactly what this fork does and does not contact, and [docs/implementation-summary.md](docs/implementation-summary.md) for what differs from upstream.
 
-![The media player](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-player.png)
+What is different from upstream:
 
-**[Download for Windows](https://github.com/jellyfin/jellyfin-mpv-shim/releases/latest)** ·
-**[Flathub (Linux)](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim)** ·
-[pip (Linux)](#linux) · [macOS](#macos)
-
-<details>
-<summary>More screenshots</summary>
-
-| | |
-|---|---|
-| ![The library browser](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-home.png) | ![Music playback](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-music.png) |
-| Playback | Music |
-| ![A movie's page](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-movie.png) | ![A TV library](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-shows.png) |
-| Detail page | TV shows |
-| ![The Live TV guide](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-guide.png) | ![The comic reader](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-comics.png) |
-| Live TV guide | Comic reader |
-| ![An audiobook](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-audiobook.png) | ![The epub reader](https://raw.githubusercontent.com/iwalton3/mpv-shim-misc-docs/refs/heads/master/mpv-shim-v3/mpv-ui-epub.png) |
-| Audiobook | Epub reader |
-
-</details>
+- **Its own identity**, so it installs and runs beside upstream without sharing settings, logins or the running instance.
+- **Per-user Windows installer** (no administrator rights).
 
 ## Features
 
@@ -61,29 +42,34 @@ Settings.
 
 ### Windows
 
-Download the installer from [Releases](https://github.com/jellyfin/jellyfin-mpv-shim/releases).
-There are `ARM64` builds, and `LEGACY64` builds for CPUs without x86-64-v3 support
-(roughly pre-2013).
+Download the installer from this fork's [Releases](https://github.com/braisravina/jellyhome-player/releases)
+(once a release has been published there; see [docs/installation.md](docs/installation.md)).
+It installs for your user without administrator rights, adds a Start-menu shortcut (desktop
+shortcut optional) and can launch the app when it finishes. MPV is bundled; you do not need
+Python or MPV. There are `ARM64` builds, and `LEGACY64` builds for CPUs without x86-64-v3
+support (roughly pre-2013). Builds are **unsigned** unless a release says otherwise, so
+Windows SmartScreen may show an "unrecognized app" screen; verify the download came from the
+releases page above rather than turning off any protection.
 
 ### Linux
 
-The [Flatpak](https://flathub.org/apps/details/com.github.iwalton3.jellyfin-mpv-shim) is the
-most integrated option. To install with pip instead you need `libmpv` (or `mpv`). **MPV 0.41
-or newer is recommended**:
+A Flatpak can be built from this repository (`flatpak/`, see [docs/installation.md](docs/installation.md));
+it is **not** published on Flathub. To install with pip from a checkout you need `libmpv` (or
+`mpv`). **MPV 0.41 or newer is recommended**:
 
 ```bash
-pip3 install --upgrade jellyfin-mpv-shim
+pip3 install --upgrade .
 ```
 
 Optional extras:
 
 - **Tray icon**: keeps it running in the background once the window closes (or enable
   **Keep Running in Background** in Settings instead):
-  `pip3 install 'jellyfin-mpv-shim[systray]'`, plus GObject and AppIndicator from your
+  `pip3 install '.[systray]'`, plus GObject and AppIndicator from your
   distribution (on Debian: `python3-gi gir1.2-ayatanaappindicator3-0.1`). The virtualenv must
   have `--system-site-packages`; with pipx,
-  `pipx install --system-site-packages 'jellyfin-mpv-shim[systray]'`.
-- **Discord Rich Presence**: `pip3 install 'jellyfin-mpv-shim[discord]'`, then enable it in
+  `pipx install --system-site-packages 'jellyhome-player[systray]'`.
+- **Discord Rich Presence**: `pip3 install '.[discord]'`, then enable it in
   Settings.
 
 With MPV older than 0.41, minimizing to the tray closes MPV rather than hiding its window, and
@@ -98,24 +84,21 @@ a current one with `libmpv` by default; run `sudo ldconfig` afterwards. Add
 MacOS is not officially supported or released by this project, but unsigned builds are provided on a
 best-effort basis via CI. If anything breaks, feel free to to submit a PR (AI is allowed subject to review) to fix it.
 
-Download the latest development build here:
-- [Apple Silicon](https://nightly.link/jellyfin/jellyfin-mpv-shim/workflows/main/master/macos-arm64.zip)
-- [Intel](https://nightly.link/jellyfin/jellyfin-mpv-shim/workflows/main/master/macos-x86_64.zip)
-
-Then to actually use the application, since it is unsigned, use **System Settings > Privacy & Security > Open Anyway**
+No macOS builds of this fork are published. Build one yourself from a checkout (`setup-mac.py`),
+then, since it is unsigned, use **System Settings > Privacy & Security > Open Anyway**
 to run the application or use the following command in your terminal to allow it:
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/Jellyfin MPV Shim.app"
+xattr -dr com.apple.quarantine "/Applications/JellyHome Player.app"
 ```
 
-Or install from PyPI:
+Or install from a checkout:
 
 ```bash
 brew install python mpv pipx
 pipx ensurepath
-pipx install 'jellyfin-mpv-shim[systray]'   # drop [systray] if you don't want the menu bar icon
-jellyfin-mpv-shim
+pipx install '.[systray]'   # drop [systray] if you don't want the menu bar icon
+jellyhome-player
 ```
 
 ## Using it
@@ -239,7 +222,7 @@ WHEEL_DOWN add volume -5
 ### Run multiple instances
 
 `--config /path/to/folder` runs another, independent copy. Launching again with the *same*
-folder just brings the running one forward. `jellyfin-mpv-shim stop` (with the same
+folder just brings the running one forward. `jellyhome-player stop` (with the same
 `--config`, if any) shuts an instance down cleanly.
 
 ### Arabic or Hebrew text drawn backwards

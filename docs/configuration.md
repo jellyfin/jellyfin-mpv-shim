@@ -1,6 +1,6 @@
 # Configuration Reference
 
-Every setting Jellyfin MPV Shim understands. **Most are easier to change in the app under
+Every setting JellyHome Player understands. **Most are easier to change in the app under
 Settings**, which has a search box; this page is the complete reference, including the
 options with no UI. See the [README](../README.md) for an introduction to the features.
 
@@ -16,11 +16,11 @@ printed at startup when launched from a terminal on Linux or macOS.
 
 | Platform | Location |
 |---|---|
-| Windows | `%appdata%\jellyfin-mpv-shim\conf.json` |
-| Linux | `~/.config/jellyfin-mpv-shim/conf.json` |
-| Linux (Flatpak) | `~/.var/app/com.github.iwalton3.jellyfin-mpv-shim/config/jellyfin-mpv-shim/conf.json` |
-| macOS | `~/Library/Application Support/jellyfin-mpv-shim/conf.json` |
-| Cygwin | `~/.config/jellyfin-mpv-shim/conf.json` |
+| Windows | `%appdata%\jellyhome-player\conf.json` |
+| Linux | `~/.config/jellyhome-player/conf.json` |
+| Linux (Flatpak) | `~/.var/app/io.github.braisravina.JellyHomePlayer/config/jellyhome-player/conf.json` |
+| macOS | `~/Library/Application Support/jellyhome-player/conf.json` |
+| Cygwin | `~/.config/jellyhome-player/conf.json` |
 
 `--config DIR` uses another folder (and runs a separate instance — see the README's
 [Tips](../README.md#run-multiple-instances)). The file is read as UTF-8, with or without a
@@ -46,14 +46,14 @@ for you when one changes.
 - `raise_mpv` - Windows only. Bring the player window to the front when playback starts.
   Default: `true`
 - `discord_presence` - Share what you are watching via Discord Rich Presence. Default: `false`
-  - Needs the optional `pypresence` package (`pip install 'jellyfin-mpv-shim[discord]'`).
+  - Needs the optional `pypresence` package (`pip install '.[discord]'` from a checkout).
     Requires restart.
 - `mpris` - Linux: let media keys, headset buttons, the lock screen and desktop media widgets
   control playback, and show what is playing there. Default: `true`
   - Needs PyGObject. Requires restart. Next/previous follow the queue (or seek, with
     `media_key_seek`).
-  - The bus name is `com.github.iwalton3.jellyfin-mpv-shim`; with playerctl, give it in full:
-    `playerctl -p com.github.iwalton3.jellyfin-mpv-shim play-pause`.
+  - The bus name is `io.github.braisravina.JellyHomePlayer`; with playerctl, give it in full:
+    `playerctl -p io.github.braisravina.JellyHomePlayer play-pause`.
 - `check_updates` - Check GitHub for a new release, at most once a day. Default: `true`
 - `notify_updates` - Show a notice when an update is available. One of `default`, `enabled`,
   `disabled`. Default: `default`
@@ -110,7 +110,7 @@ for you when one changes.
   - Ignored when there is no tray, unless `allow_background` or `headless` is set.
 - `allow_background` - Allow running with no window *and* no tray icon, so `close_to_tray`
   and `start_minimized` work on desktops without a tray. Default: `false`
-  - The only ways to stop it then are `jellyfin-mpv-shim stop` or killing the process.
+  - The only ways to stop it then are `jellyhome-player stop` or killing the process.
 - `start_minimized` - Start in the tray instead of opening the library. Default: `false`
   - Needs a tray or `allow_background`. The `--minimized` flag starts one launch minimized and
     works even without a tray. Launching the app again shows the window.
@@ -151,7 +151,7 @@ for you when one changes.
 
 - `library_image_cache_mb` - Memory budget for decoded artwork. Default: `96`. Requires restart.
   - Raise it if you browse very large libraries and have RAM to spare.
-  - Downloaded artwork is also cached on disk (`$XDG_CACHE_HOME/jellyfin-mpv-shim/artwork`,
+  - Downloaded artwork is also cached on disk (`$XDG_CACHE_HOME/jellyhome-player/artwork`,
     `~/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows) — up to 1 GiB or 5% of free
     space, whichever is less, pruned after 30 days unused. Deleting it is always safe.
 - `scroll_wheel_pixels` - How far one wheel notch scrolls. Default: `80`

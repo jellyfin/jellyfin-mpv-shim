@@ -363,7 +363,7 @@ class GeneralTabMixin:
             if not settings.allow_background:
                 return None
             return _("To stop the application, re-launch and uncheck this "
-                     "option or run `jellyfin-mpv-shim stop`.")
+                     "option or run `jellyhome-player stop`.")
         if key == "discord_presence":
             # Only while it is on and not working. Ticking the box with
             # pypresence missing did nothing whatsoever and said nothing

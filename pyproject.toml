@@ -3,8 +3,8 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jellyfin-mpv-shim"
-description = "Cast media from Jellyfin Mobile and Web apps to MPV."
+name = "jellyhome-player"
+description = "An MPV-based Jellyfin desktop client for easy home streaming, with privacy-focused defaults and simple setup. Fork of Jellyfin MPV Shim."
 readme = "README.md"
 authors = [{ name = "Izzie Walton", email = "izzie@iwalton.com" }]
 license = "GPL-3.0-or-later"
@@ -36,11 +36,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jellyfin/jellyfin-mpv-shim"
+Homepage = "https://github.com/braisravina/jellyhome-player"
+Upstream = "https://github.com/jellyfin/jellyfin-mpv-shim"
 
 [project.optional-dependencies]
 systray = ["pystray"]
-# Deprecated alias for `systray`. Kept because `jellyfin-mpv-shim[gui]` is in
+# Deprecated alias for `systray`. Kept because `jellyhome-player[gui]` is in
 # every version of the install instructions people have already copied, and an
 # unknown extra is only a warning — the install would silently lack the tray.
 gui = ["pystray"]
@@ -52,7 +53,7 @@ all = [
 ]
 
 [project.scripts]
-jellyfin-mpv-shim = "jellyfin_mpv_shim.mpv_shim:main"
+jellyhome-player = "jellyfin_mpv_shim.mpv_shim:main"
 
 [tool.setuptools]
 include-package-data = true

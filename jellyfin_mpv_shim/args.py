@@ -58,7 +58,8 @@ CLI_OVERRIDES = (
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=APP_NAME,
-        description="Jellyfin MPV Shim - cast media from Jellyfin to MPV.",
+        description="JellyHome Player - an MPV-based Jellyfin client "
+        "(fork of Jellyfin MPV Shim).",
     )
     parser.add_argument(
         "--version",

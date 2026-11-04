@@ -1,10 +1,11 @@
 [Desktop Entry]
-Name=Jellyfin MPV Shim
-Exec=jellyfin-mpv-shim
+Name=JellyHome Player
+Comment=MPV-based Jellyfin client for easy home streaming
+Exec=jellyhome-player
 Type=Application
-Icon=com.github.iwalton3.jellyfin-mpv-shim
+Icon=io.github.braisravina.JellyHomePlayer
 Categories=Video;AudioVideo;TV;Player
 # Ties the mpv window back to this entry so the desktop uses the icon above
 # instead of mpv's. Must match player.py's x11_name / wayland_app_id, which
 # come from constants.DESKTOP_ID.
-StartupWMClass=com.github.iwalton3.jellyfin-mpv-shim
+StartupWMClass=io.github.braisravina.JellyHomePlayer

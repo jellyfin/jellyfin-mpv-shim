@@ -63,7 +63,7 @@ case the ordering is the whole point.
 **SIGTERM had no handler at all**, so `kill` skipped the whole shutdown sequence:
 no final progress report (the server goes on showing the session as playing until
 the websocket times out), no window geometry saved, no credentials flushed.
-`jellyfin-mpv-shim stop` has always been the orderly path — it goes through the
+`jellyhome-player stop` has always been the orderly path — it goes through the
 instance lock, not a signal — but `kill` is what a person reaches for, and
 systemd and a session logout both send exactly this.
 

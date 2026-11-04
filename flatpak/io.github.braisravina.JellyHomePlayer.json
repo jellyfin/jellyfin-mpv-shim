@@ -1,9 +1,9 @@
 {
-    "app-id": "com.github.iwalton3.jellyfin-mpv-shim",
+    "app-id": "io.github.braisravina.JellyHomePlayer",
     "runtime": "org.gnome.Platform",
     "runtime-version": "51",
     "sdk": "org.gnome.Sdk",
-    "command": "jellyfin-mpv-shim",
+    "command": "jellyhome-player",
     "finish-args": [
         "--share=ipc",
         "--socket=fallback-x11",
@@ -64,7 +64,7 @@
                     "url": "https://github.com/mpv-player/mpv.git",
                     "//branch-note": "No `branch` key, on purpose. flatpak-builder VERIFIES that a named branch is at the pinned commit, so `branch: master` beside a commit out of master's history breaks the build on the next upstream push -- which for mpv is most days. Commit alone is the pin that holds. flatpak/README.md, and tools/check_flatpak_pins.py reports the pairing.",
                     "commit": "182fa6ca49f455cadb884858f386e2f00540aeb7",
-                    "//checker-floor-note": "`versions` is load-bearing, not decoration. The pin above is a master COMMIT and the checker can only order TAGS, so with no floor every run proposes v0.41.0 as an update -- which is a DOWNGRADE that would undo the #687 fix described above (it opened flathub/com.github.iwalton3.jellyfin-mpv-shim#78). Do not drop the checker to silence that: the point of keeping it is the notification when the next real mpv release lands, which is the moment to leave master. Raise the floor to the tag being left behind whenever the pin moves.",
+                    "//checker-floor-note": "`versions` is load-bearing, not decoration. The pin above is a master COMMIT and the checker can only order TAGS, so with no floor every run proposes v0.41.0 as an update -- which is a DOWNGRADE that would undo the #687 fix described above (it opened flathub/io.github.braisravina.JellyHomePlayer#78). Do not drop the checker to silence that: the point of keeping it is the notification when the next real mpv release lands, which is the moment to leave master. Raise the floor to the tag being left behind whenever the pin moves.",
                     "x-checker-data": {
                         "type": "git",
                         "tag-pattern": "^v([\\d.]+)$",
@@ -276,9 +276,9 @@
             ]
         },
         {
-            "name": "jellyfin-mpv-shim",
+            "name": "jellyhome-player",
             "buildsystem": "simple",
-            "//note": "Built from the checkout this manifest lives in, with network access, so the dependencies come straight from PyPI. That is deliberately NOT what Flathub publishes -- Flathub forbids network in the build and pins every wheel in flathub/com.github.iwalton3.jellyfin-mpv-shim's pypi-dependencies.json. This manifest is for CI and local test bundles of the working tree.",
+            "//note": "Built from the checkout this manifest lives in, with network access, so the dependencies come straight from PyPI. That is deliberately NOT what Flathub publishes -- Flathub forbids network in the build and pins every wheel in flathub/io.github.braisravina.JellyHomePlayer's pypi-dependencies.json. This manifest is for CI and local test bundles of the working tree.",
             "build-options": {
                 "build-args": [
                     "--share=network"
@@ -286,9 +286,9 @@
             },
             "build-commands": [
                 "pip3 install --prefix=${FLATPAK_DEST} --no-warn-script-location '.[all]'",
-                "install -Dm644 jellyfin_mpv_shim/integration/jellyfin-256.png /app/share/icons/hicolor/256x256/apps/com.github.iwalton3.jellyfin-mpv-shim.png",
-                "install -Dm644 jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.desktop /app/share/applications/com.github.iwalton3.jellyfin-mpv-shim.desktop",
-                "install -Dm644 jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml /app/share/metainfo/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml"
+                "install -Dm644 jellyfin_mpv_shim/integration/jellyfin-256.png /app/share/icons/hicolor/256x256/apps/io.github.braisravina.JellyHomePlayer.png",
+                "install -Dm644 jellyfin_mpv_shim/integration/io.github.braisravina.JellyHomePlayer.desktop /app/share/applications/io.github.braisravina.JellyHomePlayer.desktop",
+                "install -Dm644 jellyfin_mpv_shim/integration/io.github.braisravina.JellyHomePlayer.appdata.xml /app/share/metainfo/io.github.braisravina.JellyHomePlayer.appdata.xml"
             ],
             "sources": [
                 {
