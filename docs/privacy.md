@@ -22,6 +22,14 @@ One thing that looks like a connection and is not: `clients.get_local_ips()` ope
 `8.8.8.8:80` purely so the OS reports which local address it would use. A UDP `connect()` sends no packet. (Reasoned
 from socket semantics, not packet-captured.)
 
+One thing that is a lookup, made by your system's resolver rather than by a service this application chooses: while it
+connects (start-up and every user switch), `clients.get_local_ips()` asks the resolver for the machine's own hostname
+(`getaddrinfo(gethostname())`) to learn which private addresses this machine has, so saved servers on the same subnet are
+tried first. Depending on your `/etc/hosts` and resolver configuration that can mean a DNS query for your own machine name
+to your configured DNS server (measured: where the name is missing from `/etc/hosts` the answer took about 5 s; the packet
+itself was not captured). Only private results are used. The wait is bounded (0.25 s; a slow lookup is abandoned on a
+single daemon thread, never one per call), so a slow resolver cannot delay connecting.
+
 One thing that *is* sent, to the local network only: when the sign-in form is shown with no saved server, the app
 broadcasts a Jellyfin discovery query (UDP, port 7359, broadcast address) for about a second, in the background, to
 list "Servers on your network". Seen in a launched local test build (the log reads `Found Servers: []`); the packet

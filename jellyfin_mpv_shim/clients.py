@@ -26,8 +26,48 @@ from collections import OrderedDict
 from urllib.parse import urlparse
 
 
+# --- hostname lookup, single-flight ---------------------------------------
+# getaddrinfo cannot be cancelled and may block for a resolver timeout, so a
+# timed-out lookup is abandoned on a daemon thread rather than interrupted.
+# Starting a new one per call would pile threads up in proportion to how often
+# the connect path runs (every start and user switch) for as long as the
+# resolver stays slow. Instead there is at most ONE lookup in flight: a call
+# that finds it still running waits for it (bounded) and moves on. What a lookup
+# produces is the machine's own private addresses -- nothing about any user or
+# server -- so a late result can only refresh this cache, never a connection.
+_hostname_lock = threading.Lock()
+_hostname_thread = None
+_hostname_ips = []
+
+
+def _hostname_lookup():
+    global _hostname_ips
+    try:
+        infos = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)
+        ips = [ipaddress.ip_address(i[4][0]) for i in infos]
+    except (OSError, ValueError):       # socket.gaierror is an OSError
+        ips = []
+    with _hostname_lock:
+        _hostname_ips = [ip for ip in ips if ip.is_private]
+
+
+def _hostname_private_ips(timeout):
+    """Private addresses the hostname resolves to, waiting at most ``timeout``
+    for a lookup. Past that, the last completed result (or none)."""
+    global _hostname_thread
+    with _hostname_lock:
+        worker = _hostname_thread
+        if worker is None or not worker.is_alive():
+            worker = _hostname_thread = threading.Thread(
+                target=_hostname_lookup, name="local-ip-lookup", daemon=True)
+            worker.start()
+    worker.join(timeout)
+    with _hostname_lock:
+        return list(_hostname_ips)
+
+
 # Get all local IPv4 addresses for host machine
-def get_local_ips():
+def get_local_ips(hostname_timeout=0.25):
     local_ips = []
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -36,13 +76,16 @@ def get_local_ips():
     except OSError:
         pass
 
-    try:
-        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
-            ip = ipaddress.ip_address(info[4][0])
-            if ip not in local_ips and ip.is_private:
-                local_ips.append(ip)
-    except socket.gaierror:
-        pass
+    # The machine's own hostname can take a resolver timeout (5.03 s measured,
+    # every time, where the name is missing from /etc/hosts), and this runs on
+    # the connect path -- startup and every user switch -- only to rank saved
+    # servers by subnet. The UDP-route address above is the one that matters;
+    # the hostname's extras are a bonus, so they get a bounded wait. A slow
+    # lookup just ranks by the primary address (plus whatever an earlier
+    # lookup finished with).
+    for ip in _hostname_private_ips(hostname_timeout):
+        if ip not in local_ips:
+            local_ips.append(ip)
 
     return local_ips
 
