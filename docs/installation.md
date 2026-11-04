@@ -41,6 +41,34 @@ expected to find nothing there (not tested inside a Flatpak).
 
 Or from a checkout with `libmpv`: `pip3 install '.[all]'` then `jellyhome-player`.
 
+### Local test build on Debian (Python wheel in a private virtualenv)
+
+This produces a **Python package** (wheel + sdist), not a Flatpak; the Flatpak above was not built on the machine this
+was tested on (no `flatpak-builder`) and is unverified. `./gen_pkg.sh --skip-build` compiles the translations, rewrites
+the tracked `jellyfin_mpv_shim/locale_index.py` and downloads the shader pack from GitHub into the checkout (it is not
+gitignored), so build in a throwaway copy of the committed files:
+
+    copy=$(mktemp -d) && git ls-files -z | xargs -0 cp --parents -t "$copy" && cd "$copy"
+    ./gen_pkg.sh --skip-build          # needs network access to github.com
+    python3 -m pip install build && python3 -m build --outdir dist .
+
+Install it into a virtualenv and run it with its settings, logins and cache in a directory of its own (nothing under
+`~/.config`, and no autostart entry is created). It needs a libmpv: `sudo apt install libmpv2` (plus `mpv` for the
+external backend). Pillow is pinned to 12.3.0, the version this was tested with; without the pin pip takes the newest
+release (13.0.0 when this was written), which was not tested.
+
+    python3 -m venv test-venv
+    test-venv/bin/pip install "pillow==12.3.0" dist/jellyhome_player-3.3.0-py3-none-any.whl
+    state=$PWD/test-state
+    export XDG_CONFIG_HOME=$state/config XDG_DATA_HOME=$state/data XDG_CACHE_HOME=$state/cache
+    test-venv/bin/jellyhome-player            # opens one window
+    test-venv/bin/jellyhome-player stop       # or close the window
+    rm -r test-venv test-state dist "$copy"    # remove everything
+
+The optional tray (`pystray`, which needs `python3-gi` and an AppIndicator) and MPRIS (`python3-gi`) are not installed in
+this virtualenv; the app logs that they are unavailable and carries on. What was and was not checked about a build made
+this way is in `docs/testing.md` ("Local Debian test build").
+
 ## Coexistence and migration
 
 Both apps can run at once; they share nothing. To copy preferences from an existing upstream install:

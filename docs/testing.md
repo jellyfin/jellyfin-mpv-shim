@@ -730,6 +730,47 @@ group, run through `python -m tests._outcomes`. Four properties, pinned by `test
 * **A leaking leg fails.** A leg whose tests passed but which leaked is reported as failed with rc 79 (`LEAK_RC`, the
   code `tools/limited_run.sh` uses for leftovers). It used to pass with only a warning.
 
+### Serial run results, 2026-11-03 (Debian, mpv/libmpv 0.40.0, Xvfb, 12-thread laptop)
+
+Via `tools/run_modules_serial.sh`: one fresh subprocess and one limited scope per module
+(3 GiB, no swap, 120 s timeout, at most 2 `mpv`). **All 283 modules passed, 7264 tests**,
+51 of them on in-process libmpv, 1 on the external backend, 231 never touch a player.
+At most 1 `mpv` was ever seen, no scope had a leftover process, and the teardown never had
+to rescue one. Highest scope memory: `test_dpi_matrix` 2137 MiB (rendering, not players);
+lowest system MemAvailable 8113 MiB.
+
+* `test_shell_playback` needs more than 120 s here: it timed out once (CPU-bound, one test
+  builds and renders a browser at 510 widths; stack dump showed steady work, not a hang) and
+  passed with `JH_MODULE_TIMEOUT=300` in 182 s, 165 tests, 102 MiB. The larger timeout is a
+  validation adjustment, not a code fix.
+* Coverage is per module with the logs of the *final* tree; modules that scan `tools/` or `docs/`
+  were re-run after those files changed. This is the unit suite only. **Not run:** the integration
+  matrix, the e2e suite, any media playback, any Jellyfin server.
+
+**External backend** (`mpv_ext`, macOS always): `test_audio_settings` failed there (5 failures,
+1 error: the six restore-to-default tests). Cause: a *test stand-in* gap, not an application bug.
+`AudioMixin._mpv_property` reads `command("get_property", name)` on the external backend, and the
+test's `FakePlayer.command()` recorded the call and returned `None`, so every snapshot was empty and
+nothing was restored. Checked against a real external mpv: `command("get_property", ...)` returns
+typed values (`str`, `str`, `str`, `list`) and round-trips a set. The fake now answers
+`get_property`, and `ApplyAudioSettingsExternalBackendTest` runs the apply tests with the external
+read path selected whatever backend the host has (79 tests, passing on both). Other modules were only
+exercised on whichever backend the host had; the external path is otherwise untested.
+
+**GUI smoke test (virtual display only, never the normal desktop):** the real app,
+temporary `--config`, Xvfb, `vo=x11`, 30 s. The "Connect to Jellyfin" screen (server URL, username,
+password, Quick Connect, Connect) rendered, a click focused a field and typed text appeared;
+memory stayed 102-103 MiB; closing the window (WM_DELETE_WINDOW) exited the app; `stop` rc 0;
+nothing left. The system tray is not testable there (the app logs "tray unavailable"). This does
+not exercise playback, a server or the normal desktop. **Correction (2026-11-04):** the earlier explanation
+here was wrong. Without `vo=x11` that run's mpv chose the inherited **Wayland compositor** (`current-gpu-context`
+was `waylandvk`), so its window opened on the real desktop and the Xvfb screenshot was black; the "Failed
+initializing any suitable GPU context" lines came from a later attempt that forced `gpu-context=x11`, where the
+virtual display refuses mpv's software GL unless `gpu-sw=yes` is given. `vo=x11` was therefore the only run in
+that series that was actually confined to the virtual display. Also logged, unrelated to this work: "Could not find default
+shader pack" (`gen_pkg.sh` downloads it; it is not in git).
+
+
 ### Never trust `xvfb-run` alone on a Wayland desktop (found 2026-11-04)
 
 `xvfb-run` sets `DISPLAY` but leaves `WAYLAND_DISPLAY` inherited, and mpv prefers Wayland. Every
@@ -738,11 +779,214 @@ group, run through `python -m tests._outcomes`. Four properties, pinned by `test
 developer's desktop. That is also what made the original pile of "17 open players" visible. Unit-test
 *results* were not affected (they pass identically), but the real-player integration results were: the
 window-decoration and hover tests fail on the real compositor and pass once the leg is truly isolated.
-`tools/run_modules_serial.sh` and `tests/integration/run_integration.py` (`isolate_display_env`) now unset
-`WAYLAND_DISPLAY` (and `WAYLAND_SOCKET`) for virtual-display runs.
+`tools/run_modules_serial.sh`, `tests/integration/run_integration.py` (`isolate_display_env`) and the
+`tools/jf_disposable` README now unset `WAYLAND_DISPLAY` (and `WAYLAND_SOCKET`) for virtual-display runs.
 Confirm isolation with `current-gpu-context` / `current-vo`, not by assuming.
 
 On the isolated display mpv also refuses software rendering, so the real-player legs fell back to `sdl` and
 stalled (`test_settings_screen`, 600 s timeout). `tools/xvfb_gl_shim/` adds `gpu-sw=yes` for both backends
 (test environment only; see its README). It is inert unless `JH_XVFB_GL_SHIM=1` is set and no Wayland session is
 visible (`tests/test_xvfb_gl_shim.py`).
+
+### Integration matrix, 2026-11-04 (Debian, mpv/libmpv 0.40.0, virtual display, one scope per leg)
+
+Each leg was run through the runner's own `_run()` (same environment, group kill and outcome records) in its
+own `tools/limited_run.sh` scope (3 GiB, no swap, `JH_MAX_MPV=2`, per-leg timeout; 600 s, whole-suite 900 s).
+No credentials, no network service and no real server are needed by the matrix; `tests/e2e/` (needs a real
+server) is not part of it and was not run.
+
+| Leg | Result | Time | Scope peak |
+|---|---|---|---|
+| agnostic (6 modules) | PASS, 84 run / 2 skipped | 11 s | 81 MiB |
+| display once | PASS, 15 run | 48 s | 234 MiB |
+| fake mpv [libmpv] | PASS, 264 / 1 skipped | 15 s | 70 MiB |
+| real mpv [libmpv] | PASS, 104 / 1 skipped (software-GL shim) | 128 s | 1162 MiB |
+| fake mpv [jsonipc] | PASS, 264 / 1 skipped | 15 s | 76 MiB |
+| real mpv [jsonipc] | PASS, 104 / 1 skipped (software-GL shim); 2 mpv seen at once | 138 s | 298 MiB |
+| whole suite [libmpv] | PASS, 467 / 4 skipped | 196 s | 1601 MiB |
+| whole suite [jsonipc] | PASS, 467 / 4 skipped | 209 s | 512 MiB |
+
+Lowest system MemAvailable 9305 MiB; no OOM kill; no leftover process after any leg (`cleanup=ok`). Skips are
+by design: no second volume (`JMS_ALT_VOLUME`) for the cross-mount move tests, and backend-specific cases
+(idle-quit on a managed external mpv, the in-process re-create path, the external broken-pipe path). One
+expected failure per real leg is the suite's own. The runner's "leaked at least one process" line is explained below, with a correction in the last section: it was a probe
+racing `xvfb-run`'s own Xvfb on the display-only legs, **and** a genuine leak of the shared external-mpv player on the
+real-player legs. Those real-player passes therefore pre-date that finding: the runner's group kill was sweeping the
+leaked `mpv` up, so "PASS" on the external-backend legs did not yet mean "no process left" (the last section has the
+fixed result). The real external-backend leg briefly had **2** `mpv` processes at once; that is also explained below.
+
+**A real defect found by the matrix and fixed:** `ClientManager._connect_all` called `get_local_ips()`, which
+resolves the machine's own hostname with no bound. Where the hostname is not in `/etc/hosts` (or the first
+resolver is unreachable) that lookup took 5.03 s every time, delaying every start and user switch by 5 s and
+failing the two `SwitchUserInvalidatesInFlightAuth` integration tests (they allow the switch 5 s) on pristine
+`HEAD` as well. The hostname lookup now has a 0.25 s bound on a daemon thread, and is single-flight (see below); the
+UDP-route address, which sends no packet, remains the primary result (`tests/test_local_ips_bounded.py`). No
+assertion was changed.
+
+**Deinterlace HUD control and setting, exercised through the real UI** (private virtual display, `vo=x11`
+for rendering only, mpv properties read over IPC, saved config read from disk): the HUD gear menu's
+"Deinterlace" entry took mpv's `deinterlace` from false to true (frame clean, interlaced flag cleared,
+`estimated-vf-fps` 50) and back to false on a second click; the override did not survive stop and replay; and it
+never wrote the saved config. The Settings > Playback > "Deinterlace Automatically" checkbox saved
+(`Saved: deinterlace_auto`, `conf.json` true, `check_updates` and `discord_presence` still false), the next
+playback received `deinterlace="auto"` with the interlaced flag cleared (50 fps), and it persisted across a real
+stop and relaunch on the same config. Defaults are unchanged. The unexplained frame-drop counts from the desktop
+run (B 28, A and C 0, single runs) remain unresolved; no performance difference is claimed.
+
+### Follow-up checks, 2026-11-04: the leak line, the overlap, the lookup thread, the shim
+
+**"leaked at least one process" (partly explained, probe fixed; see the correction in the last section).** It was not on every leg: only on legs wrapped in
+`xvfb-run`. The runner probed the leg's process group the instant `xvfb-run` returned. Measured with a probe
+over 40 runs (1 ms polling of the exact group members): the only member left at that instant was **`Xvfb`**,
+inside the owned scope's cgroup, which `xvfb-run` SIGTERMs on its way out; it was gone **9.8-12.8 ms** later in
+every run and nothing survived 10 s. So for trivial commands and the display-only legs it was an ordinary bounded
+shutdown, not an abandoned process. **That was not the whole story:** on the real-player legs the warning was also
+hiding a genuine leak, found after this section was written and described in the last section.
+`_kill_leg_group` now allows a grace of `EXIT_GRACE_SECS` (2 s, polled every 20 ms) before it calls what is left a
+leak. Anything that outlasts it still gets the warning and a SIGKILL of the leg's group, and **a leg whose tests
+passed but which leaked is now reported as FAILED with rc 79** (it used to pass with only a warning; the
+existing `TestALegThatLeaksAProcessStillEnds` asserted rc 0 and now asserts `LEAK_RC` -- the changed assertion is
+deliberate and requested, the test's real subject, that the runner returns instead of hanging, is unchanged).
+Checks: a member that exits within the grace is silent; a retained `sleep 60` is reported, killed and the group
+gone; a real `display once` leg on `xvfb-run` no longer prints the line and exits 0.
+
+**The two-`mpv` overlap (identified, expected).** One run of the real external-backend leg with a 50 ms sampler
+(own cgroup only) and timestamped output: the second mpv appears only while
+`IdleQuitReopenIsolatedTest.test_idle_quit_then_playback_advances` runs. That test deliberately starts a child
+interpreter (`_idle_reopen_child.py`) with its own player while the leg's long-lived mpv is still up; the
+child's mpv is replaced by a fresh one on `idle_quit()` (two successive pids with the same parent, never
+overlapping each other). That is 1 + 1, never above 2, and the leg ended with no leftovers. The monitoring
+threshold stays 2; this test sits exactly on it, so any extra mpv anywhere in the leg would stop the run.
+
+**`get_local_ips` lookup bounds.** The hostname lookup is now single-flight: at most one `getaddrinfo` thread
+exists however often the connect path runs (the first version of this fix started one thread per call, each able to
+block ~5 s uncancellably; the original code had no thread and blocked the caller itself).
+A slow lookup costs one daemon thread; a later call reuses it and, once it finishes, picks up its result. The
+cached value is the machine's own private addresses, never per-user or per-server state, so a late result
+cannot change any connection; `get_local_ips` only orders saved servers, and direct-path trust
+(`network_locality`) neither calls it nor shares state with it and fails to Remote on any error. A stuck
+resolver does not hold interpreter exit (daemon thread; tested with a 60 s resolver). Checks: 40 calls with a
+stuck resolver -> one resolver call, at most one extra thread; late result refreshes only the next call;
+public addresses never appear. On this laptop the real hostname lookup answers in ~18 ms today (the 5 s case no
+longer reproduces here), so 20 real calls were 18-34 ms each with no lookup thread left; the slow path is
+covered by the deterministic tests only.
+
+**The software-GL shim and display isolation.** `tools/xvfb_gl_shim/` is opt-in (`JH_XVFB_GL_SHIM=1`), refuses
+to act when `WAYLAND_DISPLAY` is set, only defaults `gpu_sw` (an explicit value wins), renders for real in
+software, and tolerates nothing except a missing `mpv` module. No application module references it
+(`tests/test_xvfb_gl_shim.py` scans for that). Measured under the runner's wrapper: the virtual run gets
+`DISPLAY=:107` (the desktop is `:0`), no Wayland, `current-gpu-context=x11vk`; with the opt-in off the same
+program gets **no video output at all** -- the failure is not hidden. A normal launch never sees the shim.
+
+### Local Debian test build, 2026-11-04 (Python wheel; the steps are in `docs/installation.md`)
+
+Built `jellyhome_player-3.3.0-py3-none-any.whl` and `.tar.gz` (360 files in the wheel: 86 compiled catalogs, 65 shader
+files, Lua scripts, themes, desktop entry) with `gen_pkg.sh --skip-build` + `python3 -m build` in a throwaway copy;
+installed into a private virtualenv, not globally. The `pip` resolution gave Pillow 13.0.0 while every test run used
+12.3.0 -- an untested combination beyond this launch. One launch on the real Wayland desktop (no shim, no rendering
+option, temporary state directory, one libmpv window, `--mpv-loglevel info`): the libmpv backend was selected, the
+window was created, the in-player browser showed the sign-in screen ("no servers configured; showing login"), RSS
+stayed at 209 MB with ~0 CPU ticks over 12 s, `stop` was answered in 0.19 s and the app exited with
+status 0 in 0.71 s (log: "Shutdown complete"), with no leftover process in the 3 GiB scope (peak 111 MiB). **Not
+verified:** that the window was visible on screen and responded to clicks (no way to drive a Wayland window from the
+test session), which video output/GPU context was in use (the info log did not print it, a debug-level launch later showed `gpu` on
+`waylandvk`), playback, and any server. A first attempt failed before opening a window because the host had no libmpv
+at all and the private copy used then lacked the `libmpv.so` name `python-mpv` searches for; with the host's `libmpv2`
+installed, `python-mpv` finds `libmpv.so.2` through `ldconfig` and nothing extra is needed.
+
+### Scrolling feel, 2026-11-04 (wheel glide)
+
+**Report:** scrolling was blocky on image-heavy screens (home, movies) even when slow; Settings was fast but smooth.
+**Method:** an env-gated trace (`JH_SCROLL_TRACE`, applied only to the installed test copy of `renderer.lua`, not in
+the repo) logged every wheel event, offset change and render; a disposable Jellyfin 10.11.8 on loopback served 120
+synthetic movies with generated posters; the user scrolled on one window on the real desktop (normal rendering
+settings, Pillow 12.3.0), before and after. **Input device was not recorded for that comparison** (later work showed
+the touchpad and the mouse behave very differently; see "Touchpad scrolling"). **Correction:** the image-screen
+runs loaded libmpv 0.40.0 from the private toolchain directory (my shell had exported `LD_LIBRARY_PATH`), not
+`/usr/lib`; the file is byte-identical to the host package's (same SHA-256), and both runs used the same one, so the
+comparison stands, but "host libmpv" was not literally true of them.
+
+**Findings (before):** Settings, the "fast but smooth" control: 1,922 wheel events in 32 s (median gap 6.9 ms), every
+`scale` 1.0, each moving a fixed 80 px, so a fling is up to ~11,000 px/s -- that is sensitivity, not stutter. Image
+screens: the renderer was not slow (render median 8.5 ms, p95 25 ms, row-snapping never latched) but **every notch
+moved the drawn content one whole step (94 px) in a single frame with nothing drawn between notches** (median, p95
+and mode of the per-frame displayed jump all 94 px), and frames were submitted no faster than every ~30 ms
+(`TICK`) on a 60 Hz display. At slow scrolling each notch was therefore an isolated visible step. So: a combination
+of coarse per-notch jumps and a 30 fps submission cap, not expensive redraws or event accumulation. The trace
+cannot see what mpv actually presented (no per-frame presentation data exists for an idle OSD); it measures what
+the renderer submitted.
+
+**Fix:** a discrete wheel notch (`scale >= 0.99`) now eases the DRAWN offset toward the stored one
+(`state.glide`, `glide_tau` 0.06 s at the time of the comparison above, since raised to 0.08 s on request for the mouse; whole-pixel positions). The stored offset, Python's notifications, the
+scrollbar's destination, keyboard/paging, boundaries, hi-res deltas and the row-quantizing modes are unchanged;
+glide is off while quantization is latched. **Frame cadence (`TICK`) is unchanged.**
+
+**After (same screens, window size, build and device; not identical input):** displayed jump per frame during
+scrolling median/p95/max 94/94/283 px -> 27/86/149 px; frames drawn while scrolling 113 -> 335; frame spacing while
+scrolling median/p95 33/263 ms -> 30/31 ms; render cost unchanged (median ~9-10 ms, p95 18-25 ms). The user's own
+judgement of the feel: "a lot better".
+
+**Regression:** `tests/lua/test_renderer.lua` (needs a Lua interpreter; run here with a private luajit) 511
+assertions pass at that point (537 on the final tree). **One existing assertion was changed on purpose:** "a fling paints where the wheel put it when frames
+keep up" encoded exactly the behaviour being replaced; it now asserts the picture never runs ahead of the wheel and
+arrives exactly on it, and six new assertions cover the first frame moving, destination, top/bottom boundaries and hi-res
+deltas. Against the old renderer the "still short of the destination" test fails, as it should.
+`test_renderer_lua`, the docs/source guards, and the real-mpv modules `test_mpvtk_browser` and `test_mpvtk_hud`
+(libmpv backend, virtual display, 48 run) pass. Not run then (the commit validations later ran both backends): the external-mpv
+backend for those two modules, other screens' scrolling, a touchpad, a 4K or high-refresh display, a real (large) library.
+
+### Touchpad scrolling and a leak the earlier explanation missed, 2026-11-04
+
+**Touchpad too fast -- root cause.** In mpv 0.40 `mp.set_key_bindings` calls its callbacks as `cb()` with no
+arguments and discards the `scale` mpv passes (`player/lua/defaults.lua`); only `complex` bindings get an event
+table. The renderer's wheel bindings used it, so `on_wheel`'s `e.scale` was always nil and every pointer frame was a
+whole 80 px notch. The Lua tests could not see it because their fake handed a table to any callback. Captured at
+the Wayland protocol (`WAYLAND_DEBUG=client`, `wl_pointer` scroll messages only): the touchpad reported
+`axis_source(1)` (finger) frames, median 0.51 logical px per frame, 1,398 px of finger travel in the session, which mpv
+turns into scale = px/10 (median ~0.05, clamped at 1); the app saw `scale = 1.0` on all 1,347 events and moved the
+content 42,966 px, **about 31x the finger**. No events were duplicated (1,347 app events for 1,392 frames, the
+difference being frames with no vertical component).
+
+**Fix.** The wheel bindings are now `complex`, scalable bindings and the `mpvtk_wheel` section is defined by hand
+(`mp.input_define_section`, same name and flags). Fractional deltas additionally get `state.fine_gain` (0.25), because
+mpv's convention is 1.0 = ~10 px of finger and a notch is 80 px (8x the finger). An exact 1.0 (a mouse wheel) is a
+whole notch. mpv itself puts a 0.125 dead zone in front of every wheel gesture (`input.c: process_wheel`), so a
+single tiny delta that starts a gesture is swallowed by mpv; a stream (a real drag) is not.
+
+**Measured with the fix (user's devices, identified from the protocol, not assumed):** the built-in touchpad
+(`MSFT0001:00 04F3:31BE Touchpad`; 918 `axis_source(1)` frames, 4,009 logical px of finger travel) moved the content
+13,247 px, about **3.3x** the finger travel (~31x before); 93% of its events now arrive fractional. The mouse (105
+`axis_source(0)` frames carrying 111 notches of `axis_value120`; the only external pointing device the system lists
+is a Trust wireless mouse, not otherwise confirmed) delivered whole notches (scale 1.0, up to 4.0 in a hard spin),
+unchanged. 1,023 app events for 1,023 protocol frames: nothing duplicated or dropped. The 3.3x (rather than 2x)
+comes from fast frames that mpv clamps to 1.0 (~7%), which still map to a whole notch. The user's judgement of both
+devices after the fix: "much better". **Not tuned further, and not verified:** other touchpads, hi-res wheels
+(a fractional hi-res wheel is now scaled like a touchpad and would feel ~4x slower per notch than a whole-notch
+mouse), dropdown/popup lists (they still take 3 rows per event regardless of scale), and `row` mode on a touchpad (the gain
+applies in `continuous` and `aligned` mode; in `row` mode a fractional delta is that fraction of a detent; Lua-tested only).
+
+**Tests.** Lua harness (535 assertions at that point, 537 on the final tree; private luajit) pins scale-aware registration, proportional movement
+(including a hundred-frame drag) and that an exact 1.0 stays a notch; **real mpv, both backends**
+(`TestFractionalWheelReachesTheRenderer`, `keypress WHEEL_DOWN <scale>`): on the original renderer a stream of forty
+0.05 frames moved the content 3,040 px, with the fix ~40. Also pinned, with mutation checks that fail on a wrong
+implementation: rapid consecutive notches accumulate on the destination, a reversal mid-glide heads for the new
+destination and never away from it, the top and bottom boundaries are never overshot and the picture settles exactly.
+
+**A real leak, and a correction to the section above.** I attributed the runner's "leaked at least one process"
+line on every `xvfb-run` leg to `xvfb-run`'s own Xvfb still exiting. That was measured and true for a trivial
+command (Xvfb is gone ~10 ms after `xvfb-run` returns) but **not the whole story for the real-player legs**:
+`test_settings_screen` shares the app's player singleton and deliberately never terminates it, and on the external
+backend that player owns a real `mpv` child that nothing ended when the test process exited. The runner's group kill
+swept it up, so it only ever surfaced as that warning. Found by running the module directly under the scope
+monitor (one mpv left, `cleanup=FAILED`), and shown to predate the wheel change by repeating it with the original
+renderer. `tests/_outcomes.py` (the entry point every integration leg runs) now does the same bounded, ours-only
+teardown as the serial driver, in a `finally` so the exit status is kept; the teardown also no longer waits out its
+grace period on a child that is already a zombie. After it: `test_settings_screen` leaves nothing, and the real
+external-backend leg passes with **no leak line for the first time** (107 run, 1 skipped, plus the suite's 1 expected
+failure, cleanup ok). Before the fix, the runner's rc-79-on-leak rule would have failed that leg.
+
+**Settings sensitivity, summarised.** The Settings page was never a separate problem: it was the touchpad's
+unscaled pointer frames (see above). With a mouse there is nothing to fix there.
+
+**Consolidated record:** `docs/verification-record.md` collects the corrected findings, the remaining expected failure
+and skips, the exact dependency versions behind every result above, and what is still unverified.
