@@ -20,7 +20,7 @@ Several things reported earlier turned out to be wrong or too broad. These are t
 | The image-screen scroll comparison ran on the host libmpv | It loaded libmpv from the private toolchain directory (`LD_LIBRARY_PATH` inherited from my shell). The file is byte-identical to the host package's; both runs used the same one. | SHA-256 `a6209320c6f0d216...` for both |
 | I inferred which segments were touchpad and which mouse from event rates | Wrong. The devices were identified from the Wayland protocol (`axis_source`). | `WAYLAND_DEBUG=client` capture, filtered to `wl_pointer` scroll messages |
 | (process) | I set `JH_MAX_MPV=3` once by mistake (stopped at once) and once on a mutation run where the maximum seen was 1; neither run needed it. The standing threshold is 2. | |
-| The commits were each validated and stand alone | Not quite: `README.md` has linked `docs/implementation-summary.md` since the first commit, but the file only arrived in the fifth, so `tests/test_doc_pointers` fails on commits 1-4 (it passes on `origin/master`). I had left that guard out of the first validation lists. Fixed forward, not amended. | `test_doc_pointers` on the committed trees |
+| The commits were each validated and stand alone | Not quite: `README.md` has linked `docs/implementation-summary.md` since the first commit, but the file only arrived in the fifth, so `tests/test_doc_pointers` fails on commits 1-4 (it passes on `origin/master` and on commits 5-11). Commit 1 has a second dangling link, `README.md -> docs/privacy.md`, which arrived in commit 2. I had left that guard out of the first validation lists. Fixed forward, not amended. | `test_doc_pointers` re-run on an isolated export of each of the 11 commits and of `origin/master` (section 9) |
 | The glide/gain "neither applies in `aligned`/`row` mode" | Wrong for the gain: it applies in `continuous` and `aligned` mode; in `row` mode a fractional delta is that fraction of a detent without it. Corrected in `docs/configuration.md` and backed by two Lua assertions. | `tests/lua/test_renderer.lua` |
 | The bounded hostname lookup is just a timeout on a thread | The first version started a thread per call, which would pile up behind a slow resolver. The committed one is single-flight (one thread at most). | `tests/test_local_ips_bounded.py` |
 | (process) | One startup check matched the word "login" inside a traceback and reported success for a launch that had failed before opening a window. | fixed to require the "showing login" log line |
@@ -63,6 +63,17 @@ Every real-player leg reports **1 expected failure**. It is the same test on eve
   marker is removed. It is not a flaky test and nothing in this work touches it.
 - `tests/e2e/test_mpv_reopen.py` carries one more `expectedFailure`; `tests/e2e/` was **not run** (it needs a real
   server).
+
+**How it shows up, and a reporting slip.** unittest prints it as `OK (skipped=1, expected failures=1)` on each real leg
+and on both whole-suite legs (and as `OK (expected failures=1)` when the test is run alone, below). The final
+verification's own summary lines only extracted the `skipped=` count, so they did not mention it, and I wrongly told
+the user afterwards that the failure "did not show up". It did, in all four logs that contain the real-player module (both real legs and both whole-suite legs);
+the fake-mpv, agnostic and display-once legs do not contain it. Run alone from the committed HEAD
+(`2ceae5c5`, an isolated export, under `tools/limited_run.sh`): the test is collected (1 test), the
+`@unittest.expectedFailure` decorator is present (`__unittest_expecting_failure__` is true), and the result on each
+backend is an **expected failure** (libmpv 7.7 s, external mpv 8.0 s; `Ran 1 test ... OK (expected failures=1)`; no
+leftover process). Not an unexpected success, a skip or an ordinary failure, so the defect it pins is still present.
+Neither the decorator nor the assertion was changed.
 
 The **1 skip per real leg** is the other backend's variant of one test, by design: libmpv skips
 `test_idle_quit_fires_and_reopens_managed_external`; the external backend skips
@@ -152,4 +163,62 @@ eb6837c1  fix: bound the machine-hostname lookup on the connect path to one thre
 590af06b  tools: disposable Jellyfin 10.11.8 server and client drivers for playback and scroll tests
 ```
 
-Commits 1-4 each carry the dangling README pointer described in section 1; the fifth fixes it.
+Commits 1-4 each carry a dangling README pointer (`docs/implementation-summary.md`; commit 1 also `docs/privacy.md`, see
+section 1 and section 9); the fifth fixes the last one. The eleventh commit is the one that adds this record, so it is
+not in the list above.
+
+## 9. Final verification of the committed series (HEAD `2ceae5c5`)
+
+Run from an isolated export of HEAD (874 tracked files), serially, each module or leg in its own
+`tools/limited_run.sh` scope (3 GiB, no swap, `JH_MAX_MPV=2`), Wayland unset, no leftover process in any scope.
+**This is validation of the final tree only.** It says nothing about the intermediate commits except where the next
+table says so.
+
+| Part | Result |
+|---|---|
+| Unit modules | 285 of 285 passed (286 `Ran` lines, about 7,290 tests, no `FAIL`/`ERROR`) |
+| Lua renderer harness | 537 assertions, 0 failing |
+| Integration: agnostic / display once | 84 run, 2 skipped / 15 run |
+| Integration: fake mpv, both backends | 264 run, 1 skipped each |
+| Integration: real mpv, both backends | 107 run, 1 skipped, 1 expected failure each |
+| Integration: whole suite, both backends | 470 run, 4 skipped, 1 expected failure each |
+
+A first attempt at this run tested nothing (the export step failed silently and the scripts ran against an empty
+directory); it was stopped, nothing was left running, and the run was redone.
+
+**Intermediate commits: only `tests/test_doc_pointers` was checked, on an isolated export of each commit.** No other
+guard or test was re-run on commits 1-10.
+
+| Commit | `test_doc_pointers` |
+|---|---|
+| `origin/master` `d7b54f8b` | passes |
+| 1 `862e5ba1` | fails: `README.md -> docs/implementation-summary.md` and `README.md -> docs/privacy.md` |
+| 2 `9e491e86`, 3 `f699edd1`, 4 `7ab2a413` | fail: `README.md -> docs/implementation-summary.md` |
+| 5 `8f5086b0` to 11 `2ceae5c5` | pass |
+
+History was not rewritten.
+
+### The local Debian test wheel, rebuilt from the committed source
+
+Built in a throwaway copy of `git archive HEAD` for source SHA
+`2ceae5c5a61901343d4d285f5ad32f07fd4e534f`, with `gen_pkg.sh --skip-build` and `python3 -m build --no-isolation`
+(Python 3.13.5, setuptools 78.1.1, wheel 0.46.1, build 1.6.1 from the suite venv). The shader pack was not
+downloaded again: the copy used the cached `v3.0.0`, which is also the latest upstream release when checked.
+`gen_pkg.sh` rewrites the tracked `locale_index.py` in the copy (1146 msgids), as documented; the checkout is untouched.
+
+| Artifact | SHA-256 |
+|---|---|
+| `jellyhome_player-3.3.0-py3-none-any.whl` (360 files) | `08e1199237714646602e606c163d0e0d00181a97f78ff4bf0ca70d8f27f4350c` |
+| `jellyhome_player-3.3.0.tar.gz` | `bf652a7e1fac440384120d736a0e4322f91ee0b3e87dd58ae44a85e288cc1c4d` |
+
+The wheel's own requirements are unpinned (`python-mpv>=1.0.8`, `jellyfin-apiclient-python>=1.20.2`,
+`python-mpv-jsonipc>=1.5.0`, `requests`, `pillow`, `certifi>=2026.10.19`); the tested versions are the ones in
+section 4.
+
+**Does the installed build match it? Not byte for byte.** The installed test build (`dist/local-test/venv`) is
+identical, file for file, to the earlier wheel `dist/jellyhome_player-3.3.0-py3-none-any.whl` (SHA-256
+`094fb35ef233b5cf318daac3828dad57e1c78fe5ac3746ce30beed841b48a887`, built 16:41): the installed package's files have
+the same contents as that wheel's. The new wheel differs from it in exactly one file, `mpvtk/renderer.lua`, and only in the
+comment above `fine_gain` (the committed text mentions hi-res wheels and the future "Fine-scroll sensitivity"
+setting). The code is the same, so what the user judged "much better" is what is committed. The installed build was
+not replaced.
