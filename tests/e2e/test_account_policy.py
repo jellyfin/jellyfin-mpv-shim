@@ -379,6 +379,7 @@ class ContentDownloadingPermissionTest(unittest.TestCase):
 
         class _Parent:
             is_local = True
+            direct_path_trusted = True
             client = session.client
 
         url = Video(item_id, _Parent()).get_playback_url()

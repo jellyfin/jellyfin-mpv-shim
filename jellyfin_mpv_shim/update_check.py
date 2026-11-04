@@ -7,7 +7,7 @@ import webbrowser
 
 from urllib.parse import urljoin, urlsplit
 
-from .constants import CLIENT_VERSION
+from .constants import CLIENT_VERSION, RELEASE_REPO
 from .conf import settings
 from .i18n import _
 from .version import is_newer
@@ -19,8 +19,13 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("update_check")
 
-release_url = "https://github.com/jellyfin/jellyfin-mpv-shim/releases/"
-release_urls = [release_url]
+#: The fork's own releases page, or None when no repository is configured
+#: (constants.RELEASE_REPO). There is deliberately no fallback to upstream:
+#: announcing, or pointing a user at, the upstream project's builds would
+#: replace this fork with a different application.
+release_url = ("https://github.com/%s/releases/" % RELEASE_REPO
+               if RELEASE_REPO else None)
+release_urls = [release_url] if release_url else []
 one_day = 86400
 
 #: The one host a release URL may live on. Checked against ``hostname``, which
@@ -37,13 +42,14 @@ GITHUB_HOST = "github.com"
 #: forever after a move. But a redirect is not evidence of anything: it says
 #: where the account that holds the name is pointing today, so following one
 #: unconditionally means an account takeover can re-home every existing
-#: install's update notice at whatever it likes. These three are the places
-#: this project could legitimately end up -- the org it is in, the org for
-#: its incubated projects, and the author -- and a move anywhere else is
-#: refused and logged rather than followed. The repository *name* is
+#: install's update notice at whatever it likes. For this fork that is
+#: the owner of `constants.RELEASE_REPO` and nobody else -- in particular
+#: not upstream -- and a move anywhere else is refused and logged rather
+#: than followed. The repository *name* is
 #: deliberately not pinned: a rename inside one of these is the ordinary case
 #: this exists for.
-ALLOWED_OWNERS = frozenset(("jellyfin", "jellyfin-labs", "iwalton3"))
+ALLOWED_OWNERS = frozenset(
+    [RELEASE_REPO.split("/")[0].lower()] if RELEASE_REPO else [])
 
 #: How many redirects to follow before giving up. A move is one hop and the
 #: latest -> tag lookup is another; the slack is for a repository that has
@@ -126,6 +132,9 @@ class UpdateChecker:
         #: moves with the repository, so the notice and the menu item open the
         #: page the version we just read came from rather than a redirect.
         self.release_url = release_url
+        #: The newest release version the last lookup actually read, or None
+        #: if it never got an answer (distinguishes "current" from "failed").
+        self._last_seen = None
 
     def _resolve_latest(self, base: str):
         """``(version, base)`` for the newest release under ``base``.
@@ -193,12 +202,14 @@ class UpdateChecker:
 
     def _check_updates(self):
         log.info("Checking for updates...")
+        self._last_seen = None
         for base in release_urls:
             try:
                 found = self._resolve_latest(base)
                 if found is None:
                     continue
                 version, base = found
+                self._last_seen = version
                 # Adopt the resolved home whatever the answer was: if the
                 # repository has moved, the menu item and the notice should
                 # open where it moved to, not a URL that works only for as
@@ -217,8 +228,35 @@ class UpdateChecker:
                 log.error("Could not check for updates.", exc_info=True)
         return self.new_version is not None
 
+    def check_now(self):
+        """The user-invoked check. Returns ``(status, version)``.
+
+        ``status`` is one of ``"unconfigured"`` (no release repository is set,
+        so **no request is made**), ``"newer"``, ``"current"`` or ``"error"``.
+        Unlike ``check`` it ignores ``settings.check_updates`` -- the click is
+        the consent -- and the once-a-day throttle and the skipped version,
+        since someone pressing the button wants the answer. It never opens the
+        notice or the browser; the caller reports the result.
+        """
+        if not release_urls:
+            return ("unconfigured", None)
+        self.new_version = None
+        try:
+            found = self._check_updates()
+        except Exception:
+            log.error("Could not check for updates.", exc_info=True)
+            return ("error", None)
+        if found:
+            return ("newer", self.new_version)
+        # _check_updates logs and swallows per-URL failures; "no version found"
+        # and "up to date" are told apart by whether it recorded a release.
+        return ("current", None) if self._last_seen is not None else (
+            "error", None)
+
     def check(self):
-        if not settings.check_updates:
+        """The automatic check. Does nothing, and requests nothing, unless
+        the user has turned ``check_updates`` on."""
+        if not settings.check_updates or not release_urls:
             return
 
         if (
@@ -271,6 +309,8 @@ class UpdateChecker:
         self.playerManager.show_text(text.format(self.new_version), 5000, 1)
 
     def open(self):
+        if not self.release_url:
+            return
         self.playerManager.set_fullscreen(False)
         try:
             webbrowser.open(self.release_url + "latest")

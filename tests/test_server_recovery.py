@@ -1613,16 +1613,14 @@ class TheNameLookupBehindThatVerdictTest(unittest.TestCase):
                 self.assertIsNone(self._ask(address, ["192.168.1.1"]))
 
     def test_it_does_not_reach_out_to_a_third_party(self):
-        """`is_local_domain` asks checkip.amazonaws.com to settle hairpin
-        NAT, because it is deciding a bitrate. This decides an icon, and an
-        outbound request to somebody else's service is not a thing to do for
-        one -- nor on the connect path, where it would be per server."""
-        from jellyfin_mpv_shim import utils
+        """This decides an icon, and an outbound request to somebody else's
+        service is not a thing to do for one -- nor on the connect path,
+        where it would be per server."""
 
         def boom(*a, **kw):
             raise AssertionError("made an HTTP request to classify a server")
 
-        with mock.patch.object(utils.requests, "get", boom):
+        with mock.patch("requests.get", boom):
             self.assertIs(self._ask("https://h", ["10.0.0.4"]), True)
             self.assertIs(self._ask("https://h", ["93.184.216.34"]), False)
 

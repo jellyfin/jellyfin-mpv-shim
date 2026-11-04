@@ -245,7 +245,8 @@ class _Chain:
 
 
 GH = "https://github.com/"
-MOVED = GH + "jellyfin-labs/jellyfin-mpv-shim/releases/"
+OWNER = "braisravina"  # constants.RELEASE_REPO
+MOVED = GH + OWNER + "/jellyhome-renamed/releases/"
 
 
 class ReleaseUrlParsingTest(unittest.TestCase):
@@ -265,17 +266,19 @@ class ReleaseUrlParsingTest(unittest.TestCase):
         # The repository name is deliberately not pinned -- a rename is the
         # ordinary case this exists for.
         self.assertIsNotNone(
-            parse_release_url(GH + "jellyfin/jf-mpv-shim/releases/latest"))
+            parse_release_url(GH + OWNER + "/jf-mpv-shim/releases/latest"))
 
-    def test_the_two_moves_we_would_accept(self):
-        for owner in ("jellyfin-labs", "iwalton3"):
+    def test_upstream_is_never_followed(self):
+        """A fork must not be redirected into upstream's releases, however
+        the move is arranged."""
+        for owner in ("jellyfin", "jellyfin-labs", "iwalton3"):
             with self.subTest(owner=owner):
-                self.assertIsNotNone(parse_release_url(
+                self.assertIsNone(parse_release_url(
                     "%s%s/jellyfin-mpv-shim/releases/latest" % (GH, owner)))
 
     def test_any_other_owner_is_refused(self):
-        for owner in ("jellyfin-mpv-shim", "jellyf1n", "not-jellyfin",
-                      "jellyfin-labs-evil"):
+        for owner in ("jellyhome-player", "braisravin", "not-braisravina",
+                      "braisravina-evil"):
             with self.subTest(owner=owner):
                 self.assertIsNone(parse_release_url(
                     "%s%s/jellyfin-mpv-shim/releases/latest" % (GH, owner)))
@@ -307,21 +310,21 @@ class ReleaseUrlParsingTest(unittest.TestCase):
         with an input where the rebuild DIFFERS from the string handed in, or
         a version that echoed a slice of the server's own reply would pass."""
         base, rest = parse_release_url(
-            "https://u:p@GitHub.com/jellyfin/x/releases/latest?a=1#f")
-        self.assertEqual(base, GH + "jellyfin/x/releases/")
+            "https://u:p@GitHub.com/braisravina/x/releases/latest?a=1#f")
+        self.assertEqual(base, GH + "braisravina/x/releases/")
         self.assertEqual(rest, "latest")
 
     def test_an_allowed_owner_in_any_casing_is_followed(self):
         """GitHub owner names are case-insensitive, so refusing a differently
         cased one would orphan installs on a purely cosmetic difference."""
         self.assertIsNotNone(
-            parse_release_url(GH + "JellyFin/x/releases/latest"))
+            parse_release_url(GH + "BraisRavina/x/releases/latest"))
 
     def test_a_repository_of_nothing_but_dots_is_refused(self):
         for repo in (".", ".."):
             with self.subTest(repo=repo):
                 self.assertIsNone(parse_release_url(
-                    "%sjellyfin/%s/releases/latest" % (GH, repo)))
+                    "%sbraisravina/%s/releases/latest" % (GH, repo)))
 
     def test_a_port_is_refused(self):
         self.assertIsNone(
@@ -337,7 +340,7 @@ class ReleaseUrlParsingTest(unittest.TestCase):
     def test_a_non_release_path_is_refused(self):
         for path in ("jellyfin/jellyfin-mpv-shim",
                      "jellyfin/jellyfin-mpv-shim/issues/1",
-                     "jellyfin/releases/latest"):
+                     "braisravina/releases/latest"):
             with self.subTest(path=path):
                 self.assertIsNone(parse_release_url(GH + path))
 
@@ -368,7 +371,7 @@ class RepositoryMoveTest(unittest.TestCase):
         self.assertEqual(chk.release_url, MOVED)
 
     def test_a_rename_is_followed_too(self):
-        renamed = GH + "jellyfin/jellyfin-mpv-client/releases/"
+        renamed = GH + "braisravina/jellyhome-client/releases/"
         chk, _player, _chain = self._check({
             release_url + "latest": _Redirect(renamed + "latest", status=301),
             renamed + "latest": _Redirect(renamed + "tag/v3.1.0"),
@@ -400,7 +403,7 @@ class RepositoryMoveTest(unittest.TestCase):
     def test_a_relative_location_is_resolved_against_the_url_asked_for(self):
         chk, _player, _chain = self._check({
             release_url + "latest": _Redirect(
-                "/jellyfin-labs/jellyfin-mpv-shim/releases/latest", status=301),
+                "/braisravina/jellyhome-renamed/releases/latest", status=301),
             MOVED + "latest": _Redirect(MOVED + "tag/v3.1.0"),
         })
         self.assertEqual(chk.new_version, "3.1.0")
@@ -435,10 +438,10 @@ class RepositoryMoveTest(unittest.TestCase):
         """Every hop is a legal move, so nothing refuses it -- the hop budget
         is what stops this, and it must stop."""
         table = {}
-        owners = ("jellyfin", "jellyfin-labs", "iwalton3")
+        owners = ("braisravina",)
         for i in range(10):
-            here = "%s%s/shim-%d/releases/" % (GH, owners[i % 3], i)
-            there = "%s%s/shim-%d/releases/" % (GH, owners[(i + 1) % 3], i + 1)
+            here = "%s%s/shim-%d/releases/" % (GH, owners[i % len(owners)], i)
+            there = "%s%s/shim-%d/releases/" % (GH, owners[(i + 1) % len(owners)], i + 1)
             table[here + "latest"] = _Redirect(there + "latest", status=301)
         table[release_url + "latest"] = _Redirect(
             "%s%s/shim-0/releases/latest" % (GH, owners[0]), status=301)
@@ -504,10 +507,10 @@ class RepositoryMoveTest(unittest.TestCase):
         with the player lock held, so four sequential 13-second stalls is most
         of a minute of dead transport controls."""
         table = {}
-        owners = ("jellyfin", "jellyfin-labs", "iwalton3")
+        owners = ("braisravina",)
         for i in range(10):
-            here = "%s%s/shim-%d/releases/" % (GH, owners[i % 3], i)
-            there = "%s%s/shim-%d/releases/" % (GH, owners[(i + 1) % 3], i + 1)
+            here = "%s%s/shim-%d/releases/" % (GH, owners[i % len(owners)], i)
+            there = "%s%s/shim-%d/releases/" % (GH, owners[(i + 1) % len(owners)], i + 1)
             table[here + "latest"] = _Redirect(there + "latest", status=301)
         table[release_url + "latest"] = _Redirect(
             "%s%s/shim-0/releases/latest" % (GH, owners[0]), status=301)

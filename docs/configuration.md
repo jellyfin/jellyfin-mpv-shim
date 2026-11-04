@@ -54,7 +54,7 @@ for you when one changes.
     `media_key_seek`).
   - The bus name is `io.github.braisravina.JellyHomePlayer`; with playerctl, give it in full:
     `playerctl -p io.github.braisravina.JellyHomePlayer play-pause`.
-- `check_updates` - Check GitHub for a new release, at most once a day. Default: `true`
+- `check_updates` - Check this fork's GitHub releases page for a new version, at most once a day. **Default: `false`** (JellyHome Player never checks in the background unless you turn this on; "Check for Updates Now" in Settings works regardless). Configs inherited from upstream with `true` are reset once on first start.
 - `notify_updates` - Show a notice when an update is available. One of `default`, `enabled`,
   `disabled`. Default: `default`
   - `default` is off in the Flatpak (your software centre announces updates there) and on

@@ -14,6 +14,7 @@ from ...mpvtk.widgets import (
     Checkbox,
     Column,
     Dialog,
+    Dropdown,
     Grid,
     Icon,
     Row,
@@ -86,6 +87,7 @@ class ServersTabMixin:
                       {"align": "right"}],
                 gap=12, row_gap=4, row_pad=8,
             ))
+        connection_rows = self._connection_type_rows(servers)
         server_rows.append(Row([
             # Refused while a profile switch is in flight: which profile it
             # would land under is exactly what is changing.
@@ -106,8 +108,46 @@ class ServersTabMixin:
                 # after them — otherwise removing one looks global.
                 _("Servers for %s") % active if active else _("Servers"),
                 server_rows),
-        ], pad=self.CONTENT_PAD, gap=14, align="stretch"),
+        ] + ([self._section(
+            _("Connection Type"), connection_rows,
+            subtitle=_("Tells the app whether this server is on your home "
+                       "network or far away. Remote limits video quality to "
+                       "your Maximum Bitrate setting so streams stay smooth; "
+                       "Local allows full quality. Auto decides for you and "
+                       "assumes Remote when unsure. This only affects "
+                       "quality, never security or which files can be "
+                       "opened."))] if connection_rows else []),
+            pad=self.CONTENT_PAD, gap=14, align="stretch"),
             id="settings-servers", flex=1)
+
+    CONNECTION_TYPE_CHOICES = ("auto", "local", "remote")
+
+    def _connection_type_rows(self, servers):
+        labels = [_("Auto"), _("Local"), _("Remote")]
+        rows = []
+        for i, sv in enumerate(servers):
+            current = sv.get("connection_type")
+            sel = self.CONNECTION_TYPE_CHOICES.index(current) \
+                if current in self.CONNECTION_TYPE_CHOICES else 0
+            rows.append(Row([
+                Text(sv.get("name", "?"), size="normal", w=240,
+                     color=theme.SUBTLE_FG),
+                Dropdown("sv-ct-%d" % i, labels, selected=sel, w=160,
+                         force=True,
+                         on_select=lambda idx, _v, u=sv.get("uuid"):
+                             self._set_connection_type(
+                                 u, self.CONNECTION_TYPE_CHOICES[idx])),
+            ], gap=12, align="center"))
+        return rows
+
+    def _set_connection_type(self, uuid, value):
+        if not uuid or self.controller is None:
+            return
+        try:
+            self.controller.set_connection_type(uuid, value)
+        except Exception:
+            log.error("could not save the connection type", exc_info=True)
+        self.invalidate()
     def _user_row(self, u, i, can_delete):
         """One Grid row spec for the Users list (cells share the Grid's
         tracks; the trailing button set varies per row)."""

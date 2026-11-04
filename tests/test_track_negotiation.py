@@ -92,7 +92,7 @@ def _video(source, memory=None, explicit=False):
         http=NS(_get_authenication_header=lambda: 'MediaBrowser Token="t"'),
         jellyfin=api,
     )
-    parent = NS(client=client, is_local=True, item=item)
+    parent = NS(client=client, is_local=True, direct_path_trusted=True, item=item)
     v = Video("ep1", parent)
     v.item = item
     v.explicit_tracks = explicit
@@ -399,7 +399,7 @@ def _multi_version_video(sources):
         http=NS(_get_authenication_header=lambda: 'MediaBrowser Token="t"'),
         jellyfin=api,
     )
-    parent = NS(client=client, is_local=True, item=item)
+    parent = NS(client=client, is_local=True, direct_path_trusted=True, item=item)
     v = Video("ep1", parent)
     v.item = item
     v.explicit_tracks = False

@@ -38,6 +38,7 @@ class FakeParent:
         self.has_prev = False
         self._next_video = next_video
         self.is_local = False
+        self.direct_path_trusted = False
         self.queue = []
 
     def get_next(self):

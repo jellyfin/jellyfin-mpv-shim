@@ -53,6 +53,7 @@ class _Parent:
     def __init__(self, item):
         self.client = _client(item)
         self.is_local = True
+        self.direct_path_trusted = True
         self.item = item
 
 

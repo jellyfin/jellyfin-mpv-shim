@@ -81,6 +81,7 @@ class _Client:
 
 class _Parent:
     is_local = True
+    direct_path_trusted = True
 
     def __init__(self, item, policy=None):
         self.client = _Client(item, policy)

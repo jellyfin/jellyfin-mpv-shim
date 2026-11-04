@@ -36,7 +36,11 @@ config_path = None
 #   6: notify_updates becomes a tri-state so the platform can answer it, and
 #      SteamOS gets the gamepad turned on. One probe (hostinfo), two
 #      answers.
-CONFIG_VERSION = 6
+#:   7: JellyHome Player fork. check_updates defaults off, and an inherited
+#:      `true` (from an upstream config, which cannot be told apart from the
+#:      old default) is reset once. A later explicit opt-in is written at
+#:      version 7 and is never touched again.
+CONFIG_VERSION = 7
 
 #: The three answers `notify_updates` takes. Also what the migration uses to
 #: recognise a value that has already been migrated.
@@ -543,7 +547,10 @@ class Settings(SettingsBase):
     sync_attempts: int = 5
     sync_osd_message: bool = True
     screenshot_menu: bool = True
-    check_updates: bool = True
+    #: Automatic update checks. **Off by default in JellyHome Player**: nothing
+    #: contacts the release server in the background unless the user switches
+    #: this on. "Check for Updates Now" is separate and works either way.
+    check_updates: bool = False
     #: A version the user asked not to be told about again, or None.
     #:
     #: Written by the notice's own "Ignore", never by hand -- it is app
@@ -938,6 +945,19 @@ class Settings(SettingsBase):
                     "(mpv now supports Dolby Vision natively)."
                 )
                 self.transcode_dolby_vision = False
+        if self.config_version < 7:
+            # JellyHome Player starts at CONFIG_VERSION 7, so any config that
+            # reaches this step was written by upstream (or by a pre-fork
+            # build). Its `check_updates: true` is the old default, not a
+            # choice made for this fork, and must not authorise background
+            # requests to the fork's release server. An opt-in made in
+            # JellyHome is saved at version 7 and never passes through here.
+            if self.check_updates:
+                log.info("Config migration: check_updates = False "
+                         "(JellyHome Player does not check automatically "
+                         "unless you turn it on).")
+                self.check_updates = False
+                changed = True
         if self.config_version < 6:
             # `notify_updates` becomes a tri-state, and the platform gets to
             # answer for anyone who never expressed a preference.

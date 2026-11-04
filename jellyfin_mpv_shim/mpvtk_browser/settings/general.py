@@ -110,6 +110,18 @@ class GeneralTabMixin:
         # marker on its own row, and a footer that will not say *which*
         # changes is worse than nothing, because the only thing a reader can
         # do with it is distrust every control on the page.
+        if route.get("_tab", "general") == "general":
+            rows.append(Row([Button(_("Check for Updates Now"),
+                                    id="set-check-updates-now",
+                                    icon="refresh",
+                                    on_click=self._check_updates_now)],
+                            gap=8))
+            rows.append(Text(
+                _("Contacts this app's release page on GitHub only when you "
+                  "press the button, and sends nothing about you or your "
+                  "media. Turn on \"Check for Updates Automatically\" above to have the "
+                  "app look once a day by itself."),
+                size="caption", w=note_w, color=theme.SUBTLE_FG, wrap=True))
         if route.get("_tab", "general") == "playback":
             # Playback only, and it is the same button the Logs tab carries
             # -- the folder itself is not playback-specific. What is, is the
@@ -401,6 +413,31 @@ class GeneralTabMixin:
     def _toggle_advanced(self, route):
         route["_advanced"] = not route.get("_advanced")
         self.invalidate()
+    def _check_updates_now(self):
+        """Manual, user-initiated: the only update request that happens
+        while the automatic switch is off. Off the render thread."""
+        if self.controller is None:
+            return
+
+        def work():
+            status, version = self.controller.check_updates_now()
+            if status == "newer":
+                self.set_status(_("Version %s is available. See the "
+                                  "releases page on GitHub.") % version)
+            elif status == "current":
+                self.set_status(_("You are up to date."))
+            elif status == "unconfigured":
+                self.set_status(_("This build has no release page set up, "
+                                  "so it cannot check for updates."))
+            else:
+                self.set_status(_("Could not check for updates."))
+            self.invalidate()
+
+        self.set_status(_("Checking for updates…"))
+        if not self._run_long(work, "mpvtk-check-updates"):
+            self.set_status(_("A check is already in progress."))
+        self.invalidate()
+
     def _move_downloads(self, path, confirmed=False):
         """Relocating the download store copies files (possibly across
         drives), so it runs on its own thread — not the pool, whose four

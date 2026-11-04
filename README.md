@@ -6,8 +6,11 @@ An MPV-based Jellyfin desktop client for easy home streaming, with privacy-focus
 
 What is different from upstream:
 
+- **No third-party lookups.** The public-IP request to `checkip.amazonaws.com` is gone. Whether a server is "Local" or "Remote" (a bandwidth choice only) is decided from the server's address and the Jellyfin server itself, with a per-server **Auto / Local / Remote** override.
+- **No background update checks by default.** Opt in under Settings; **Check for Updates Now** works on demand.
 - **Its own identity**, so it installs and runs beside upstream without sharing settings, logins or the running instance.
 - **Per-user Windows installer** (no administrator rights).
+- Discord Rich Presence stays **off** unless you turn it on.
 
 ## Features
 
@@ -33,7 +36,7 @@ What is different from upstream:
 
 Install it (below), launch it and log in. Enter your server's address, e.g.
 `http://192.168.1.10:8096` or `https://jellyfin.example.com`, including any subpath; port
-8096 is assumed if you leave it out, so a server on port 80 needs `:80`. Quick Connect works
+8096 is assumed for plain `http://` addresses (a home-network address with no scheme gets `http://…:8096`; any other address typed without a scheme gets `https://`), so a server on port 80 needs `:80`. Quick Connect works
 too.
 
 Then browse from the window, or cast to it from another Jellyfin app. When a system tray is

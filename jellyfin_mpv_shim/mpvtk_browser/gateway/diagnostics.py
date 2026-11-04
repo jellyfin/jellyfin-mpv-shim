@@ -36,6 +36,16 @@ class DiagnosticsMixin(GatewayCore):
             log.error("could not open url", exc_info=True)
             return (False, None)
 
+    def check_updates_now(self):
+        """The user pressed "Check for Updates Now". Returns
+        ``(status, version)``; see `UpdateChecker.check_now`. Never raises."""
+        from ...player import playerManager
+        try:
+            return playerManager.update_check.check_now()
+        except Exception:
+            log.error("manual update check failed", exc_info=True)
+            return ("error", None)
+
     def check_updates(self):
         """One-shot update check at startup.
 

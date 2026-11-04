@@ -35,7 +35,7 @@ def _video(path):
     cl = NS(config=NS(data={"auth.server": SERVER, "auth.token": "T"}))
     v = Video.__new__(Video)
     v.item_id = "item1"
-    v.parent = NS(client=cl, is_local=True)
+    v.parent = NS(client=cl, is_local=True, direct_path_trusted=True)
     v.client = cl
     v.media_source = source
     v.auth_via_header = True

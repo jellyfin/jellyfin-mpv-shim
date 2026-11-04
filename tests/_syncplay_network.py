@@ -62,6 +62,10 @@ class FakeQueue:
         # drives upd_queue could see it.
         self.has_next = False
         self.has_prev = False
+        # Remote and untrusted, as the real Media is when nothing says
+        # otherwise (network_locality: failures never resolve to local).
+        self.is_local = False
+        self.direct_path_trusted = False
 
     def replace_queue(self, items, index):
         self.queue = list(items) or self.queue

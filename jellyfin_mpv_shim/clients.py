@@ -21,6 +21,7 @@ import threading
 
 import socket
 import ipaddress
+from . import network_locality
 from collections import OrderedDict
 from urllib.parse import urlparse
 
@@ -636,8 +637,18 @@ class ClientManager(object):
         protocol, ipv6_host, ipv4_host, port, path = path_regex.match(server).groups()
 
         if not protocol:
-            log.warning("Adding http:// because it was not provided.")
-            protocol = "http://"
+            # A bare address used to become http:// whatever it named, so a
+            # public domain typed without a scheme sent the password in the
+            # clear. Plain http is kept only for hosts that look like a home
+            # network (private IP, localhost, dotless or .local/.lan names);
+            # everything else gets https.
+            host = (ipv6_host or ipv4_host or "").strip("[]")
+            if network_locality.is_lan_hostname(host):
+                log.warning("Adding http:// because it was not provided.")
+                protocol = "http://"
+            else:
+                log.warning("Adding https:// because it was not provided.")
+                protocol = "https://"
 
         if protocol == "http://" and not port:
             log.warning("Adding port 8096 for insecure local http connection.")
@@ -1258,6 +1269,41 @@ class ClientManager(object):
                 if candidate is client:
                     return uuid
         return None
+
+    def connection_type(self, uuid):
+        """The saved Connection Type for a server: ``auto``, ``local`` or
+        ``remote``. Stored on the server's own credential entry, which is
+        keyed by the uuid that survives re-authentication (see
+        `_replaces_the_same_server`), so the choice follows the server and
+        not its address or the account."""
+        with self._switch_lock:
+            for cred in self.credentials:
+                if cred.get("uuid") == uuid:
+                    return network_locality.normalize_connection_type(
+                        cred.get("connection_type"))
+        return network_locality.AUTO
+
+    def set_connection_type(self, uuid, value):
+        """Persist the Connection Type. Returns whether the server exists."""
+        value = network_locality.normalize_connection_type(value)
+        with self._switch_lock:
+            cred = next((c for c in self.credentials
+                         if c.get("uuid") == uuid), None)
+            if cred is None:
+                return False
+            cred["connection_type"] = value
+        self.save_credentials()
+        return True
+
+    def locality_for_client(self, client):
+        """`network_locality.Locality` for a live client: bandwidth locality
+        and direct-path trust. Fails to Remote/untrusted, never to local."""
+        if client is None:
+            return network_locality.REMOTE_UNKNOWN
+        uuid = self.uuid_for_client(client)
+        return network_locality.for_client(
+            client, self.connection_type(uuid) if uuid else
+            network_locality.AUTO)
 
     def server_is_local(self, uuid):
         """Is this server on our own network? ``True``/``False``, or ``None``

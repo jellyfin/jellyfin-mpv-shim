@@ -81,7 +81,7 @@ def _video(source, streams, header=None, client=True, token=TOKEN):
         http=NS(_get_authenication_header=build_header),
         jellyfin=NS(get_item=lambda _id, **kw: item),
     ) if client else None
-    parent = NS(client=cl, is_local=True, item=item)
+    parent = NS(client=cl, is_local=True, direct_path_trusted=True, item=item)
     v = Video.__new__(Video)
     v.item_id = "item1"
     v.parent = parent

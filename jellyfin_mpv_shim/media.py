@@ -10,7 +10,7 @@ from . import conf
 from .conf import settings
 from .language_config import apply as apply_language_config
 from .utils import (IMAGE_SUBTITLE_CODECS, answering_server,
-                    is_local_domain, get_profile, get_seq)
+                    get_profile, get_seq)
 from .user_policy import may_download
 from .i18n import _
 
@@ -701,7 +701,8 @@ class Video(object):
                 or self.media_source["SupportsDirectPlay"]
             )
             and settings.direct_paths
-            and (settings.remote_direct_paths or self.parent.is_local)
+            and (settings.remote_direct_paths
+                 or self.parent.direct_path_trusted)
         ):
             source_path = self.media_source["Path"]
             if platform.startswith("win32") or platform.startswith("cygwin"):
@@ -1209,12 +1210,20 @@ class Media(object):
         # the unplayable item via .video is None (get_next().video, play())
         # instead of crashing here on the action thread.
         self.is_tv = self.video.is_tv if self.video is not None else False
+        # Bandwidth locality and direct-path trust are two answers (see
+        # network_locality). Anything undetermined -- no client, an offline
+        # server, a failed lookup -- is Remote and untrusted: an unreachable
+        # server must never be treated as one whose files we may open.
         try:
-            self.is_local = is_local_domain(client) if client is not None else True
+            from .clients import clientManager
+            locality = clientManager.locality_for_client(client)
+            self.is_local = locality.local
+            self.direct_path_trusted = locality.direct_path_trusted
         except Exception:
-            # Offline / unreachable server — locality only affects bitrate and
-            # transcode decisions, which local playback ignores anyway.
-            self.is_local = True
+            log.warning("Could not determine server locality; treating it "
+                        "as remote.", exc_info=True)
+            self.is_local = False
+            self.direct_path_trusted = False
         self.has_next = seq < len(queue) - 1
         self.has_prev = seq > 0
 

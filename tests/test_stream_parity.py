@@ -115,7 +115,7 @@ def _video(source, version="12.2.0"):
             "Servers": [{"Version": version}]})),
         jellyfin=api,
     )
-    parent = NS(client=client, is_local=True, item=item)
+    parent = NS(client=client, is_local=True, direct_path_trusted=True, item=item)
     v = Video("item1", parent)
     v.item = item
     v.explicit_tracks = True

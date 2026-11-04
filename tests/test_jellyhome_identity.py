@@ -126,6 +126,22 @@ class IdentityIsDistinctFromUpstreamTest(unittest.TestCase):
         self.assertEqual(mpris.BUS_NAME,
                          "org.mpris.MediaPlayer2." + constants.DESKTOP_ID)
 
+    def test_no_first_party_source_references_the_removed_lookup(self):
+        """Only a tripwire; the real guard is
+        test_jellyhome_privacy.LocalityTest.test_no_third_party_is_ever_contacted."""
+        hits = []
+        for base, dirs, files in os.walk(os.path.join(ROOT, "jellyfin_mpv_shim")):
+            dirs[:] = [d for d in dirs if d not in ("messages", "locale",
+                                                    "__pycache__")]
+            for name in files:
+                if name.endswith((".py", ".lua")):
+                    path = os.path.join(base, name)
+                    with open(path, encoding="utf-8") as fh:
+                        if re.search(r"checkip|amazonaws", fh.read(), re.I):
+                            hits.append(path)
+        self.assertEqual(hits, [])
+
+
 class FirstRunTest(unittest.TestCase):
     def test_public_build_has_no_prefilled_server(self):
         self.assertEqual(constants.DEFAULT_SERVER_URL, "")
@@ -141,6 +157,25 @@ class FirstRunTest(unittest.TestCase):
                     "https://[::1", None and "", ""):
             with self.subTest(bad=bad):
                 self.assertEqual(f(bad), "")
+
+    def test_a_bare_address_never_silently_becomes_plain_http_on_the_internet(
+            self):
+        from jellyfin_mpv_shim.clients import ClientManager
+        norm = ClientManager._normalize_server
+        # Public names/addresses: https, and no 8096 injected.
+        self.assertEqual(norm("media.example.org"), "https://media.example.org")
+        self.assertEqual(norm("93.184.216.34"), "https://93.184.216.34")
+        # Home-network spellings keep the historical http default.
+        self.assertEqual(norm("192.168.1.5"), "http://192.168.1.5:8096")
+        self.assertEqual(norm("jellyfin"), "http://jellyfin:8096")
+        self.assertEqual(norm("nas.local"), "http://nas.local:8096")
+        self.assertEqual(norm("localhost"), "http://localhost:8096")
+        # An explicit scheme is never changed.
+        self.assertEqual(norm("http://media.example.org:80"),
+                         "http://media.example.org:80")
+        self.assertEqual(norm("https://media.example.org/"),
+                         "https://media.example.org")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,26 +2,34 @@ import logging
 from collections import deque
 import re
 
+# Values are matched as "everything up to the next delimiter" rather than as
+# lowercase hex: Jellyfin issues lowercase-hex tokens today, but a value in
+# another case or alphabet used to be redacted only up to its first non-[a-f]
+# character (``api_key=0123ABCD`` -> ``api_key=REDACTEDABCD``) or not at all.
+# Keys are case-insensitive for the same reason (``apikey=``).
+_VALUE = r"[^&\s\"'#<>]*"
 bad_patterns = (
-    (re.compile("api_key=[a-f0-9]*"), "api_key=REDACTED"),
-    # ApiKey is the non-legacy spelling and is what we send now; the old one
-    # stays above because logs from an older build still reach us.
-    (re.compile("ApiKey=[a-f0-9]*"), "ApiKey=REDACTED"),
+    # `api_key=` is the legacy spelling and `ApiKey=` the one we send now;
+    # logs from an older build still reach us. The key keeps its spelling.
+    (re.compile("(api_?key=)" + _VALUE, re.I), r"\1REDACTED"),
     (
-        re.compile("'X-MediaBrowser-Token': '[a-f0-9]*'"),
+        re.compile(r"'X-(?:MediaBrowser|Emby)-Token': '[^']*'", re.I),
         "'X-MediaBrowser-Token': 'REDACTED'",
     ),
-    (re.compile("'AccessToken': '[a-f0-9]*'"), "'AccessToken': 'REDACTED'"),
+    (re.compile(r"'AccessToken': '[^']*'", re.I), "'AccessToken': 'REDACTED'"),
     # Any `Token="..."`, which is how it appears in strings we did NOT build:
     # mpv echoes our stream URL back through its own log, and the Authorization
     # header spells it this way. The escaped form is the same line seen inside
     # one of mpv's quoted log messages -- a real backslash, not a repr.
     #
-    # Deliberately not [a-f0-9] like the four above. Those match values we
-    # generate; this one has to survive whatever a server hands us, and a
-    # token that fails the charset assumption would otherwise print in full.
+    # Deliberately not a charset like the ones above. This one has to survive
+    # whatever a server hands us, and a token that fails a charset assumption
+    # would otherwise print in full.
     (re.compile(r'Token=\\"[^"\\]*\\"'), r'Token=\\"REDACTED\\"'),
     (re.compile(r'Token="[^"]*"'), 'Token="REDACTED"'),
+    # Credentials embedded in a URL (``https://user:pw@host``), as a server
+    # address behind HTTP basic auth is sometimes typed.
+    (re.compile(r"(?<=://)[^/@\s:]+:[^/@\s]+@"), "REDACTED@"),
 )
 
 # The patterns above all need the KEY next to the value, which works on a

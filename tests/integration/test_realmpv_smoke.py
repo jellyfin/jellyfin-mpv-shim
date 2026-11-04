@@ -149,6 +149,7 @@ class RealParent:
         self.has_next = next_video is not None
         self.has_prev = False
         self.is_local = True
+        self.direct_path_trusted = True
         self.queue = []
 
     def get_next(self):

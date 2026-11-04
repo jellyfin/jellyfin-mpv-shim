@@ -653,6 +653,7 @@ LABELED_ENUMS = {
 LABEL_OVERRIDES = {
     "lang": _("Language"),
     "notify_updates": _("Tell Me About Updates"),
+    "check_updates": _("Check for Updates Automatically"),
     "input_gamepad": _("Game Controller"),
     "gamepad_swap_confirm": _("Swap Confirm and Back Buttons"),
     "sync_path": _("Download Folder"),
@@ -796,6 +797,11 @@ NOTES = {
     # Flatpak user reading "Automatic" has no way to know it means off, and
     # this app is a client whose compatibility depends on a moving server,
     # so the answer is worth stating rather than hiding.
+    "check_updates": _(
+        "Off by default. When on, the app asks this project's release page "
+        "on GitHub once a day whether a newer version exists. Nothing about "
+        "you or your media is sent. \"Check for Updates Now\" below works "
+        "either way."),
     "notify_updates": _(
         "\"Automatic\" turns this off inside a Flatpak, where your desktop "
         "already announces updates and \"flatpak update\" installs them, "
@@ -1039,7 +1045,10 @@ NOTES = {
     # think about only invites questions. The dynamic note in
     # settings/general.py raises it, and only for someone it is actually
     # broken for.
-    "discord_presence": _("Discord Rich Presence."),
+    "discord_presence": _(
+        "Off by default. When on, the title and progress of what you are "
+        "playing are sent to your local Discord app, which shows them on "
+        "your Discord profile to anyone who can see it."),
     "mpris": _("Lets keyboard media keys, headset buttons, the lock screen "
                "and desktop media widgets play, pause and skip, and shows "
                "what is playing with its cover (MPRIS, Linux only)."),

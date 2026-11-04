@@ -68,6 +68,7 @@ class _Parent:
     def __init__(self, item, sources):
         self.client = _client(item, sources)
         self.is_local = True
+        self.direct_path_trusted = True
         self.item = item
         self.queue = []
         self.has_next = False

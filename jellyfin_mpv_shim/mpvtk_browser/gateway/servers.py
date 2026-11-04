@@ -83,12 +83,18 @@ class ServersMixin(GatewayCore):
                 "username": cred.get("Username") or cred.get("username") or "",
                 "connected": client is not None,
                 "problem": problem,
+                "connection_type": deps.clientManager.connection_type(uuid),
                 # None when nothing has connected to it, which is not the
                 # same as False -- the icon falls back to reading the URL
                 # rather than claiming the server is out on the internet.
                 "local": on_lan,
             })
         return out
+
+    def set_connection_type(self, uuid, value):
+        """Save Auto / Local / Remote for one server. Bandwidth only; see
+        `network_locality`. Returns whether the server was found."""
+        return bool(deps.clientManager.set_connection_type(uuid, value))
 
     def auto_download_on(self, server_uuid):
         """Is unattended downloading on for this saved login's account?

@@ -1,6 +1,5 @@
 import socket
 import ipaddress
-import requests
 import urllib.parse
 from threading import Lock
 import logging
@@ -13,6 +12,7 @@ from datetime import datetime
 from functools import wraps
 from .constants import USER_APP_NAME
 from .i18n import _
+from .network_locality import is_lan_address
 
 from typing import TYPE_CHECKING, Optional
 
@@ -115,51 +115,6 @@ def synchronous(tlockname: str):
     return _synched
 
 
-def is_local_domain(client: "JellyfinClient_type"):
-    # With Jellyfin, it is significantly more likely the user will be using
-    # an address that is a hairpin NAT. We want to detect this and avoid
-    # imposing limits in this case.
-    url = client.config.data.get("auth.server", "")
-    domain = urllib.parse.urlparse(url).hostname
-
-    addr_info = socket.getaddrinfo(domain, 8096)[0]
-    ip = addr_info[4][0]
-    if ipaddress.ip_address(ip).is_private:
-        return True
-
-    if addr_info[0] == socket.AddressFamily.AF_INET:
-        # IPv4 hairpin NAT: compare against our own WAN IP. We don't trust the
-        # server's view of the client because reverse proxies routinely lie
-        # (every connection looks like 127.0.0.1 / the proxy's IP).
-        try:
-            wan_ip = requests.get(
-                "https://checkip.amazonaws.com/", timeout=(3, 10)
-            ).text.strip("\r\n")
-            return ip == wan_ip
-        except Exception:
-            log.warning(
-                "checkip.amazonaws.com is unavailable. Assuming potential WAN ip is remote.",
-                exc_info=True,
-            )
-            return False
-
-    # IPv6: home networks typically use globally-routable prefixes, so the
-    # is_private check above misses real LAN connections. Fall back to the
-    # server's /System/Endpoint, which compares against the admin-configured
-    # local network subnets. Less robust than the IPv4 path (a misconfigured
-    # reverse proxy could lie) but the only signal available without enumerating
-    # local interface addresses.
-    try:
-        endpoint = client.jellyfin.get_endpoint_info()
-        return bool(endpoint.get("IsInNetwork"))
-    except Exception:
-        log.warning(
-            "Could not query /System/Endpoint for IPv6 locality. Assuming remote.",
-            exc_info=True,
-        )
-        return False
-
-
 def resolved_host_is_private(address):
     """Does ``address`` resolve to an address on this machine's own network?
 
@@ -167,14 +122,13 @@ def resolved_host_is_private(address):
     all -- three answers, because "we asked and it is remote" and "we could
     not ask" want different fallbacks.
 
-    **This is the half of `is_local_domain` that a name lookup can settle**,
-    and it is the half that matters for split-horizon DNS: a self-hoster's
-    own domain resolves to a LAN address at home and a public one away, so
-    nothing about the spelling of the URL can answer it. `is_local_domain`
-    goes further -- hairpin NAT, and an IPv6 fallback that asks the server
-    -- because it is deciding a *bitrate*, where being wrong costs a
-    transcode. Callers who only want to describe the connection should stop
-    here rather than make an outbound request to a third party.
+    **This is the half of `network_locality.detect` that a name lookup can
+    settle**, and it is the half that matters for split-horizon DNS: a
+    self-hoster's own domain resolves to a LAN address at home and a public
+    one away, so nothing about the spelling of the URL can answer it.
+    `network_locality` goes further -- it asks the Jellyfin server itself
+    (never a third party) -- because it is deciding a *bitrate*. Callers who
+    only want to describe the connection stop here.
 
     **Blocking, and there is no bounding it** -- ``getaddrinfo`` takes no
     timeout, and ``socket.setdefaulttimeout`` does not reach it on glibc. It
@@ -203,7 +157,7 @@ def resolved_host_is_private(address):
         # Any private answer is enough. A dual-stack name can hand back a
         # public IPv6 address and a LAN IPv4 one, and the connection we are
         # describing may have used either.
-        if ip.is_private:
+        if is_lan_address(ip):
             return True
     return False
 

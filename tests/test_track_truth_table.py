@@ -117,7 +117,7 @@ def _video(source, explicit=False):
         http=NS(_get_authenication_header=lambda: 'MediaBrowser Token="t"'),
         jellyfin=api,
     )
-    parent = NS(client=client, is_local=True, item=item)
+    parent = NS(client=client, is_local=True, direct_path_trusted=True, item=item)
     v = Video.__new__(Video)
     v.item_id = "ep1"
     v.parent = parent
