@@ -190,6 +190,20 @@ local state = {
     -- Display quantization for the gesture in progress: latched by the cost
     -- test in on_wheel, released GESTURE_WINDOW after the last event.
     snap_live = false,
+    -- Wheel glide: a discrete wheel notch (scale >= 1) used to move the drawn
+    -- content a whole notch (80-94 px) in ONE frame, with nothing drawn
+    -- between notches -- measured: every offset change was a single 94 px
+    -- jump, and at a slow scroll each one was a visible separate step. The
+    -- stored offset still moves at once (Python, the scrollbar and every
+    -- caller see the destination immediately); only the DRAWN offset eases
+    -- toward it, `glide_tau` seconds per e-fold, so the first frame already
+    -- moves and the content is home within ~0.2s. id -> {pos=, t=}; an entry
+    -- exists only while a glide is in flight. Off whenever display
+    -- quantization is on (that mode exists to make consecutive frames
+    -- identical) and for hi-res deltas (scale < 1), which are already fine.
+    glide = {},
+    glide_busy = false,
+    glide_tau = 0.08,
     wheel_prev = nil,       -- time of the previous wheel event (rate measure)
     snap_timer = nil,
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
@@ -698,10 +712,40 @@ local function snap_round(node, off)
     return snapped
 end
 
+-- The offset to DRAW for `node` this frame: `target` (the stored offset after
+-- row quantization) unless a wheel glide is in flight for it, in which case
+-- the drawn offset closes `1 - exp(-dt/glide_tau)` of the remaining distance.
+-- A function field rather than a local: this chunk is at the local ceiling.
+function state.glide_apply(node, target)
+    local d = state.glide[node.id]
+    if not d then return target end
+    local now = mp.get_time()
+    local dt = now - d.t
+    -- No elapsed time (a frozen test clock, a second call in one frame) means
+    -- nothing to ease with; a long gap means the entry is stale (the scene was
+    -- rebuilt, or nothing rendered for a while): land, do not replay it.
+    if state.force_snap or state.snap_live or state.snapped
+        or dt <= 0 or dt > 0.25 then
+        state.glide[node.id] = nil
+        return target
+    end
+    d.t = now
+    local pos = d.pos + (target - d.pos) * (1 - math.exp(-dt / state.glide_tau))
+    if math.abs(target - pos) < 0.75 then
+        state.glide[node.id] = nil
+        return target
+    end
+    d.pos = pos
+    state.glide_busy = true
+    -- Whole pixels: a fractional overlay offset just jitters between two.
+    return math.floor(pos + 0.5)
+end
+
 -- Effective geometry of every scroll container. Scene order guarantees
 -- ancestors appear before descendants.
 local function compute_geo()
     state.geo = {}
+    state.glide_busy = false
     for _, node in ipairs(state.nodes) do
         if node.t == 'scroll' then
             local p = node.sc and state.geo[node.sc]
@@ -713,7 +757,8 @@ local function compute_geo()
                 vx1 = math.max(vx1, p.x1); vy1 = math.max(vy1, p.y1)
                 vx2 = math.min(vx2, p.x2); vy2 = math.min(vy2, p.y2)
             end
-            local off = snap_round(node, state.scroll[node.id] or 0)
+            local off = state.glide_apply(
+                node, snap_round(node, state.scroll[node.id] or 0))
             local g = {
                 dx = dx + (node.axis == 'x' and off or 0),
                 dy = dy + (node.axis == 'y' and off or 0),
@@ -726,6 +771,8 @@ local function compute_geo()
             state.geo[node.id] = g
         end
     end
+    -- Still easing: ask for the next frame (paced by active_tick like any other).
+    if state.glide_busy then request_render() end
 end
 
 -- Returns ex, ey, clip {x1,y1,x2,y2} (nil clip = whole osd)
@@ -4137,6 +4184,16 @@ local function on_wheel(dir, axis, e)
     if node.snap and node.snap > 0 then
         local n = math.max(1, math.floor(node.snap / WHEEL_STEP))
         step = node.snap / n
+    end
+    -- A discrete notch eases the drawn offset (see state.glide); start from
+    -- what is on screen right now, and keep an easing already in flight.
+    if scale >= 0.99 and not state.glide[node.id] and not state.force_snap
+        and not state.snap_live then
+        state.glide[node.id] = {
+            pos = state.glide_apply(node, snap_round(
+                node, state.scroll[node.id] or 0)),
+            t = mp.get_time(),
+        }
     end
     set_scroll(node,
         (state.scroll[node.id] or 0) + dir * step * scale)

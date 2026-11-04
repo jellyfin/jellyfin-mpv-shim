@@ -159,7 +159,7 @@ for you when one changes.
   - Downloaded artwork is also cached on disk (`$XDG_CACHE_HOME/jellyhome-player/artwork`,
     `~/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows) — up to 1 GiB or 5% of free
     space, whichever is less, pruned after 30 days unused. Deleting it is always safe.
-- `scroll_wheel_pixels` - How far one wheel notch scrolls. Default: `80`
+- `scroll_wheel_pixels` - How far one wheel notch scrolls. Default: `80`. A whole notch moves the stored position at once; the picture eases to it over about 0.25 s (0.08 s time constant), so slow notches are not separate jumps. Fractional wheel deltas are not eased, and neither is `aligned`/`row` mode.
 - `scroll_mode` - One of `continuous`, `aligned`, `row`. Default: `continuous`
   - `continuous` scrolls smoothly, lining rows up only when drawing falls behind.
   - `aligned` never draws a row part-scrolled — try it if scrolling stutters (very large or

@@ -1544,14 +1544,207 @@ end
 fresh("quick", 0)
 fling(10, 0.02)
 ok(drawn_offset("quick") > 0, "a fling on a fast renderer scrolls")
+-- CHANGED CONTRACT (wheel glide). This used to assert painted_at(offset): the
+-- drawn content sat exactly where the wheel had put it, mid-fling. Measured
+-- on a real desktop that meant every notch was one whole-notch (94 px) jump
+-- with nothing drawn between notches, which is what looked choppy. A discrete
+-- notch now eases the DRAWN offset toward the stored one (state.glide), so
+-- mid-fling the picture trails the wheel. What is still asserted is the part
+-- that mattered: frames that keep up are not quantized, the picture never
+-- runs AHEAD of the wheel, and it arrives exactly on it.
+do
+    local d, o = drawn_offset("quick"), offset("quick")
+    ok(d <= o + 1.5, "a fling never paints ahead of where the wheel put it",
+       string.format("painted %s, wheel left it at %s", tostring(d), tostring(o)))
+    -- ...and it really is eased: with `<=` alone, the old behaviour (painted
+    -- == stored) would satisfy this block too.
+    ok(d < o - 1.5, "mid-fling the picture trails the wheel (the glide)",
+       string.format("painted %s, wheel left it at %s", tostring(d), tostring(o)))
+end
+for _ = 1, 20 do
+    fake.advance(0.03)
+    fake.fire_timers()
+end
 ok(painted_at("quick", offset("quick")),
-   "a fling paints where the wheel put it when frames keep up",
+   "a fling that keeps up arrives exactly where the wheel put it",
    string.format("painted %s, wheel left it at %s",
                  tostring(drawn_offset("quick")), tostring(offset("quick"))))
 settle()
 ok(not on_row("quick"), "and it is left there when the gesture ends",
    string.format("offset %s was pulled to a row boundary",
                  tostring(offset("quick"))))
+
+-- --------------------------------------------------------- wheel glide
+-- The first frame after a notch must already move (no dead time added), and
+-- must still be short of the destination (otherwise nothing is eased).
+fresh("glide", 0)
+fake.advance(0.03)
+fake.key("wheel_down")
+fake.advance(0.03)
+fake.fire_timers()
+do
+    local first, dest = drawn_offset("glide"), offset("glide")
+    ok(first ~= nil and first > 0, "the first frame of a notch already moves",
+       tostring(first))
+    ok(first < dest - 1.5, "and is still short of the destination",
+       string.format("painted %s of %s", tostring(first), tostring(dest)))
+    ok(dest > 0, "the stored offset moved at once, glide or not",
+       tostring(dest))
+end
+for _ = 1, 20 do
+    fake.advance(0.03)
+    fake.fire_timers()
+end
+ok(painted_at("glide", offset("glide")), "a single notch lands exactly",
+   string.format("painted %s, stored %s", tostring(drawn_offset("glide")),
+                 tostring(offset("glide"))))
+
+-- Boundaries: past the top nothing moves; past the bottom the picture never
+-- overshoots the end and settles exactly on it.
+fresh("glide-top", 0)
+for _ = 1, 5 do
+    fake.advance(0.03)
+    fake.key("wheel_up")
+    fake.advance(0.03)
+    fake.fire_timers()
+end
+ok(offset("glide-top") == 0 and (drawn_offset("glide-top") or 0) == 0,
+   "scrolling up at the top stays at the top",
+   string.format("stored %s painted %s", tostring(offset("glide-top")),
+                 tostring(drawn_offset("glide-top"))))
+fresh("glide-end", 0)
+local overshot = false
+for _ = 1, 60 do
+    fake.advance(0.03)
+    fake.key("wheel_down")
+    fake.advance(0.03)
+    fake.fire_timers()
+    if (drawn_offset("glide-end") or 0) > offset("glide-end") + 1.5 then
+        overshot = true
+    end
+end
+for _ = 1, 30 do
+    fake.advance(0.03)
+    fake.fire_timers()
+end
+ok(not overshot, "the glide never paints past the wheel while hitting the end")
+ok(offset("glide-end") == 2700, "the stored offset clamps at the end",
+   tostring(offset("glide-end")))
+ok(painted_at("glide-end", 2700), "and the picture settles exactly on the end",
+   tostring(drawn_offset("glide-end")))
+
+-- Hi-res deltas (trackpads) are already continuous: no easing is added.
+fresh("glide-hires", 0)
+fake.advance(0.03)
+fake.key("wheel_down", { scale = 0.3 })
+fake.advance(0.03)
+fake.fire_timers()
+ok(offset("glide-hires") > 0 and painted_at("glide-hires", offset("glide-hires")),
+   "a hi-res delta is painted where it put the content",
+   string.format("painted %s, stored %s", tostring(drawn_offset("glide-hires")),
+                 tostring(offset("glide-hires"))))
+
+-- ---------------------------------- glide: rapid, reversing, boundaries
+-- Everything here is a claim about the DESTINATION: wherever the stored
+-- offset says the wheel is going, the picture must head there, never past it
+-- and never away from it, and finish exactly on it. In a do-block so the
+-- helpers do not spend this file's local budget.
+do
+    local function frame(dt)
+        fake.advance(dt or 0.03)
+        fake.fire_timers()
+    end
+    local function notch(dir) fake.key(dir) end
+    local function painted(id) return drawn_offset(id) or 0 end
+    local function arrive(id)
+        for _ = 1, 40 do frame(0.03) end
+    end
+
+    fresh("g-one", 0)
+    fake.advance(0.03); notch("wheel_down"); arrive("g-one")
+    local step = offset("g-one")
+    ok(step > 0, "measured one notch", tostring(step))
+
+    -- Several notches inside one frame interval accumulate on the destination.
+    fresh("g-rapid", 0)
+    fake.advance(0.03)
+    for _ = 1, 3 do notch("wheel_down") end
+    frame()
+    ok(math.abs(offset("g-rapid") - 3 * step) < 1.5,
+       "three notches within one frame move the destination three notches",
+       string.format("stored %s, one notch is %s", tostring(offset("g-rapid")),
+                     tostring(step)))
+    ok(painted("g-rapid") <= offset("g-rapid") + 1.5,
+       "and the first frame is not past it")
+    arrive("g-rapid")
+    ok(painted_at("g-rapid", 3 * step), "and the picture arrives exactly",
+       string.format("painted %s, want %s", tostring(painted("g-rapid")),
+                     tostring(3 * step)))
+
+    -- Reversal mid-glide: from the first frame after each notch the picture
+    -- must be heading toward the CURRENT destination, never away from it.
+    -- Six down, then ten up (past the top): ends at 0, never negative.
+    fresh("g-rev", 0)
+    local away, below_zero, prev = false, false, 0
+    local function watch(id)
+        local now, dest = painted(id), offset(id)
+        if (dest > prev + 1.5 and now < prev - 1.5)
+            or (dest < prev - 1.5 and now > prev + 1.5) then
+            away = true
+        end
+        if now < -0.5 then below_zero = true end
+        prev = now
+    end
+    for i = 1, 6 do
+        fake.advance(0.02); notch("wheel_down")
+        if i % 2 == 0 then frame(0.02); watch("g-rev") end
+    end
+    ok(painted("g-rev") < offset("g-rev") - 1.5,
+       "the glide is in flight when the direction reverses",
+       string.format("painted %s, stored %s", tostring(painted("g-rev")),
+                     tostring(offset("g-rev"))))
+    for i = 1, 10 do
+        fake.advance(0.02); notch("wheel_up")
+        frame(0.02); watch("g-rev")
+    end
+    for _ = 1, 40 do frame(0.03); watch("g-rev") end
+    ok(not away, "after a reversal the picture never moves away from the destination")
+    ok(not below_zero, "and never paints past the top")
+    ok(offset("g-rev") == 0 and painted_at("g-rev", 0),
+       "and settles exactly on the top",
+       string.format("stored %s painted %s", tostring(offset("g-rev")),
+                     tostring(painted("g-rev"))))
+
+    -- The other end: run into the bottom while gliding, then back off by
+    -- three notches.
+    fresh("g-bottom", 0)
+    local over = false
+    for _ = 1, 60 do
+        fake.advance(0.02); notch("wheel_down")
+        frame(0.02)
+        if painted("g-bottom") > 2700 + 1.5 then over = true end
+    end
+    for _ = 1, 3 do fake.advance(0.02); notch("wheel_up") end
+    frame(0.02)
+    ok(offset("g-bottom") < 2700 and offset("g-bottom") > 2700 - 4 * step,
+       "backing off the bottom moves the destination by the notches given",
+       tostring(offset("g-bottom")))
+    local went_down = false
+    local last = painted("g-bottom")
+    for _ = 1, 40 do
+        frame(0.03)
+        local now = painted("g-bottom")
+        if now > last + 1.5 then went_down = true end
+        if now > 2700 + 1.5 then over = true end
+        last = now
+    end
+    ok(not over, "the picture never passes the bottom")
+    ok(not went_down, "after backing off it does not keep going down")
+    ok(painted_at("g-bottom", offset("g-bottom")),
+       "and settles exactly on the new destination",
+       string.format("painted %s stored %s", tostring(painted("g-bottom")),
+                     tostring(offset("g-bottom"))))
+end
 
 -- The same fling where a frame costs 50ms cannot have one per notch, and
 -- quantizing is what buys the frames back.
