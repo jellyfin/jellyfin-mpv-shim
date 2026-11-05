@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-02 18:22+0000\n"
+"PO-Revision-Date: 2026-11-05 22:56+0000\n"
 "Last-Translator: kscop-n1 <karpenko.serhii@outlook.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uk/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -964,21 +964,19 @@ msgstr "Новий PIN-код"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgctxt "form label"
 msgid "Confirm"
-msgstr ""
+msgstr "Підтвердити"
 
 #. Checkbox in the Set PIN dialog. When on, the passcode is asked for every
 #. time the application opens.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Вимагати цей PIN при запуску"
 
 #. Button in the Set PIN dialog that takes the passcode off this user. An
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Видалити сервер"
+msgstr "Видалити PIN"
 
 # seeded from jellyfin-web: Save
 #. Button in the Set PIN dialog that stores the new passcode. An imperative
@@ -992,18 +990,18 @@ msgstr "Зберегти"
 #. wrongly.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "Поточний PIN неправильний."
 
 #. Error in the Set PIN dialog when the new-passcode field was left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Введіть новий PIN."
 
 #. Error in the Set PIN dialog when the passcode and its confirmation
 #. differ.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "PIN-коди не збігаються."
 
 #. Error in the Set PIN dialog when the server refused to take the passcode
 #. off.
