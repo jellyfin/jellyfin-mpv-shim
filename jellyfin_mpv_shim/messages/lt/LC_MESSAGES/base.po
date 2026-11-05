@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-29 10:59+0000\n"
+"PO-Revision-Date: 2026-11-05 09:47+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n % 10 == 1 && (n % 100 < 11 || n % 100 > "
 "19)) ? 0 : ((n % 10 >= 2 && n % 10 <= 9 && (n % 100 < 11 || n % 100 > 19)) ? "
 "1 : 2);\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -224,19 +224,19 @@ msgstr "Klausti, ar praleisti reklamą"
 #. Pressing it jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Preview"
-msgstr "Praleisti peržiūrą"
+msgstr "Praleisti anonsą"
 
 #. Confirmation drawn over the video after a preview was jumped past. Past
 #. tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Preview"
-msgstr "Praleista peržiūra"
+msgstr "Praleistas anonsas"
 
 #. Prompt drawn over the video offering to jump past a preview, shown when
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Preview"
-msgstr "Klausti, ar praleisti peržiūrą"
+msgstr "Klausti, ar praleisti anonsą"
 
 #. Button drawn over the video during a "previously on" recap. Pressing it
 #. jumps past it. An imperative verb phrase.
@@ -738,7 +738,7 @@ msgstr "Praleisti reklamas"
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Previews"
-msgstr "Praleisti peržiūras"
+msgstr "Praleisti anonsus"
 
 #. What to do at a "previously on" recap: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
@@ -751,7 +751,7 @@ msgstr "Praleisti santraukas"
 #. while seeking.
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
-msgstr "Įjungti miniatūrų peržiūrą"
+msgstr "Įjungti miniatiūrų peržiūrą"
 
 #. Evens out loud effects against quiet dialogue. A toggle on the in-player
 #. Player Preferences menu, the settings menu of the playback controls, and
@@ -3920,7 +3920,7 @@ msgstr "Miniatiūra"
 #. short banner image.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Banner"
-msgstr "Reklaminė juosta"
+msgstr "Reklamjuostė"
 
 #. Choice in the Artwork dropdown of a library's View settings: the title
 #. treatment artwork, usually white lettering on a transparent background.
