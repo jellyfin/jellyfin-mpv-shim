@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-27 15:27+0000\n"
+"PO-Revision-Date: 2026-11-05 22:56+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -38,7 +38,7 @@ msgstr "Seite %(page)d von %(total)d"
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr "Seite  %d"
+msgstr "Seite %d"
 
 #. How far through a book the reader has got, as a percentage. Shown under
 #. the book's tile.
