@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 13:35+0000\n"
+"PO-Revision-Date: 2026-11-06 13:39+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -1201,36 +1201,36 @@ msgstr "Bezsaistes režīms"
 #. this device.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "Nekas nav lejupielādēts, lai darbotos bezsaistes režīmā."
 
 #. Error on the startup screen when none of the remembered servers
 #. answered. The bracketed plural is because there may be one server or
 #. several.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Couldn't reach your saved server(s)."
-msgstr ""
+msgstr "Nevarēju pievienoties jūsu saglabātajam serverim(-iem)."
 
 #. Heading of the lock screen, asking for the numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Ievadiet savu PIN"
 
 #. Shown under the lock screen's heading. %s is the locked user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s ir atvienots."
 
 #. Button on the lock screen that opens the application with the passcode
 #. typed above. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
-msgstr ""
+msgstr "Pievienoties"
 
 #. Heading above the list of other accounts on the lock screen.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Or switch to another user"
-msgstr ""
+msgstr "Vai pārslegties uz citu lietotāju"
 
 #. Heading of the idle screen shown when this application is waiting to be
 #. sent something from another Jellyfin app.
