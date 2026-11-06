@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 09:08+0000\n"
+"PO-Revision-Date: 2026-11-06 09:21+0000\n"
 "Last-Translator: \"AntV@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -24,7 +24,7 @@ msgstr ""
 #. is. Shown where EPUB or PDF would otherwise appear.
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Невядомы фармат"
 
 #. Position in a book or comic, shown in the reader's bottom bar and in the
 #. Reading Progress dialog. Both placeholders are page numbers.
@@ -1728,10 +1728,8 @@ msgstr ""
 #. shown even when subtitles are off, such as translations of on-screen
 #. signs.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " Вымушана"
+msgstr "Прымусова"
 
 #. Flag row in the Media Info panel, marking a stream that lives in a
 #. separate file beside the video rather than inside it.
@@ -1843,10 +1841,8 @@ msgstr ""
 #. re-encoding this video right now.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Перакадзіраваць)"
+msgstr "Перакадаванне"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel. This and the ones like it are sentence
@@ -2027,10 +2023,8 @@ msgstr ""
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Reading"
-msgstr " (Перакадзіраваць)"
+msgstr "Чытанне"
 
 #. Content fetched to this device for offline use. A group heading under
 #. Settings > Browse, the name of the Downloads settings page, and the
@@ -2653,10 +2647,8 @@ msgstr ""
 #. Label of the dropdown for the "deband" setting (Settings > Playback >
 #. Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (Перакадзіраваць)"
+msgstr "Змякчэнне палос"
 
 #. Label of the dropdown for the "tone_mapping" setting (Settings >
 #. Playback > Video Enhancement).
@@ -5087,10 +5079,8 @@ msgstr ""
 #. Title of the dialog holding one programme's recording settings. A noun
 #. naming the thing being set up.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (Перакадзіраваць)"
+msgstr "Запіс"
 
 #. Label of the dropdown in the series recording dialog choosing which
 #. episodes are recorded. A noun-like form label here, not the button of
