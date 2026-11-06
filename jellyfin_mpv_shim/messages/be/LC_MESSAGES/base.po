@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:10+0000\n"
+"PO-Revision-Date: 2026-11-06 10:16+0000\n"
 "Last-Translator: \"AntV@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -4977,10 +4977,9 @@ msgstr ""
 #. item stays on the server. %s is its name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаліць спампаваную копію %s?"
 
 #. Title of the dialog that removes a downloaded copy from this device.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -6070,10 +6069,9 @@ msgstr ""
 
 #. Caption under an album or playlist, counting its songs.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "Выберыце аўдыёдарожку"
+msgstr "%d трэкаў"
 
 #. Name of a tab on the music page, listing the artists credited on whole
 #. albums as opposed to individual tracks.
@@ -6237,10 +6235,9 @@ msgstr "Аўтапрайграванне"
 #. Question in the dialog that removes a playlist from the server. %s is
 #. the playlist's name.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаліць спіс прайгравання %s?"
 
 #. Column heading on the queue and playlist editors: what kind of item the
 #. row is, such as Episode or Song.
@@ -6366,10 +6363,9 @@ msgstr ""
 
 #. Heading of the search page. %s is what was typed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Сервер:"
+msgstr "Вынікі пошуку для \"%s\""
 
 #. Name of a search-results and library group holding television series.
 #. Plural noun.
@@ -6590,10 +6586,9 @@ msgstr "Выйсці і пазначыць неназіраным"
 #. Question in the dialog that removes watched downloads. %s is the group
 #. they are in, such as a series name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаліць прагледжаныя спампоўкі ў %s?"
 
 #. First entry of the interface language dropdown: follow whatever language
 #. the desktop is set to. Every other entry is a language's own name in
@@ -6964,10 +6959,9 @@ msgstr ""
 #. Heading of the Servers section of Settings. %s is the name of the local
 #. profile whose servers are listed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Сервер:"
+msgstr "Серверы для %s"
 
 #. Heading of the Servers section of Settings, used when no profile is
 #. named.
