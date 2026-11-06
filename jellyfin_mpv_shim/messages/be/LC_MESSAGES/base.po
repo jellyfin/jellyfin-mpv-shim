@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:32+0000\n"
+"PO-Revision-Date: 2026-11-06 10:35+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -134,10 +134,8 @@ msgstr ""
 
 #. Printed in the terminal after a saved login was replaced.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Сервер паспяхова дададзены."
+msgstr "Уліковыя даныя сервера паспяхова абноўлены."
 
 #. Printed in the terminal when replacing a saved login failed.
 #: jellyfin_mpv_shim/clients.py
@@ -1113,18 +1111,14 @@ msgstr "URL сервера"
 #. Label of the field on the sign-in page where the Jellyfin account name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Імя карыстальніка:"
+msgstr "Імя карыстальніка"
 
 #. Label of the field on the sign-in page where the Jellyfin account
 #. password is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Пароль:"
+msgstr "Пароль"
 
 #. Button on the sign-in page that signs in with a code instead of a
 #. password. "Quick Connect" is the Jellyfin feature name; keep it matching
@@ -1195,26 +1189,14 @@ msgstr ""
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not sign in. Please check your details."
-msgstr ""
-"Немагчыма дадаць сервер.\n"
-"Праверце інфармацыю аб падлучэнні."
+msgstr "Не ўдалося ўвайсці. Калі ласка, праверце свае даныя."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Немагчыма дадаць сервер.\n"
-"Праверце інфармацыю аб падлучэнні."
+msgstr "Не ўдалося падключыцца. Калі ласка, праверце свае даныя."
 
 #. Heading of the startup screen shown while the saved servers are being
 #. reached.
@@ -1295,10 +1277,8 @@ msgstr ""
 #. device. The item stays on the server. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Remove Download"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаліць спампоўку"
 
 #. Button on an item's page that marks it as watched, drawn ticked when it
 #. already is. Must not read the same as "Watch": in one language it did,
@@ -1550,10 +1530,8 @@ msgstr ""
 #. Row label in the Media Info panel: the codec profile, such as High or
 #. Main 10.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "Новая група"
+msgstr "Профіль"
 
 #. Row label in the Media Info panel: the codec level, a number bounding
 #. resolution and bitrate.
@@ -6906,10 +6884,8 @@ msgstr "Дадаць сервер"
 #. Shown in the Servers settings when this profile has signed in to
 #. nothing.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Канфігурацыя сервера"
+msgstr "Серверы яшчэ не наладжаны."
 
 #. Heading of the Users section of Settings, listing this application's
 #. local profiles.
@@ -7381,10 +7357,8 @@ msgstr ""
 #. Value shown beside the SyncPlay row on the playback controls when this
 #. device is watching in sync with a group.
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay уключаны."
+msgstr "SyncPlay уключаны"
 
 #. Shown over the video while the next item is being opened.
 #: jellyfin_mpv_shim/player.py
