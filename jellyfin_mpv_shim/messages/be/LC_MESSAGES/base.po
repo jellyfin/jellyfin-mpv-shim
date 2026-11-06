@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 09:45+0000\n"
+"PO-Revision-Date: 2026-11-06 10:05+0000\n"
 "Last-Translator: \"AntV@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -3839,10 +3839,8 @@ msgstr ""
 #. Button in the Add to Playlist modal that switches to the Add to
 #. Collection modal. The ellipsis means it opens another view.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Collections…"
-msgstr "Аўтапрайграванне"
+msgstr "Калекцыі…"
 
 #. Button that dismisses something without acting. Used on modals (Add to
 #. Playlist, Reading Progress, SyncPlay, the recording dialogs) and as the
@@ -3872,10 +3870,8 @@ msgstr "Аўтапрайграванне"
 #. Placeholder text in the empty text field where a new collection's name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Імя карыстальніка: "
+msgstr "Назва новай калекцыі…"
 
 #. Goes one step back. The navigation bar's back button, the row that
 #. leaves a submenu on the playback controls, the button that leaves the
@@ -5058,10 +5054,9 @@ msgstr ""
 #. Status message while an item is being fetched to this device. %s is its
 #. name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Downloading %s…"
-msgstr "Аўтапрайграванне"
+msgstr "Спампоўваецца %s…"
 
 #. Error in the recording options dialog when the server would not return
 #. the recording rule.
@@ -5542,10 +5537,8 @@ msgstr ""
 
 #. Shown on a book's page while the file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Downloading…"
-msgstr "Аўтапрайграванне"
+msgstr "Спампоўваецца…"
 
 #. Shown on a book's page while the stored reading position is being
 #. fetched from the server.
@@ -6888,10 +6881,8 @@ msgstr ""
 
 #. Placeholder in the empty field that searches the settings.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Search settings…"
-msgstr "Налады SVP"
+msgstr "Пошук налад…"
 
 #. Button on the Logs tab that puts the log on the clipboard. An imperative
 #. verb.
