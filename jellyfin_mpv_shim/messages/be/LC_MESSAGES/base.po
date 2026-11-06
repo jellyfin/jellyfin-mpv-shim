@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:24+0000\n"
+"PO-Revision-Date: 2026-11-06 10:32+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -4771,10 +4771,8 @@ msgstr ""
 #. previous chapter.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "Сервер паспяхова дададзены."
+msgstr "Папярэдні раздзел"
 
 #. Tooltip of the rewind button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -5529,10 +5527,8 @@ msgstr ""
 #. Shown in place of a grid or list that has no items in it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing here."
-msgstr "Канфігурацыя сервера"
+msgstr "Нічога няма."
 
 #. Error shown when a comic file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -5846,10 +5842,8 @@ msgstr ""
 
 #. Tooltip of the button that moves the Live TV guide back one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "Сервер паспяхова дададзены."
+msgstr "Папярэдні дзень"
 
 #. Tooltip of the button that scrolls the Live TV guide back a few hours.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -5885,10 +5879,8 @@ msgstr ""
 #. Tooltip of the button that shows the previous group of channels in the
 #. Live TV guide.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "Сервер паспяхова дададзены."
+msgstr "Папярэднія каналы"
 
 #. Tooltip of the button that shows the next group of channels in the Live
 #. TV guide.
@@ -5924,10 +5916,8 @@ msgstr "Адкрыць папку канфігурацыі"
 
 #. Shown on the Live TV Recordings tab when there are no recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "Канфігурацыя сервера"
+msgstr "Яшчэ нічога не запісана."
 
 #. Shown on the Live TV Schedule tab when nothing is set to record.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
