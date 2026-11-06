@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 14:22+0000\n"
+"PO-Revision-Date: 2026-11-06 14:35+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -2172,33 +2172,31 @@ msgstr "Automātiska (MPV noteikta)"
 #. Enhancement); stored as "bt.2390".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr "BT.2390 (atsauce)"
+msgstr "BT.2390 (rekomendācija)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2446a".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "BT.2446a"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "spline".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "Splaina līkne"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "hable".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Disable"
 msgid "Hable"
-msgstr "Atslēgt"
+msgstr "Hable līkne"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "reinhard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "Reinhard līkne"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "clip".
