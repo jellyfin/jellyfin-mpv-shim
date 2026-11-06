@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 09:21+0000\n"
+"PO-Revision-Date: 2026-11-06 09:45+0000\n"
 "Last-Translator: \"AntV@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -5080,17 +5080,15 @@ msgstr ""
 #. naming the thing being set up.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Recording"
-msgstr "Запіс"
+msgstr "Налады запісу"
 
 #. Label of the dropdown in the series recording dialog choosing which
 #. episodes are recorded. A noun-like form label here, not the button of
 #. the same English word that starts a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgctxt "series recording rule setting"
 msgid "Record"
-msgstr " (Перакадзіраваць)"
+msgstr "Запіс"
 
 #. Choice in the "Record" dropdown of the series recording dialog: record
 #. first-run episodes and skip repeats.
@@ -7420,10 +7418,8 @@ msgstr ""
 #. Marker beside a quality option on the playback controls, meaning the
 #. server would re-encode the video to reach it. A noun here.
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Перакадзіраваць)"
+msgstr "Перакадаванне"
 
 #. First entry of a video profile list for a narrower scope, meaning "stop
 #. overriding and follow the wider setting".
