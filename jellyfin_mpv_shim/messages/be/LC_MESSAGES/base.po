@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:38+0000\n"
+"PO-Revision-Date: 2026-11-06 10:46+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -3766,22 +3766,20 @@ msgstr ""
 
 #. Title of the modal that puts the selected item into a playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to Playlist"
-msgstr "Аўтапрайграванне"
+msgstr "Дадаць у плэйліст"
 
 #. Shown in the Add to Playlist modal when the viewer has no playlists on
 #. the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "Плэйлістаў пакуль няма."
 
 #. Placeholder text in the empty text field where a new playlist's name is
 #. typed, in the Add to Playlist modal.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "Назва новага плэйліста…"
 
 #. Button in the Add to Playlist and Add to Collection modals. Makes the
 #. new playlist or collection named in the field beside it. An imperative
@@ -3815,10 +3813,8 @@ msgstr "Закрыць"
 #. Title of the modal that puts the selected item into a collection
 #. (Jellyfin's grouping of related items, such as a film series).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to Collection"
-msgstr "Аўтапрайграванне"
+msgstr "Дадаць у калекцыю"
 
 #. Shown in the Add to Collection modal when the server has no collections.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -4419,7 +4415,7 @@ msgstr "Няўдача"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlist"
-msgstr ""
+msgstr "Плэйліст"
 
 #. Heading of a downloads group whose series could not be identified.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -6056,13 +6052,13 @@ msgstr ""
 #. Shown on a playlist's page when it has no items.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
-msgstr ""
+msgstr "Гэты плэйліст пусты."
 
 #. Shown on a playlist's page when everything in it is of a kind this
 #. application cannot play.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
-msgstr ""
+msgstr "Гэты плэйліст не змяшчае падтрыманых тыпаў медыя."
 
 #. Title of the page listing what is queued to play, and the name given to
 #. that queue when it is saved as a playlist.
@@ -6122,10 +6118,8 @@ msgstr ""
 #. Button on the queue editor that saves the queue as a playlist on the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "To Playlist"
-msgstr "Аўтапрайграванне"
+msgstr "У плэйліст"
 
 #. Button that takes something out of a list without deleting the thing
 #. itself: rows out of the queue or a playlist, an item out of a
@@ -6173,17 +6167,15 @@ msgstr ""
 #. Button on the playlist editor, and the title of the dialog it opens,
 #. removing the playlist from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Delete Playlist"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаліць плэйліст"
 
 #. Question in the dialog that removes a playlist from the server. %s is
 #. the playlist's name.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
 msgid "Delete the playlist %s?"
-msgstr "Выдаліць спіс прайгравання %s?"
+msgstr "Выдаліць плэйліст %s?"
 
 #. Column heading on the queue and playlist editors: what kind of item the
 #. row is, such as Episode or Song.
@@ -6201,7 +6193,7 @@ msgstr ""
 #. Status message when moving rows in a playlist failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
-msgstr ""
+msgstr "Не ўдалося змяніць парадак плэйліста."
 
 #. Status message when removing a playlist from the server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -6441,7 +6433,7 @@ msgstr ""
 #. Name of the offline library holding downloaded playlists.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlists"
-msgstr ""
+msgstr "Плэйлісты"
 
 #. A downloaded playlist's tile label in the offline library, qualified by
 #. which server it came from. Only used when two servers hold a playlist of
@@ -7081,18 +7073,14 @@ msgstr "Выйсці і пазначыць неназіраным"
 #. Action on an item's menu that opens the playlist chooser. An imperative
 #. verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to playlist"
-msgstr "Аўтапрайграванне"
+msgstr "Дадаць у плэйліст"
 
 #. Action on an item's menu, and the title of the dialog it opens, taking
 #. the item out of the playlist being viewed. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Remove from playlist"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаліць з плэйліста"
 
 #. Action on an item's menu, and the title of the dialog it opens, taking
 #. the item out of the collection being viewed. An imperative verb phrase.
