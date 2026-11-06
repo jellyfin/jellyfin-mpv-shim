@@ -4084,10 +4084,8 @@ msgstr ""
 #. Title of the modal that chooses how one library's tiles are drawn.
 #. Sentence case in English.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "View settings"
-msgstr "Налады SVP"
+msgstr "Налады прагляду"
 
 #. Explanation under the "Make library logos more legible" checkbox in a
 #. library's View settings. "Plate" here is the solid light rectangle drawn
@@ -4245,10 +4243,8 @@ msgstr "%s (далучаны)"
 #. Stands in for the name of a SyncPlay group the server did not name. A
 #. set of people watching in sync.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "Новая група"
+msgstr "Група"
 
 #. Shown in the SyncPlay dialog when nobody on this server has a watch-
 #. together group open.
