@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 14:12+0000\n"
+"PO-Revision-Date: 2026-11-06 14:13+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -2009,17 +2009,17 @@ msgstr "Video diapazona veids netiek atbalstīts"
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "Šī ierīce"
 
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Ievade"
 
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "Logs"
 
 # seeded from jellyfin-web: LabelTheme
 #. Heading of a group of settings on the Browse tab of Settings. Label of
