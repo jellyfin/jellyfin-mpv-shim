@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:50+0000\n"
+"PO-Revision-Date: 2026-11-06 10:53+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -4269,10 +4269,8 @@ msgstr ""
 #. Button in the SyncPlay dialog that takes this device out of the watch-
 #. together group. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Leave"
-msgstr "Новая група"
+msgstr "Выйсці"
 
 #. Button that fetches something again: the SyncPlay group list, the
 #. downloads list, and the log. An imperative verb.
@@ -4371,10 +4369,8 @@ msgstr ""
 
 #. State of a download that has started but has no progress figure yet.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Downloading"
-msgstr "Аўтапрайграванне"
+msgstr "Спампоўваецца"
 
 #. Status of one queued download in Settings > Downloads, in place of
 #. "Queued": it was queued by another profile whose saved login no longer
@@ -4532,10 +4528,8 @@ msgstr ""
 #. Tooltip of the audio button on the playback controls drawn over the
 #. video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Audio Track"
 msgid "Audio Track"
-msgstr "Выберыце аўдыёдарожку"
+msgstr "Аўдыёдарожка"
 
 #. Tooltip of the quality button on the playback controls, which limits how
 #. much bandwidth the server may use.
@@ -4652,10 +4646,8 @@ msgstr ""
 #. Row in the Playback Info panel: how fast the stream is arriving from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Download speed"
-msgstr "Аўтапрайграванне"
+msgstr "Хуткасць спампоўкі"
 
 #. Row in the Playback Info panel: what kind of item is playing, such as
 #. Movie or Episode.
@@ -4668,10 +4660,8 @@ msgstr "Пошук медыя-ключа"
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. being played was downloaded to this device earlier.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "downloaded copy"
-msgstr "Аўтапрайграванне"
+msgstr "Спампаваная копія"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. is being read from a shared folder rather than streamed.
