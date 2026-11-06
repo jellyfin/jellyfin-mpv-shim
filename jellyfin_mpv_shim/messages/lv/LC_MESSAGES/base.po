@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-20 07:36+0000\n"
+"PO-Revision-Date: 2026-11-06 12:34+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n % 10 == 0 || n % 100 >= 11 && n % 100 <= "
 "19) ? 0 : ((n % 10 == 1 && n % 100 != 11) ? 1 : 2);\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -1372,16 +1372,14 @@ msgstr ""
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Vairāk"
 
 # seeded from jellyfin-web: Features
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Features"
 msgid "Special Features"
-msgstr "Īpašības"
+msgstr "Atsevišķais saturs"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
@@ -1404,11 +1402,9 @@ msgstr "Tīkls"
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. promotional film about the making of the film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Features"
 msgctxt "kind of special feature"
 msgid "Featurette"
-msgstr "Īpašības"
+msgstr "Īsfilmiņa"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
@@ -1416,51 +1412,43 @@ msgstr "Īpašības"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr ""
+msgstr "Aizkulišu notikumi"
 
 # seeded from jellyfin-web: DeleteUser
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
 #. from the finished film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Delete User"
 msgctxt "kind of special feature"
 msgid "Deleted Scene"
-msgstr "Dzēst lietotāju"
+msgstr "Neiekļautā aina"
 
 # seeded from jellyfin-web: MediaInfoInterlaced
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. An interview
 #. with the cast or crew.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Interlaced"
 msgctxt "kind of special feature"
 msgid "Interview"
-msgstr "Rindpārlēkts"
+msgstr "Intervija"
 
 # seeded from jellyfin-web: HeaderScenes
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
 #. the film itself.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Scenes"
 msgctxt "kind of special feature"
 msgid "Scene"
-msgstr "Ainas"
+msgstr "Aina"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short sample
 #. of the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Sample rate"
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr "Izlases ātrums"
+msgstr "Piemērs"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
@@ -1468,7 +1456,7 @@ msgstr "Izlases ātrums"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr ""
+msgstr "Klips"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1476,7 +1464,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "Īsfilma"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
@@ -4110,10 +4098,8 @@ msgstr "Labi"
 #. Error in the Download modal for a special feature (an extra belonging to a
 #. film or show). They can only be played from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "%s could not be downloaded."
 msgid "Special features cannot be downloaded."
-msgstr "%s nevarēja lejupielādēt."
+msgstr "Atsevišķo saturu nevarēja lejupielādēt."
 
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
