@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:58+0000\n"
+"PO-Revision-Date: 2026-11-06 11:02+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -6428,10 +6428,8 @@ msgstr ""
 
 #. Heading of the offline home-screen row listing books on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Downloaded Books"
-msgstr "Аўтапрайграванне"
+msgstr "Спампаваныя кнігі"
 
 #. Stands in for the name of a season the server did not name. %d is its
 #. number.
@@ -6676,10 +6674,8 @@ msgstr ""
 #. Heading in the Home Screen settings, above the list of rows the home
 #. screen shows.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Sections"
-msgstr "Аўтапрайграванне"
+msgstr "Блокі"
 
 #. Explanation under the Sections heading in the Home Screen settings.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -6838,10 +6834,8 @@ msgstr "Серверы яшчэ не наладжаны."
 #. Heading of the Users section of Settings, listing this application's
 #. local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Імя карыстальніка:"
+msgstr "Карыстальнікі"
 
 #. Subtitle under the Users heading in Settings. These are this
 #. application's own local profiles, not Jellyfin accounts, and a locked
@@ -6862,10 +6856,8 @@ msgstr "Серверы для %s"
 #. Heading of the Servers section of Settings, used when no profile is
 #. named.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Сервер:"
+msgstr "Серверы"
 
 #. Button beside a local profile in Settings that alters its numeric
 #. passcode. An imperative verb phrase.
