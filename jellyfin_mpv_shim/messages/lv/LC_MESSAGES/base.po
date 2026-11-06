@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 14:13+0000\n"
+"PO-Revision-Date: 2026-11-06 14:17+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -2031,14 +2031,12 @@ msgstr "Tēma"
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Library Browser"
-msgstr ""
+msgstr "Bibliotēku pārlūks"
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Reading"
-msgstr " (Transkodēt)"
+msgstr "Lasīšana"
 
 # seeded from jellyfin-web: DownloadManager
 #. Content fetched to this device for offline use. A group heading under
@@ -2052,17 +2050,14 @@ msgstr "Lejupielādes"
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Download Tuning"
-msgstr "Noņemt serveri"
+msgstr "Lejupielādes pieskaņošana"
 
 # seeded from jellyfin-web: OptionPlayCount
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Player Controls"
-msgstr "Atskaņošanu skaits"
+msgstr "Atskaņotāja kontroles"
 
 # seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #. One English word, three places. A group heading on the Playback tab of
@@ -2083,14 +2078,12 @@ msgstr "Subtitri & Valodas"
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
-msgstr ""
+msgstr "Video uzlabojumi"
 
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Meklēt, lai Izlaistu afišas titrus"
+msgstr "Izlaist ievadu/titrus"
 
 # seeded from jellyfin-web: TabAdvanced
 #. Heading of the group in Settings holding every row not sorted into a
@@ -2103,27 +2096,26 @@ msgstr "Papildu"
 #. Playback); stored as "no".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "Izslēgt (programmatūriskā dekodēšana)"
 
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "over-1080p".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "Tikai virs 1080p"
 
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "On"
-msgstr ""
+msgstr "Ieslēgts"
 
 # seeded from jellyfin-web: TabAdvanced
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "auto-copy".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Copy (advanced)"
-msgstr "Papildu"
+msgstr "Kopija (uzlaboti)"
 
 # seeded from jellyfin-web: Off
 #. Choice shared by the "Motion Interpolation", "Debanding" dropdowns
