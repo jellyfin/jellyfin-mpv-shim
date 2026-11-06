@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 15:54+0000\n"
+"PO-Revision-Date: 2026-11-06 16:04+0000\n"
 "Last-Translator: felzeth <felzeth@haru.team>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -45,7 +45,7 @@ msgstr "หน้า %d"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "อ่านแล้ว %d%%"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -537,7 +537,7 @@ msgstr "ค้นหาตามหมายเลขแทร็ก (ควา�
 #. Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never"
-msgstr ""
+msgstr "ไม่เลย"
 
 #. Choice shared by the "Skip Intros", "Skip Credits", "Skip Commercials",
 #. "Skip Previews", "Skip Recaps" dropdowns (Settings > Playback > Skip
@@ -1722,14 +1722,14 @@ msgstr "ระดับ Dolby Vision"
 #. server; several languages keep them as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV rpu preset flag"
-msgstr ""
+msgstr "สถานะข้อมูล RPU ของ Dolby Vision"
 
 #. Row label in the Media Info panel: whether the Dolby Vision enhancement
 #. layer is present. Technical field names taken from the server; several
 #. languages keep them as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV el preset flag"
-msgstr ""
+msgstr "สถานะเลเยอร์เสริม (EL) ของ Dolby Vision"
 
 #. Row label in the Media Info panel: whether the Dolby Vision base layer
 #. is present. Technical field names taken from the server; several
@@ -4406,10 +4406,9 @@ msgstr "ลบเซิร์ฟเวอร์"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for authorization..."
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "กำล้งรอการอนุญาต"
+msgstr "กำลังรอให้ %s เข้าสู่ระบบ…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
@@ -4732,7 +4731,7 @@ msgstr ""
 #. translation sweep put a translation of that word here.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Reasons"
-msgstr ""
+msgstr "สาเหตุ"
 
 #. Heading of a block in the Playback Info panel holding MPV's own
 #. statistics. The player program, not a person.
@@ -7054,17 +7053,15 @@ msgstr ""
 # seeded from jellyfin-web: Connect
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connect"
+#, python-format
 msgid "Connected to %s."
-msgstr "เชื่อมต่อ"
+msgstr "เชื่อมต่อกับ %s แล้ว."
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Contacting the server…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "กำลังติดต่อเซิร์ฟเวอร์…"
+msgstr "กำลังเชื่อมต่อกับ %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7087,10 +7084,9 @@ msgstr ""
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "ไม่สามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ได้"
+msgstr "ไม่สามารถเชื่อมต่อกับ %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7189,13 +7185,13 @@ msgstr "ลบเซิร์ฟเวอร์"
 
 #. Question in the confirmation dialog. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
+#, python-format
 msgid "Remove %s from this playlist?"
 msgstr "ลบ %s ออกจากเพลย์ลิสต์นี้หรือไม่?"
 
 #. Question in the confirmation dialog. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
+#, python-format
 msgid "Remove %s from this collection?"
 msgstr "ลบ %s ออกจากคอลเลกชันนี้หรือไม่?"
 
