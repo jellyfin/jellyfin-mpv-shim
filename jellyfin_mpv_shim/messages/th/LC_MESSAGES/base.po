@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 15:42+0000\n"
+"PO-Revision-Date: 2026-11-06 15:51+0000\n"
 "Last-Translator: felzeth <felzeth@haru.team>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -1611,18 +1611,14 @@ msgstr "%d บิต"
 #. Row label in the Media Info panel: whether the picture is standard
 #. dynamic range or high.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "การตั้งค่าวิดีโอ"
+msgstr "ช่วงวิดีโอ"
 
 #. Row label in the Media Info panel: which high dynamic range system the
 #. video uses, such as HDR10 or Dolby Vision.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "ประเภทย่อยโปรไฟล์วิดีโอ"
+msgstr "ประเภทช่วงวิดีโอ"
 
 # seeded from jellyfin-web: ColorSpace
 #. Row label in the Media Info panel: the colour space the video is encoded
@@ -1635,31 +1631,31 @@ msgstr "ปริภูมิสี"
 #. relating stored values to light.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color transfer"
-msgstr ""
+msgstr "การถ่ายโอนสี"
 
 #. Row label in the Media Info panel: which red, green and blue the
 #. encoding is measured against.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color primaries"
-msgstr ""
+msgstr "แม่สี"
 
 #. Row label in the Media Info panel: how the pixels are laid out in
 #. memory, such as yuv420p.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Pixel format"
-msgstr ""
+msgstr "รูปแบบพิกเซล"
 
 #. Row label in the Media Info panel: how many earlier frames the codec may
 #. refer back to. Short for "reference frames".
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Ref frames"
-msgstr ""
+msgstr "จำนวนเฟรมอ้างอิง"
 
 #. Row label in the Media Info panel: how far the picture must be turned to
 #. be upright, in degrees.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Rotation"
-msgstr ""
+msgstr "การหมุน"
 
 #. Flag row in the Media Info panel, marking the stream a player picks when
 #. the viewer has expressed no preference. Split from the settings dropdown
