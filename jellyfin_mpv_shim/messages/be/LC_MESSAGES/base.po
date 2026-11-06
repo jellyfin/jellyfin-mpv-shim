@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:05+0000\n"
+"PO-Revision-Date: 2026-11-06 10:08+0000\n"
 "Last-Translator: \"AntV@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -626,10 +626,9 @@ msgstr "Пасярэдзіне"
 #. placeholder including the colon and the formatting after it, or the app
 #. raises when it draws this line.
 #: jellyfin_mpv_shim/menu.py
-#, fuzzy, python-brace-format
-#| msgid "Remote Transcode Quality: {0:0.1f} Mbps"
+#, python-brace-format
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Якасць дыстанцыйнага перакадзіравання: {0:0,1f} Мбіт/с"
+msgstr "Якасць дыстанцыйнага перакадзіравання: {0:0.1f} Мбіт/с"
 
 #. Entry on the in-player Video Preferences menu, showing the current
 #. setting. {0} is one of Tiny, Small, Normal, Large, Huge.
@@ -6928,10 +6927,8 @@ msgstr ""
 #. typed, in the Users settings. These are this application's own profiles,
 #. each with its own servers, not Jellyfin accounts.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Імя карыстальніка: "
+msgstr "Імя новага карыстальніка…"
 
 #. Button in the Users settings that creates a new local profile. An
 #. imperative verb phrase.
@@ -7048,10 +7045,9 @@ msgstr ""
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "Аўтапрайграванне"
+msgstr "Падключэнне да %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7668,10 +7664,9 @@ msgstr "{0} сышоў."
 #. Shown over the video while somebody in the watch-together group is still
 #. loading, so everyone waits. {0} is their name.
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} буферызуе."
+msgstr "{0} буферызуе…"
 
 #. Warning shown when no tray icon could be created on GNOME. The quoted
 #. extension name is how it appears in the GNOME extensions site; leave it
