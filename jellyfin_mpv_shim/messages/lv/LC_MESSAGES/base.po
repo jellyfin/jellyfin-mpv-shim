@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 13:59+0000\n"
+"PO-Revision-Date: 2026-11-06 14:12+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -1727,26 +1727,22 @@ msgstr "Laiks"
 #. Row label in the Media Info panel. "DV" is Dolby Vision; the
 #. abbreviation is normally kept.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "DV title"
-msgstr "Subtitru izmērs: {0}"
+msgstr "DV tips"
 
 # seeded from jellyfin-web: LabelVersion
 #. Row label in the Media Info panel: the major part of the Dolby Vision
 #. version number.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version major"
-msgstr "Versija"
+msgstr "DV versija"
 
 # seeded from jellyfin-web: LabelVersion
 #. Row label in the Media Info panel: the minor part of the Dolby Vision
 #. version number.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV version minor"
-msgstr "Versija"
+msgstr "DV apakšversija"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #. Row label in the Media Info panel: which Dolby Vision profile the video
@@ -1800,16 +1796,14 @@ msgstr "DV bl signāla saderības id"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f Mbps"
-msgstr ""
+msgstr "%.1f Mbps"
 
 #. How the video is reaching this device: the server is sending the
 #. original file untouched. Shown on the playback information panel.
 #. Jellyfin Web uses the same four words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "Tiešie ceļi"
+msgstr "Nekonvertēta atskaņošana"
 
 # seeded from jellyfin-web: DirectStreaming
 #. How the video is reaching this device: the server is repackaging the
@@ -1833,10 +1827,8 @@ msgstr "Transformācija"
 #. re-encoding this video right now.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Transkodēt)"
+msgstr "Transkodēšana"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #. One reason the server gives for having to re-encode, listed on the
