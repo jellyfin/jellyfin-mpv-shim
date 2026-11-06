@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:53+0000\n"
+"PO-Revision-Date: 2026-11-06 10:58+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -4769,10 +4769,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "Налады SVP"
+msgstr "Налады"
 
 #. Tooltip of the button on the playback controls that fills the screen
 #. with the video.
@@ -4812,10 +4810,8 @@ msgstr ""
 #. Question in the dialog confirming a scheduled recording is to be called
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "Configure Servers"
 msgid "Cancel recording?"
-msgstr "Наладзіць серверы"
+msgstr "Скасаваць запіс?"
 
 #. Status message confirming a scheduled recording was called off.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -4916,10 +4912,8 @@ msgstr "Выдаліць спампаваную копію %s?"
 #. Title of the dialog that removes a downloaded copy from this device.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Delete Download"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаліць спампоўку"
 
 #. Confirming button of a dialog that removes something for good: a
 #. downloaded copy, a playlist, a local profile. An imperative verb.
@@ -5133,10 +5127,8 @@ msgstr ""
 #. Choice in the "Sort channels by" dropdown of Guide Settings: order
 #. channels by the number the provider gives them.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Channel number"
-msgstr "Змяніць субцітры"
+msgstr "Нумар канала"
 
 #. Choice in the "Sort channels by" dropdown of Guide Settings: put the
 #. channels watched most recently first.
@@ -5349,20 +5341,16 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Remove from favorites"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаліць з абранага"
 
 #. Button that marks an item, channel or track as a favourite. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to favorites"
-msgstr "Аўтапрайграванне"
+msgstr "Дадаць в абранае"
 
 #. Tooltip of the loop button on the now-playing bar, in the state where
 #. nothing repeats. A verb, and the family word behind "Repeat all" and
@@ -5410,10 +5398,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to play queue"
-msgstr "Аўтапрайграванне"
+msgstr "Дадаць у чаргу прайгравання"
 
 #. Button on a book or audiobook's page that marks it as read or listened
 #. to, drawn ticked when it already is. It replaces "Watched", which is
@@ -5599,10 +5585,8 @@ msgstr ""
 #. Choice in a library's Sort dropdown: order items by when they were last
 #. watched.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Date Played"
-msgstr "Аўтапрайграванне"
+msgstr "Дата прайгравання"
 
 #. Choice in a library's Sort dropdown: order items by how many times they
 #. have been watched.
@@ -5663,10 +5647,8 @@ msgstr ""
 #. groups of related items. Also a row heading on the Favorites page.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Collections"
-msgstr "Аўтапрайграванне"
+msgstr "Калекцыі"
 
 #. Button above a library grid that opens the filter panel, when filters
 #. are set. %d is how many are set.
@@ -6135,10 +6117,8 @@ msgstr ""
 #. on its edit page. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Імя карыстальніка:"
+msgstr "Перайменаваць"
 
 #. Checkbox on the playlist editor. When on, other users of the server can
 #. see this playlist.
