@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 15:31+0000\n"
+"PO-Revision-Date: 2026-11-06 15:39+0000\n"
 "Last-Translator: felzeth <felzeth@haru.team>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -1532,13 +1532,13 @@ msgstr "อัตราส่วน"
 #. squeezed and stretched back out on playback.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Anamorphic"
-msgstr ""
+msgstr "ภาพบีบอัดตามสัดส่วน"
 
 #. Row label in the Media Info panel: whether the video is stored as
 #. interlaced fields rather than whole frames.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Interlaced"
-msgstr ""
+msgstr "การแสดงภาพแบบสลับเส้น"
 
 # seeded from jellyfin-web: Framerate
 #. Row label in the Media Info panel: how many frames a second the video
@@ -1546,13 +1546,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Framerate"
-msgstr "เฟรมเรต"
+msgstr "อัตราเฟรม"
 
 #. Row label in the Media Info panel: how the audio channels are arranged,
 #. such as 5.1.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Layout"
-msgstr ""
+msgstr "เลย์เอาต์"
 
 # seeded from jellyfin-web: Channels
 #. Row label in the Media Info panel: how many audio channels the track
@@ -1568,26 +1568,26 @@ msgstr "ช่อง"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d ch"
-msgstr ""
+msgstr "%d ช่อง"
 
 #. Row label in the Media Info panel: how much data a second this stream
 #. uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bitrate"
-msgstr ""
+msgstr "บิตเรท"
 
 #. Value of the Bitrate row in the Media Info panel. Kilobits per second;
 #. the unit is normally left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d กิโลบิต"
 
 #. Row label in the Media Info panel: how many audio samples a second, such
 #. as 48 kHz.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Sample rate"
-msgstr ""
+msgstr "อัตราการสุ่มตัวอย่าง"
 
 #. Value of the Sample rate row in the Media Info panel. Hertz; the unit is
 #. normally left as-is.
