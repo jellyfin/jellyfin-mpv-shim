@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 13:31+0000\n"
+"PO-Revision-Date: 2026-11-06 13:32+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -1153,7 +1153,7 @@ msgstr "Gaidu apstiprinājumu…"
 #. Error shown when the Quick Connect code expired or was refused.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "Quick Connect neizdevās (atcelts vai termiņš beidzies)."
 
 #. Error shown on the Sign In Again page when the address typed there
 #. belongs to a different Jellyfin server than the saved one being signed
