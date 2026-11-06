@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 15:16+0000\n"
+"PO-Revision-Date: 2026-11-06 15:25+0000\n"
 "Last-Translator: felzeth <stible56789@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -1367,7 +1367,7 @@ msgstr "ฉาก"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr ""
+msgstr "ตัวอย่าง"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
@@ -1375,7 +1375,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr ""
+msgstr "คลิป"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1383,27 +1383,27 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "หนังสั้น"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "ยังไม่ได้ออกอากาศ"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "ขาดหาย"
 
 #. Heading over the video stream's rows in the Media Info panel. A stream
 #. kind, alongside Audio, Subtitle, Lyric and Image.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Video"
-msgstr ""
+msgstr "วิดีโอ"
 
 # seeded from jellyfin-web: Audio
 #. One English word, three places. A group heading on the Playback tab of
@@ -1420,62 +1420,56 @@ msgstr "เสียง"
 #. kind, singular.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "ขนาดคำบรรยาย: {0}"
+msgstr "คำบรรยาย"
 
 #. Heading over a lyrics stream's rows in the Media Info panel. A stream
 #. kind, singular: the timed words of a song.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Lyric"
-msgstr ""
+msgstr "เนื้อเพลง"
 
 #. Heading over an embedded image stream's rows in the Media Info panel,
 #. such as cover art inside an audio file. A stream kind, singular.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Image"
-msgstr ""
+msgstr "รูปภาพ"
 
 #. Row label in the Media Info panel: the file format wrapping the streams,
 #. such as MKV or MP4.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Container"
-msgstr ""
+msgstr "คอนเทนเนอร์"
 
 #. Row label in the Media Info panel, listing the formats the file also
 #. identifies as.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "ปกติ"
+msgstr "รูปแบบ"
 
 #. Row label in the Media Info panel: where the file sits on the server's
 #. disk.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Path"
-msgstr ""
+msgstr "เส้นทาง"
 
 #. Row label in the Media Info panel: how large the file is on disk.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Size"
-msgstr ""
+msgstr "ขนาด"
 
 #. Value of a yes/no row in the Media Info panel, such as Anamorphic or
 #. Interlaced.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Yes"
-msgstr ""
+msgstr "ใช่"
 
 #. Value of a yes/no row in the Media Info panel, such as Anamorphic or
 #. Interlaced.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "ไม่มี"
+msgstr "ไม่"
 
 # seeded from jellyfin-web: LabelTitle
 #. Two uses. A row in the Media Info panel giving the name a stream
@@ -1494,33 +1488,31 @@ msgstr "ชื่อเรื่อง"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Language"
-msgstr ""
+msgstr "ภาษา"
 
 #. Row label in the Media Info panel: the compression format of this
 #. stream, such as H264 or AAC.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Codec"
-msgstr ""
+msgstr "ตัวแปลง"
 
 #. Row label in the Media Info panel: the four-character code the container
 #. files this codec under.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Codec tag"
-msgstr ""
+msgstr "แท็กตัวแปลง"
 
 #. Row label in the Media Info panel: the codec profile, such as High or
 #. Main 10.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "สร้างกลุ่มใหม่"
+msgstr "โปรไฟล์"
 
 #. Row label in the Media Info panel: the codec level, a number bounding
 #. resolution and bitrate.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Level"
-msgstr ""
+msgstr "ระดับ"
 
 #. Row label in the Media Info panel: the picture size in pixels, shown as
 #. width by height.
