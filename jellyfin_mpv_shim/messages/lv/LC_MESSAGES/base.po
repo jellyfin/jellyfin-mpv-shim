@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 13:11+0000\n"
+"PO-Revision-Date: 2026-11-06 13:19+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -992,24 +992,24 @@ msgstr "Saglabāt"
 #. wrongly.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "Ievadītais PIN nav pareizs."
 
 #. Error in the Set PIN dialog when the new-passcode field was left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Ievadiet jauno PIN."
 
 #. Error in the Set PIN dialog when the passcode and its confirmation
 #. differ.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "PIN abos laukos nesakrīt."
 
 #. Error in the Set PIN dialog when the server refused to take the passcode
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "PIN nevar noņemt."
 
 #. Error in the Set PIN dialog when the server refused to store the
 #. passcode.
