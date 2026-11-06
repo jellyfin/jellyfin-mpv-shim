@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:05+0000\n"
+"PO-Revision-Date: 2026-11-06 11:13+0000\n"
 "Last-Translator: felzeth <stible56789@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -754,7 +754,7 @@ msgstr "ข้ามความเดิม"
 #. while seeking.
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
-msgstr "เปิดใช้งานการแสดงตัวอย่างภาพขนาดย่อ"
+msgstr "เปิดใช้งานภาพตัวอย่าง"
 
 #. Evens out loud effects against quiet dialogue. A toggle on the in-player
 #. Player Preferences menu, the settings menu of the playback controls, and
@@ -763,7 +763,7 @@ msgstr "เปิดใช้งานการแสดงตัวอย่า
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr "โหมดกลางคืน (ปรับเสียงอัตโนมัติ)"
+msgstr "โหมดกลางคืน (ปรับระดับเสียงอัตโนมัติ)"
 
 #. Title of the screen shown when the application is locked behind a
 #. passcode.
@@ -837,14 +837,14 @@ msgstr "ไม่สามารถบันทึกการเปลี่ย
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Live TV"
-msgstr ""
+msgstr "ทีวีถ่ายทอดสด"
 
 #. Status message naming what was just picked, when picking it does not
 #. open anything. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "เลือก: %s"
 
 #. Shown in a dialog or page while its content is being fetched from the
 #. server.
@@ -854,27 +854,27 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "กำลังโหลด…"
 
 #. Status message when starting an item failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "ไม่สามารถเริ่มเล่นสื่อได้"
 
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Nothing is downloaded to browse offline."
-msgstr ""
+msgstr "ไม่มีเนื้อหาที่ดาวน์โหลดไว้สำหรับรับชมแบบออฟไลน์"
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "คิวการเล่น"
 
 #. Button that tries a failed operation again: reaching a server at
 #. startup, an offline banner, a page that would not load, an item that
@@ -895,6 +895,7 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"ไม่สามารถเริ่มระบบใหม่โดยอัตโนมัติได้ กรุณาปิดและเปิดแอปอีกครั้งเพื่อใช้การเปลี่ยนแปลง"
 
 #. Status message when a retry after a connection failure also failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
@@ -906,14 +907,14 @@ msgstr "ยังคงไม่สามารถเชื่อมต่อเ
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "เปลี่ยนเป็น %s"
 
 #. Placeholder in the empty field where a numeric passcode is typed, on the
 #. switch-user and lock screens. The abbreviation is widely kept as-is; use
 #. whatever word the local Jellyfin apps use for a numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "รหัส"
 
 # seeded from jellyfin-web: ButtonCancel
 #. Button that dismisses a dialog without doing what it asked about. The
