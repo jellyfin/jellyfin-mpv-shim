@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 13:53+0000\n"
+"PO-Revision-Date: 2026-11-06 13:59+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -1705,10 +1705,8 @@ msgstr "Noklusējums"
 #. shown even when subtitles are off, such as translations of on-screen
 #. signs.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " Piespiedu"
+msgstr "Piespiedu"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #. Flag row in the Media Info panel, marking a stream that lives in a
