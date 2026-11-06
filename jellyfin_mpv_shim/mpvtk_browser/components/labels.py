@@ -323,6 +323,11 @@ _TYPE_GLYPHS = {
     # Beyond web's list, and consistent with it: a Trailer is a video and
     # a MusicVideo has its own icon in the library map.
     "Trailer": "theaters",
+    # A chapter tile the server has no frame for. Chapter titles are "Chapter
+    # 1", "Chapter 2": the initial drew a wall of "C", which says nothing. A
+    # neutral video mark does, and the title and time under the tile already
+    # tell the scenes apart.
+    "Chapter": "videocam",
     "MusicVideo": "music_video",
     # web has no AudioBook arm, but one IS an Audio item, and this is the
     # case the table was originally written for: an author folder of three

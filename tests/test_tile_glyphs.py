@@ -82,6 +82,15 @@ class GlyphMapTest(unittest.TestCase):
             labels.placeholder_glyph({"Type": "AudioBook",
                                       "Name": "The Hobbit"}), "audiotrack")
 
+    def test_a_chapter_without_a_frame_is_not_a_letter(self):
+        """Untitled chapters are all "Chapter N", so the initial drew a row
+        of identical "C" tiles."""
+        for name in ("Chapter 1", "Chapter 2", "Opening"):
+            with self.subTest(name):
+                self.assertEqual(
+                    labels.placeholder_glyph({"Type": "Chapter",
+                                              "Name": name}), "videocam")
+
     def test_an_unknown_type_still_falls_back(self):
         self.assertEqual(
             labels.placeholder_glyph({"Type": "Nonesuch", "Name": "Zebra"}),
