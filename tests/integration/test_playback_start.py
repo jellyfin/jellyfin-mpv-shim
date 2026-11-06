@@ -742,5 +742,128 @@ class FullscreenIntentTest(unittest.TestCase):
                          "by the next start")
 
 
+class StartupVolumeSeedTest(unittest.TestCase):
+    """#768: a volume in mpv.conf is the launch default, not a suggestion.
+
+    Before this fix the first playback overwrote mpv.conf's volume with
+    the persisted per-type volume: ``volume=50`` in mpv.conf, a restart,
+    and the first film still played at 100 (or whatever the last session
+    left), because ``_play_media`` wrote the persisted value before the
+    file was handed over. The seed below runs once, at startup, so the
+    first playback applies the launch volume and only then do the
+    per-type buckets take over for the rest of the session.
+
+    The fake's live volume is set through ``__dict__`` on purpose: a
+    normal assignment is a shim write on the journal, and the point here
+    is what mpv itself reported at construction, not what the shim wrote.
+    """
+
+    def _set_live_volume(self, pm, value):
+        pm._player.__dict__["volume"] = value
+
+    def _start(self, pm, video=None):
+        timer = threading.Timer(
+            0.05, lambda: pm._player.fire_property("duration", 100.0))
+        timer.daemon = True
+        timer.start()
+        self.addCleanup(timer.cancel)
+        with mock.patch.object(player_module.settings,
+                               "playback_timeout", 2):
+            pm._play_media(video or make_video(),
+                           "http://example.invalid/s.mkv",
+                           is_initial_play=True)
+
+    def test_mpv_conf_volume_seeds_both_buckets_and_first_play_uses_it(self):
+        pm = build(test=self)
+        self._set_live_volume(pm, 50)
+        with mock.patch.object(player_module.settings,
+                               "music_volume", 40), \
+                mock.patch.object(player_module.settings,
+                                  "video_volume", 90), \
+                mock.patch.object(player_module, "volume_pinned_by_config",
+                                  return_value=None):
+            pm._seed_startup_volume()
+            self.assertEqual(player_module.settings.music_volume, 50)
+            self.assertEqual(player_module.settings.video_volume, 50)
+            self._start(pm)
+            pm.journal.order("mpv.set:volume=50", "mpv.play")
+            self.assertEqual(pm._player.volume, 50)
+
+    def test_default_live_volume_with_no_pin_leaves_persisted_alone(self):
+        # mpv's default is 100, and 100 is indistinguishable from "the
+        # user wrote volume=100". Seeding it would clobber a remembered
+        # 90 with the default, which is the bug in reverse, so no pin
+        # and a default live volume mean: leave the buckets alone.
+        pm = build(test=self)
+        self._set_live_volume(pm, 100)
+        with mock.patch.object(player_module.settings,
+                               "music_volume", 40), \
+                mock.patch.object(player_module.settings,
+                                  "video_volume", 90), \
+                mock.patch.object(player_module, "volume_pinned_by_config",
+                                  return_value=None):
+            pm._seed_startup_volume()
+            self.assertEqual(player_module.settings.music_volume, 40)
+            self.assertEqual(player_module.settings.video_volume, 90)
+            self._start(pm)
+            self.assertEqual(pm._player.volume, 90)
+
+    def test_an_explicit_100_pin_seeds_even_over_persisted(self):
+        # The one case the live-volume heuristic cannot see: the pin in
+        # the file is the tie-breaker, so an explicit 100 still wins.
+        pm = build(test=self)
+        self._set_live_volume(pm, 100)
+        with mock.patch.object(player_module.settings,
+                               "music_volume", 40), \
+                mock.patch.object(player_module.settings,
+                                  "video_volume", 90), \
+                mock.patch.object(player_module, "volume_pinned_by_config",
+                                  return_value=100):
+            pm._seed_startup_volume()
+            self.assertEqual(player_module.settings.music_volume, 100)
+            self.assertEqual(player_module.settings.video_volume, 100)
+            self._start(pm)
+            self.assertEqual(pm._player.volume, 100)
+
+    def test_seed_runs_once_not_once_per_mpv_reopen(self):
+        # A re-open (idle-quit, crash recovery) is not a launch: a volume
+        # the user changed mid-session must not snap back to mpv.conf's
+        # value when mpv is rebuilt under them.
+        pm = build(test=self)
+        self._set_live_volume(pm, 50)
+        with mock.patch.object(player_module.settings,
+                               "music_volume", 40), \
+                mock.patch.object(player_module.settings,
+                                  "video_volume", 90), \
+                mock.patch.object(player_module, "volume_pinned_by_config",
+                                  return_value=None):
+            pm._seed_startup_volume()
+            self.assertEqual(player_module.settings.video_volume, 50)
+            self._set_live_volume(pm, 80)
+            with mock.patch.object(player_module,
+                                  "volume_pinned_by_config",
+                                  return_value=80):
+                pm._seed_startup_volume()
+            self.assertEqual(player_module.settings.video_volume, 50)
+
+    def test_an_unreadable_live_volume_seeds_nothing_and_raises_nothing(self):
+        class GonePlayer:
+            @property
+            def volume(self):
+                raise RuntimeError("mpv gone")
+
+        pm = build(test=self)
+        pm._player = GonePlayer()
+        with mock.patch.object(player_module.settings,
+                               "music_volume", 40), \
+                mock.patch.object(player_module.settings,
+                                  "video_volume", 90), \
+                mock.patch.object(player_module, "volume_pinned_by_config",
+                                  return_value=None):
+            pm._seed_startup_volume()  # must not raise
+            self.assertEqual(player_module.settings.music_volume, 40)
+            self.assertEqual(player_module.settings.video_volume, 90)
+
+
 if __name__ == "__main__":
     unittest.main()

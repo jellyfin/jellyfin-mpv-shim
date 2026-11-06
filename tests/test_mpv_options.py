@@ -658,3 +658,73 @@ class HwdecConfigPinTest(SettingsCase):
         with mock.patch("jellyfin_mpv_shim.conffile.get",
                         side_effect=OSError("gone")):
             self.assertIsNone(mpv_options.hwdec_pinned_by_config())
+
+
+class VolumeConfigPinTest(SettingsCase):
+    """The ``volume`` a user's own mpv.conf sets, for #768.
+
+    The bug is the mirror of the hwdec pin above: mpv.conf's volume is
+    the launch default, but the first playback overwrote it with the
+    persisted per-type volume, so a user who wrote ``volume=50`` into
+    mpv.conf heard 100 (or whatever the last session left) instead.
+    The seed in ``player`` reads this pin, so the pin itself has to be
+    pinned down here: top-level only, comments ignored, ``50.0`` read
+    as 50, an unparseable value read as no pin at all.
+    """
+
+    def _with_conf(self, text):
+        import os
+        d = _tmpdirs.tmpdir("jms-mpvopts-")
+        path = os.path.join(d, "mpv.conf")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        return mock.patch("jellyfin_mpv_shim.conffile.get",
+                          return_value=path)
+
+    def test_no_pin_when_the_file_says_nothing(self):
+        with self._with_conf("# nothing here\nhwdec=vaapi\n"):
+            self.assertIsNone(mpv_options.volume_pinned_by_config())
+
+    def test_the_last_parseable_setting_wins(self):
+        # mpv's own precedence: a later setting overrides an earlier one.
+        with self._with_conf("volume=30\nvolume=50\n"):
+            self.assertEqual(mpv_options.volume_pinned_by_config(), 50)
+
+    def test_an_unparseable_value_is_ignored_not_a_veto(self):
+        with self._with_conf("volume=loud\nvolume=50\n"):
+            self.assertEqual(mpv_options.volume_pinned_by_config(), 50)
+        with self._with_conf("volume=50\nvolume=loud\n"):
+            self.assertEqual(mpv_options.volume_pinned_by_config(), 50)
+
+    def test_a_plain_setting_pins_as_an_int(self):
+        with self._with_conf("volume=50\n"):
+            self.assertEqual(mpv_options.volume_pinned_by_config(), 50)
+
+    def test_a_float_setting_pins_as_an_int(self):
+        # What the #768 reporter actually wrote.
+        with self._with_conf("volume=50.0\n"):
+            self.assertEqual(mpv_options.volume_pinned_by_config(), 50)
+
+    def test_spacing_dashes_and_quotes(self):
+        for line in ('volume = 75', '--volume=75', 'volume="75"',
+                     "volume='75'", 'volume=75   # why not'):
+            with self._with_conf(line + "\n"):
+                self.assertEqual(mpv_options.volume_pinned_by_config(),
+                                 75, line)
+
+    def test_a_commented_out_line_is_not_a_pin(self):
+        with self._with_conf("#volume=50\n"):
+            self.assertIsNone(mpv_options.volume_pinned_by_config())
+
+    def test_a_profile_section_is_not_a_pin(self):
+        with self._with_conf("hwdec=vaapi\n\n[hq]\nvolume=50\n"):
+            self.assertIsNone(mpv_options.volume_pinned_by_config())
+
+    def test_an_unparseable_value_is_not_a_pin(self):
+        with self._with_conf("volume=loud\n"):
+            self.assertIsNone(mpv_options.volume_pinned_by_config())
+
+    def test_an_unreadable_config_is_not_a_pin(self):
+        with mock.patch("jellyfin_mpv_shim.conffile.get",
+                        side_effect=OSError("gone")):
+            self.assertIsNone(mpv_options.volume_pinned_by_config())
