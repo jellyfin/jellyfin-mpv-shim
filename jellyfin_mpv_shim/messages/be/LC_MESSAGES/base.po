@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:05+0000\n"
+"PO-Revision-Date: 2026-11-06 11:13+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -1278,7 +1278,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Remove Download"
-msgstr "Выдаліць спампоўку"
+msgstr "Прыбраць спампоўку"
 
 #. Button on an item's page that marks it as watched, drawn ticked when it
 #. already is. Must not read the same as "Watch": in one language it did,
@@ -4270,7 +4270,7 @@ msgstr ""
 #. together group. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Leave"
-msgstr "Выйсці"
+msgstr "Пакінуць"
 
 #. Button that fetches something again: the SyncPlay group list, the
 #. downloads list, and the log. An imperative verb.
