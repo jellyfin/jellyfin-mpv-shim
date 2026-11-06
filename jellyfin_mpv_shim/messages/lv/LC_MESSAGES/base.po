@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 13:41+0000\n"
+"PO-Revision-Date: 2026-11-06 13:53+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -1273,7 +1273,7 @@ msgstr "Izdzēst šo lejupielādi"
 #. and the play button came out saying "Seen".
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Watched"
-msgstr "Noskatits"
+msgstr "Noskatīts"
 
 # seeded from jellyfin-web: Favorite
 #. Tooltip of the heart button that marks what is playing or being viewed
@@ -1290,10 +1290,8 @@ msgstr "Izlasē"
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "Atjaunināt"
+msgstr "Atjaunināt metadatus"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -1302,7 +1300,7 @@ msgstr "Atjaunināt"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Izdzēst no servera"
 
 #. Button on a film's, episode's, show's or season's page that opens a short
 #. menu of less common actions (refresh metadata, delete from disk). Means
@@ -1321,10 +1319,8 @@ msgstr "Atsevišķais saturs"
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "Neizdevās"
+msgstr "Treileris"
 
 # seeded from jellyfin-web: LabelWeb
 #. Button on an item's page that opens the same item in Jellyfin's browser
@@ -1408,14 +1404,14 @@ msgstr "Īsfilma"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Drīzumā"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Nav pieejams"
 
 # seeded from jellyfin-web: Video
 #. Heading over the video stream's rows in the Media Info panel. A stream
@@ -1439,10 +1435,8 @@ msgstr "Audio"
 #. kind, singular.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Subtitru izmērs: {0}"
+msgstr "Subtitri"
 
 # seeded from jellyfin-web: Lyric
 #. Heading over a lyrics stream's rows in the Media Info panel. A stream
@@ -1468,10 +1462,8 @@ msgstr "Konteiners"
 #. Row label in the Media Info panel, listing the formats the file also
 #. identifies as.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "Normāls"
+msgstr "Formāts"
 
 # seeded from jellyfin-web: LabelPath
 #. Row label in the Media Info panel: where the file sits on the server's
@@ -1496,10 +1488,8 @@ msgstr "Jā"
 #. Interlaced.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "Nav"
+msgstr "Nē"
 
 # seeded from jellyfin-web: LabelTitle
 #. Two uses. A row in the Media Info panel giving the name a stream
@@ -1538,10 +1528,8 @@ msgstr "Kodeka birka"
 #. Row label in the Media Info panel: the codec profile, such as High or
 #. Main 10.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "Jauna grupa"
+msgstr "Profils"
 
 # seeded from jellyfin-web: LabelLevel
 #. Row label in the Media Info panel: the codec level, a number bounding
@@ -1608,7 +1596,7 @@ msgstr "Kanāli"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d ch"
-msgstr ""
+msgstr "%d celiņi"
 
 # seeded from jellyfin-web: LabelBitrate
 #. Row label in the Media Info panel: how much data a second this stream
@@ -1622,7 +1610,7 @@ msgstr "Bitu ātrums"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d kbps"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #. Row label in the Media Info panel: how many audio samples a second, such
@@ -1636,7 +1624,7 @@ msgstr "Izlases ātrums"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d Hz"
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #. Row label in the Media Info panel: how many bits each sample or colour
@@ -1649,23 +1637,19 @@ msgstr "Bitu dziļums"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d bit"
 
 #. Row label in the Media Info panel: whether the picture is standard
 #. dynamic range or high.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "Video iestatījumi"
+msgstr "Dinamiskais diapazons"
 
 #. Row label in the Media Info panel: which high dynamic range system the
 #. video uses, such as HDR10 or Dolby Vision.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "Video profila apakštips"
+msgstr "Dinamiskā diapazona tips"
 
 # seeded from jellyfin-web: ColorSpace
 #. Row label in the Media Info panel: the colour space the video is encoded
@@ -1678,13 +1662,13 @@ msgstr "Krāsu telpa"
 #. relating stored values to light.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color transfer"
-msgstr ""
+msgstr "Krāsu pārneses funkcija"
 
 #. Row label in the Media Info panel: which red, green and blue the
 #. encoding is measured against.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color primaries"
-msgstr ""
+msgstr "Pamatkrāsas"
 
 # seeded from jellyfin-web: MediaInfoPixelFormat
 #. Row label in the Media Info panel: how the pixels are laid out in
