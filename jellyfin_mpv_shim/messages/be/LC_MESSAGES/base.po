@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:16+0000\n"
+"PO-Revision-Date: 2026-11-06 11:29+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -5162,15 +5162,13 @@ msgstr ""
 #. holding how channels are sorted and which badges are shown.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Guide Settings"
-msgstr "Налады SVP"
+msgstr "Налады тэлегіда"
 
 #. Error shown when Guide Settings could not be written to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Guide settings could not be saved."
-msgstr ""
+msgstr "Не ўдалося захаваць налады тэлегіда."
 
 #. Checkbox in Guide Settings: badge programmes broadcast in high
 #. definition. American spelling of "programmes".
@@ -5248,7 +5246,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgctxt "guide badge"
 msgid "Repeat"
-msgstr ""
+msgstr "Паўтор"
 
 #. Heading over recordings whose air date is unknown, in a list otherwise
 #. grouped by day.
@@ -5734,7 +5732,7 @@ msgstr ""
 #. time. A television listings grid.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Guide"
-msgstr ""
+msgstr "Тэлегід"
 
 #. Name of a tab on the Live TV page, listing the channels available. A
 #. plural noun. Two other uses of this English word carry contexts: a form
@@ -5785,7 +5783,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgctxt "guide navigation"
 msgid "Later"
-msgstr ""
+msgstr "Пазней"
 
 #. Tooltip of the button that moves the Live TV guide forward one day.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -5933,7 +5931,7 @@ msgstr "Выдаліць сервер"
 #. Shown on a channel's page when the server has no listings for it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
-msgstr ""
+msgstr "Для гэтага канала няма даных тэлегіда."
 
 #. Caption on a channel's page, saying how many upcoming programmes are
 #. listed. American spelling of "programmes".
