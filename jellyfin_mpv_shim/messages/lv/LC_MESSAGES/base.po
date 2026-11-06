@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 14:17+0000\n"
+"PO-Revision-Date: 2026-11-06 14:22+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -2129,51 +2129,50 @@ msgstr "Izslēgts"
 #. Video Enhancement); stored as "smooth".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Pludena kustība"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #. Choice in the "Motion Interpolation" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "blend".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Blend Frames"
-msgstr "Atskaites kadri"
+msgstr "Kadru sapludināšana"
 
 #. Choice in the "Motion Interpolation" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "hq".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Pludeni (augstas kvalitātes)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "light".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Viegla (tiešraides)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "standard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Standarta (animācija)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "strong".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Stipra"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (MPV decides)"
-msgstr ""
+msgstr "Automātiska (MPV noteikta)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2390".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 (atsauce)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2446a".
