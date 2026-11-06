@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:36+0000\n"
+"PO-Revision-Date: 2026-11-06 10:38+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -2669,10 +2669,8 @@ msgstr ""
 #. Label of the checkbox for the "auto_download_delete_watched" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Аўтапрайграванне"
+msgstr "Выдаляць аўтаматычныя спампоўкі пасля прагляду"
 
 #. Settings label, Browse tab, Downloads group. A number of hours an
 #. automatically downloaded episode is kept after you finish watching it,
@@ -2967,10 +2965,8 @@ msgstr "Профілі прайгравання відэа"
 #. Label of the dropdown for the "shader_pack_subtype" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "Новая група"
+msgstr "Група профіляў"
 
 #. Label of the checkbox for the "shader_pack_remember" setting (Settings >
 #. Playback > Video Enhancement).
