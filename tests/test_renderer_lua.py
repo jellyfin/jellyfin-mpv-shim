@@ -120,6 +120,39 @@ class TestRendererLua(unittest.TestCase):
                       env=self._session_env(DISPLAY=":0",
                                             JMS_TEST_OBSERVE="1")))
 
+    def _tick_case(self, expect_ms, diag=True, tick=None):
+        env = self._session_env(DISPLAY=":0",
+                                JMS_TEST_EXPECT_TICK_MS=str(expect_ms))
+        for k in ("JMS_FRAME_DIAG", "JMS_TICK_MS"):
+            env.pop(k, None)
+        if diag:
+            env["JMS_FRAME_DIAG"] = "1"
+        if tick is not None:
+            env["JMS_TICK_MS"] = tick
+        self._assert_suite_passed(self._run("test_tick_override.lua", env=env))
+
+    def test_the_frame_floor_is_30ms_by_default(self):
+        self._tick_case(30, diag=False)
+        self._tick_case(30)
+
+    def test_the_tick_override_needs_the_frame_diagnostics(self):
+        """JMS_TICK_MS alone must not change production cadence."""
+        self._tick_case(30, diag=False, tick="16.7")
+        self._tick_case(30, diag=False, tick="50")
+
+    def test_a_valid_tick_override_replaces_the_floor(self):
+        for tick, want in (("16.7", 16.7), ("20", 20), ("5", 5),
+                           ("100", 100), ("45.5", 45.5)):
+            with self.subTest(tick=tick):
+                self._tick_case(want, tick=tick)
+
+    def test_an_invalid_tick_override_leaves_the_floor_at_30ms(self):
+        for tick in ("0", "-20", "4.9", "100.1", "5000", "nan", "inf",
+                     "-inf", "1e1", "0x14", "", " ", "abc", "20ms", "1.2.3",
+                     ".5", "-"):
+            with self.subTest(tick=tick):
+                self._tick_case(30, tick=tick)
+
     def test_every_image_overlay_stays_inside_its_image(self):
         """A seeded sweep of scene images at fractional positions, behind
         scrolls, layers and occluders, and scaled: every overlay-add must

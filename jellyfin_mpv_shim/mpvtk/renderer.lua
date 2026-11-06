@@ -630,7 +630,9 @@ local render  -- fwd
 -- the mitigation anyway.
 local function active_tick()
     local pace = state.rcost / state.render_duty
-    if pace < TICK then return TICK end
+    -- state.tick_diag is nil unless the opt-in frame diagnostics set it.
+    local floor = state.tick_diag or TICK
+    if pace < floor then return floor end
     if pace > RENDER_PACE_MAX then return RENDER_PACE_MAX end
     return pace
 end
@@ -1103,7 +1105,9 @@ local function renumber_overlays()
             state.ov_adds = state.ov_adds + 1
             state.ov_bytes = state.ov_bytes
                 + (ov.x2 - ov.x1) * (ov.y2 - ov.y1) * 4
+            local dt = state.diag_frame and mp.get_time()
             mp.commandv('overlay-add', tostring(slot), unpack(ov.args))
+            if dt then state.diag_add_s = (state.diag_add_s or 0) + mp.get_time() - dt end
         end
         ns[ov.key] = slot
         nk[slot] = ov.key
@@ -1227,8 +1231,10 @@ local function flush_overlays()
                 state.ov_adds = state.ov_adds + 1
                 state.ov_bytes = state.ov_bytes
                     + (ov.x2 - ov.x1) * (ov.y2 - ov.y1) * 4
+                local dt = state.diag_frame and mp.get_time()
                 mp.commandv('overlay-add', tostring(ov.slot),
                     unpack(ov.args))
+                if dt then state.diag_add_s = (state.diag_add_s or 0) + mp.get_time() - dt end
             end
         end
     end
@@ -2261,7 +2267,102 @@ if os.getenv('JMS_TEST_OBSERVE') then
     end
 end
 
+-- Opt-in frame-submission counters, inert unless JMS_FRAME_DIAG is set. After
+-- each frame it adds to a running histogram of the gap since the previous frame
+-- (gaps of a quarter second or more are idle time, not a stutter, and are only
+-- counted), the time render() took, and the renderer's own overlay-add count and
+-- bytes, then publishes the totals to user-data/mpvtk/diag. Cumulative, so a
+-- reader subtracts two reads. It measures what was SUBMITTED to mpv, not what
+-- reached the screen. Hung off `state` for the 200-local ceiling.
+if os.getenv('JMS_FRAME_DIAG') then
+    local bounds = { 10, 20, 30, 40, 50, 75, 100, 150, 250 }
+    local d = { frames = 0, idle = 0, hist = {}, gap_max_ms = 0,
+                render_ms_sum = 0, render_ms_max = 0 }
+    for i = 1, #bounds do d.hist[i] = 0 end
+    -- JMS_TICK_MS: replace the 30 ms frame-cadence floor, for an experiment that
+    -- asks whether the floor is what paces scrolling. Honoured only here, with the
+    -- diagnostics on; a plain decimal number of milliseconds from 5 to 100 (so not
+    -- zero, negative, hex, nan or inf), otherwise ignored with a warning and the
+    -- production 30 ms stays. Only the render cadence follows it, not the
+    -- carousel slide timer. The effective floor is published as `tick_ms`.
+    local want = os.getenv('JMS_TICK_MS')
+    if want ~= nil then
+        local ms = want:match('^%d+%.?%d*$') and tonumber(want)
+        if ms and ms >= 5 and ms <= 100 then
+            state.tick_diag = ms / 1000
+        else
+            msg.warn('JMS_TICK_MS=' .. want .. ' ignored: want 5 to 100')
+        end
+    end
+    d.tick_ms = (state.tick_diag or TICK) * 1000
+    pcall(mp.set_property_native, 'user-data/mpvtk/diag', d)  -- before the first frame
+    state.diag_frame = function(t0)
+        local now = mp.get_time()
+        local ms = (now - t0) * 1000
+        d.frames = d.frames + 1
+        d.render_ms_sum = d.render_ms_sum + ms
+        if ms > d.render_ms_max then d.render_ms_max = ms end
+        if d.last then
+            local gap = (now - d.last) * 1000
+            d.gap = gap
+            if gap >= bounds[#bounds] then
+                d.idle = d.idle + 1
+            else
+                for i = 1, #bounds do
+                    if gap < bounds[i] then d.hist[i] = d.hist[i] + 1; break end
+                end
+                if gap > d.gap_max_ms then d.gap_max_ms = gap end
+            end
+        end
+        d.last = now
+        -- Optional per-frame log (JMS_FRAME_LOG=<file>): one line per frame, so a reader
+        -- can line a gap up with what the same frame spent in overlay-add.
+        local addn = (state.diag_add_s or 0) * 1000
+        if os.getenv('JMS_FRAME_LOG') then
+            -- On `state`, not `d`: d is published, and a file handle cannot be.
+            state.diag_log = state.diag_log or io.open(os.getenv('JMS_FRAME_LOG'), 'a')
+            if state.diag_log then
+                state.diag_log:write(string.format('%.3f\t%.1f\t%.1f\t%.1f\t%d\t%d\n',
+                    now, d.gap or 0, ms, addn - (d.add_prev or 0),
+                    state.ov_adds - (d.adds0 or 0),
+                    state.ov_bytes - (d.bytes0 or 0)))
+                state.diag_log:flush()
+            end
+        end
+        d.add_prev = addn
+        -- The slow ones, with what the frame and the one before it cost, to tell
+        -- a frame that took too long to draw from a tick that never came.
+        if d.gap and d.gap >= 50 then
+            d.slow = d.slow or {}
+            d.slow[#d.slow + 1] = {
+                gap = d.gap, prev_ms = d.prev_ms or 0, ms = ms,
+                adds = state.ov_adds - (d.adds0 or 0),
+                kb = (state.ov_bytes - (d.bytes0 or 0)) / 1024 }
+            if #d.slow > 40 then table.remove(d.slow, 1) end
+            d.slow_n = (d.slow_n or 0) + 1
+        end
+        -- Does the cost track the overlay-add calls? Frames that issued any, against
+        -- frames that did not: how many, how long they took, and how many gaps of 50 ms
+        -- or more ended in one of each (a gap includes the cost of the frame that ends it).
+        local had_adds = state.ov_adds - (d.adds0 or 0) > 0
+        local k = had_adds and 'with' or 'without'
+        d['n_' .. k] = (d['n_' .. k] or 0) + 1
+        d['ms_' .. k] = (d['ms_' .. k] or 0) + ms
+        if d.gap and d.gap >= 50 then
+            -- A gap runs from the end of the previous frame to the end of this
+            -- one, so it contains this frame's own cost: charged to this frame.
+            d['slow_' .. k] = (d['slow_' .. k] or 0) + 1
+        end
+        d.prev_ms, d.adds0, d.bytes0 = ms, state.ov_adds, state.ov_bytes
+        d.ov_adds, d.ov_bytes = state.ov_adds, state.ov_bytes
+        d.add_ms_sum = (state.diag_add_s or 0) * 1000
+        d.bounds_ms = bounds
+        pcall(mp.set_property_native, 'user-data/mpvtk/diag', d)
+    end
+end
+
 render = function()
+    local diag_t0 = state.diag_frame and mp.get_time()
     -- The wheel section follows what is on screen, so it is decided where
     -- the screen is. Above the early return: a blank scene is still an
     -- answer. See state.wheel_sync.
@@ -2788,6 +2889,7 @@ render = function()
     osd.z = state.osd_z
     osd:update()
     flush_overlays()
+    if diag_t0 then state.diag_frame(diag_t0) end
     if state.observe then
         -- Test-only, and never allowed to cost the frame: an error here
         -- once blanked every screen with a menu open, in every e2e run.
