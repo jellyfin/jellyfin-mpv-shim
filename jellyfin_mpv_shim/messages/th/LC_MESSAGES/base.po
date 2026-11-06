@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:13+0000\n"
+"PO-Revision-Date: 2026-11-06 11:16+0000\n"
 "Last-Translator: felzeth <stible56789@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -932,13 +932,13 @@ msgstr "ยกเลิก"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "สลับ"
 
 #. Error shown when the passcode typed to switch user or unlock does not
 #. match.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "รหัสผ่านไม่ถูกต้อง"
 
 #. Title of the dialog that gives a user a numeric passcode. %s is that
 #. user's name.
@@ -951,13 +951,13 @@ msgstr "ตั้งค่าพินสำหรับ %s"
 #. PIN dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "รหัส PIN ปัจจุบัน"
 
 #. Label of the field asking for the passcode to change to, in the Set PIN
 #. dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "รหัส PIN ใหม่"
 
 #. Label of the field in the Set PIN dialog asking for the new passcode a
 #. second time, to check it was typed correctly. A verb. Split from the
@@ -965,13 +965,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgctxt "form label"
 msgid "Confirm"
-msgstr ""
+msgstr "ยืนยัน"
 
 #. Checkbox in the Set PIN dialog. When on, the passcode is asked for every
 #. time the application opens.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "ต้องใช้ PIN นี้เมื่อเริ่มต้นระบบ"
 
 #. Button in the Set PIN dialog that takes the passcode off this user. An
 #. imperative verb.
