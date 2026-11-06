@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:03+0000\n"
+"PO-Revision-Date: 2026-11-06 11:05+0000\n"
 "Last-Translator: felzeth <stible56789@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -733,19 +733,15 @@ msgstr "ข้ามเครดิตแล้ว"
 #. the in-player Player Preferences menu and a dropdown under Settings >
 #. Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Commercials"
-msgstr "ข้ามเครดิตแล้ว"
+msgstr "ข้ามโฆษณา"
 
 #. What to do at a preview of a coming episode: Never, Ask or Always. A
 #. toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "ข้ามเครดิตแล้ว"
+msgstr "ข้ามตัวอย่าง"
 
 #. What to do at a "previously on" recap: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
@@ -809,10 +805,8 @@ msgstr "หน้าแรก"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "เพิ่มเซิร์ฟเวอร์เรียบร้อยแล้ว"
+msgstr "หน้าก่อนหน้า"
 
 #. Tooltip of the button that goes forward one page: in a library grid, and
 #. in the book and comic readers.
@@ -820,13 +814,13 @@ msgstr "เพิ่มเซิร์ฟเวอร์เรียบร้อ
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "หน้าถัดไป"
 
 #. Tooltip of the paging button that jumps to the last page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "หน้าสุดท้าย"
 
 #. Status message when the server refused an edit, such as marking an item
 #. watched or removing it from a playlist.
@@ -834,7 +828,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "ไม่สามารถบันทึกการเปลี่ยนแปลงได้"
 
 #. Name of the broadcast television area of Jellyfin, used as a library
 #. tile, a home-screen section and a page title. A Jellyfin feature name;
