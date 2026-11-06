@@ -1678,7 +1678,7 @@ msgstr "บังคับ"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "External"
-msgstr ""
+msgstr "ไฟล์ภายนอก"
 
 # seeded from jellyfin-web: LabelTime
 #. Row label in the Media Info panel: where in the container the timestamps
