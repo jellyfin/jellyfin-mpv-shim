@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:08+0000\n"
+"PO-Revision-Date: 2026-11-06 10:10+0000\n"
 "Last-Translator: \"AntV@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -971,10 +971,9 @@ msgstr ""
 #. Title of the dialog that gives a user a numeric passcode. %s is that
 #. user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Сервер:"
+msgstr "Задаць PIN для %s"
 
 #. Label of the field asking for the passcode already in use, in the Set
 #. PIN dialog.
@@ -4289,10 +4288,9 @@ msgstr ""
 #. One row of the SyncPlay group list. %s is a group's name, and the suffix
 #. marks the group this device is currently in.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} далучыўся."
+msgstr "%s (далучаны)"
 
 #. Stands in for the name of a SyncPlay group the server did not name. A
 #. set of people watching in sync.
