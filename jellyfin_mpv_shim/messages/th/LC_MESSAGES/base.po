@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 15:25+0000\n"
-"Last-Translator: felzeth <stible56789@gmail.com>\n"
+"PO-Revision-Date: 2026-11-06 15:31+0000\n"
+"Last-Translator: felzeth <felzeth@haru.team>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
 "Language: th\n"
@@ -1518,7 +1518,7 @@ msgstr "ระดับ"
 #. width by height.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Resolution"
-msgstr ""
+msgstr "ความละเอียด"
 
 # seeded from jellyfin-web: AspectRatio
 #. Row label in the Media Info panel: the shape of the picture, such as
