@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 13:19+0000\n"
+"PO-Revision-Date: 2026-11-06 13:31+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -1015,7 +1015,7 @@ msgstr "PIN nevar noņemt."
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "PIN nevarēja saglabāt."
 
 # seeded from jellyfin-web: ButtonSignIn
 #. Button, and the title of the screen it opens. Signs back in to a server
@@ -1023,10 +1023,8 @@ msgstr ""
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Pieteikties"
+msgstr "Pieteikties atkārtoti"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1043,6 +1041,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Saglabātās pieteikšanās informācija uz %s ir beigusies. Piesakoties vēlreiz "
+"saglabājas esošās lejupielādes un iestatījumi."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1053,16 +1053,14 @@ msgstr "Savienot ar Jellyfin"
 #. Heading above the list of servers already signed in to, on the sign-in
 #. page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Tika veiksmīgi pievienots serveris."
+msgstr "Iepriekš pievienotie severi"
 
 #. Button beside a remembered server on the sign-in page, choosing that
 #. server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Lietot"
 
 # seeded from jellyfin-web: QuickConnect
 #. A Jellyfin feature that signs a device in by typing a short code into an
@@ -1076,23 +1074,19 @@ msgstr "Quick Connect"
 #. Instruction above the Quick Connect code on the sign-in page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "Ievadiet šo kodu Jellyfin programmā vai Web klientā:"
 
 #. Stands in for the Quick Connect code while it is being fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "SVP Iestatījumi"
+msgstr "Pieprasa…"
 
 #. Label of the field on the sign-in page where the Jellyfin server's web
 #. address is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "Servera URL: "
+msgstr "Servera URL:"
 
 #. Label of the field on the sign-in page where the Jellyfin account name
 #. is typed.
@@ -1136,33 +1130,25 @@ msgstr "Savienot"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Servera konfigurācija"
+msgstr "Serveri jūsu tīklā"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "Sākumā ievadiet servera URL."
 
 #. Status shown while the Quick Connect code is being requested.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Nevar pievienot serveri.\n"
-"Lūdzu, pārbaudiet savienojuma informāciju."
+msgstr "Savienojos ar serveri…"
 
 #. Status shown while Quick Connect waits for someone to accept the code in
 #. another Jellyfin app.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "Gaidu apstiprinājumu…"
 
 #. Error shown when the Quick Connect code expired or was refused.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
