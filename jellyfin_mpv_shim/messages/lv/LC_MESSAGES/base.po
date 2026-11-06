@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 12:34+0000\n"
+"PO-Revision-Date: 2026-11-06 12:49+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -210,10 +210,8 @@ msgstr "Izlaist reklāmu"
 #. Confirmation drawn over the video after an advertisement break was
 #. jumped past. Past tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Izlaisti afišas titri"
+msgstr "Reklāmas ir izlaistas"
 
 #. Prompt drawn over the video offering to jump past an advertisement
 #. break, shown when the viewer seeks into it.
