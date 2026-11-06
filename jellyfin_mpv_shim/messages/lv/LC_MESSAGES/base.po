@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 13:32+0000\n"
+"PO-Revision-Date: 2026-11-06 13:35+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -1165,48 +1165,37 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Šī adrese ir citam serverim. Lai pieteiktos tajā, pievienojiet to kā jaunu."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr ""
+msgstr "Pieslēdzos…"
 
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not sign in. Please check your details."
-msgstr ""
-"Nevar pievienot serveri.\n"
-"Lūdzu, pārbaudiet savienojuma informāciju."
+msgstr "Neizdevās pieteikties. Pārbaudiet vai ievadītie dati ir pareizi."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Nevar pievienot serveri.\n"
-"Lūdzu, pārbaudiet savienojuma informāciju."
+msgstr "Neizdevās pievienoties. Pārbaudiet vai ievadītie dati ir pareizi."
 
 #. Heading of the startup screen shown while the saved servers are being
 #. reached.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "Savienojos ar jūsu serveri…"
 
 #. Button on the startup screen. Browses what has been downloaded to this
 #. device instead of waiting for the server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
+msgstr "Bezsaistes režīms"
 
 #. Shown when Work Offline was pressed but nothing has been downloaded to
 #. this device.
