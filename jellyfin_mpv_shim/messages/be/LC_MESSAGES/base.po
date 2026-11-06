@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:46+0000\n"
+"PO-Revision-Date: 2026-11-06 10:50+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -3920,11 +3920,9 @@ msgstr ""
 #. naming the dialog. The button inside it uses the same English word as a
 #. verb, which is why this one carries a context.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgctxt "dialog heading"
 msgid "Download"
-msgstr "Аўтапрайграванне"
+msgstr "Спампоўка"
 
 #. Checkbox in the Download modal. When off, episodes already watched are
 #. left out of the download.
@@ -3990,10 +3988,8 @@ msgstr ""
 #. playback controls, where it means MPV decides.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "Аўтапрайграванне"
+msgstr "Аўта"
 
 #. Choice in the Artwork dropdown of a library's View settings: tall
 #. portrait cover art.
