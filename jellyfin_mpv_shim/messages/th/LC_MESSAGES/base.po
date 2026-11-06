@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:29+0000\n"
+"PO-Revision-Date: 2026-11-06 15:13+0000\n"
 "Last-Translator: felzeth <stible56789@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -991,30 +991,30 @@ msgstr "บันทึก"
 #. wrongly.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "PIN ปัจจุบันไม่ถูกต้อง"
 
 #. Error in the Set PIN dialog when the new-passcode field was left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "ใส่รหัส PIN ใหม่"
 
 #. Error in the Set PIN dialog when the passcode and its confirmation
 #. differ.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "รหัส PIN ไม่ตรงกัน."
 
 #. Error in the Set PIN dialog when the server refused to take the passcode
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "ไม่สามารถลบรหัส PIN ได้."
 
 #. Error in the Set PIN dialog when the server refused to store the
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "ไม่สามารถบันทึก PIN ได้."
 
 # seeded from jellyfin-web: ButtonSignIn
 #. Button, and the title of the screen it opens. Signs back in to a server
@@ -1022,16 +1022,14 @@ msgstr ""
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "เข้าสู่ระบบ"
+msgstr "เข้าสู่ระบบอีกครั้ง"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Add Server"
-msgstr "เพิ่มเซริฟเวอร์"
+msgstr "เพิ่มเซิร์ฟเวอร์"
 
 #. Explanation at the top of the Sign In Again form. %s is the server's
 #. name. The second sentence is there to say this is not the same as
@@ -1042,26 +1040,26 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"ข้อมูลการเข้าสู่ระบบที่บันทึกไว้สำหรับ %s ไม่สามารถใช้งานได้อีกต่อไป กรุณาเข้าสู่ระบบอีกครั้ง เพื่อคงข้"
+"อมูลการดาวน์โหลดและการตั้งค่าต่างๆไว้"
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "เชื่อมต่อกับ Jellyfin"
 
 #. Heading above the list of servers already signed in to, on the sign-in
 #. page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "เพิ่มเซิร์ฟเวอร์เรียบร้อยแล้ว"
+msgstr "เซิร์ฟเวอร์ที่เพิ่มไว้ก่อนหน้านี้"
 
 #. Button beside a remembered server on the sign-in page, choosing that
 #. server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "ใช้"
 
 #. A Jellyfin feature that signs a device in by typing a short code into an
 #. already-signed-in app. Used as a button on the sign-in page and as the
@@ -1074,39 +1072,31 @@ msgstr "เชื่อมต่อด่วน"
 #. Instruction above the Quick Connect code on the sign-in page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "ป้อนรหัสนี้ในแอป Jellyfin หรือเว็บไคลเอนต์:"
 
 #. Stands in for the Quick Connect code while it is being fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "การตั้งค่า SVP"
+msgstr "กำลังดึงรหัส…"
 
 #. Label of the field on the sign-in page where the Jellyfin server's web
 #. address is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "URL เซิร์ฟเวอร์:"
+msgstr "URL เซิร์ฟเวอร์"
 
 #. Label of the field on the sign-in page where the Jellyfin account name
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "ชื่อผู้ใช้:"
+msgstr "ชื่อผู้ใช้"
 
 #. Label of the field on the sign-in page where the Jellyfin account
 #. password is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "รหัสผ่าน:"
+msgstr "รหัสผ่าน"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #. Button on the sign-in page that signs in with a code instead of a
@@ -1134,16 +1124,14 @@ msgstr "เชื่อมต่อ"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "การตั้งค่าเซิร์ฟเวอร์"
+msgstr "เซิร์ฟเวอร์บนเครือข่ายของคุณ"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "กรอก URL ของเซิร์ฟเวอร์ก่อน"
 
 #. Status shown while the Quick Connect code is being requested.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1154,12 +1142,12 @@ msgstr "กำลังติดต่อเซิร์ฟเวอร์…"
 #. another Jellyfin app.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "กำลังรอการอนุมัติ…"
 
 #. Error shown when the Quick Connect code expired or was refused.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "การเชื่อมต่อด่วนไม่ได้รับการอนุมัติ."
 
 #. Error shown on the Sign In Again page when the address typed there
 #. belongs to a different Jellyfin server than the saved one being signed
@@ -1171,19 +1159,18 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"ที่อยู่นั้นเป็นเซิร์ฟเวอร์คนละเครื่อง หากต้องการลงชื่อเข้าใช้เซิร์ฟเวอร์นั้น ให้เพิ่มเป็นเซิร์ฟเวอร์ใหม่แทน"
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr ""
+msgstr "กำลังเชื่อมต่อ…"
 
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "ไม่สามารถเชื่อมต่อได้ โปรดตรวจสอบรายละเอียดของคุณ"
+msgstr "ไม่สามารถเข้าสู่ระบบได้ โปรดตรวจสอบรายละเอียดของคุณ"
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1196,67 +1183,65 @@ msgstr "ไม่สามารถเชื่อมต่อได้ โป�
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "กำลังเชื่อมต่อกับเซิร์ฟเวอร์ของคุณ…"
 
 #. Button on the startup screen. Browses what has been downloaded to this
 #. device instead of waiting for the server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
+msgstr "ใช้งานแบบออฟไลน์"
 
 #. Shown when Work Offline was pressed but nothing has been downloaded to
 #. this device.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "ไม่มีอะไรที่ดาวน์โหลดไว้ให้เรียกดู."
 
 #. Error on the startup screen when none of the remembered servers
 #. answered. The bracketed plural is because there may be one server or
 #. several.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Couldn't reach your saved server(s)."
-msgstr ""
+msgstr "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ที่คุณบันทึกไว้ได้"
 
 #. Heading of the lock screen, asking for the numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "กรอกรหัส PIN ของคุณ"
 
 #. Shown under the lock screen's heading. %s is the locked user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s ถูกล็อกอยู่."
 
 #. Button on the lock screen that opens the application with the passcode
 #. typed above. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
-msgstr ""
+msgstr "ปลดล็อก"
 
 #. Heading above the list of other accounts on the lock screen.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Or switch to another user"
-msgstr ""
+msgstr "หรือสลับไปใช้บัญชีผู้ใช้อื่น"
 
 #. Heading of the idle screen shown when this application is waiting to be
 #. sent something from another Jellyfin app.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 msgid "Ready to cast"
-msgstr "พร้อมสำหรับการแคสต์"
+msgstr "พร้อมแคสต์"
 
 #. Instruction under the idle cast screen's heading.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "เลือกสื่อใน Jellyfin และเล่นที่นี่"
+msgstr "เลือกสื่อของคุณใน Jellyfin แล้วเล่นที่นี่."
 
 #. Heading over the actors and film-makers on an item's page. Jellyfin Web
 #. uses the same phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Cast & Crew"
-msgstr ""
+msgstr "นักแสดง & ทีมงาน"
 
 # seeded from jellyfin-web: Download
 #. Button in the Download modal that starts fetching the selected items. An
@@ -1273,19 +1258,15 @@ msgstr "ดาวน์โหลด"
 #. device. The item stays on the server. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "นำไฟล์ดาวน์โหลดออก"
 
 #. Button on an item's page that marks it as watched, drawn ticked when it
 #. already is. Must not read the same as "Watch": in one language it did,
 #. and the play button came out saying "Seen".
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "ออกจากโปรแกรมและทำเครื่องหมายว่าไม่ได้ดู"
+msgstr "ดูแล้ว"
 
 # seeded from jellyfin-web: Favorite
 #. Tooltip of the heart button that marks what is playing or being viewed
@@ -1302,7 +1283,7 @@ msgstr "รายการโปรด"
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Refresh metadata"
-msgstr ""
+msgstr "รีเฟรชข้อมูลเมตา"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -1311,35 +1292,33 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "ลบออกจากดิสก์"
 
 #. Button on a film's, episode's, show's or season's page that opens a short
 #. menu of less common actions (refresh metadata, delete from disk). Means
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "เพิ่มเติม"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Special Features"
-msgstr ""
+msgstr "ฟีเจอร์พิเศษ"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "ล้มเหลว"
+msgstr "ตัวอย่าง"
 
 #. Button on an item's page that opens the same item in Jellyfin's browser
 #. client. Short for the web client, since the button sits in a row of
 #. narrow buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "เว็บ"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
