@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 12:49+0000\n"
+"PO-Revision-Date: 2026-11-06 12:53+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -216,34 +216,26 @@ msgstr "Reklāmas ir izlaistas"
 #. Prompt drawn over the video offering to jump past an advertisement
 #. break, shown when the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Meklēt, lai Izlaistu afišas titrus"
+msgstr "Censties izlaist reklāmas"
 
 #. Button drawn over the video during a preview of a coming episode.
 #. Pressing it jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Izlaisti afišas titri"
+msgstr "Izlaist priekšskatījumu"
 
 #. Confirmation drawn over the video after a preview was jumped past. Past
 #. tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Izlaisti afišas titri"
+msgstr "Priekšskatījums izlaists"
 
 #. Prompt drawn over the video offering to jump past a preview, shown when
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Meklēt, lai Izlaistu afišas titrus"
+msgstr "Mēģināt izlaist priekšskatījumu"
 
 #. Button drawn over the video during a "previously on" recap. Pressing it
 #. jumps past it. An imperative verb phrase.
@@ -254,18 +246,14 @@ msgstr "Izlaist afišas titrus."
 #. Confirmation drawn over the video after a recap was jumped past. Past
 #. tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Izlaisti afišas titri"
+msgstr "Atskats izlaists"
 
 #. Prompt drawn over the video offering to jump past a recap, shown when
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Meklēt, lai Izlaistu afišas titrus"
+msgstr "Censties izlaist atskatu"
 
 #. Button drawn over the video while an episode's opening titles play.
 #. Pressing it jumps past them. An imperative verb phrase.
