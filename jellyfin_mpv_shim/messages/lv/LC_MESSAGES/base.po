@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 12:53+0000\n"
+"PO-Revision-Date: 2026-11-06 12:57+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -258,10 +258,8 @@ msgstr "Censties izlaist atskatu"
 #. Button drawn over the video while an episode's opening titles play.
 #. Pressing it jumps past them. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Izlaists ievads"
+msgstr "Izlaist sākuma titrus"
 
 #. Confirmation drawn over the video after the opening titles were jumped
 #. past. Past tense.
@@ -718,21 +716,17 @@ msgstr "Discord Rich Presence"
 #. A toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Izlaists ievads"
+msgstr "Izlaist sākuma titrus"
 
 #. Toggle on the in-player Player Preferences menu, and a settings
 #. dropdown: what to do when an episode's closing credits start. Set to
 #. Never, Ask or Always. Carries a context because "Skip Credits" is also
 #. the name of a button on the video itself.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Izlaisti afišas titri"
+msgstr "Izlaist beigu titrus"
 
 #. What to do at an advertisement break: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
