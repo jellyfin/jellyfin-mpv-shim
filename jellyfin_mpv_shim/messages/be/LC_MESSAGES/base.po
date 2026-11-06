@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:02+0000\n"
+"PO-Revision-Date: 2026-11-06 11:03+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -6870,10 +6870,8 @@ msgstr "Змяніць аўдыё"
 #. Button beside a local profile in Settings that gives it a numeric
 #. passcode. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Сервер:"
+msgstr "Задаць PIN"
 
 #. Question in the dialog that removes a local profile. %s is the profile's
 #. name; "saved logins" are the servers it is signed in to.
