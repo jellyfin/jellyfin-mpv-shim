@@ -1076,10 +1076,8 @@ msgstr ""
 #. Heading above the list of servers already signed in to, on the sign-in
 #. page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Сервер паспяхова дададзены."
+msgstr "Раней дададзеныя серверы"
 
 #. Button beside a remembered server on the sign-in page, choosing that
 #. server. An imperative verb.
