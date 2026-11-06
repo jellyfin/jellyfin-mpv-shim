@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:17+0000\n"
+"PO-Revision-Date: 2026-11-06 10:18+0000\n"
 "Last-Translator: \"AntV@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -833,10 +833,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Сервер паспяхова дададзены."
+msgstr "Папярэдняя старонка"
 
 #. Tooltip of the button that goes forward one page: in a library grid, and
 #. in the book and comic readers.
@@ -6858,10 +6856,8 @@ msgstr ""
 #. Name of a Settings tab, holding the Jellyfin servers and this
 #. application's local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "URL сервера: "
+msgstr "Серверы і карыстальнікі"
 
 #. Name of a Settings tab showing this application's diagnostic output.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
