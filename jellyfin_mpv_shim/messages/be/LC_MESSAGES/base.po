@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:13+0000\n"
+"PO-Revision-Date: 2026-11-06 11:16+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -4311,10 +4311,8 @@ msgstr "Аўтаматычна"
 #. Heading of a downloads group: episodes fetched automatically because the
 #. series is being watched right now.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Automatic: Actively Watched"
-msgstr "Аўтапрайграванне"
+msgstr "Аўтаматычна: актыўна прагляданыя"
 
 #. Name of a search-results and library group holding books read aloud.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -4843,10 +4841,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Configure Servers"
 msgid "Cancel Series"
-msgstr "Наладзіць серверы"
+msgstr "Скасаваць серыю"
 
 #. Status message when the server refused to call off a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
