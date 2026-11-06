@@ -105,6 +105,52 @@ def _preferred_ui_tags():
     return buffer[: size.value].split("\0")
 
 
+def language_is_offered(code):
+    """Whether the picker would list ``code``: English, or a locale that
+    translates every string in the code (see ``locale_index``).
+
+    A saved language that stops qualifying (a string was added, a catalogue
+    changed) is not offered any more, and showing it half-translated is what
+    the picker's filter exists to avoid. Without a generated index the check
+    cannot be made, so the saved choice is trusted rather than discarded.
+    """
+    if code == "en":
+        return True
+    try:
+        from .locale_index import LOCALES
+    except ImportError:
+        return True
+    return any(c == code and complete for c, _name, complete in LOCALES)
+
+
+def _fallback_languages(saved):
+    """What to show when the saved language is no longer offered: the system
+    language if that is offered, else the app's own English.
+
+    The saved preference is left exactly as it is -- this decides what is
+    displayed this run, and writes nothing, so the choice is honoured again
+    if the language becomes complete.
+    """
+    log.warning("Saved language %r is not fully translated; using a "
+                "supported fallback and keeping the saved setting.", saved)
+    wanted = []
+    try:
+        wanted = _system_languages() or []
+    except Exception:
+        log.debug("system language lookup failed", exc_info=True)
+    if not wanted:
+        for var in _GETTEXT_ENVVARS:
+            value = os.environ.get(var)
+            if value:
+                wanted = value.split(":")
+                break
+    for name in wanted:
+        for cand in gettext._expand_lang(name):
+            if cand not in ("C", "POSIX") and language_is_offered(cand):
+                return [cand]
+    return ["en"]
+
+
 def configure():
     global translation
     from .utils import get_resource
@@ -115,6 +161,8 @@ def configure():
     # as an explicit language matches no catalog and so silently means
     # English forever.
     languages = [settings.lang] if settings.lang else _system_languages()
+    if settings.lang and not language_is_offered(settings.lang):
+        languages = _fallback_languages(settings.lang)
     translation = gettext.translation(
         "base", messages_dir, languages=languages, fallback=True
     )

@@ -237,6 +237,7 @@ class AnotherLanguageTest(_LifecycleCase):
 
     def test_it_asks_for_a_restart_and_comes_back_in_that_language(self):
         import json
+        from jellyfin_mpv_shim import locale_index
         mo = os.path.join(os.path.dirname(_app.RUN_PY), "jellyfin_mpv_shim",
                           "messages", "de", "LC_MESSAGES", "base.mo")
         if not os.path.exists(mo):
@@ -247,6 +248,12 @@ class AnotherLanguageTest(_LifecycleCase):
         entries = _flows.items(f, "set-lang")
         index = next((i for i, e in enumerate(entries)
                       if self.LANGUAGE in e), None)
+        if index is None and not any(
+                ok for code, _n, ok in locale_index.LOCALES if code == "de"):
+            # The picker lists only fully translated languages, so this
+            # flow has nothing to pick until German is complete again.
+            self.skipTest("German is not fully translated, so it is not "
+                          "offered (tools/gen_locale_index.py)")
         self.assertIsNotNone(index, "no %s in %r" % (self.LANGUAGE,
                                                      entries[:8]))
         _flows.pick(self.app, "set-lang", index)

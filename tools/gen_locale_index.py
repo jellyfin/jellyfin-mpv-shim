@@ -4,20 +4,21 @@
     python3 tools/gen_locale_index.py --check    # name every locale? (a test)
 
 **Why a generated file rather than a runtime scan.** The picker wants two
-things per locale: a name someone can recognise, and how complete the
-translation is. Completeness comes from the `.po` files, which are in git but
+things per locale: a name someone can recognise, and whether the
+translation is complete. Completeness comes from the `.po` files, which are in git but
 **not shipped** (`pyproject.toml` packages `*.mo` and `base.pot` only), and
 counting it means parsing 86 catalogs. So it is computed here, checked in, and
 refreshed by `gen_pkg.sh` alongside the `.mo` compile -- which means a release
 always carries current numbers and a source checkout carries the numbers from
 the last regeneration.
 
-**Why the numbers are shown at all.** 41 of the 86 locales sit between 25% and
-50%, which is the jellyfin-web seed line: a completeness *threshold* set
-anywhere useful hides French, Russian, Polish and Japanese, and set low enough
-to keep them means nothing. Listing everything with its number is honest, needs
-no arbitrary bar, and tells a would-be translator where the gaps are -- and
-that is the population most likely to open this menu.
+**Why only complete locales are offered.** A partly translated interface is
+a mixed-language one, so the picker lists a locale only when it translates
+every string the code asks for. Completeness is counted from the source, not
+from `base.pot`, which is regenerated on request and lags the code; a
+catalog "complete" against a stale template would otherwise qualify. No
+percentage is stored or shown. `tests/test_interface_language.py` regenerates
+this file in memory and fails if the checked-in one differs.
 
 **Endonyms, not English names**, because someone reaching for this control is
 by definition someone who cannot read the current one. Most of the table below
@@ -28,6 +29,7 @@ the wrong language, so they wait for someone who knows.
 """
 
 import argparse
+import ast
 import os
 import sys
 
@@ -149,65 +151,93 @@ def locales():
     return out
 
 
-def total_msgids(pot_path):
-    """How many entries the template has, which is the denominator.
+def source_msgids():
+    """Every string the shipped code asks to have translated.
 
-    Counted off `msgid` lines rather than through the parser: `msgfmt.parse`
-    drops untranslated entries by design, and in a `.pot` that is all of
-    them. The header (`msgid ""`) is not a string anybody translates.
+    Read from the source with ``ast``, not from ``base.pot``: the template is
+    only regenerated on request (see ``regen_pot.sh``), so it lags the code,
+    and a catalog complete against a stale template is not complete. This is
+    the same call set ``regen_pot.sh`` extracts (``_(s)`` and ``_p(ctx, s)``,
+    keyed the way a ``.mo`` keys a context) without needing ``xgettext``.
     """
-    total = 0
-    with open(pot_path, "r", encoding="utf-8") as fh:
-        for line in fh:
-            if line.startswith("msgid ") and not line.startswith("msgid_plural"):
-                total += 1
-    return max(0, total - 1)
+    ids = set()
+    pkg = os.path.join(ROOT, "jellyfin_mpv_shim")
+    for dirpath, dirnames, filenames in os.walk(pkg):
+        dirnames[:] = [d for d in dirnames if d != "__pycache__"]
+        for fname in filenames:
+            if not fname.endswith(".py"):
+                continue
+            with open(os.path.join(dirpath, fname), encoding="utf-8") as fh:
+                tree = ast.parse(fh.read())
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                fn = node.func
+                name = getattr(fn, "id", None) or getattr(fn, "attr", None)
+                args = node.args
+                if name == "_" and args:
+                    if _is_str(args[0]):
+                        ids.add(args[0].value)
+                elif name == "_p" and len(args) > 1:
+                    if _is_str(args[0]) and _is_str(args[1]):
+                        ids.add(args[0].value + msgfmt.CONTEXT_SEP
+                                + args[1].value)
+    return ids
+
+
+def _is_str(node):
+    return isinstance(node, ast.Constant) and isinstance(node.value, str)
 
 
 def translated(po_path):
-    """How many entries this locale actually contributes.
+    """The keys this locale actually contributes to its ``.mo``.
 
-    `msgfmt.parse` is the compiler's own reader, so this counts exactly what
-    reaches the `.mo`: non-empty, non-fuzzy, non-obsolete. Counting anything
-    else would advertise a completeness the running app does not have.
+    `msgfmt.parse` is the compiler's own reader, so this is exactly what
+    reaches the running app: non-empty, non-fuzzy, non-obsolete.
     """
     with open(po_path, "r", encoding="utf-8") as fh:
         catalog = msgfmt.parse(fh.read())
-    return len([k for k in catalog if k != ""])
+    return {k for k in catalog if k != ""}
 
 
 def build():
-    total = total_msgids(os.path.join(MESSAGES, "base.pot"))
+    """``(count of source strings, [(code, name, complete)])``.
+
+    ``complete`` means every string in the source is translated. There is no
+    partial credit: a mostly-translated interface is a mixed-language one.
+    """
+    wanted = source_msgids()
     rows = []
     for code, po in locales():
         name = ENDONYMS.get(code)
         if name is None:
             continue
-        done = translated(po)
-        pct = int(round(100.0 * done / total)) if total else 0
-        rows.append((code, name, pct))
+        rows.append((code, name, wanted <= translated(po)))
     rows.sort(key=lambda r: r[1].casefold())
-    return total, rows
+    return len(wanted), rows
 
 
 def render(total, rows):
     out = [
-        '"""Languages the interface can be shown in, and how complete each is.',
+        '"""Languages the interface can be shown in, and whether each is complete.',
         "",
         "Generated by ``tools/gen_locale_index.py`` -- do not edit by hand.",
-        "Regenerate after a translation sync; ``gen_pkg.sh`` does it as part of",
-        "a build, so a release always ships current numbers.",
+        "Regenerate after a translation sync or after adding a string;",
+        "``gen_pkg.sh`` does it as part of a build.",
         "",
-        "``PERCENT`` counts what actually reaches the ``.mo``: non-empty,",
-        "non-fuzzy, non-obsolete entries, against %d in the template." % total,
+        "A locale is complete only when it translates every one of the %d" % total,
+        "strings the code asks for, counted from the source (not from",
+        "``base.pot``, which lags it) against what reaches the ``.mo``:",
+        "non-empty, non-fuzzy, non-obsolete entries. The picker offers only",
+        "complete locales.",
         '"""',
         "",
-        "#: ``(locale directory, name in that language, percent translated)``,",
+        "#: ``(locale directory, name in that language, complete)``,",
         "#: ordered by name so a reader finds their own script together.",
         "LOCALES = [",
     ]
-    for code, name, pct in rows:
-        out.append('    ("%s", "%s", %d),' % (code, name, pct))
+    for code, name, complete in rows:
+        out.append('    ("%s", "%s", %s),' % (code, name, complete))
     out += ["]", ""]
     return "\n".join(out) + "\n"
 
@@ -225,8 +255,9 @@ def main(argv=None):
     total, rows = build()
     with open(OUT, "w", encoding="utf-8") as fh:
         fh.write(render(total, rows))
-    print("wrote %s: %d locales, %d msgids in the template"
-          % (os.path.relpath(OUT, ROOT), len(rows), total))
+    print("wrote %s: %d locales, %d complete, %d strings in the source"
+          % (os.path.relpath(OUT, ROOT), len(rows),
+             sum(1 for r in rows if r[2]), total))
     return 0
 
 

@@ -76,9 +76,14 @@ class Detection(unittest.TestCase):
 
         before = i18n.get_translation()
         self.addCleanup(setattr, i18n, "translation", before)
+        # The saved language has to be one the picker offers, or configure()
+        # substitutes a fallback (see Fallback below). Detection is about
+        # what is asked for, so the index says every language is complete.
+        everything = [(c, n, True) for c, n, _ok in locale_index.LOCALES]
         with mock.patch.object(i18n.settings, "lang", lang), \
                 mock.patch.object(i18n.sys, "platform", platform), \
                 mock.patch.object(i18n.gettext, "translation", fake), \
+                mock.patch.object(locale_index, "LOCALES", everything), \
                 mock.patch.dict(os.environ, env or {}, clear=False):
             i18n.configure()
         i18n.translation = before
@@ -203,14 +208,28 @@ class WindowsDetection(unittest.TestCase):
 
 
 class Picker(unittest.TestCase):
-    def test_every_shipped_locale_is_offered(self):
-        codes = {code for code, _label, _pct in locale_index.LOCALES}
+    def test_every_shipped_locale_has_an_entry(self):
+        codes = {code for code, _label, _ok in locale_index.LOCALES}
         missing = sorted(_SHIPPED - codes)
         self.assertEqual(
             missing, [],
-            "shipped with no entry in the picker, so nobody can choose "
-            "them: %s. Run tools/gen_locale_index.py, and add an endonym "
-            "to its table for anything it reports." % missing)
+            "shipped with no entry in the index, so the picker cannot decide "
+            "about them: %s. Run tools/gen_locale_index.py, and add an "
+            "endonym to its table for anything it reports." % missing)
+
+    def test_the_index_matches_the_source_not_a_stored_number(self):
+        """Completeness is recomputed from the strings in the code and the
+        catalogs. A checked-in index that disagrees is stale -- a string was
+        added or a catalog changed after it was generated -- and a stale
+        "complete" is how an unfinished language gets offered."""
+        from tools import gen_locale_index as gen
+
+        total, rows = gen.build()
+        with open(gen.OUT, encoding="utf-8") as fh:
+            stored = fh.read()
+        self.assertEqual(
+            gen.render(total, rows), stored,
+            "locale_index.py is stale: run tools/gen_locale_index.py")
 
     def test_the_first_choice_is_the_system_and_carries_no_code(self):
         """None, not "" -- that is what `lang` already means, and
@@ -218,23 +237,75 @@ class Picker(unittest.TestCase):
         choices = _language_choices()
         self.assertIsNotNone(choices)
         self.assertIsNone(choices[0][1])
-        self.assertEqual([c for _l, c in choices[1:]],
-                         [code for code, _n, _p in locale_index.LOCALES])
 
-    def test_a_language_is_named_in_itself(self):
-        """Endonyms: the person opening this control cannot read the
-        language the app is currently in."""
-        labels = dict((code, label) for label, code in _language_choices()[1:])
-        self.assertTrue(labels["de"].startswith("Deutsch"))
-        self.assertTrue(labels["zh_Hans"].startswith("简体中文"))
-        self.assertTrue(labels["ru"].startswith("Русский"))
+    def test_english_is_always_offered(self):
+        self.assertIn(("English", "en"), _language_choices())
 
-    def test_and_says_how_much_of_it_there_is(self):
-        """41 locales sit between 25% and 50%, so a threshold either hides
-        most of the list or means nothing. The number is what makes listing
-        everything honest."""
-        labels = dict((code, label) for label, code in _language_choices()[1:])
-        self.assertRegex(labels["de"], r"\d+%$")
+    def test_only_complete_languages_are_offered(self):
+        offered = {c for _l, c in _language_choices()[1:]}
+        complete = {code for code, _n, ok in locale_index.LOCALES if ok}
+        self.assertEqual(offered, complete | {"en"})
+
+    def test_an_incomplete_language_is_not_offered(self):
+        fake = [("de", "Deutsch", True), ("fr", "Français", False)]
+        with mock.patch.object(locale_index, "LOCALES", fake):
+            labels = dict((c, l) for l, c in _language_choices())
+        self.assertEqual(labels["de"], "Deutsch")      # name only
+        self.assertNotIn("fr", labels)
+
+    def test_no_label_carries_a_percentage(self):
+        fake = [("de", "Deutsch", True)]
+        with mock.patch.object(locale_index, "LOCALES", fake):
+            for label, _code in _language_choices():
+                self.assertNotIn("%", label)
+
+    def test_the_percentage_help_text_is_gone(self):
+        self.assertNotIn("lang", cfg.NOTES)
+
+
+class Fallback(unittest.TestCase):
+    """A saved language that is no longer offered."""
+
+    def _asked(self, saved, env, index):
+        seen = {}
+
+        def fake(domain, localedir, languages=None, fallback=False):
+            seen["languages"] = languages
+            return mock.MagicMock()
+
+        before = i18n.get_translation()
+        self.addCleanup(setattr, i18n, "translation", before)
+        with mock.patch.object(i18n.settings, "lang", saved), \
+                mock.patch.object(i18n.sys, "platform", "linux"), \
+                mock.patch.object(i18n.gettext, "translation", fake), \
+                mock.patch.object(locale_index, "LOCALES", index), \
+                mock.patch.dict(os.environ, env, clear=True):
+            i18n.configure()
+        i18n.translation = before
+        return seen["languages"]
+
+    def test_an_offered_language_is_used(self):
+        self.assertEqual(
+            self._asked("de", {}, [("de", "Deutsch", True)]), ["de"])
+
+    def test_an_unoffered_one_falls_back_to_english(self):
+        self.assertEqual(
+            self._asked("fr", {"LANG": "C"}, [("fr", "Français", False)]),
+            ["en"])
+
+    def test_or_to_the_system_language_when_that_is_offered(self):
+        index = [("fr", "Français", False), ("de", "Deutsch", True)]
+        self.assertEqual(
+            self._asked("fr", {"LANG": "de_DE.UTF-8"}, index), ["de"])
+
+    def test_the_saved_setting_is_not_rewritten(self):
+        with mock.patch.object(i18n.settings, "lang", "fr"):
+            self._asked("fr", {}, [("fr", "Français", False)])
+            self.assertEqual(i18n.settings.lang, "fr")
+
+    def test_english_is_never_filtered(self):
+        self.assertTrue(i18n.language_is_offered("en"))
+
 
     def test_the_row_is_first_on_the_landing_page(self):
         """Somebody who needs it cannot read anything else on the screen to

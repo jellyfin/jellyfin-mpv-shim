@@ -28,11 +28,11 @@ log = logging.getLogger("mpvtk_browser.settings")
 def _language_choices():
     """``[(label, value), ...]`` for the interface language picker.
 
-    **Endonyms and a percentage**, from the generated `locale_index`: the
-    person reaching for this control cannot read the language it is
-    currently in, and 41 of the 86 locales sit between 25% and 50%, so any
-    completeness threshold either hides most of the list or means nothing.
-    Showing the number is what makes listing everything honest.
+    Only fully translated languages (``locale_index`` says which, counted
+    against the strings in the source), plus the app's own English and
+    "use the system language". Endonyms, because the person reaching for
+    this control may not be able to read the language it is currently in.
+    No percentages: a language is either complete or not listed.
 
     None, not "", for "use the system language" -- that is what `lang`
     already means in conf.py, and `set_setting` writes None for a nullable
@@ -43,9 +43,10 @@ def _language_choices():
     except ImportError:            # not generated in this checkout
         log.debug("no locale index", exc_info=True)
         return None
-    out = [(_("Use the system language"), None)]
-    for code, endonym, percent in LOCALES:
-        out.append(("%s \u2014 %d%%" % (endonym, percent), code))
+    out = [(_("Use the system language"), None), ("English", "en")]
+    for code, endonym, complete in LOCALES:
+        if complete and code != "en":
+            out.append((endonym, code))
     return out
 
 

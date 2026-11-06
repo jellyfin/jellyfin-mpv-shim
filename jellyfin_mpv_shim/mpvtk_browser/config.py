@@ -788,13 +788,6 @@ NOTES = {
         "The \"shows only\" pair leaves films at whatever the server picks. "
         "The subbed presets assume the original audio is Japanese; if yours "
         "is not, choose Custom and write the rules yourself."),
-    # The percentage is the point of the note as much as the restart is: a
-    # language at 30% is mostly English and picking it should not look like
-    # a fault. Translating is where that number moves, so the note says so.
-    "lang": _(
-        "The percentage is how much of this app that language has been "
-        "translated so far; the rest stays in English. Translations are "
-        "contributed at translate.jellyfin.org."),
     # Says what "Automatic" resolves to here rather than in general: a
     # Flatpak user reading "Automatic" has no way to know it means off, and
     # this app is a client whose compatibility depends on a moving server,
