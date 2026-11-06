@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 15:39+0000\n"
+"PO-Revision-Date: 2026-11-06 15:42+0000\n"
 "Last-Translator: felzeth <felzeth@haru.team>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -1594,7 +1594,7 @@ msgstr "อัตราการสุ่มตัวอย่าง"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d เฮิรตซ์"
 
 #. Row label in the Media Info panel: how many bits each sample or colour
 #. uses.
@@ -1606,7 +1606,7 @@ msgstr "ความลึกสี"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d บิต"
 
 #. Row label in the Media Info panel: whether the picture is standard
 #. dynamic range or high.
