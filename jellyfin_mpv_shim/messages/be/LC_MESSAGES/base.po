@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 10:18+0000\n"
-"Last-Translator: \"AntV@\" <d.iwowi.b@gmail.com>\n"
+"PO-Revision-Date: 2026-11-06 10:24+0000\n"
+"Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
 "Language: be\n"
@@ -1272,10 +1272,8 @@ msgstr "Гатовы да перадачы"
 
 #. Instruction under the idle cast screen's heading.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Выберыце свой медыяфайл у Jellyfin і прайграйце яго тут"
+msgstr "Выберыце свой медыяфайл у Jellyfin і прайграйце яго тут."
 
 #. Heading over the actors and film-makers on an item's page. Jellyfin Web
 #. uses the same phrase.
@@ -3388,10 +3386,8 @@ msgstr ""
 #. Explanation shown under the "Show What You're Watching in Discord"
 #. setting (Settings > General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Прысутнасць Discord Rich"
+msgstr "Прысутнасць Discord Rich."
 
 #. Help note under the "mpris" setting (Settings > General > This Device).
 #. MPRIS is the name of the Linux standard; leave it untranslated.
@@ -3854,10 +3850,8 @@ msgstr "Аўтапрайграванне"
 
 #. Shown in the Add to Collection modal when the server has no collections.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "No collections yet."
-msgstr "Аўтапрайграванне"
+msgstr "Калекцый пакуль няма."
 
 #. Placeholder text in the empty text field where a new collection's name
 #. is typed.
@@ -4250,10 +4244,8 @@ msgstr ""
 #. Validation message in the Reading Progress dialog when what was typed in
 #. the page field is not a number.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Enter a number."
-msgstr "Змяніць субцітры"
+msgstr "Увядзіце лік."
 
 #. Validation message in the Reading Progress dialog. %d is the last page
 #. of the book.
@@ -4297,10 +4289,8 @@ msgstr "Новая група"
 #. Shown in the SyncPlay dialog when nobody on this server has a watch-
 #. together group open.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Новая група"
+msgstr "Няма актыўных груп."
 
 #. Button that starts a new SyncPlay watch-together group. On the SyncPlay
 #. dialog and on the playback controls.
