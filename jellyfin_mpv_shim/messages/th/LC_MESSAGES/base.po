@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 15:51+0000\n"
+"PO-Revision-Date: 2026-11-06 15:54+0000\n"
 "Last-Translator: felzeth <felzeth@haru.team>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -1684,41 +1684,38 @@ msgstr "ไฟล์ภายนอก"
 #. Row label in the Media Info panel: where in the container the timestamps
 #. are stored.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Timestamp"
-msgstr "เวลา"
+msgstr "ประทับเวลา"
 
 #. Row label in the Media Info panel. "DV" is Dolby Vision; the
 #. abbreviation is normally kept.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "DV title"
-msgstr "ขนาดคำบรรยาย: {0}"
+msgstr "ชื่อ Dolby Vision"
 
 #. Row label in the Media Info panel: the major part of the Dolby Vision
 #. version number.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV version major"
-msgstr ""
+msgstr "เวอร์ชั่นหลักของ Dolby Vision"
 
 #. Row label in the Media Info panel: the minor part of the Dolby Vision
 #. version number.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV version minor"
-msgstr ""
+msgstr "เวอร์ชั่นย่อยของ Dolby Vision"
 
 #. Row label in the Media Info panel: which Dolby Vision profile the video
 #. uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV profile"
-msgstr ""
+msgstr "โปรไฟล์ Dolby Vision"
 
 #. Row label in the Media Info panel: which Dolby Vision level the video
 #. uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV level"
-msgstr ""
+msgstr "ระดับ Dolby Vision"
 
 #. Row label in the Media Info panel: whether the Dolby Vision reference
 #. processing unit data is present. Technical field names taken from the
