@@ -521,10 +521,8 @@ class OscBridge:
         client.jellyfin.join_sync_play(group_id)
 
     def _syncplay_new(self):
-        from .syncplay import default_group_name
-
         client = self._syncplay_client()
-        client.jellyfin.new_sync_play_v2(default_group_name(client))
+        self.playerManager.syncplay.create_group(client)
 
     def _syncplay_disable(self):
         client = self._syncplay_client()

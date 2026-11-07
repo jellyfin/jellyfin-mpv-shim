@@ -200,6 +200,44 @@ class SyncPlayPlaybackTest(_e2e.E2ETestCase):
                        timeout=25),
             "we pressed play in a group and the other member was never told")
 
+    def test_a_group_made_mid_playback_is_given_what_we_are_playing(self):
+        """Play first, then make the group: whoever joins gets our episode.
+
+        The server seeds a new group from its creator's NowPlayingQueue, and
+        12.0 stopped recording that (see
+        `SyncPlayManager._seed_group_from_playback`), so the group came up
+        empty and a member who joined was seated with nothing to play.
+        """
+        self.press_play()
+        self.assertTrue(
+            self.pump_until(
+                lambda: (self.pm._player.playback_time or 0) > 1, 45),
+            "the local playback never started")
+        # The server decides between Idle and a seeded Waiting from what it
+        # has been told is playing; creating before that report lands tests
+        # a different path.
+        device = _e2e.DEVICE_PREFIX + "sp-player"
+        self.assertTrue(wait_until(
+            lambda: any(s.get("NowPlayingItem")
+                        for s in self.friend.api.get_sessions()
+                        if s.get("DeviceId") == device), timeout=20),
+            "the server never heard we were playing")
+
+        self.pm.syncplay.create_group(self.session.client)
+        self.assertTrue(
+            self.pump_until(lambda: self.pm.syncplay.in_group(), 15),
+            "we never joined the group we created")
+        self.friend.api.join_sync_play(self.pm.syncplay.current_group)
+
+        self.assertTrue(
+            self.pump_until(
+                lambda: self.friend.player.video is not None
+                and self.friend.player.video.item_id == self.item_id, 30),
+            "joined a group made mid-playback and was given nothing to play")
+        self.assertTrue(
+            self.pump_until(lambda: self.friend.playing, 30),
+            "the friend got our episode but the group never started")
+
     def test_backing_out_and_choosing_something_else_moves_the_group(self):
         """Stop, then pick something different: the group follows you.
 

@@ -1570,6 +1570,8 @@ class _FakeSyncplay:
     request_skip = _record("request_skip")
     process_command = _record("process_command")
     process_group_update = _record("process_group_update")
+    # Membership arrives later, as the server's GroupJoined.
+    create_group = _record("create_group")
     del _record
 
 
