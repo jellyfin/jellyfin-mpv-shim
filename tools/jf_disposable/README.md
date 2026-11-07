@@ -84,7 +84,7 @@ A person-driven comparison of the renderer's 30 ms and 16.7 ms frame-cadence flo
     tools/jf_disposable/ab_manual.sh reveal --session DIR           # only when every run is done and rated
 
 Each run goes through `jf_run.py` scroll mode inside one `tools/limited_run.sh` scope (3 GiB, no swap, `JH_MAX_MPV=1`,
-leftover check). `ab_launch.sh` wraps the launcher to set the diagnostics and an mpv IPC socket for two read-only property reads
+leftover check). `ab_launch.sh` wraps the launcher (`ab_app.sh`: the repository source on the local-test venv, not its older installed copy) to set the diagnostics and an mpv IPC socket for two read-only property reads
 (the effective tick, the video output); the run is discarded if the app does not report the assigned tick. Recorded: the
 app's frame log, the scope's cgroup CPU and memory (peak and per phase), the app tree's PSS and CPU, the AMD `gpu_busy_percent`
 counter where the kernel has one, and queued-event lines of the app log. A pilot is two runs (one per arm, order drawn);

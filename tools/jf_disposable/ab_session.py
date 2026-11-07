@@ -226,7 +226,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     work = os.environ.get("JH_JF_WORK", os.path.join(HERE, "work"))
     py = os.environ.get("JH_PY", os.path.join(REPO, "dist", "local-test", "venv", "bin", "python"))
-    launcher = os.environ.get("JH_AB_REAL_APP", os.path.join(REPO, "dist", "local-test", "launch.sh"))
+    launcher = os.environ.get("JH_AB_REAL_APP", os.path.join(HERE, "ab_app.sh"))
     try:
         plan = CF.load_plan(a.session)
         run = a.run or CF.next_run(a.session)
@@ -297,6 +297,9 @@ def main(argv=None):
                   "window": [props.get("osd-width"), props.get("osd-height")]}
         metrics["verify"] = verify
         CF._dump(os.path.join(a.session, ".effective-%s.json" % run), {"tick_ms": eff}, 0o600)
+        if eff is None:
+            raise Abort("the app publishes no frame diagnostics (is it running the repository source "
+                        "and not an older installed copy?); run discarded")
         if not ok:
             raise Abort("the app does not report the cadence floor the plan assigned; run discarded")
         if verify["current_vo"] not in ("gpu", "gpu-next"):

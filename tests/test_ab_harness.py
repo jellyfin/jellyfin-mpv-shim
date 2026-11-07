@@ -316,6 +316,19 @@ class Log(Tmp):
 
 
 class Ipc(Tmp):
+    def test_the_default_app_is_the_repository_source_not_the_installed_copy(self):
+        src = _text(os.path.join(TOOLS, "ab_session.py"))
+        self.assertIn('os.path.join(HERE, "ab_app.sh")', src)
+        self.assertNotIn('"launch.sh"', src)
+        app = os.path.join(TOOLS, "ab_app.sh")
+        self.assertTrue(os.access(app, os.X_OK))
+        body = _text(app)
+        self.assertIn('run.py', body)
+        self.assertNotIn("JMS_", body)                       # overrides nothing
+        lua = _text(os.path.join(ROOT, "jellyfin_mpv_shim", "mpvtk", "renderer.lua"))
+        self.assertIn("os.getenv('JMS_FRAME_DIAG')", lua)    # the source has what the harness needs
+        self.assertIn("publishes no frame diagnostics", src)
+
     def test_the_socket_lives_in_a_short_private_directory(self):
         src = _text(os.path.join(ROOT, "tools", "jf_disposable", "ab_session.py"))
         self.assertIn('tempfile.mkdtemp(prefix="jhab-")', src)
