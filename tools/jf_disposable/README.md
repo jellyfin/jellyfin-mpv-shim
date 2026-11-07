@@ -71,3 +71,25 @@ With `WAYLAND_DISPLAY` set, mpv draws on your real Wayland desktop instead of th
   longer, exited by themselves (rc 0) and I do not know what made the difference. Nothing is lost either way: the
   database is a temporary one and is removed afterwards. The timeouts are the driver's own and were not changed.
 * These are test harnesses, not part of the application. They have no unit tests, because they need a real server.
+
+## Blinded cadence comparison (`ab_manual.sh`)
+
+A person-driven comparison of the renderer's 30 ms and 16.7 ms frame-cadence floors (`JMS_TICK_MS`, honoured only with
+`JMS_FRAME_DIAG`) using the **real** mouse wheel and touchpad on your desktop; no synthetic wheel events are sent.
+
+    tools/jf_disposable/ab_manual.sh plan --pilot --session DIR     # draws and seals the arms; starts nothing
+    tools/jf_disposable/ab_manual.sh run --session DIR --dry-run    # checks prerequisites; starts nothing
+    tools/jf_disposable/ab_manual.sh run --session DIR              # next run: one window, five guided phases
+    tools/jf_disposable/ab_manual.sh validate --session DIR         # is the data complete? (names no tick)
+    tools/jf_disposable/ab_manual.sh reveal --session DIR           # only when every run is done and rated
+
+Each run goes through `jf_run.py` scroll mode inside one `tools/limited_run.sh` scope (3 GiB, no swap, `JH_MAX_MPV=1`,
+leftover check). `ab_launch.sh` wraps the launcher to set the diagnostics and an mpv IPC socket for two read-only property reads
+(the effective tick, the video output); the run is discarded if the app does not report the assigned tick. Recorded: the
+app's frame log, the scope's cgroup CPU and memory (peak and per phase), the app tree's PSS and CPU, the AMD `gpu_busy_percent`
+counter where the kernel has one, and queued-event lines of the app log. A pilot is two runs (one per arm, order drawn);
+`--full` is A-B-B-A or B-A-A-B. `WAYLAND_DEBUG` is not used.
+
+Limits: frame figures are what the renderer *submitted*, not what reached the screen. The cgroup CPU includes the throw-away
+server. The GPU counter is coarse and absent on other vendors. How hard and fast you scroll varies between runs, so
+compare distributions across several runs, not single frames. A run that crashes is recorded as failed and not retried.
