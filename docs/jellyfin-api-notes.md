@@ -906,3 +906,22 @@ the shim relies on against both QA servers.
 - **An extra has its own UserData.** The server copies the owner's overview,
   ratings and genres onto it, and on 12.2 renames an owner-named extra to its
   localized type ("Featurette 2"); 10.11 keeps the file name.
+
+## 16. SyncPlay: a new group is seeded from its creator's session
+
+`Group.CreateGroup` copies the creator's `session.NowPlayingQueue` into the
+group and enters `Waiting` when the creator is playing (`Idle`, plus a Stop
+to the creator, when not). Neither jellyfin-web nor this client sends a queue
+on create; the server is meant to supply it.
+
+**12.0+ seeds an empty queue.** jellyfin/jellyfin `a3b2b9c07f` removed the
+progress-report write of `NowPlayingQueue` along with the unused
+`NowPlayingQueueFullItems`, so the session's queue is only ever `[]` while
+playing. The group knows *that* the creator is playing but not *what*, and
+every member who joins is sent an empty `NewPlaylist`. Measured 2026-11-06:
+`GET /Sessions` shows `NowPlayingQueue: []` on 12.2 while the client reports
+a full one; 10.11.11 seeds correctly. Upstream fix:
+jellyfin/jellyfin#18198 (open). `SyncPlayManager._seed_group_from_playback`
+sends the queue itself when the first queue after our own create is empty
+(then a Pause if we were paused: `SetNewQueue` always resumes, where the
+seed keeps `ResumePlaying = !IsPaused`), and `tests/e2e/test_syncplay_playback.py` covers both versions.

@@ -102,13 +102,13 @@ class SyncPlayMixin(GatewayCore):
         is required -- so every "New Group" from this dialog came back 400
         while the identical button on the OSD menu (which has always used v2)
         worked. Nothing to do with there being no playback session."""
-        from ...syncplay import default_group_name
+        from ...player import playerManager
 
         client = deps.clientManager.clients.get(server_uuid)
         if client is None:
             return
-        name = default_group_name(client)
-        self._sync(server_uuid, lambda jf: jf.new_sync_play_v2(name))
+        self._sync(server_uuid,
+                   lambda _jf: playerManager.syncplay.create_group(client))
 
     def sync_leave(self, server_uuid):
         self._sync(server_uuid, lambda jf: jf.leave_sync_play())

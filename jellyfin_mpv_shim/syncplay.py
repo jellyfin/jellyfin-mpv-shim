@@ -127,6 +127,11 @@ class SyncPlayManager:
         # has something to resume into (web's QueueCore.startPlayback reads
         # the same stored queue).
         self.last_playqueue = None
+        # See _seed_group_from_playback. Armed by our own create request,
+        # moved to _seed_pending by the GroupJoined it produces, consumed by
+        # the first PlayQueue after that.
+        self._created_group = False
+        self._seed_pending = False
 
     # On playback time update (call from timeline push)
     def sync_playback_time(self):
@@ -372,6 +377,7 @@ class SyncPlayManager:
         self.playqueue_last_updated = None
         self.following = True
         self.last_playqueue = None
+        self._seed_pending = False
 
         # Per-session drift and buffer bookkeeping. None of it can clear
         # itself once the session is over: on_buffer_done is only ever reached
@@ -622,7 +628,11 @@ class SyncPlayManager:
             self.prepare_session(command["GroupId"], command["Data"])
         elif command_type == "GroupJoined":
             self.current_group = command["GroupId"]
+            # On the wire a create and a join are the same GroupJoined; only
+            # we know which one we asked for.
+            created, self._created_group = self._created_group, False
             self.enable_sync_play(True)
+            self._seed_pending = created
         elif command_type == "GroupLeft" or command_type == "NotInGroup":
             self.disable_sync_play(True)
         elif command_type == "UserJoined":
@@ -930,7 +940,10 @@ class SyncPlayManager:
             {"Id": x["ItemId"], "PlaylistItemId": x["PlaylistItemId"]}
             for x in data["Playlist"]
         ]
+        seed, self._seed_pending = self._seed_pending, False
         if not sp_items:
+            if seed and self._seed_group_from_playback():
+                return
             # The server does send these (PlayingItemIndex -1). web's
             # startPlayback returns on isPlaylistEmpty() -- after following,
             # above -- and leaves whatever is playing alone.
@@ -956,6 +969,47 @@ class SyncPlayManager:
                 self._play_video(new_media.video, offset)
             else:
                 self._buffer_req(False)
+
+    def _seed_group_from_playback(self):
+        """Hand what we are playing to the group we just created.
+
+        The server is meant to do this: ``Group.CreateGroup`` copies the
+        creator's ``session.NowPlayingQueue``. 12.0 stopped recording that
+        queue from progress reports (jellyfin/jellyfin a3b2b9c07f; the fix is
+        jellyfin/jellyfin#18198), so a group made mid-playback starts empty
+        and whoever joins gets nothing to play. Keyed on the empty queue, not
+        the server version, so it goes quiet on a server that seeds.
+        """
+        video = self.playerManager.get_video()
+        if video is None:
+            return False
+        media = video.parent
+        ticks = int((self.playerManager.get_time() or 0) * seconds_in_ticks)
+        paused = not self.playerManager.is_not_paused()
+        log.info("Giving the new group what we are playing.")
+        try:
+            self.client.jellyfin.reset_queue_sync_play(
+                [q["Id"] for q in media.queue], media.seq, ticks)
+            if paused:
+                # A seeding server keeps a paused creator's group paused
+                # (ResumePlaying = !IsPaused); SetNewQueue always resumes, and
+                # a Pause while the group is Waiting is what clears that.
+                self.client.jellyfin.pause_sync_play()
+        except Exception:
+            log.error("Could not give the new group our queue.", exc_info=True)
+        return True
+
+    def create_group(self, client):
+        """Every "New Group" button comes through here; see
+        _seed_group_from_playback for why we need to know it was ours."""
+        # Armed before the request: the GroupJoined can arrive on the
+        # websocket before the POST returns.
+        self._created_group = True
+        try:
+            client.jellyfin.new_sync_play_v2(default_group_name(client))
+        except Exception:
+            self._created_group = False
+            raise
 
     def schedule_seek(self, when: datetime, position: int):
         # This replicates what the web client does.
@@ -1058,7 +1112,7 @@ class SyncPlayManager:
 
     def menu_create_group(self):
         self.menu.hide_menu()
-        self.client.jellyfin.new_sync_play_v2(default_group_name(self.client))
+        self.create_group(self.client)
 
     def menu_action(self):
         self.client = self.playerManager.get_current_client()
