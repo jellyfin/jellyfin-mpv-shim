@@ -200,8 +200,8 @@ class SyncPlayPlaybackTest(_e2e.E2ETestCase):
                        timeout=25),
             "we pressed play in a group and the other member was never told")
 
-    def test_a_group_made_mid_playback_is_given_what_we_are_playing(self):
-        """Play first, then make the group: whoever joins gets our episode.
+    def make_group_mid_playback(self, paused=False):
+        """Play first, then make the group, then the friend joins it.
 
         The server seeds a new group from its creator's NowPlayingQueue, and
         12.0 stopped recording that (see
@@ -213,30 +213,65 @@ class SyncPlayPlaybackTest(_e2e.E2ETestCase):
             self.pump_until(
                 lambda: (self.pm._player.playback_time or 0) > 1, 45),
             "the local playback never started")
-        # The server decides between Idle and a seeded Waiting from what it
-        # has been told is playing; creating before that report lands tests
-        # a different path.
+        if paused:
+            self.pm.set_paused(True)
+            self.assertTrue(self.pump_until(lambda: self.pm._player.pause, 10),
+                            "the local pause never took")
+            # No timeline thread here; the app's reports this within seconds.
+            self.pm.send_timeline()
+        # The server picks Idle or a seeded Waiting from what it has been
+        # told is playing, and the seed's pause state from IsPaused; creating
+        # before that report lands tests a different path.
         device = _e2e.DEVICE_PREFIX + "sp-player"
-        self.assertTrue(wait_until(
-            lambda: any(s.get("NowPlayingItem")
-                        for s in self.friend.api.get_sessions()
-                        if s.get("DeviceId") == device), timeout=20),
-            "the server never heard we were playing")
+
+        def reported():
+            for s in self.friend.api.get_sessions():
+                if s.get("DeviceId") == device and s.get("NowPlayingItem"):
+                    return bool((s.get("PlayState") or {}).get(
+                        "IsPaused")) == paused
+            return False
+
+        self.assertTrue(wait_until(reported, timeout=20),
+                        "the server never heard what we were playing")
 
         self.pm.syncplay.create_group(self.session.client)
         self.assertTrue(
             self.pump_until(lambda: self.pm.syncplay.in_group(), 15),
             "we never joined the group we created")
         self.friend.api.join_sync_play(self.pm.syncplay.current_group)
-
         self.assertTrue(
             self.pump_until(
                 lambda: self.friend.player.video is not None
                 and self.friend.player.video.item_id == self.item_id, 30),
             "joined a group made mid-playback and was given nothing to play")
+
+    def test_a_group_made_mid_playback_is_given_what_we_are_playing(self):
+        self.make_group_mid_playback()
         self.assertTrue(
             self.pump_until(lambda: self.friend.playing, 30),
             "the friend got our episode but the group never started")
+
+    def test_a_group_made_while_paused_stays_paused(self):
+        """Paused when we made it, paused for whoever joins -- what a
+        seeding server does with the creator's IsPaused."""
+        self.make_group_mid_playback(paused=True)
+        group_id = self.pm.syncplay.current_group
+
+        def state():
+            return next((g.get("State")
+                         for g in self.friend.api.get_sync_play() or []
+                         if g.get("GroupId") == group_id), None)
+
+        self.assertTrue(self.pump_until(lambda: state() == "Paused", 30),
+                        "the group never settled (state %r)" % state())
+        # Several samples, not one: "not playing yet" and "paused" look the
+        # same at any single instant.
+        for _ in range(3):
+            self.pump_until(lambda: False, 1)
+            self.assertFalse(self.friend.playing,
+                             "a group made while paused started playing")
+            self.assertTrue(self.pm._player.pause,
+                            "a group made while paused unpaused us")
 
     def test_backing_out_and_choosing_something_else_moves_the_group(self):
         """Stop, then pick something different: the group follows you.

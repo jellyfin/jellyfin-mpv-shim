@@ -922,5 +922,6 @@ every member who joins is sent an empty `NewPlaylist`. Measured 2026-11-06:
 `GET /Sessions` shows `NowPlayingQueue: []` on 12.2 while the client reports
 a full one; 10.11.11 seeds correctly. Upstream fix:
 jellyfin/jellyfin#18198 (open). `SyncPlayManager._seed_group_from_playback`
-sends the queue itself when the first queue after our own create is empty,
-and `tests/e2e/test_syncplay_playback.py` covers both versions.
+sends the queue itself when the first queue after our own create is empty
+(then a Pause if we were paused: `SetNewQueue` always resumes, where the
+seed keeps `ResumePlaying = !IsPaused`), and `tests/e2e/test_syncplay_playback.py` covers both versions.

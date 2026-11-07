@@ -71,6 +71,9 @@ class Api:
     def reset_queue_sync_play(self, ids, position=0, position_ticks=0):
         self.calls.append(("SetNewQueue", list(ids), position, position_ticks))
 
+    def pause_sync_play(self):
+        self.calls.append(("Pause",))
+
     def ready_sync_play(self, *a):
         self.calls.append(("Ready",) + a)
 
@@ -131,6 +134,23 @@ class SeedOnCreateTest(unittest.TestCase):
             [("SetNewQueue", ["ep-1", "ep-2", "ep-3"], 1, 425_000_000)],
             self.api.sent_queues(),
             "a group created mid-playback was left with an empty queue")
+
+    def test_a_paused_creator_gets_a_paused_group(self):
+        """10.11 seeds with ResumePlaying = !IsPaused; SetNewQueue always
+        resumes, so the Pause has to follow it, in that order."""
+        self.player.paused = True
+        self.create()
+        self.sp.process_group_update(play_queue())
+        kinds = [c[0] for c in self.api.calls]
+        self.assertIn("SetNewQueue", kinds)
+        self.assertIn("Pause", kinds, "the group was started for a creator "
+                      "who had paused")
+        self.assertLess(kinds.index("SetNewQueue"), kinds.index("Pause"))
+
+    def test_a_playing_creator_is_not_paused(self):
+        self.create()
+        self.sp.process_group_update(play_queue())
+        self.assertNotIn("Pause", [c[0] for c in self.api.calls])
 
     def test_a_seeded_group_is_left_alone(self):
         """10.11: the server already copied our queue. Sending it again

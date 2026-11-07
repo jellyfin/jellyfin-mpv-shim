@@ -985,10 +985,16 @@ class SyncPlayManager:
             return False
         media = video.parent
         ticks = int((self.playerManager.get_time() or 0) * seconds_in_ticks)
+        paused = not self.playerManager.is_not_paused()
         log.info("Giving the new group what we are playing.")
         try:
             self.client.jellyfin.reset_queue_sync_play(
                 [q["Id"] for q in media.queue], media.seq, ticks)
+            if paused:
+                # A seeding server keeps a paused creator's group paused
+                # (ResumePlaying = !IsPaused); SetNewQueue always resumes, and
+                # a Pause while the group is Waiting is what clears that.
+                self.client.jellyfin.pause_sync_play()
         except Exception:
             log.error("Could not give the new group our queue.", exc_info=True)
         return True
