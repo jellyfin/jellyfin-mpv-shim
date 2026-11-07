@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-07 17:16+0000\n"
+"PO-Revision-Date: 2026-11-07 18:51+0000\n"
 "Last-Translator: miluchin <milumiluchin@gmail.com>\n"
 "Language-Team: Galician <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/gl/>\n"
@@ -6661,7 +6661,7 @@ msgstr ""
 #. table of contents.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Contents"
-msgstr ""
+msgstr "Contidos"
 
 #. Shown while a book file is being fetched to this device.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -6761,7 +6761,7 @@ msgstr ""
 #. there.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "Seasons"
-msgstr ""
+msgstr "Tempadas"
 
 #. Status message when fetching the next batch of a long list failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
