@@ -25,6 +25,7 @@ import signal
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -255,7 +256,10 @@ def main(argv=None):
     rec = {"status": "failed", "started_utc": utc(), "run": run}
     jf = tail = sampler = None
     flag = os.path.join(run_dir, "stop.flag")
-    sock = os.path.join(run_dir, "mpv.sock")
+    # A unix socket path is limited to ~107 bytes; a session path is far longer, so the socket
+    # lives in a short private (0700) directory that is removed at the end of the run.
+    sock_dir = tempfile.mkdtemp(prefix="jhab-")
+    sock = os.path.join(sock_dir, "mpv.sock")
     frame_log, art_path = os.path.join(run_dir, "frame_log.tsv"), os.path.join(run_dir, "art_diag.json")
     client_log = os.path.join(work, "out", "client.log.raw")
     metrics = {}
@@ -329,6 +333,7 @@ def main(argv=None):
         rec["error"] = "%s: %s" % (type(e).__name__, str(e)[:300])
         say("ab_session: %s" % rec["error"])
     finally:
+        shutil.rmtree(sock_dir, ignore_errors=True)
         for stopper in (tail, sampler):
             if stopper:
                 stopper.stop()

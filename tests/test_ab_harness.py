@@ -316,6 +316,13 @@ class Log(Tmp):
 
 
 class Ipc(Tmp):
+    def test_the_socket_lives_in_a_short_private_directory(self):
+        src = _text(os.path.join(ROOT, "tools", "jf_disposable", "ab_session.py"))
+        self.assertIn('tempfile.mkdtemp(prefix="jhab-")', src)
+        self.assertNotIn('os.path.join(run_dir, "mpv.sock")', src)
+        self.assertIn("shutil.rmtree(sock_dir", src)
+        self.assertLess(len(os.path.join(tempfile.gettempdir(), "jhab-xxxxxxxx", "mpv.sock")), 100)
+
     def test_properties_are_read_over_a_unix_socket_ignoring_events(self):
         path = os.path.join(self.tmp, "mpv.sock")
         srv = socket.socket(socket.AF_UNIX)
