@@ -262,6 +262,7 @@ def main(argv=None):
     try:
         env = {k: v for k, v in os.environ.items() if not k.startswith(("JMS_", "JH_AB_"))}
         env.update({"JH_JF_WORK": work, "JH_JF_MODE": "scroll", "JH_JF_FLAG": flag, "JH_JF_EXPECT": "120",
+                    "JH_JF_MEDIA": os.path.join(work, "media", "MoviesGrid"),
                     "JH_JF_APP": os.path.join(HERE, "ab_launch.sh"), "JH_AB_REAL_APP": launcher,
                     "JH_AB_IPC": sock, "JH_AB_FRAME_LOG": frame_log, "JH_AB_ART_DIAG": art_path,
                     "JH_AB_TICK_MS": scroll_config.app_env({"tick_ms": tick})["JMS_TICK_MS"],

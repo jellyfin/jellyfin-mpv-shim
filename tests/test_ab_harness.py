@@ -511,6 +511,15 @@ class Boundaries(unittest.TestCase):
             self.assertNotRegex(text, r"WAYLAND_DEBUG\s*=|export WAYLAND_DEBUG", name)
         self.assertIn("is NOT enabled", self.src("ab_manual.sh"))
 
+    def test_the_library_is_the_120_poster_folder_the_preflight_checks(self):
+        """jf_run.py scans media/Movies, which holds nothing in a work dir made for scroll_probe: the
+        first live attempt timed out on 'library scan finds the movie'. The run must point it at
+        MoviesGrid, the folder preflight counts posters in."""
+        self.assertRegex(self.src("jf_run.py"), r'MEDIA = os\.environ\.get\("JH_JF_MEDIA"\) or os\.path\.join\(WORK, "media", "Movies"\)')
+        session = self.src("ab_session.py")
+        self.assertIn('"JH_JF_MEDIA": os.path.join(work, "media", "MoviesGrid")', session)
+        self.assertIn('os.path.join(work, "media", "MoviesGrid")', session.split("def preflight")[1])
+
     def test_the_limits_are_kept(self):
         manual = self.src("ab_manual.sh")
         self.assertIn("tools/limited_run.sh", manual)

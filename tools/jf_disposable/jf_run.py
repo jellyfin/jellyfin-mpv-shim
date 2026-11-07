@@ -15,7 +15,7 @@ PORT = 18097
 BASE = "http://127.0.0.1:%d" % PORT
 PHASE = sys.argv[1] if len(sys.argv) > 1 else "server"
 SERVER_BIN = os.path.join(WORK, "server", "jellyfin", "jellyfin")
-MEDIA = os.path.join(WORK, "media", "Movies")
+MEDIA = os.environ.get("JH_JF_MEDIA") or os.path.join(WORK, "media", "Movies")   # JH_JF_MEDIA: another library folder
 REPO = os.path.dirname(os.path.dirname(HERE))
 D = tempfile.mkdtemp(prefix="jf-disposable-")
 SECRETS = []
