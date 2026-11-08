@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-03 13:21+0000\n"
+"PO-Revision-Date: 2026-11-08 16:20+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -3946,21 +3946,21 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d already downloaded"
-msgstr ""
+msgstr "%d تم تحميله بالفعل"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. of the items have already been watched.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
-msgstr ""
+msgstr "%d شوهد"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. items the server would not give a size for.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "حجم %d غير معروف"
 
 # seeded from jellyfin-web: Download
 #. Title of the modal that downloads items for offline viewing. A noun
@@ -3975,13 +3975,13 @@ msgstr "تنزيل"
 #. left out of the download.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
-msgstr ""
+msgstr "يشمل ما تمت مشاهدته"
 
 #. Shown in the Download modal when every item in the selection is already
 #. on disk.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Nothing left to download."
-msgstr ""
+msgstr "لم يعد هناك شيء لتنزيله."
 
 #. Error shown when the Download modal's button failed to queue anything.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
