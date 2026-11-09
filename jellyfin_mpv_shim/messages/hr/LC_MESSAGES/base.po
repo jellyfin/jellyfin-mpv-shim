@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-23 07:24+0000\n"
+"PO-Revision-Date: 2026-11-09 10:05+0000\n"
 "Last-Translator: trailxyz <abel@mislovic.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -1285,10 +1285,8 @@ msgstr "Omiljeni"
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "Osviježi"
+msgstr "Osviježi metapodatke"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -1304,15 +1302,13 @@ msgstr "Izbriši s diska"
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Više"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Has Special Features"
 msgid "Special Features"
-msgstr "Ima posebne značajke"
+msgstr "Posebne značajke"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
@@ -1332,40 +1328,32 @@ msgstr "Web"
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. promotional film about the making of the film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Features"
 msgctxt "kind of special feature"
 msgid "Featurette"
-msgstr "Funkcije"
+msgstr "Promotivni video"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
 #. production.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Panel behind the controls"
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr "Panel iza upravljača"
+msgstr "Iza zastora (Behind the Scenes)"
 
 # seeded from jellyfin-web: DeleteUser
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
 #. from the finished film.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Delete User"
 msgctxt "kind of special feature"
 msgid "Deleted Scene"
-msgstr "Izbrisati korisnika"
+msgstr "Izbrisana scena"
 
 # seeded from jellyfin-web: MediaInfoInterlaced
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. An interview
 #. with the cast or crew.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Interlaced"
 msgctxt "kind of special feature"
 msgid "Interview"
 msgstr "Prepleteno"
@@ -1375,32 +1363,26 @@ msgstr "Prepleteno"
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
 #. the film itself.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Scenes"
 msgctxt "kind of special feature"
 msgid "Scene"
-msgstr "Scene"
+msgstr "Scena"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short sample
 #. of the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Sample rate"
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr "Uzorak brzine"
+msgstr "Uzorak"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
 #. excerpt.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
-#, fuzzy
-#| msgid "Clipboard"
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr "Međuspremnik"
+msgstr "Isječak"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1408,7 +1390,7 @@ msgstr "Međuspremnik"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "Kratki isječak"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
@@ -2822,10 +2804,8 @@ msgstr "Prikaži što gledaš na Discordu"
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "Pitaj za preskakanje najava (intros)"
+msgstr "Upravljanje multimedijom putem dekstop-a"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
@@ -2874,10 +2854,8 @@ msgstr "Razmak rešetke"
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remember Last Used Profile"
 msgid "Remember Library Filters"
-msgstr "Zapamti zadnji korišteni profil"
+msgstr "Zapamti filter biblioteke"
 
 #. Label of the checkbox for the "logo_legibility_live_tv" setting
 #. (Settings > Browse > Library Browser).
@@ -3111,6 +3089,13 @@ msgid ""
 "assume the original audio is Japanese; if yours is not, choose Custom and "
 "write the rules yourself."
 msgstr ""
+"\"Titlovirano\" zadržava originalni zvučni zapis i dodaje potpune titlove u "
+"vašem jeziku. \"Sinkronizirano\" preferira zvučni zapis u vašem jeziku sa "
+"titlovima znakova i pjesama, i povratni sistem na titlovirano ako ne postoji "
+"sinkronizacija. \"Prikaži samo\" par ostavlja filmove na postavci koju "
+"poslužitelj odabere. Titlovirani predlošci pretpostavljaju da je originalni "
+"audio zapis na japanskom; ako vaš nije, odaberite \"Prilagođeno\" i napišite "
+"pravila samostalno."
 
 #. Explanation shown under the "Language" setting (Settings > General >
 #. This Device).
@@ -3120,6 +3105,8 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"Postotak je koliko ove aplikacije tog jezika je prevedeno; ostatak ostaje na "
+"engleskom. Prijevodi su doprinešeni na translate.jellyfin.org."
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
@@ -3129,6 +3116,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"\"Automatski\" isključuje ovo unutar Flatpak-a, gdje vaše radno okruženje "
+"već objavljuje ažuriranja i \"flatpak update\" instalira ta ažuriranja, i "
+"ostavlja ga uključenim svugdje drugdje."
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3194,6 +3184,11 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"Grace period (\"razdoblje milosti\") nakon što se završi pregled nečega: ono "
+"ostaje preuzeto na toliko koliko je napomentu, tako da se može ponovno "
+"pogledati ili netko drugi u kućanstvu može sustići sa pregledom, umjesto da "
+"se prebaci na sljedeću provjeru. Ponestajanjem pohrane briše se pregledana "
+"preuzimanje prije nego što završi vrijeme razdoblja."
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
@@ -3307,6 +3302,12 @@ msgid ""
 "and server disk space on a large file. Subtitles in their own file are not "
 "affected."
 msgstr ""
+"Kada se video transkodira, prikazuj njegove ugrađene Blu-ray ili DVD (PGS, "
+"VobSub) titlove kao zasebnu traku umjesto da ih ugrađujete u sliku, kako bi "
+"ostali oštriji i mogli bi se mijenjati bez ponovnog pokretanja. Prikaz jedne "
+"trake titlova prisiljava poslužitelj da prvo izdvoji svaku traku titlova iz "
+"datoteke, što oduzima vrijeme i zauzima prostor na disku poslužitelja kod "
+"velikih datoteka. Titlovi u vlastitoj datoteci ostaju nepromijenjeni."
 
 #. Explanation shown under the "Network Buffer" setting (Settings >
 #. Playback > Playback).
@@ -3456,6 +3457,9 @@ msgid ""
 "preference heuristics are built around English naming conventions, your "
 "mileage may vary. Use a language code such as eng."
 msgstr ""
+"Jezik koji se koristi za sinkrinizirani audio zapis ili titlove. Imajte na "
+"umu da su heuristike preferencija izgrađene na temelju engleskih konvencija "
+"imenovanja, vaša iskustva mogu varirati. Koristite jezični kod poput eng."
 
 #. Explanation shown under the "Load All Seek Previews at Once" setting
 #. (Settings > Playback > Player Controls).
@@ -3539,6 +3543,10 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"Omogućuje tipkama za multimedije na tipkovnici, tipkama na slušalicama, "
+"zaslonu zaključavanja i medijskim widgetima na radnoj površini reprodukciju, "
+"pauzu i preskakanje te prikazivanje što se reproducira s naslovnicom (MPRIS, "
+"samo za Linux)."
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3588,6 +3596,9 @@ msgid ""
 "favorites and the rest), saved to your account on the server. Off, filters "
 "only last until you leave the library."
 msgstr ""
+"Ponovno otvorite svaku biblioteku s filtrima koje je imala prošli put (žanr, "
+"nepregledano, favoriti i ostalo), spremljenima na vaš račun na poslužitelju. "
+"Ako ih ne spremite, filtri vrijede samo dok ne napustite biblioteku."
 
 #. Explanation shown under the "Make Live TV logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -4118,10 +4129,8 @@ msgstr "U redu"
 #. Error in the Download modal for a special feature (an extra belonging to a
 #. film or show). They can only be played from the server.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "%s has not been downloaded."
 msgid "Special features cannot be downloaded."
-msgstr "%s nije preuzet."
+msgstr "Posebne značajke se ne mogu preuzeti."
 
 #. Error shown in the Download modal when the server could not be asked
 #. which episodes are still missing.
@@ -4387,16 +4396,12 @@ msgstr ""
 #. a software package name and the parenthesis holds a shell command; leave
 #. both untranslated.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Install the \"%(package)s\" package (for example \"apt install "
-#| "%(package)s\"), or use MPV 0.41 or newer."
+#, python-format
 msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\")."
 msgstr ""
-"Instalirajte paket \"%(package)s\" (na primjer \"apt install %(package)s\"), "
-"ili koristite MPV 0.41 ili noviji."
+"Instalirajte paket \"%(package)s\" (na primjer \"apt install %(package)s\")."
 
 #. Follows the clipboard message above, naming the MPV version that gained
 #. clipboard support.
@@ -4413,8 +4418,6 @@ msgstr "Međuspremnik"
 #. A noun naming the dialog, not an instruction to the reader. Split from
 #. the Set PIN dialog's field label of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Confirm"
 msgctxt "dialog heading"
 msgid "Confirm"
 msgstr "Potvrdi"
@@ -4644,18 +4647,15 @@ msgstr "Preuzimanje"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "Čekajući odobrenje…"
+msgstr "Čekanje %s na prijavu…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Waiting for approval…"
 msgid "Waiting for its profile to sign in…"
-msgstr "Čekajući odobrenje…"
+msgstr "Čeka se prijava profila…"
 
 #. State of a download waiting for its turn.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -5946,16 +5946,14 @@ msgstr "Datum dodavanja epizode"
 #. says the library is not empty, only filtered.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "No items match these filters."
-msgstr ""
+msgstr "Nema stavki koje odgovaraju ovim filtrima."
 
 # seeded from jellyfin-web: Filters
 #. Button under "No items match these filters." on an empty library grid.
 #. Removes every filter set on the library. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Filters"
 msgid "Clear Filters"
-msgstr "Filteri"
+msgstr "Očisti filtere"
 
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
@@ -6015,19 +6013,15 @@ msgstr "Miješaj"
 #. server refused to remember which sort order the user picked. The sort
 #. itself has already been applied; only remembering it failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "That user could not be added."
 msgid "That sort could not be saved."
-msgstr "Taj korisnik nije mogao biti dodan."
+msgstr "Takvo sortiranje nije moguće spremiti."
 
 #. A one-line status message at the bottom of the library screen, after the
 #. server refused to remember which filters the user picked. The filters
 #. themselves have already been applied; only remembering them failed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Those items could not be removed."
 msgid "Those filters could not be saved."
-msgstr "Te stavke nije bilo moguće ukloniti."
+msgstr "Te filtere nije bilo moguće spremiti."
 
 # seeded from jellyfin-web: Sort
 #. Label beside the dropdown that orders a library grid. A verb.
@@ -6125,8 +6119,6 @@ msgstr "Ranije"
 #. different sense from the update banner's "Later", which postpones a
 #. notice.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Later"
 msgctxt "guide navigation"
 msgid "Later"
 msgstr "Kasnije"
@@ -6737,7 +6729,7 @@ msgstr "TV emisije"
 #. the sense of "has no parent server", not "damaged".
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Orphaned Items"
-msgstr ""
+msgstr "Podstavke"
 
 # seeded from jellyfin-web: Playlists
 #. Name of the offline library holding downloaded playlists.
@@ -6755,7 +6747,7 @@ msgstr "Popisi za reprodukciju"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "%(name)s (%(server)s)"
-msgstr ""
+msgstr "%(name)s %(server)s"
 
 #. Heading of the offline home-screen row listing films on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6838,7 +6830,7 @@ msgstr "Izbrisati praćene preuzimanja u %s?"
 #. that language and is not translated.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the system language"
-msgstr ""
+msgstr "Koristi jezik sustava"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #. Checkbox at the top of Settings that reveals the rows not sorted into a
@@ -7181,7 +7173,7 @@ msgstr "Spojen"
 #. other two states are "Connected" and "Offline".
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Signed out"
-msgstr ""
+msgstr "Odjavljen"
 
 #. State beside a server in Settings: the application cannot reach it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7290,21 +7282,19 @@ msgstr "Automatsko preuzimanje"
 #. was already connecting to it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Already reconnecting."
-msgstr ""
+msgstr "Već se ponovno povezuje."
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connected"
+#, python-format
 msgid "Connected to %s."
-msgstr "Spojen"
+msgstr "Spojen na %s."
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connecting…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "Povezivanje…"
+msgstr "Povezivanje na %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7315,6 +7305,8 @@ msgid ""
 "%s answered, but it no longer accepts the saved login. Signing in again "
 "keeps its downloads and settings."
 msgstr ""
+"%s je odgovorio, ali više ne prihvaća spremljenu prijavu. Ponovna prijava "
+"zadržava njezina preuzimanja i postavke."
 
 #. Body of the same dialog, for a server that did not respond at all. %s is
 #. the server's name.
@@ -7324,13 +7316,13 @@ msgid ""
 "%s did not answer. It may be switched off, or this machine may not be able "
 "to reach it right now."
 msgstr ""
+"%s nije odgovorio. Možda je isključen, ili uređaj nije dohvatljiv trenutačno."
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "Nije moguće povezati se sa poslužiteljem."
+msgstr "Nije moguće povezati se sa %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7474,7 +7466,7 @@ msgstr "Traži"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "%s (needs reconnect)"
-msgstr ""
+msgstr "%s (potrebno ponovno povezivanje)"
 
 #. Tooltip of the window button that hides the window to the taskbar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -7510,11 +7502,9 @@ msgstr "Početna"
 #. downloaded to this computer, without a server. A place to go, not the
 #. state of a server (compare the Settings status word "Offline").
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Offline"
 msgctxt "server switcher entry"
 msgid "Offline"
-msgstr "Offline"
+msgstr "Izvan mreže"
 
 #. Tooltip of the navigation bar's dropdown that switches between Jellyfin
 #. servers.
@@ -7562,7 +7552,7 @@ msgstr "Kasnije"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s — run “flatpak update”"
-msgstr ""
+msgstr "Ažuriranje dostupno: %s — pokreni \"flatpak update\""
 
 #. Banner announcing a newer release of this application. %s is the version
 #. number.
@@ -7575,14 +7565,12 @@ msgstr "Dostupno ažuriranje: %s"
 #. means it opens something else.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Details…"
-msgstr ""
+msgstr "Detalji…"
 
 #. Button on the update banner that puts the notice off for now, so it
 #. returns next time. "Not now", not a direction in time. Two other buttons
 #. use the same English word in other senses and carry their own contexts.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Later"
 msgctxt "update banner"
 msgid "Later"
 msgstr "Kasnije"
@@ -7591,27 +7579,25 @@ msgstr "Kasnije"
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Ignore"
-msgstr ""
+msgstr "Ignoriraj"
 
 #. Tooltip of the update banner's Ignore button.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Do not mention this version again"
-msgstr ""
+msgstr "Nemoj više spominjati ovu verziju"
 
 #. Banner across the top of the library after something the user asked
 #. for failed because the server could not be reached. Followed by the
 #. "Retry" and "Go Offline" buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "The server isn't answering."
-msgstr ""
+msgstr "Poslužitelj ne odgovara."
 
 #. Button on the "server isn't answering" banner: browse only what is
 #. downloaded to this computer instead.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Offline"
 msgid "Go Offline"
-msgstr "Offline"
+msgstr "Prebaci u \"izvan mreže\""
 
 #. Banner shown when no server could be reached and only downloaded items
 #. are listed.
@@ -7697,7 +7683,7 @@ msgstr ""
 #. "Could not play this item: <title> — "; "it" is that item.
 #: jellyfin_mpv_shim/player.py
 msgid "The server stopped sending it partway through."
-msgstr ""
+msgstr "Poslužitelj je prestao slati usred prijenosa."
 
 #. Shown over the video when playback reaches the end of a downloaded
 #. episode and the one after it is not on this device.
@@ -7756,7 +7742,7 @@ msgstr "Omogući SVP"
 #. accounts the user has signed in to their Jellyfin servers with.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Downloads are unavailable: the saved logins could not be read."
-msgstr ""
+msgstr "Preuzimanja su nedostupna: spremljene prijave se ne mogu pročitati."
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
@@ -7815,6 +7801,8 @@ msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
 msgstr ""
+"Ova aplikacija nema dozvolu za zapisivanje u tu mapu. Izaberite onu koju "
+"posjedujete, ili promjenite postavke ovlasti, pa pokušajte ponovno."
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
@@ -7841,6 +7829,8 @@ msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
 msgstr ""
+"Aplikacija nema dozvolu zapisivanja u tu mapu. Preuzimanja su ostavljena na "
+"mjestu; provjerite ovlasti mape i probajte ponovno."
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
@@ -7993,16 +7983,13 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
 "MPV Shim v{0} Dostupno ažuriranje\n"
-"Otvorite izbornik (pritisnite c) za detalje."
+"Pokrenite \"flatpak update\" za instalaciju."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
