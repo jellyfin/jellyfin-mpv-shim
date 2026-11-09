@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-08 16:20+0000\n"
+"PO-Revision-Date: 2026-11-09 13:53+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -7511,9 +7511,6 @@ msgstr ""
 #. returns next time. "Not now", not a direction in time. Two other buttons
 #. use the same English word in other senses and carry their own contexts.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgctxt "Restart banner"
-#| msgid "Later"
 msgctxt "update banner"
 msgid "Later"
 msgstr "لاحقا"
@@ -7522,27 +7519,25 @@ msgstr "لاحقا"
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Ignore"
-msgstr ""
+msgstr "تجاهل"
 
 #. Tooltip of the update banner's Ignore button.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Do not mention this version again"
-msgstr ""
+msgstr "لا تذكر هذا الاصدار مرة اخرى"
 
 #. Banner across the top of the library after something the user asked
 #. for failed because the server could not be reached. Followed by the
 #. "Retry" and "Go Offline" buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "The server isn't answering."
-msgstr ""
+msgstr "الخادم لا يستجيب."
 
 #. Button on the "server isn't answering" banner: browse only what is
 #. downloaded to this computer instead.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Offline"
 msgid "Go Offline"
-msgstr "غير متصل"
+msgstr "كن غير متصل"
 
 #. Banner shown when no server could be reached and only downloaded items
 #. are listed.
@@ -7627,7 +7622,7 @@ msgstr ""
 #. "Could not play this item: <title> — "; "it" is that item.
 #: jellyfin_mpv_shim/player.py
 msgid "The server stopped sending it partway through."
-msgstr ""
+msgstr "الخادم توقف عن ارسالها في منتصف الطريق."
 
 #. Shown over the video when playback reaches the end of a downloaded
 #. episode and the one after it is not on this device.
@@ -7686,7 +7681,7 @@ msgstr "تفعيل SVP"
 #. accounts the user has signed in to their Jellyfin servers with.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Downloads are unavailable: the saved logins could not be read."
-msgstr ""
+msgstr "التحميل غير متاح: حالات الدخول المحفوظة غير مقروءة."
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
