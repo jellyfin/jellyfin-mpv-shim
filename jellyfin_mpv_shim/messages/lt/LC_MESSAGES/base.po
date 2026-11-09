@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-09 10:05+0000\n"
+"PO-Revision-Date: 2026-11-09 11:45+0000\n"
 "Last-Translator: sharanchius <sharanchius@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -2353,31 +2353,31 @@ msgstr "Visada slėpti"
 #. Playback > Player Controls); stored as "paused".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Neslėpti, kai sustabdyta"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "justify".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Išplėsti tarpus"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "center".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Centruoti korteles"
 
 #. Choice in the "Grid Spacing" dropdown (Settings > Browse > Library
 #. Browser); stored as "off".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Palikti dešinėje"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "None".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Kaip temoje"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "0.75".
@@ -2412,14 +2412,15 @@ msgstr "Automatinis (rekomenduojama)"
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "vulkan".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid "Vulkan"
-msgstr ""
+msgstr "Vulkan"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "d3d11".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Direct3D 11 (Windows only)"
-msgstr ""
+msgstr "„Direct3D 11“ (tik „Windows“)"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "opengl".
@@ -2455,19 +2456,19 @@ msgstr "HDMI perdavimas"
 #. Subtitles & Languages); stored as "unset".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
-msgstr ""
+msgstr "Nenustatyta"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "dubbed_shows".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (shows only)"
-msgstr ""
+msgstr "Dubliuota (tik serialams)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "subbed_shows".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (shows only)"
-msgstr ""
+msgstr "Su subtitrais (tik serialams)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "dubbed_all".
@@ -2479,19 +2480,19 @@ msgstr "Dubliuota (visa)"
 #. Subtitles & Languages); stored as "subbed_all".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
-msgstr ""
+msgstr "Su subtitrais (viskam)"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "custom".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
-msgstr ""
+msgstr "Pasirinktinis (nustatytas konfigūracijoje)"
 
 #. Label of the dropdown for the "notify_updates" setting (Settings >
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Tell Me About Updates"
-msgstr ""
+msgstr "Informuoti apie atnaujinimus"
 
 #. Label of the checkbox for the "input_gamepad" setting (Settings >
 #. General > Input).
@@ -2503,55 +2504,55 @@ msgstr "Žaidimo valdiklis"
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Sukeisti patvirtinimo ir grįžimo mygtukus"
 
 #. Label of the text field for the "sync_path" setting (Settings > Browse >
 #. Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
-msgstr ""
+msgstr "Atsisiuntimų aplankas"
 
 #. Label of the checkbox for the "prefer_downloaded" setting (Settings >
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
-msgstr ""
+msgstr "Rinktis atsisiųstą kopiją"
 
 #. Label of the checkbox for the "mouse_click_pauses" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Kairysis paspaudimas pristabdo atkūrimą"
 
 #. Label of the checkbox for the "detail_poster" setting (Settings > Browse
 #. > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Rodyti viršelius išsamios informacijos puslapiuose"
 
 #. Label of the checkbox for the "detail_episode_image" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Rodyti epizodų miniatiūras išsamios informacijos puslapiuose"
 
 #. Label of the dropdown for the "hwdec" setting (Settings > Playback >
 #. Playback).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hardware Decoding"
-msgstr ""
+msgstr "Aparatinis dekodavimas"
 
 #. Label of the checkbox for the "deinterlace_auto" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "AUtomatiškai šalinti tarpeilutes (deinterlace)"
 
 #. Label of the dropdown for the "motion_interpolation" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Kadrų interpoliacija"
 
 #. Label of the dropdown for the "deband" setting (Settings > Playback >
 #. Video Enhancement).
@@ -2563,7 +2564,7 @@ msgstr "Išjuosimas"
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "HDR tonų atvaizdavimas"
 
 #. Label of the dropdown for the "render_quality" setting (Settings >
 #. Playback > Video Enhancement).
@@ -2575,25 +2576,25 @@ msgstr "Atvaizdavimo kokybė"
 #. Playback > Playback).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Tinklo buferis"
 
 #. Label of the checkbox for the "auto_download_enable" setting (Settings >
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Automatiškai atsisiųsti būsimas serijas"
 
 #. Label of the checkbox for the "auto_download_next_up" setting (Settings
 #. > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Įtraukti žiūrėti toliau"
 
 #. Label of the number field for the "auto_download_next_up_limit" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "Nagrinėjami „Kitas“ įrašai"
 
 #. Label of the number field for the "auto_download_lookahead" setting
 #. (Settings > Browse > Downloads).
