@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-05 09:47+0000\n"
-"Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
+"PO-Revision-Date: 2026-11-09 10:05+0000\n"
+"Last-Translator: sharanchius <sharanchius@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
 "Language: lt\n"
@@ -892,6 +892,8 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Nepavyko automatiškai paleisti iš naujo — uždarykite ir vėl paleiskite "
+"programą, kad pakeitimai įsigaliotų."
 
 #. Status message when a retry after a connection failure also failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
@@ -1033,6 +1035,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Jūsų išsaugoti prisijungimo duomenys, susiję su %s, nebegalioja. Prisijungus "
+"iš naujo, atsisiuntimai ir nustatymai bus išsaugoti."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1147,6 +1151,8 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Šis adresas priklauso kitam serveriui. Norėdami prisijungti prie jo, "
+"pridėkite jį kaip naują serverį."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1277,14 +1283,14 @@ msgstr "Atnaujinti metaduomenis"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Ištrinti iš disko"
 
 #. Button on a film's, episode's, show's or season's page that opens a short
 #. menu of less common actions (refresh metadata, delete from disk). Means
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Daugiau"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
@@ -1303,7 +1309,7 @@ msgstr "Anonsas"
 #. narrow buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "Naršyklė"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
@@ -1319,7 +1325,7 @@ msgstr "Trumpametražis filmas"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr ""
+msgstr "Užkulisiai"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
@@ -1367,21 +1373,21 @@ msgstr "Ištrauka"
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "Trumpametražis"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Netransliuota"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Trūkstama"
 
 #. Heading over the video stream's rows in the Media Info panel. A stream
 #. kind, alongside Audio, Subtitle, Lyric and Image.
@@ -1608,25 +1614,25 @@ msgstr "Spalvų gama"
 #. relating stored values to light.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color transfer"
-msgstr ""
+msgstr "Spalvų perdavimas"
 
 #. Row label in the Media Info panel: which red, green and blue the
 #. encoding is measured against.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color primaries"
-msgstr ""
+msgstr "Pirminės spalvos"
 
 #. Row label in the Media Info panel: how the pixels are laid out in
 #. memory, such as yuv420p.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Pixel format"
-msgstr ""
+msgstr "Pikselių formatas"
 
 #. Row label in the Media Info panel: how many earlier frames the codec may
 #. refer back to. Short for "reference frames".
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Ref frames"
-msgstr ""
+msgstr "Atskaitos kadrai"
 
 #. Row label in the Media Info panel: how far the picture must be turned to
 #. be upright, in degrees.
@@ -1673,13 +1679,13 @@ msgstr "DV pavadinimas"
 #. version number.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV version major"
-msgstr ""
+msgstr "DV pagrindinė versija"
 
 #. Row label in the Media Info panel: the minor part of the Dolby Vision
 #. version number.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV version minor"
-msgstr ""
+msgstr "DV detalioji versija"
 
 #. Row label in the Media Info panel: which Dolby Vision profile the video
 #. uses.
@@ -1698,21 +1704,21 @@ msgstr "DV lygis"
 #. server; several languages keep them as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV rpu preset flag"
-msgstr ""
+msgstr "DV RPU požymis"
 
 #. Row label in the Media Info panel: whether the Dolby Vision enhancement
 #. layer is present. Technical field names taken from the server; several
 #. languages keep them as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV el preset flag"
-msgstr ""
+msgstr "DV EL požymis"
 
 #. Row label in the Media Info panel: whether the Dolby Vision base layer
 #. is present. Technical field names taken from the server; several
 #. languages keep them as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV bl preset flag"
-msgstr ""
+msgstr "DV BL požymis"
 
 #. Row label in the Media Info panel: which ordinary format the Dolby
 #. Vision base layer is also readable as. Taken from the server; several
@@ -1725,9 +1731,9 @@ msgstr "DV bl signalo suderinamumo id"
 #. as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, python-format
+#, fuzzy, python-format
 msgid "%.1f Mbps"
-msgstr ""
+msgstr "%.1f Mbps"
 
 #. How the video is reaching this device: the server is sending the
 #. original file untouched. Shown on the playback information panel.
@@ -1764,7 +1770,7 @@ msgstr "Transkodavimas"
 #. fragments completing "Reason:".
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The container is not supported"
-msgstr ""
+msgstr "Konteineris nepalaikomas"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -1788,7 +1794,7 @@ msgstr "Šis subtitrų formatas nepalaikomas"
 #. separate file from the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio stream is external"
-msgstr ""
+msgstr "Garso srautas yra išorinis"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -1830,19 +1836,19 @@ msgstr "Vaizdo įrašo kadrų sparta nepalaikoma"
 #. frames the codec refers back to.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Reference frames are not supported"
-msgstr ""
+msgstr "Atskaitos kadrai nepalaikomi"
 
 #. One reason the server gives for having to re-encode: the picture is
 #. stored squeezed and stretched back out on playback.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Anamorphic video is not supported"
-msgstr ""
+msgstr "Anamorfinis vaizdas nepalaikomas"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Interlaced video is not supported"
-msgstr ""
+msgstr "Puskadrinis vaizdas nepalaikomas"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -1854,7 +1860,7 @@ msgstr "Garso kanalų kiekis nepalaikomas"
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio codec's profile is not supported"
-msgstr ""
+msgstr "Garso kodeko profilis nepalaikomas"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
