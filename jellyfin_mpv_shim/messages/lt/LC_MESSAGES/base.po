@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
 "PO-Revision-Date: 2026-11-09 10:05+0000\n"
-"Last-Translator: sharanchius <sharanchius@gmail.com>\n"
+"Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
 "Language: lt\n"
@@ -1731,7 +1731,7 @@ msgstr "DV bl signalo suderinamumo id"
 #. as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy, python-format
+#, python-format
 msgid "%.1f Mbps"
 msgstr "%.1f Mbps"
 
