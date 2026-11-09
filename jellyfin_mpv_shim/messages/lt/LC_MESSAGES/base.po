@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
 "PO-Revision-Date: 2026-11-09 10:05+0000\n"
-"Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
+"Last-Translator: sharanchius <sharanchius@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
 "Language: lt\n"
@@ -1866,7 +1866,7 @@ msgstr "Garso kodeko profilis nepalaikomas"
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's sample rate is not supported"
-msgstr ""
+msgstr "Garso diskretizavimo dažnis nepalaikomas"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -1890,36 +1890,36 @@ msgstr "Vaizdo įrašo bitų sparta nepalaikoma"
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's bitrate is not supported"
-msgstr ""
+msgstr "Garso bitų sparta nepalaikoma"
 
 #. One reason the server gives for having to re-encode: it could not read
 #. the video stream's details.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video stream info is unknown"
-msgstr ""
+msgstr "Vaizdo srauto informacija nežinoma"
 
 #. One reason the server gives for having to re-encode: it could not read
 #. the audio stream's details.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio stream info is unknown"
-msgstr ""
+msgstr "Garso srauto informacija nežinoma"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "There was an error starting direct playback"
-msgstr ""
+msgstr "Klaida paleidžiant tiesioginį atkūrimą"
 
 #. One reason the server gives for having to re-encode: which high dynamic
 #. range system the video uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's range type is not supported"
-msgstr ""
+msgstr "Vaizdo diapazono tipas nepalaikomas"
 
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "Šis įrenginys"
 
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2001,13 +2001,13 @@ msgstr "Išplėstiniai"
 #. Playback); stored as "no".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "Išjungta (programinis dekodavimas)"
 
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "over-1080p".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "Tik virš 1080p"
 
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "auto".
@@ -2019,7 +2019,7 @@ msgstr "Įjungta"
 #. Playback); stored as "auto-copy".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Copy (advanced)"
-msgstr ""
+msgstr "Kopijuoti (išplėstinis)"
 
 #. Choice shared by the "Motion Interpolation", "Debanding" dropdowns
 #. (Settings > Playback > Video Enhancement). One translation has to serve
@@ -2032,31 +2032,31 @@ msgstr "Išjungta"
 #. Video Enhancement); stored as "smooth".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Sklandus judesys"
 
 #. Choice in the "Motion Interpolation" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "blend".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Blend Frames"
-msgstr ""
+msgstr "Sulieti kadrus"
 
 #. Choice in the "Motion Interpolation" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "hq".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Sklandus (aukšta kokybė)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "light".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Lengvas (vaidybinis)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "standard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Standartinis (animacija)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "strong".
@@ -2068,13 +2068,13 @@ msgstr "Stiprus"
 #. Enhancement); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (MPV decides)"
-msgstr ""
+msgstr "Automatinis (pagal MPV)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2390".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 (etaloninis)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2446a".
@@ -2086,25 +2086,27 @@ msgstr "BT.2446a"
 #. Enhancement); stored as "spline".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "Splaino kreivė"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "hable".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid "Hable"
-msgstr ""
+msgstr "Hable"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "reinhard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
 msgid "Reinhard"
-msgstr ""
+msgstr "Reinhard"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "clip".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Apkarpyti (be tonų atvaizdavimo)"
 
 #. Choice in the "Rendering Quality" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "default".
@@ -2122,19 +2124,19 @@ msgstr "Aukšta kokybė"
 #. Playback); stored as "default".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default (1 second)"
-msgstr ""
+msgstr "Numatytoji MPV (1 sekundė)"
 
 #. Choice in the "Network Buffer" dropdown (Settings > Playback >
 #. Playback); stored as "large".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Large (20 seconds)"
-msgstr ""
+msgstr "Didelis (20 sekundžių)"
 
 #. Choice in the "Network Buffer" dropdown (Settings > Playback >
 #. Playback); stored as "huge".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Very large (60 seconds)"
-msgstr ""
+msgstr "Labai didelis (60 sekundžių)"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "mpvtk".
@@ -2146,13 +2148,13 @@ msgstr "Jellyfin vartotojo sąsaja"
 #. Player Controls); stored as "mpv".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "MPV sąsaja"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "custom".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "Pasirinktiniai ekrano valdikliai"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "none".
@@ -2206,31 +2208,31 @@ msgstr "150%"
 #. stored as "0".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No minimum"
-msgstr ""
+msgstr "Be minimumo"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "14".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "14 px"
-msgstr ""
+msgstr "14 piks"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "16".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "16 px"
-msgstr ""
+msgstr "16 piks"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "18".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "18 px"
-msgstr ""
+msgstr "18 piks"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "20".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "20 px"
-msgstr ""
+msgstr "20 piks"
 
 #. Choice in the "Interface Scale" dropdown (Settings > Browse > Theme);
 #. stored as "None".
@@ -2260,7 +2262,7 @@ msgstr "Sulygiuota pagal eilutes"
 #. Browser); stored as "row".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr ""
+msgstr "Viena eilutė per žingsnį"
 
 #. Choice in several settings dropdowns, meaning the application decides
 #. rather than the viewer: whether to announce updates, when to download
@@ -2276,7 +2278,7 @@ msgstr "Automatiškai"
 #. General > Window); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
-msgstr ""
+msgstr "Tik kai langas neturi antraštės juostos"
 
 #. Choice in the "Page Colour" dropdown (Settings > Browse > Reading);
 #. stored as "dark".
@@ -2304,7 +2306,7 @@ msgstr "Šviesi"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Width"
-msgstr ""
+msgstr "Pritaikyti pagal plotį"
 
 #. Choice in the "Comic Reading Mode" dropdown (Settings > Browse >
 #. Reading); stored as "page".
@@ -2327,7 +2329,7 @@ msgstr "Numatytasis"
 #. Playback > Player Controls); stored as "panel".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr ""
+msgstr "Skydelis už valdiklių"
 
 #. Choice in the "Shading Behind the Player Controls" dropdown (Settings >
 #. Playback > Player Controls); stored as "none".
@@ -2339,7 +2341,7 @@ msgstr "Nėra (užtamsintas tekstas)"
 #. Playback > Player Controls); stored as "hover".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr ""
+msgstr "Slėpti, kol neužvestas žymeklis"
 
 #. Choice in the "When the Player Controls Hide" dropdown (Settings >
 #. Playback > Player Controls); stored as "always".
