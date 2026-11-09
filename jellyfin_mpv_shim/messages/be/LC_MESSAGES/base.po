@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-06 11:29+0000\n"
+"PO-Revision-Date: 2026-11-09 11:45+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -32,21 +32,21 @@ msgstr "Невядомы фармат"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "Старонка %(page)d з %(total)d"
 
 #. Position in a book whose length is unknown, so no total can be given. %d
 #. is the page number.
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "Старонка %d"
 
 #. How far through a book the reader has got, as a percentage. Shown under
 #. the book's tile.
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% прачытана"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -103,18 +103,20 @@ msgstr "Налада бягучага..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Адкрыйце Jellyfin, перайдзіце ў меню карыстальніка -> Хуткае падключэнне і "
+"ўвядзіце гэты код:"
 
 #. Printed in the terminal while Quick Connect waits for someone to accept
 #. the code in another Jellyfin app.
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Чаканне аўтарызацыі…"
 
 #. Printed in the terminal when the saved logins are being discarded before
 #. signing in again.
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Ачыстка ўсіх існуючых уліковых запісаў."
 
 #. Printed in the terminal after a server was signed in to.
 #: jellyfin_mpv_shim/clients.py
@@ -130,7 +132,7 @@ msgstr "Не атрымалася дадаць сервер."
 #. saved, so its saved login is replaced.
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Уліковы запіс ужо існуе. Абнаўляю ўліковыя даныя."
 
 #. Printed in the terminal after a saved login was replaced.
 #: jellyfin_mpv_shim/clients.py
@@ -139,10 +141,8 @@ msgstr "Уліковыя даныя сервера паспяхова абноў
 
 #. Printed in the terminal when replacing a saved login failed.
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Не атрымалася дадаць сервер."
+msgstr "Не ўдалося абнавіць даныя для ўваходу на сервер."
 
 #. Terminal prompt asking for the Jellyfin server's web address. The
 #. trailing space separates it from what is typed; keep it.
@@ -170,26 +170,24 @@ msgstr "Дадаць яшчэ адзін сервер?"
 #. Printed in the terminal when the Jellyfin server could not be reached.
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not connect to the server."
-msgstr ""
+msgstr "Не ўдалося падключыцца да сервера."
 
 #. Printed in the terminal when the server administrator has turned the
 #. Quick Connect feature off.
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Хуткае падключэнне не ўключана на гэтым серверы."
 
 #. Printed in the terminal when requesting a Quick Connect code failed.
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Не ўдалося запусціць хуткае падключэнне."
 
 #. Label of the dropdown for the "segment_outro" setting (Settings >
 #. Playback > Skip Intro / Credits).
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Прапушчаныя цітры"
+msgstr "Прапусціць цітры"
 
 #. Confirmation drawn over the video after the closing credits were jumped
 #. past. Past tense.
@@ -201,83 +199,67 @@ msgstr "Прапушчаныя цітры"
 #. shown when the viewer seeks into them.
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr "Прапусціць цітры"
+msgstr "Перайсці да пропуску цітраў"
 
 #. Button drawn over the video during an advertisement break. Pressing it
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
-msgstr ""
+msgstr "Прапусціць рэкламу"
 
 #. Confirmation drawn over the video after an advertisement break was
 #. jumped past. Past tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Прапушчаныя цітры"
+msgstr "Рэклама прапушчана"
 
 #. Prompt drawn over the video offering to jump past an advertisement
 #. break, shown when the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Прапусціць цітры"
+msgstr "Перайсці да пропуску рэкламы"
 
 #. Button drawn over the video during a preview of a coming episode.
 #. Pressing it jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Прапушчаныя цітры"
+msgstr "Прапусціць прадпрагляд"
 
 #. Confirmation drawn over the video after a preview was jumped past. Past
 #. tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Прапушчаныя цітры"
+msgstr "Прадпрагляд прапушчаны"
 
 #. Prompt drawn over the video offering to jump past a preview, shown when
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Прапусціць цітры"
+msgstr "Перайсці да пропуску прадпрагляду"
 
 #. Button drawn over the video during a "previously on" recap. Pressing it
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Прапусціць падагульненне"
 
 #. Confirmation drawn over the video after a recap was jumped past. Past
 #. tense.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Прапушчаныя цітры"
+msgstr "Падагульненне прапушчана"
 
 #. Prompt drawn over the video offering to jump past a recap, shown when
 #. the viewer seeks into it.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Прапусціць цітры"
+msgstr "Перайсці да пропуску падагульнення"
 
 #. Button drawn over the video while an episode's opening titles play.
 #. Pressing it jumps past them. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Прапушчаны ўступ"
+msgstr "Прапусціць уступ"
 
 #. Confirmation drawn over the video after the opening titles were jumped
 #. past. Past tense.
@@ -743,38 +725,30 @@ msgstr "Прапушчаны ўступ"
 #. Never, Ask or Always. Carries a context because "Skip Credits" is also
 #. the name of a button on the video itself.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Прапушчаныя цітры"
+msgstr "Пропуск падагульнення"
 
 #. What to do at an advertisement break: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
 #. Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Commercials"
-msgstr "Прапушчаныя цітры"
+msgstr "Прапускаць рэкламу"
 
 #. What to do at a preview of a coming episode: Never, Ask or Always. A
 #. toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Прапушчаныя цітры"
+msgstr "Прапускаць прадпрагляд"
 
 #. What to do at a "previously on" recap: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
 #. Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Прапушчаныя цітры"
+msgstr "Прапускаць падагульненне"
 
 #. Toggle on the in-player Player Preferences menu: show a preview frame
 #. while seeking.
