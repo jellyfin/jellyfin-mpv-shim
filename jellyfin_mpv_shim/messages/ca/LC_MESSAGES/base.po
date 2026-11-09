@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-08-31 09:07+0000\n"
-"Last-Translator: Andreu Punsola Soler <andreu4ps@gmail.com>\n"
+"PO-Revision-Date: 2026-11-09 10:05+0000\n"
+"Last-Translator: sarnoso <illeida@tuta.io>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
 "Language: ca\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -862,10 +862,8 @@ msgstr "No s'ha pogut iniciar la reproducció."
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "Nothing downloaded to browse offline."
 msgid "Nothing is downloaded to browse offline."
-msgstr "No hi ha res de descarregat per a navegar fora de línia."
+msgstr "No hi ha res descarregat per a navegar fora de línia."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
@@ -1019,10 +1017,8 @@ msgstr "No s'ha pogut desar el PIN."
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Inici de sessió"
+msgstr "Torna a iniciar sessió"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1039,6 +1035,8 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Les dades d'inici de sessió desades per a %s ja no s'accepten. Si inicieu la "
+"sessió de nou, es conservaran les descàrregues i la configuració."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
@@ -1118,10 +1116,8 @@ msgstr "Connecta"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Configuració del servidor"
+msgstr "Servidors a la teva xarxa"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
@@ -1155,6 +1151,8 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Aquesta adreça correspon a un servidor diferent. Per iniciar-hi sessió, "
+"afegeix-la com a servidor nou."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1164,10 +1162,8 @@ msgstr "S'està connectant…"
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Could not connect. Please check your details."
 msgid "Could not sign in. Please check your details."
-msgstr "No s'ha pogut establir una connexió. Comproveu les dades."
+msgstr "No s'ha pogut iniciar sessió. Comproveu les dades."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
@@ -1279,10 +1275,8 @@ msgstr "Preferit"
 #. and artwork. Sentence case, like the other entries in that menu.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Refresh"
 msgid "Refresh metadata"
-msgstr "Actualitza"
+msgstr "Actualitza metadades"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -1298,15 +1292,13 @@ msgstr "Elimina del disc"
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Més"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Has Special Features"
 msgid "Special Features"
-msgstr "Té característiques especials"
+msgstr "Característiques especials"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
