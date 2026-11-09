@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-09 11:45+0000\n"
+"PO-Revision-Date: 2026-11-09 13:53+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -193,7 +193,7 @@ msgstr "Прапусціць цітры"
 #. past. Past tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr "Прапушчаныя цітры"
+msgstr "Цітры прапушчаны"
 
 #. Prompt drawn over the video offering to jump past the closing credits,
 #. shown when the viewer seeks into them.
@@ -265,14 +265,14 @@ msgstr "Прапусціць уступ"
 #. past. Past tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
-msgstr "Прапушчаны ўступ"
+msgstr "Уступ прапушчаны"
 
 #. Prompt drawn over the video offering to jump past the opening titles,
 #. shown when the viewer seeks into them. "Seek" here means moving the
 #. playback position.
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Intro"
-msgstr "Шукаць каб прапусціць уступ"
+msgstr "Перайсці да пропуску уступа"
 
 #. Appended to a quality option's name when choosing it would make the
 #. server re-encode the video. The leading space separates it from the name
@@ -715,10 +715,8 @@ msgstr "Прысутнасць Discord Rich"
 #. A toggle on the in-player Player Preferences menu and a dropdown under
 #. Settings > Playback > Skip Intro / Credits.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Прапушчаны ўступ"
+msgstr "Прапускаць уступ"
 
 #. Toggle on the in-player Player Preferences menu, and a settings
 #. dropdown: what to do when an episode's closing credits start. Set to
@@ -727,7 +725,7 @@ msgstr "Прапушчаны ўступ"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Пропуск падагульнення"
+msgstr "Прапускаць цітры"
 
 #. What to do at an advertisement break: Never, Ask or Always. A toggle on
 #. the in-player Player Preferences menu and a dropdown under Settings >
