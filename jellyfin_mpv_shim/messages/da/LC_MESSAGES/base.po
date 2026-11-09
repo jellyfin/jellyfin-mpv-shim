@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-03 03:10+0000\n"
+"PO-Revision-Date: 2026-11-09 10:05+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -1065,7 +1065,7 @@ msgstr "Brug"
 #. feature's name; follow whatever they use in this language.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
-msgstr "Lyn-forbind"
+msgstr "Quick Connect"
 
 #. Instruction above the Quick Connect code on the sign-in page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
