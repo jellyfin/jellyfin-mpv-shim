@@ -153,6 +153,89 @@ class TestRendererLua(unittest.TestCase):
             with self.subTest(tick=tick):
                 self._tick_case(30, tick=tick)
 
+    # ---- the opt-in scroll recorder (JMS_SCROLL_DIAG) ----------------------
+
+    def _sdiag_env(self, tmp, frame_diag, scroll_diag, expect):
+        env = self._session_env(DISPLAY=":0", JMS_TEST_SDIAG_EXPECT=expect)
+        for k in ("JMS_FRAME_DIAG", "JMS_TICK_MS", "JMS_SCROLL_DIAG"):
+            env.pop(k, None)
+        if frame_diag:
+            env["JMS_FRAME_DIAG"] = "1"
+        if scroll_diag:
+            env["JMS_SCROLL_DIAG"] = os.path.join(tmp, "scroll.tsv")
+        return env
+
+    def _sdiag_trace(self, frame_diag, scroll_diag, expect, target=None):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = self._run("test_scroll_diag.lua",
+                             env=self._sdiag_env(tmp, frame_diag, scroll_diag,
+                                                 expect), target=target)
+            self._assert_suite_passed(proc)
+            wrote = os.path.exists(os.path.join(tmp, "scroll.tsv"))
+        trace = [l for l in proc.stdout.splitlines() if l.startswith("TRACE")]
+        self.assertGreater(len(trace), 50, "the scripted gesture did not run")
+        return trace, wrote
+
+    def test_the_scroll_recorder_is_off_unless_both_variables_are_set(self):
+        """Normal operation, the frame diagnostics alone, and the recorder
+        variable alone all leave no file behind."""
+        for frame_diag, scroll_diag in ((False, False), (True, False),
+                                        (False, True)):
+            with self.subTest(frame_diag=frame_diag, scroll_diag=scroll_diag):
+                _trace, wrote = self._sdiag_trace(frame_diag, scroll_diag,
+                                                  "off")
+                self.assertFalse(wrote)
+
+    def test_the_scroll_recorder_records_accurately(self):
+        """Event and frame lines against the scripted gesture: scale and
+        class (0.98 fine, 0.99 and 1.0 notches), the interval, want/before/
+        after, clamps at both ends, glide flags, and per-frame displacement
+        that adds up to the drawn travel."""
+        _trace, wrote = self._sdiag_trace(True, True, "on")
+        self.assertTrue(wrote)
+
+    def test_enabling_the_scroll_recorder_changes_no_pixel(self):
+        """The same gesture, stored and PAINTED offsets at every step, with
+        the recorder on, off, with only half of its switches set, and on the
+        renderer as it was before the recorder existed."""
+        on, _ = self._sdiag_trace(True, True, "on")
+        for frame_diag, scroll_diag in ((False, False), (True, False),
+                                        (False, True)):
+            with self.subTest(frame_diag=frame_diag, scroll_diag=scroll_diag):
+                off, _ = self._sdiag_trace(frame_diag, scroll_diag, "off")
+                self.assertEqual(on, off)
+
+    def test_the_scroll_recorder_output_is_bounded(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            env = self._sdiag_env(tmp, True, True, "on")
+            self._assert_suite_passed(
+                self._run("test_scroll_diag_bounds.lua", env=env))
+
+    def test_the_renderer_suite_passes_with_the_scroll_recorder_on(self):
+        """Every existing wheel, touchpad, glide, reversal and boundary
+        test, with the recorder running underneath."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            env = self._sdiag_env(tmp, True, True, "on")
+            self._assert_suite_passed(self._run("test_renderer.lua", env=env))
+
+    def test_the_scroll_recorder_names_nothing(self):
+        """The writer formats numbers, flags and numbered containers only:
+        no node id, source path, title or address reaches a format call."""
+        with open(RENDERER, encoding="utf-8") as fh:
+            src = fh.read()
+        block = src[src.index("function state.scroll_diag_new()"):
+                    src.index("-- Opt-in frame-submission counters")]
+        self.assertNotIn("node.src", block)
+        self.assertNotIn("node.text", block)
+        self.assertNotIn("node.label", block)
+        self.assertNotIn("utils.format_json", block)
+        self.assertNotIn("send(", block)                 # nothing leaves the process
+        self.assertNotIn("mp.command", block)
+        self.assertEqual(block.count("io.open("), 1)      # one file, the one named
+
     def test_every_image_overlay_stays_inside_its_image(self):
         """A seeded sweep of scene images at fractional positions, behind
         scrolls, layers and occluders, and scaled: every overlay-add must

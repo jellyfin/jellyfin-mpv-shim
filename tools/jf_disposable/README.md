@@ -93,3 +93,22 @@ counter where the kernel has one, and queued-event lines of the app log. A pilot
 Limits: frame figures are what the renderer *submitted*, not what reached the screen. The cgroup CPU includes the throw-away
 server. The GPU counter is coarse and absent on other vendors. How hard and fast you scroll varies between runs, so
 compare distributions across several runs, not single frames. A run that crashes is recorded as failed and not retried.
+
+## Recording real wheel and touchpad input (scroll recorder)
+
+`JMS_SCROLL_DIAG=<file>` (honoured only together with `JMS_FRAME_DIAG=1`, off otherwise) makes `renderer.lua` write one `E`
+line per wheel/touchpad event (time, interval, direction, the scale mpv delivered, whether it was treated as a notch `W`
+or a fine delta `T`, the stored offset before/after/asked-for, clamp, glide state, snap flags) and one `F` line per frame
+while a gesture is live (frame gap, stored and drawn offset, per-frame drawn displacement, glide position). Containers are
+numbered `c1..`, never named; memory is a 128-line buffer; the file stops at 100000 lines. The field list is the comment above
+`state.scroll_diag_new` in `jellyfin_mpv_shim/mpvtk/renderer.lua`.
+
+    tools/jf_disposable/si_manual.sh run --dry-run             # checks only, starts nothing
+    tools/jf_disposable/si_manual.sh run                       # about 4 minutes, opens ONE window on your desktop
+    tools/jf_disposable/si_manual.sh report DIR_OR_FILE        # the analysis again
+
+`run` uses the same throw-away server, 120-poster library and `limited_run.sh` scope as the A/B, and guides six phases (slow
+wheel 3-6 notches/s, fast wheel, reversals, the ends of the grid, slow and fast touchpad). Nothing is sent to the app and
+`WAYLAND_DEBUG` is not used. `si_analyze.py` reports, per phase, the scales actually delivered (including any `>= 0.99`
+event within 25 ms of the previous one, which is how a hard touchpad frame taken for a notch would show), and the drawn
+motion per frame against the stored offset. It measures what the renderer decided to draw, not what reached the screen.

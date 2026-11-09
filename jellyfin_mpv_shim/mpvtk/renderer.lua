@@ -773,6 +773,7 @@ local function compute_geo()
             end
             local off = state.glide_apply(
                 node, snap_round(node, state.scroll[node.id] or 0))
+            if state.sdiag then state.sdiag.drawn(node, off) end
             local g = {
                 dx = dx + (node.axis == 'x' and off or 0),
                 dy = dy + (node.axis == 'y' and off or 0),
@@ -2267,6 +2268,145 @@ if os.getenv('JMS_TEST_OBSERVE') then
     end
 end
 
+-- Opt-in scroll recorder: inert unless JMS_FRAME_DIAG AND JMS_SCROLL_DIAG=<file>
+-- are both set (it is created inside the frame-diagnostics block below). It
+-- writes what a wheel/touchpad event asked for and what was drawn, to answer
+-- "does the picture move evenly, and is a touchpad frame ever taken for a
+-- notch" from real input rather than from a model. It observes and changes
+-- nothing: each hook reads state the production code has already computed.
+--
+--   E  one line per wheel event:  t interval_ms dir axis scale class c max
+--      before after want clamp glide0 glide1 snap
+--        scale  the scale mpv delivered ('-' = none, taken as 1 by on_wheel)
+--        class  W: scale >= 0.99, treated as a discrete notch (eased, full
+--               step); T: below it (fine gain, no glide)
+--        before/after/want  the stored offset before, after, and the one the
+--               event asked for ('-' where the event moved nothing)
+--        clamp  lo/hi when the container clamped `want`, else '-'
+--        glide0/glide1  an ease in flight before / after the event
+--        snap   L snap_live, F force_snap, S snapped_scrolling, else '-'
+--   F  one line per rendered frame while a gesture is live:
+--        t gap_ms c stored drawn d_drawn glide glide_pos snap
+--        d_drawn  the drawn offset minus the previous frame's
+--
+-- No names: containers are numbered c1.. in order of first use (at most 32),
+-- and nothing else of the scene, the server or the media is written. In memory
+-- it holds at most 128 lines before they are written out; the file stops at
+-- 100000 lines with a final `T truncated`. Hung off `state` for the local ceiling.
+function state.scroll_diag_new()
+    local path = os.getenv('JMS_SCROLL_DIAG')
+    if not path or path == '' then return nil end
+    local f = io.open(path, 'a')
+    if not f then
+        msg.warn('JMS_SCROLL_DIAG: cannot open the file; scroll recorder off')
+        return nil
+    end
+    local BUF, MAX, IDS, TAIL = 128, 100000, 32, 1.5
+    local sd = { buf = {}, total = 0, ids = {}, nids = 0 }
+    if f:seek('end') == 0 then
+        f:write('# jellyhome scroll diag v1; t = mpv clock (s); containers are numbered, never named\n'
+            .. '# E t interval_ms dir axis scale class c max before after want clamp glide0 glide1 snap\n'
+            .. '# F t gap_ms c stored drawn d_drawn glide glide_pos snap\n')
+        f:flush()
+    end
+    local function flush()
+        if #sd.buf > 0 then
+            f:write(table.concat(sd.buf, '\n'), '\n')
+            f:flush()
+            sd.buf = {}
+        end
+    end
+    local function put(line)
+        if sd.total >= MAX then
+            if not sd.capped then
+                sd.capped = true
+                sd.buf[#sd.buf + 1] = 'T\ttruncated'
+                flush()
+            end
+            return
+        end
+        sd.total = sd.total + 1
+        sd.buf[#sd.buf + 1] = line
+        if #sd.buf >= BUF then flush() end
+    end
+    local function cid(id)
+        local c = sd.ids[id]
+        if c then return c end
+        if sd.nids >= IDS then return 'c?' end
+        sd.nids = sd.nids + 1
+        c = 'c' .. sd.nids
+        sd.ids[id] = c
+        return c
+    end
+    local function snapflags()
+        local r = (state.snap_live and 'L' or '') .. (state.force_snap and 'F' or '')
+            .. (state.snapped and 'S' or '')
+        return r == '' and '-' or r
+    end
+    local function num(v, fmt) return v ~= nil and string.format(fmt, v) or '-' end
+    -- Called from on_wheel once the target is known, before anything moves.
+    function sd.before(node)
+        sd.nid = node.id
+        sd.b = state.scroll[node.id] or 0
+        sd.g0 = state.glide[node.id] ~= nil
+        sd.mx = scroll_max(node)
+    end
+    function sd.want(dest) sd.w = dest end
+    function sd.drawn(node, off)
+        if node.id == sd.tid then sd.dr = off end
+    end
+    function sd.wheel(fn, dir, axis, e)
+        sd.nid, sd.b, sd.g0, sd.mx, sd.w = nil, nil, nil, nil, nil
+        local prev = state.wheel_prev
+        fn(dir, axis, e)
+        -- on_wheel's own timestamp: the recorder reads no clock of its own.
+        local now = state.wheel_prev or 0
+        local raw = e and e.scale
+        local eff = raw or 1
+        if eff <= 0 then eff = 1 end
+        local id = sd.nid
+        local after = id and (state.scroll[id] or 0) or nil
+        local clamp_s = '-'
+        if sd.w ~= nil and after ~= nil then
+            if after < sd.w - 0.01 then clamp_s = 'hi'
+            elseif after > sd.w + 0.01 then clamp_s = 'lo' end
+        end
+        put(string.format('E\t%.4f\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s',
+            now,
+            prev and state.wheel_prev and string.format('%.2f', (state.wheel_prev - prev) * 1000) or '-',
+            dir, axis, num(raw, '%.4f'), eff >= 0.99 and 'W' or 'T',
+            id and cid(id) or '-', num(sd.mx, '%.0f'), num(sd.b, '%.2f'),
+            num(after, '%.2f'), num(sd.w, '%.2f'), clamp_s,
+            id and (sd.g0 and '1' or '0') or '-',
+            id and (state.glide[id] ~= nil and '1' or '0') or '-', snapflags()))
+        if id then
+            sd.tid, sd.last_ev = id, now
+        end
+        -- One timer, restarted: the buffer reaches the file a second after the
+        -- last event even if fewer than a block's worth collected.
+        if not sd.timer then sd.timer = mp.add_timeout(1.0, flush) end
+        sd.timer:stop()
+        sd.timer:resume()
+    end
+    function sd.frame(now, gap)
+        local id = sd.tid
+        if not id or sd.dr == nil then return end
+        local dr = sd.dr
+        sd.dr = nil
+        local g = state.glide[id]
+        if now - sd.last_ev > TAIL and not g then
+            sd.prev_dr = nil
+            return
+        end
+        put(string.format('F\t%.4f\t%s\t%s\t%.2f\t%d\t%d\t%s\t%s\t%s', now,
+            gap and string.format('%.2f', gap) or '-', cid(id),
+            state.scroll[id] or 0, dr, sd.prev_dr and (dr - sd.prev_dr) or 0,
+            g and '1' or '0', g and string.format('%.2f', g.pos) or '-', snapflags()))
+        sd.prev_dr = dr
+    end
+    return sd
+end
+
 -- Opt-in frame-submission counters, inert unless JMS_FRAME_DIAG is set. After
 -- each frame it adds to a running histogram of the gap since the previous frame
 -- (gaps of a quarter second or more are idle time, not a stutter, and are only
@@ -2296,6 +2436,7 @@ if os.getenv('JMS_FRAME_DIAG') then
     end
     d.tick_ms = (state.tick_diag or TICK) * 1000
     pcall(mp.set_property_native, 'user-data/mpvtk/diag', d)  -- before the first frame
+    state.sdiag = state.scroll_diag_new and state.scroll_diag_new() or nil
     state.diag_frame = function(t0)
         local now = mp.get_time()
         local ms = (now - t0) * 1000
@@ -2353,6 +2494,7 @@ if os.getenv('JMS_FRAME_DIAG') then
             -- one, so it contains this frame's own cost: charged to this frame.
             d['slow_' .. k] = (d['slow_' .. k] or 0) + 1
         end
+        if state.sdiag then state.sdiag.frame(now, d.gap) end
         d.prev_ms, d.adds0, d.bytes0 = ms, state.ov_adds, state.ov_bytes
         d.ov_adds, d.ov_bytes = state.ov_adds, state.ov_bytes
         d.add_ms_sum = (state.diag_add_s or 0) * 1000
@@ -4299,6 +4441,7 @@ local function on_wheel(dir, axis, e)
         local n = math.max(1, math.floor(node.snap / WHEEL_STEP))
         step = node.snap / n
     end
+    if state.sdiag then state.sdiag.before(node) end
     -- A discrete notch eases the drawn offset (see state.glide); start from
     -- what is on screen right now, and keep an easing already in flight.
     if scale >= 0.99 and not state.glide[node.id] and not state.force_snap
@@ -4311,8 +4454,9 @@ local function on_wheel(dir, axis, e)
     end
     local move = scale
     if scale < 0.99 then move = scale * state.fine_gain end
-    set_scroll(node,
-        (state.scroll[node.id] or 0) + dir * step * move)
+    local dest = (state.scroll[node.id] or 0) + dir * step * move
+    if state.sdiag then state.sdiag.want(dest) end
+    set_scroll(node, dest)
 end
 
 -- Double-click: word-select in a textbox; a 'dbl' event for nodes
@@ -5464,7 +5608,11 @@ do
             -- A wheel notch is one "press"; if a platform ever reports a
             -- release as well, it is not a second notch.
             if e and (e.event == 'up' or e.canceled) then return end
-            on_wheel(b[2], b[3], e)
+            if state.sdiag then
+                state.sdiag.wheel(on_wheel, b[2], b[3], e)
+            else
+                on_wheel(b[2], b[3], e)
+            end
         end)
     end
     -- ctrl+wheel is zoom wherever a picture is being panned, and nothing
