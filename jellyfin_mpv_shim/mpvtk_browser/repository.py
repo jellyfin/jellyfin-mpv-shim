@@ -2902,6 +2902,19 @@ class LibrarySource:
         return self.image_url(server_uuid, item_id, "Chapter", tag, width,
                               index=chapter_index)
 
+    def get_chapters(self, server_uuid, item_id):
+        """The chapter list of ONE item, as the server reports it.
+
+        For a movie's alternate version: each version is an item of its own
+        with its own chapters, image tags and start times, and the primary's
+        DTO carries only the primary's (``MediaSourceInfo`` has no
+        ``Chapters``). Anything but a list of chapters is no chapters.
+        """
+        api = self._conn(server_uuid).api
+        item = api.get_item(item_id, fields="Chapters")
+        chapters = item.get("Chapters") if isinstance(item, dict) else None
+        return list(chapters) if isinstance(chapters, list) else []
+
     @staticmethod
     def backdrop_spec(item):
         """``(owner_item_id, image_type, tag)`` for the header banner, or
@@ -3684,6 +3697,10 @@ class OfflineLibrarySource:
     def chapter_image_url(self, server_uuid, item_id, chapter_index, chapter,
                           width=320):
         return None  # chapter thumbnails aren't downloaded
+
+    def get_chapters(self, server_uuid, item_id):
+        # Only the primary's chapters are stored, so a version's are unknown.
+        return None
 
     def get_playlist_items(self, server_uuid, playlist_id):
         """Downloaded items of a playlist, in playlist order."""

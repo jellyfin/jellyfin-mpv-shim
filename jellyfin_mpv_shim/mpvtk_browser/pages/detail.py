@@ -23,6 +23,30 @@ from .base import Page
 log = logging.getLogger("mpvtk_browser.pages.detail")
 
 
+def _clean_chapters(result):
+    """A chapter list from whatever the server (or a source) handed back.
+
+    Only what the row reads -- name, start, image tag -- and only well-formed
+    entries; anything that is not a list is no chapters. A start that is not
+    a non-negative number is 0 rather than a reason to drop the row.
+    """
+    if not isinstance(result, list):
+        return []
+    out = []
+    for ch in result:
+        if not isinstance(ch, dict):
+            continue
+        start = ch.get("StartPositionTicks")
+        if isinstance(start, bool) or not isinstance(start, (int, float)) \
+                or start < 0:
+            start = 0
+        name, tag = ch.get("Name"), ch.get("ImageTag")
+        out.append({"Name": name if isinstance(name, str) else None,
+                    "StartPositionTicks": int(start),
+                    "ImageTag": tag if isinstance(tag, str) and tag else None})
+    return out
+
+
 class DetailPage(Page):
     kind = "detail"
 
@@ -49,7 +73,20 @@ class DetailPage(Page):
                     "extras": detail_components.special_features(
                         source, srv, item)}
 
-        self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
+        self.route_async(work, self._landed, epoch)
+
+    def _landed(self, data):
+        """Apply a (re)load. The per-visit chapter cache belongs to the data
+        it was fetched against, so a reload clears it -- which also lets a
+        failed fetch be retried -- and starts a new generation, so a fetch
+        still in flight from before the reload cannot repopulate it. `_data`
+        goes last: build() reads the route unlocked, and this writer ends
+        with the invalidate the caller issues."""
+        route = self.route
+        route["_chapters"] = {}
+        route["_chapters_pending"] = set()
+        route["_chapters_gen"] = route.get("_chapters_gen", 0) + 1
+        route["_data"] = data
 
     # -- render ------------------------------------------------------------
 
@@ -263,24 +300,97 @@ class DetailPage(Page):
             buttons.append(trailer)
         return Row(buttons, gap=10)
 
+    def _scenes_row_owner(self, item):
+        """The item id whose chapters the Scenes row shows: the SELECTED
+        version's. A movie's versions are items of their own on the server --
+        each with its own chapter list, its own chapter images, and its own
+        start times -- and the page's item carries only its primary's. A
+        source naming no id says nothing either way and is the primary."""
+        iid = item.get("Id")
+        sources = item.get("MediaSources") or []
+        if len(sources) < 2:
+            return iid           # nothing to choose between: the item's own
+        src = self._sel_source(sources)
+        return (src or {}).get("Id") or iid
+
+    def _version_chapters(self, owner, server):
+        """Chapters of an ALTERNATE version, or None while they are not known.
+
+        Fetched lazily, the first time that version is on screen, and cached
+        for this visit by its item id -- failed and empty results included, so
+        a server that has none (or an offline source) is asked once, not once
+        per repaint. A reload of the page's data clears the cache; see
+        `_landed`. Unknown is None and the row is hidden: another version's
+        chapters would put the wrong thumbnails under the wrong start times.
+        """
+        route = self.route
+        cache = route.setdefault("_chapters", {})
+        if owner in cache:
+            return cache[owner]
+        pending = route.setdefault("_chapters_pending", set())
+        if owner in pending:
+            return None
+        pending.add(owner)
+        gen = route.get("_chapters_gen")
+        source = self.ctx.source
+
+        def current():
+            # Not the page's data any more: it was reloaded since this ask.
+            return route.get("_chapters_gen") == gen
+
+        def work():
+            return source.get_chapters(server, owner)
+
+        def done(result):
+            if current():
+                route.setdefault("_chapters", {})[owner] = _clean_chapters(
+                    result)
+
+        def failed(exc):
+            log.info("chapters of version %s unavailable: %s", owner, exc)
+            if current():
+                route.setdefault("_chapters", {})[owner] = []
+
+        def settled():
+            if current():
+                pending.discard(owner)
+
+        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed,
+                         always=settled)
+        return None
+
     def _scenes_row(self, item, server):
         """The chapter carousel ("Scenes"), each tile seeking to its start.
+
+        Follows the selected version: its chapters, its streams for the tile
+        shape, its item id for the images and for the tiles' identity.
 
         Chapter art is indexed rather than tagged, so the tiles carry a
         ready-made image spec+url (see TileRenderer.poster_for) — image_spec
         can't address it."""
         art = self.ctx.art
-        chapters = item.get("Chapters") or []
+        sources = item.get("MediaSources") or []
+        src = self._sel_source(sources)
+        iid = item.get("Id")
+        owner = self._scenes_row_owner(item)
+        if owner == iid:
+            chapters = item.get("Chapters") or []
+            row_id = "detail-scenes"
+        else:
+            chapters = self._version_chapters(owner, server)
+            if chapters is None:
+                return None      # not known yet: nothing, never the primary's
+            # Its own scroll container: a row of another length must not
+            # start where this one was left.
+            row_id = "detail-scenes-%s" % owner
         if len(chapters) < 2:
             return None          # a single chapter is just the start
-        iid = item.get("Id")
         # A chapter thumbnail is a frame of the video, so the tile has to be
         # the video's shape, not 16:9 by assumption -- a 4:3 or portrait
         # source letterboxed inside a landscape card. jellyfin-web reads the
         # first video stream and goes square at <= 1.2
         # (chaptercardbuilder.js:30-39); same rule, same threshold.
-        streams = ((item.get("MediaSources") or [{}])[0]
-                   .get("MediaStreams") or [])
+        streams = ((src or (sources or [{}])[0]).get("MediaStreams") or [])
         video: dict = next((s for s in streams if s.get("Type") == "Video"), {})
         vw, vh = video.get("Width"), video.get("Height")
         geom = (art.geom_square if vw and vh and (vw / vh) <= 1.2
@@ -294,21 +404,30 @@ class DetailPage(Page):
                 # thumbnail() only ever downscales, so a logical request
                 # here leaves the art stranded at 1x inside a scaled card.
                 url = self.ctx.source.chapter_image_url(
-                    server, iid, i, ch, width=px(geom.tile_w))
+                    server, owner, i, ch, width=px(geom.tile_w))
             except Exception:
                 log.debug("chapter art failed", exc_info=True)
             start = ch.get("StartPositionTicks") or 0
             scene_tiles.append({
-                "Id": "%s#ch%d" % (iid, i),
+                "Id": "%s#ch%d" % (owner, i),
                 "Name": ch.get("Name") or _("Chapter %d") % (i + 1),
                 "Type": "Chapter",
                 "_start_ticks": start,
                 "_subtitle": detail_components.fmt_ticks(start),
-                "_image_spec": ((iid, "Chapter%d" % i,
+                "_image_spec": ((owner, "Chapter%d" % i,
                                  ch.get("ImageTag") or "none")
                                 if url else None),
                 "_image_url": url,
             })
+
+        def go(t):
+            # A row drawn for another version than the one now selected
+            # (a click on a frame that predates the pick) must not seek this
+            # version's times in that one.
+            if self._scenes_row_owner(item) != owner:
+                return
+            self._start(item, server, offset_ticks=t.get("_start_ticks") or 0)
+
         # Starting at a chapter has to carry the same version and tracks
         # the Play button would — Tk's chapter click routes through the
         # detail view's own play for exactly that reason. Through _start for
@@ -316,9 +435,7 @@ class DetailPage(Page):
         # track pick gets the pick rather than what was showing when the row
         # was built.
         return art.tiles.tile_row(
-            _("Scenes"), scene_tiles, "detail-scenes", geom=geom,
-            on_click=lambda t: self._start(
-                item, server, offset_ticks=t.get("_start_ticks") or 0))
+            _("Scenes"), scene_tiles, row_id, geom=geom, on_click=go)
 
     # -- version / track selection ----------------------------------------
 
