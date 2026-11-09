@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-09 11:45+0000\n"
-"Last-Translator: sharanchius <sharanchius@gmail.com>\n"
+"PO-Revision-Date: 2026-11-09 22:36+0000\n"
+"Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
 "Language: lt\n"
@@ -2091,14 +2091,12 @@ msgstr "Splaino kreivė"
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "hable".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Hable"
 msgstr "Hable"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "reinhard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Reinhard"
 msgstr "Reinhard"
 
@@ -2412,7 +2410,6 @@ msgstr "Automatinis (rekomenduojama)"
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "vulkan".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Vulkan"
 msgstr "Vulkan"
 
@@ -2546,7 +2543,7 @@ msgstr "Aparatinis dekodavimas"
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr "AUtomatiškai šalinti tarpeilutes (deinterlace)"
+msgstr "Automatinis interlacingo šalinimas"
 
 #. Label of the dropdown for the "motion_interpolation" setting (Settings >
 #. Playback > Video Enhancement).
