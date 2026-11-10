@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-09 10:05+0000\n"
-"Last-Translator: trailxyz <abel@mislovic.com>\n"
+"PO-Revision-Date: 2026-11-10 17:35+0000\n"
+"Last-Translator: Alen Bajo <abajo62@gmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
 "Language: hr\n"
@@ -121,12 +121,12 @@ msgstr "Očistiti sve postojeće račune."
 #. Printed in the terminal after a server was signed in to.
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
-msgstr "Server je uspješno dodan."
+msgstr "Poslužitelj je uspješno dodan."
 
 #. Printed in the terminal when signing in to a server failed.
 #: jellyfin_mpv_shim/clients.py
 msgid "Adding server failed."
-msgstr "Dodavanje servera neuspješno."
+msgstr "Neuspješno dodavanje poslužitelja."
 
 #. Printed in the terminal when the server being added is one already
 #. saved, so its saved login is replaced.
@@ -165,7 +165,7 @@ msgstr "Lozinka: "
 #. Terminal prompt asking whether to sign in to a further server.
 #: jellyfin_mpv_shim/clients.py
 msgid "Add another server?"
-msgstr "Želite li dodati drugi server?"
+msgstr "Želite li dodati drugi poslužitelj?"
 
 #. Printed in the terminal when the Jellyfin server could not be reached.
 #: jellyfin_mpv_shim/clients.py
@@ -984,7 +984,7 @@ msgstr "Ukloni PIN"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Save"
-msgstr "Snimi"
+msgstr "Spremi"
 
 #. Error in the Set PIN dialog when the existing passcode was typed
 #. wrongly.
@@ -1529,7 +1529,7 @@ msgstr "Profil"
 #. resolution and bitrate.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Level"
-msgstr "Nivo"
+msgstr "Razina"
 
 # seeded from jellyfin-web: LabelChapterImageResolution
 #. Row label in the Media Info panel: the picture size in pixels, shown as
@@ -1543,7 +1543,7 @@ msgstr "Rezolucija"
 #. 16:9.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Aspect ratio"
-msgstr "Omjer proporcija"
+msgstr "Omjer stranica"
 
 # seeded from jellyfin-web: MediaInfoAnamorphic
 #. Row label in the Media Info panel: whether the picture is stored
@@ -1641,7 +1641,7 @@ msgstr "Raspon videozapisa"
 #. video uses, such as HDR10 or Dolby Vision.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Video range type"
-msgstr "Tip video raspona"
+msgstr "Vrsta video raspona"
 
 # seeded from jellyfin-web: ColorSpace
 #. Row label in the Media Info panel: the colour space the video is encoded
@@ -1707,7 +1707,7 @@ msgstr "Prisiljen"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "External"
-msgstr "Eksterni"
+msgstr "Vanjski"
 
 # seeded from jellyfin-web: LabelTime
 #. Row label in the Media Info panel: where in the container the timestamps
@@ -1811,7 +1811,7 @@ msgstr "Direktno strujanje"
 #. information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Remuxing"
-msgstr "Remiksiranje"
+msgstr "Remuksiranje"
 
 #. One English word, two senses. A group heading on the Playback tab of
 #. Settings, over the options that decide when the server may re-encode;
@@ -5063,7 +5063,7 @@ msgstr "Izvođenje je stalo, pa je lista čekanja prazna."
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Those items could not be added to the queue."
-msgstr "Ti predmeti nisu mogli biti dodani u red."
+msgstr "Te stavke nisu mogle biti dodane u red."
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #. Status message confirming every episode of a show is now set to record.
