@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-10 14:30+0000\n"
+"PO-Revision-Date: 2026-11-10 16:35+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -5429,7 +5429,7 @@ msgstr ""
 #. Shown on the Genres page when the server listed none.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/genres.py
 msgid "No genres to show for this library."
-msgstr ""
+msgstr "Šioje bibliotekoje nėra žanrų, kuriuos būtų galima parodyti."
 
 #. Two uses. A choice in a library's Sort dropdown, ordering items
 #. alphabetically by title; and the first column heading in a library shown
@@ -5883,7 +5883,7 @@ msgstr ""
 #. application cannot play.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
-msgstr ""
+msgstr "Šiame grojaraštyje nėra palaikomų medijos tipų."
 
 #. Title of the page listing what is queued to play, and the name given to
 #. that queue when it is saved as a playlist.
@@ -6076,7 +6076,7 @@ msgstr "Nepavyko nukopijuoti"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "No clipboard available — saved to %s"
-msgstr ""
+msgstr "Iškarpinė neprieinama – išsaugota į %s"
 
 #. Tooltip of the book reader's dropdown listing the chapters. A noun: the
 #. table of contents.
@@ -6725,7 +6725,7 @@ msgstr "Nustatyti PIN kodą"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Delete user %s and its saved logins?"
-msgstr ""
+msgstr "Ar pašalinti naudotoją %s ir jo išsaugotus prisijungimo duomenis?"
 
 #. Title of the dialog that removes a local profile.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7211,7 +7211,7 @@ msgstr ""
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "The downloads are already in that folder."
-msgstr ""
+msgstr "Atsisiuntimai jau yra tame aplanke."
 
 #. Error when the download folder was changed while something is being
 #. fetched.
