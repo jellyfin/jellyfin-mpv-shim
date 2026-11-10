@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-10 17:35+0000\n"
+"PO-Revision-Date: 2026-11-10 19:00+0000\n"
 "Last-Translator: Alen Bajo <abajo62@gmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
@@ -1286,7 +1286,7 @@ msgstr "Omiljeni"
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Refresh metadata"
-msgstr "Osviježi metapodatke"
+msgstr "Osvježi metapodatke"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -4549,7 +4549,7 @@ msgstr "Napusti"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Refresh"
-msgstr "Osviježi"
+msgstr "Osvježi"
 
 #. Error shown when joining a watch-together group failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
