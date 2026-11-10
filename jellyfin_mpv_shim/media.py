@@ -855,27 +855,86 @@ class Video(object):
                 return intro.start <= time, intro
         return False, None
 
-    def _imaged_chapters(self):
+    def _chapter_owner(self):
+        """The item whose chapters belong to what is playing.
+
+        A multi-version movie is several items, and each carries only its own
+        file's chapters (and serves only its own chapter images). ``item`` is
+        the primary, so while an alternate version plays its chapters are the
+        source's, not ``item``'s. A source that is absent or is the primary
+        itself -- every single-version movie and episode -- is the item.
+        """
+        sid = (getattr(self, "media_source", None) or {}).get("Id")
+        if isinstance(sid, str) and sid and sid != self.item_id:
+            return sid
+        return self.item_id
+
+    def _chapters_of(self, owner):
+        """``owner``'s raw chapter list; never another version's.
+
+        The primary's came with ``item``. An alternate's is fetched once per
+        owner and kept on this Video (a version has a handful of sources, so
+        the cache is bounded by them); a failed or malformed answer is kept
+        as no chapters rather than retried for every request, and is never
+        replaced by the primary's list.
+        """
+        if owner == self.item_id:
+            return self.item.get("Chapters") or []
+        cache = self.__dict__.setdefault("_alt_chapters", {})
+        if owner not in cache:
+            cache[owner] = self._fetch_chapters(owner)
+        return cache[owner]
+
+    def _fetch_chapters(self, owner):
+        try:
+            dto = self.client.jellyfin.get_item(owner, fields="Chapters")
+            chapters = dto.get("Chapters") if isinstance(dto, dict) else None
+        except Exception:
+            log.warning("Could not fetch the chapters of source %s.", owner,
+                        exc_info=True)
+            return []
+        out = []
+        for ch in chapters if isinstance(chapters, list) else []:
+            if not isinstance(ch, dict):
+                continue
+            start, name, tag = (ch.get("StartPositionTicks"), ch.get("Name"),
+                                ch.get("ImageTag"))
+            if isinstance(start, bool) or not isinstance(start, (int, float)) \
+                    or start < 0:
+                start = 0
+            out.append({
+                "StartPositionTicks": int(start),
+                "Name": name if isinstance(name, str) else "",
+                "ImageTag": tag if isinstance(tag, str) and tag else None})
+        return out
+
+    def _imaged_chapters(self, owner=None):
         """``(server index, chapter)`` for chapters that have an image. A
         chapter whose extraction failed has none, and the previews' times and
         frames must both skip it -- one list feeds both -- or every frame
         after it is drawn under the next chapter's time. The index stays the
         server's: it is the chapter's position, not the image's."""
-        return [(i, c) for i, c in enumerate(self.item.get("Chapters") or [])
+        owner = owner or self._chapter_owner()
+        return [(i, c) for i, c in enumerate(self._chapters_of(owner))
                 if c.get("ImageTag")]
 
     def get_chapters(self):
+        # The owner is fixed here and handed to get_chapter_images, which the
+        # worker calls next: a source change between the two must not pair one
+        # version's times with another's frames.
+        owner = self._preview_owner = self._chapter_owner()
         return [
             {"start": item["StartPositionTicks"] / 10000000, "name": item["Name"]}
-            for _i, item in self._imaged_chapters()
+            for _i, item in self._imaged_chapters(owner)
         ]
 
     def get_chapter_images(self, max_width=400, quality=90):
-        for i, item in self._imaged_chapters():
+        owner = self.__dict__.get("_preview_owner") or self._chapter_owner()
+        for i, item in self._imaged_chapters(owner):
             data = BytesIO()
             self.client.jellyfin.get_chapter_image(
                 data,
-                self.item_id,
+                owner,
                 i,
                 tag=item["ImageTag"],
                 max_width=max_width,

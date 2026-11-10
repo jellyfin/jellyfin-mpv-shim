@@ -583,13 +583,14 @@ class Repository(unittest.TestCase):
 
 
 class Scope(unittest.TestCase):
-    def test_the_players_chapter_handling_is_untouched(self):
+    def test_the_players_primary_chapters_still_come_from_the_item(self):
+        # The player is version-aware for alternates (tests/
+        # test_chapter_images.py); the primary and single-version path is
+        # still the item's own list, with no request.
         import inspect
         from jellyfin_mpv_shim import media
-        src = inspect.getsource(media.Video.get_chapters)
-        self.assertIn("_imaged_chapters", src)
         self.assertIn('self.item.get("Chapters")',
-                      inspect.getsource(media.Video._imaged_chapters))
+                      inspect.getsource(media.Video._chapters_of))
 
 
 if __name__ == "__main__":
