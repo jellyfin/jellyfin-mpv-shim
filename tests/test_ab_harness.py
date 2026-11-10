@@ -22,6 +22,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS = os.path.join(ROOT, "tools", "jf_disposable")
@@ -418,11 +419,49 @@ class Preflight(unittest.TestCase):
         for want in ("no server", "need 120 posters", "no python", "JH_MAX_MPV must be 1", "JMS_TICK_MS"):
             self.assertIn(want, bad)
 
-    def test_a_real_run_must_be_inside_the_three_gib_scope(self):
+    # The scope requirement is checked from where the test itself runs, so
+    # the answer depends on whether the suite was started inside a
+    # tools/limited_run.sh scope. The cgroup is therefore supplied, never
+    # read: each environment is built here and the production check is run
+    # against it. (Reading the real one made this fail exactly when the suite
+    # ran under the limit it is meant to enforce.)
+    SCOPE = "/sys/fs/cgroup/user.slice/jh-limited-1234.scope"
+
+    def scope_problems(self, cgroup, mem_max=None, need_scope=True):
         os.environ["JH_MAX_MPV"] = "1"
+        with mock.patch.object(S.M, "cgroup_dir", lambda *a, **k: cgroup), \
+                mock.patch.object(S.M, "read_cgroup",
+                                  lambda cg: {"mem_max": mem_max}):
+            with tempfile.TemporaryDirectory() as w:
+                return [m for m in S.preflight(w, "/nonexistent", need_scope)
+                        if "scope" in m]
+
+    def test_outside_a_limited_scope_a_real_run_is_refused(self):
+        for cg in (None, "/sys/fs/cgroup/user.slice/app.slice/some.service",
+                   "/sys/fs/cgroup"):
+            self.assertEqual(self.scope_problems(cg, S.GIB3),
+                             ["not inside a tools/limited_run.sh scope"], cg)
+
+    def test_inside_a_three_gib_scope_it_is_accepted(self):
+        self.assertEqual(self.scope_problems(self.SCOPE, S.GIB3), [])
+
+    def test_inside_a_scope_with_another_limit_it_is_refused(self):
+        for limit in (2 * 1024 ** 3, 4 * 1024 ** 3, None):
+            self.assertEqual(self.scope_problems(self.SCOPE, limit),
+                             ["the scope's memory.max is not 3 GiB"], limit)
+
+    def test_the_scope_is_only_required_for_a_real_run(self):
+        self.assertEqual(self.scope_problems(None, need_scope=False), [])
+
+    def test_the_real_environment_gets_the_answer_it_deserves(self):
+        # Whichever way this suite was started, the check agrees with it.
+        os.environ["JH_MAX_MPV"] = "1"
+        cg = S.M.cgroup_dir()
+        inside = bool(cg and "jh-limited-" in cg)
         with tempfile.TemporaryDirectory() as w:
-            bad = "\n".join(S.preflight(w, "/nonexistent", need_scope=True))
-        self.assertTrue("not inside a tools/limited_run.sh scope" in bad or "3 GiB" in bad, bad)
+            bad = S.preflight(w, "/nonexistent", need_scope=True)
+        self.assertEqual("not inside a tools/limited_run.sh scope" in bad,
+                         not inside, bad)
 
 
 class Report(Tmp):
