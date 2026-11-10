@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-03 15:22+0000\n"
-"Last-Translator: Timo Chvatal <timo@chvat.al>\n"
+"PO-Revision-Date: 2026-11-10 23:34+0000\n"
+"Last-Translator: Kuhu55555 <jakubhudek1@gmail.com>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
 "Language: cs\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -1293,7 +1293,7 @@ msgstr "Aktualizovat metadata"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Smazat z Disku"
 
 #. Button on a film's, episode's, show's or season's page that opens a short
 #. menu of less common actions (refresh metadata, delete from disk). Means
@@ -1306,10 +1306,8 @@ msgstr "Více"
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Features"
 msgid "Special Features"
-msgstr "Funkce"
+msgstr "Specialní Funkce"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
