@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-10 11:15+0000\n"
+"PO-Revision-Date: 2026-11-10 14:30+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -4022,7 +4022,7 @@ msgstr "Pranešimas"
 #. cannot reach the system clipboard.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
-msgstr ""
+msgstr "Kopijuoti į iškarpinę negalima."
 
 #. Message shown when the viewer asked to paste but this build of MPV
 #. cannot reach the system clipboard.
@@ -4896,13 +4896,13 @@ msgstr "Įrašyti"
 #. first-run episodes and skip repeats.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "New episodes only"
-msgstr ""
+msgstr "Tik naujos serijos"
 
 #. Choice in the "Record" dropdown of the series recording dialog: record
 #. every showing, repeats included.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "All episodes"
-msgstr ""
+msgstr "Visos serijos"
 
 #. Checkbox in the series recording dialog. "My library" is the viewer's
 #. own Jellyfin collection.
@@ -4992,14 +4992,14 @@ msgstr ""
 #. singular of "%d episodes".
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "1 episode"
-msgstr ""
+msgstr "1 serija"
 
 #. Choice in the "Keep up to" dropdown of the series recording dialog, for
 #. counts of two or more. The singular case is a separate string.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "%d episodes"
-msgstr ""
+msgstr "%d serijos"
 
 #. Label of the dropdown in Guide Settings choosing the order of channels.
 #. Followed by "Channel number" or "Recently watched".
@@ -5489,7 +5489,7 @@ msgstr "Atsitiktinis"
 #. their newest episode arrived.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Date Episode Added"
-msgstr ""
+msgstr "Serijos pridėjimo data"
 
 #. Shown in place of the grid when a library's filters match nothing. The
 #. filters may have been chosen on an earlier visit and remembered, so this
@@ -5579,7 +5579,7 @@ msgstr "Rūšiuoti"
 #. reach the server.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "That view setting could not be saved."
-msgstr ""
+msgstr "Šio rodinio nustatymo nepavyko išsaugoti."
 
 #. Status message when Play was chosen on something the app found no
 #. playable item inside.
@@ -6197,7 +6197,7 @@ msgstr "Neseniai pridėti į {0}"
 #. Heading of a Live TV row listing episodes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
-msgstr ""
+msgstr "Būsimos serijos"
 
 #. Heading of a Live TV row listing films airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6466,6 +6466,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Download folder moved. Restart to finish switching."
 msgstr ""
+"Atsisiuntimų aplankas perkeltas. Paleiskite iš naujo, kad užbaigtumėte "
+"perjungimą."
 
 #. Status message while downloaded files are being relocated, before any
 #. progress figure is known.
@@ -6551,7 +6553,7 @@ msgstr ""
 #. rows; keep them matching those translations.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
-msgstr "Serijųų atvaizdų naudojimas skyriuose 'Toliau' ir 'Žiūrėti toliau'"
+msgstr "Serijų atvaizdų naudojimas skyriuose 'Toliau' ir 'Žiūrėti toliau'"
 
 #. Explanation under the episode-images checkbox in the Home Screen
 #. settings.
