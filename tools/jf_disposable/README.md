@@ -72,6 +72,29 @@ With `WAYLAND_DISPLAY` set, mpv draws on your real Wayland desktop instead of th
   database is a temporary one and is removed afterwards. The timeouts are the driver's own and were not changed.
 * These are test harnesses, not part of the application. They have no unit tests, because they need a real server.
 
+## Per-version chapters (`version_chapters_probe.py`)
+
+A multi-version movie is several items, and each carries only its own file's chapters and chapter images. This probe checks
+that the server, the player's scrub previews (`media.Video`) and the Scenes row (`LibrarySource.get_chapters`) agree, version
+by version. It builds two small films with ffmpeg (no network) under `$JH_JF_WORK/media_versions`: `VerImg` (chapter-image
+extraction on) with versions of 5, 3, 1 and 0 chapters, and `VerPlain` (extraction off) with 3 and 2.
+
+    JH_JF_WORK=$W tools/limited_run.sh -t 600 -- dist/local-test/venv/bin/python tools/jf_disposable/version_chapters_probe.py
+    python3 tools/jf_disposable/version_chapters_probe.py --make-media-only      # only writes the test videos
+
+It checks each version's chapter count, names and start times; that tagged chapters serve a picture under the version's own
+id, that the pictures differ between versions, and that an image index a version does not have is not served under another
+version's id (404); that a lone chapter, a chapterless version and a library with extraction off have no image tags; and that
+the player and the Scenes row read the same times, counts and images from the real server. Exit status 0 only if all hold;
+problems are printed as `PROBLEM:` lines and everything is in `$JH_JF_WORK/out/version_chapters_probe.json`.
+
+Needs ffmpeg and the venv python (the consumers import `jellyfin_apiclient_python`). It refuses to start a server outside a
+`limited_run.sh` scope (`--no-scope-check` overrides that, for the unit tests). Only the throw-away server of `jf_run.py` and
+the generated media are involved; the server's temporary state and processes are removed at the end (as above, the server may
+need the driver's SIGKILL on the way out, which loses nothing). Chapter images are extracted asynchronously after the scan, so
+a run takes a minute or two. Its pure parts (the specification, the checks, the scope guard) are covered by
+`tests/test_version_chapters_probe.py`.
+
 ## Blinded cadence comparison (`ab_manual.sh`)
 
 A person-driven comparison of the renderer's 30 ms and 16.7 ms frame-cadence floors (`JMS_TICK_MS`, honoured only with
