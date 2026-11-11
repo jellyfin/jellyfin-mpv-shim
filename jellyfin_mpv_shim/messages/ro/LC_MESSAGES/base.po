@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-09-27 20:36+0000\n"
-"Last-Translator: Acrotos <alexandrufly@gmail.com>\n"
+"PO-Revision-Date: 2026-11-12 00:39+0000\n"
+"Last-Translator: lextc <alexandrututica@gmail.com>\n"
 "Language-Team: Romanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ro/>\n"
 "Language: ro\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
 "20)) ? 1 : 2;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -4998,9 +4998,8 @@ msgstr "Metoda de redare"
 #. server had to re-encode. Do not confuse with "Seasons": an earlier
 #. translation sweep put a translation of that word here.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Reasons"
-msgstr "Sezoane"
+msgstr "Motive"
 
 #. Heading of a block in the Playback Info panel holding MPV's own
 #. statistics. The player program, not a person.
