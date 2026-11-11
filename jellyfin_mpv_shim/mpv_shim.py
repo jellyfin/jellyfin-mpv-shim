@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import functools
 import hashlib
 import logging
 import os
@@ -132,6 +133,35 @@ def _stop_mpris():
     mpris.stop()
 
 
+def _report_startup_failure(run):
+    """Show, as well as raise, an exception that escapes ``run``.
+
+    A decorator, not a second function around the body: tests (and people)
+    read ``main``'s own source for the startup and shutdown order, and
+    ``inspect.getsource`` follows ``__wrapped__`` to it. Only ``Exception``
+    is handled, so ``SystemExit`` and ``KeyboardInterrupt`` pass untouched; a
+    crash after startup ends in ``exit_watchdog.finish`` -> ``os._exit`` and
+    never returns here, which is intended. The report is best effort and the
+    original exception is re-raised unchanged.
+    """
+
+    @functools.wraps(run)
+    def wrapper(*args, **kwargs):
+        try:
+            return run(*args, **kwargs)
+        except Exception as exc:
+            try:
+                from . import startup_error
+
+                startup_error.report_fatal(exc)
+            except Exception:
+                pass            # reporting must never replace the real error
+            raise
+
+    return wrapper
+
+
+@_report_startup_failure
 def main():
     args = get_args()
 
