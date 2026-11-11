@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 09:48+0000\n"
+"PO-Revision-Date: 2026-11-11 11:56+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -177,7 +177,7 @@ msgstr "Nepavyko prisijungti prie serverio."
 #. Quick Connect feature off.
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr "Šiame serveryje neįjungtas greitas prisijungimas"
+msgstr "Šiame serveryje neįjungtas greitas prisijungimas."
 
 #. Printed in the terminal when requesting a Quick Connect code failed.
 #: jellyfin_mpv_shim/clients.py
@@ -1552,7 +1552,7 @@ msgstr "Kanalai"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d ch"
-msgstr "%d kanalai"
+msgstr "%d kan"
 
 #. Row label in the Media Info panel: how much data a second this stream
 #. uses.
@@ -2453,7 +2453,7 @@ msgstr "HDMI perdavimas"
 #. Subtitles & Languages); stored as "unset".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
-msgstr "Nenustatyta"
+msgstr "Atšauktas"
 
 #. Choice in the "Language Preference" dropdown (Settings > Playback >
 #. Subtitles & Languages); stored as "dubbed_shows".
@@ -5412,7 +5412,7 @@ msgstr "Versija"
 #. item's page. Deliberately clipped, because it sits inside a narrow list.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
+msgstr "Sub"
 
 #. Caption on an item's page: the clock time it would finish at if started
 #. now. %s is a time of day, already formatted.
@@ -7421,7 +7421,7 @@ msgid ""
 "Open menu (press c) for details."
 msgstr ""
 "MPV Shim v{0} galimas atnaujinimas\n"
-"Atidarykite meniu (paspauskite c) detalesniam aprašymui."
+"Atidarykite meniu (paspauskite c) išsamiai informacijai."
 
 #. Notice drawn over the video inside a Flatpak when a newer release
 #. exists. {0} is the version number and the quoted text a shell command.
@@ -7560,7 +7560,7 @@ msgstr ""
 #. follows a wider one.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr "Nenustatyta"
+msgstr "Nenustatytas"
 
 #. Marks which video-profile scope is actually deciding right now. {0} is
 #. that scope's name; the arrow is drawn from plain characters and should
