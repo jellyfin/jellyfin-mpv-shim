@@ -341,7 +341,7 @@ def main(argv=None):
             if stopper:
                 stopper.stop()
         if jf is not None:
-            open(flag, "w").close()
+            open(flag, "w", encoding="utf-8").close()
             try:
                 jf.wait(90)
             except subprocess.TimeoutExpired:

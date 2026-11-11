@@ -94,7 +94,7 @@ class Media(unittest.TestCase):
                 for label, _c, _s in vs:
                     path = P.media_path(w, lib, folder, film, label)
                     os.makedirs(os.path.dirname(path), exist_ok=True)
-                    open(path, "w").close()
+                    open(path, "w", encoding="utf-8").close()
             with mock.patch.object(P.subprocess, "run") as run:
                 P.make_media(w)
             run.assert_not_called()

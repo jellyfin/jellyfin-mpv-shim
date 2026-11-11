@@ -133,7 +133,7 @@ def main(argv=None):
         say("si_session: %s" % rec["error"])
     finally:
         if jf is not None:
-            open(flag, "w").close()
+            open(flag, "w", encoding="utf-8").close()
             try:
                 jf.wait(90)
             except subprocess.TimeoutExpired:
