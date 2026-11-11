@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-10 19:00+0000\n"
+"PO-Revision-Date: 2026-11-11 09:48+0000\n"
 "Last-Translator: Alen Bajo <abajo62@gmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
@@ -383,7 +383,7 @@ msgstr "Promijenite zapis zvuka"
 #. imperative verb.
 #: jellyfin_mpv_shim/menu.py
 msgid "Change Subtitles"
-msgstr "Promijeni titlove"
+msgstr "Promijenite titlove"
 
 #. Opens the chooser that limits how much bandwidth the server may use for
 #. this video. On the in-player menu and on the settings menu of the
@@ -391,7 +391,7 @@ msgstr "Promijeni titlove"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Change Video Quality"
-msgstr "Promjena kvalitete videozapisa"
+msgstr "Promjenite kvalitetu videozapisa"
 
 #. The Jellyfin feature for watching in sync with other people. Used as a
 #. dialog title, a navigation button, and the heading of the group list.
@@ -426,7 +426,7 @@ msgstr "Promijeni profil video reprodukcije"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Quit and Mark Unplayed"
-msgstr "Završi i označi kao nezigranu"
+msgstr "Završi i označi kao neigranu"
 
 #. Saves a still of the current frame. On the in-player menu and on the
 #. settings menu of the playback controls. An imperative verb here.
@@ -545,7 +545,7 @@ msgstr "Nikada"
 #. Intro / Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr "Pitajte"
+msgstr "Pitaj"
 
 #. Choice shared by the "Tell Me About Updates", "Window Buttons in the Top
 #. Bar", "Skip Intros", "Skip Credits", "Skip Commercials", "Skip
@@ -1028,7 +1028,7 @@ msgstr "Ponovna prijava"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Add Server"
-msgstr "Dodaj server"
+msgstr "Dodaj poslužitelj"
 
 #. Explanation at the top of the Sign In Again form. %s is the server's
 #. name. The second sentence is there to say this is not the same as
@@ -4998,12 +4998,12 @@ msgstr "Prethodno poglavlje"
 #. Tooltip of the rewind button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
-msgstr "Nazad 10 sekundi"
+msgstr "Natrag za 10 sekundi"
 
 #. Tooltip of the fast-forward button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Forward 30 Seconds"
-msgstr "Pređi naprijed 30 sekundi"
+msgstr "Naprijed za 30 sekundi"
 
 # seeded from jellyfin-web: NextUp
 #. Tooltip of the button on the playback controls that jumps to the next
@@ -7269,7 +7269,7 @@ msgstr "Ukloniti %s i njegovo spremljeno prijavljivanje?"
 #. Title of the dialog that forgets a server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
-msgstr "Ukloni server"
+msgstr "Ukloni poslužitelj"
 
 #. Checkbox beside a server in Settings, letting that server's new episodes
 #. be fetched automatically.
@@ -7386,13 +7386,13 @@ msgstr "Pusti sljedeće"
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark unplayed"
-msgstr "Mark neigran"
+msgstr "Oznaka nije igrana"
 
 #. Action on an item's menu that tells the server it has been watched. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark played"
-msgstr "Mark je svirao"
+msgstr "Oznaka je igrana"
 
 #. Action on an item's menu that opens the playlist chooser. An imperative
 #. verb phrase.
@@ -7510,7 +7510,7 @@ msgstr "Izvan mreže"
 #. servers.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Server"
-msgstr "Server"
+msgstr "Poslužitelj"
 
 #. Tooltip of the navigation bar's dropdown that switches between accounts
 #. on this server.
@@ -7609,7 +7609,7 @@ msgstr "Izvan mreže — prikazuje što je dostupno."
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py jellyfin_mpv_shim/tray.py
 msgid "Configure Servers"
-msgstr "Konfiguriraj servere"
+msgstr "Konfiguriraj poslužitelje"
 
 #. Bar along the bottom while items are being fetched. %(name)s is what is
 #. downloading now and %(n)d how many are still queued.
