@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-10 16:35+0000\n"
+"PO-Revision-Date: 2026-11-11 09:48+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -104,7 +104,7 @@ msgstr "Nustatomas dabartinis..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
-"Atidarykite Jellyfin, eikite į vartotojo meniu -> Greitas prisijungimas ir "
+"Atidarykite Jellyfin, eikite į naudotojo meniu -> Greitas prisijungimas ir "
 "įveskite šį kodą:"
 
 #. Printed in the terminal while Quick Connect waits for someone to accept
@@ -155,7 +155,7 @@ msgstr "Serverio adresas: "
 #. separates it from what is typed; keep it.
 #: jellyfin_mpv_shim/clients.py
 msgid "Username: "
-msgstr "Vartotojo vardas: "
+msgstr "Naudotojo vardas: "
 
 #. Terminal prompt asking for the Jellyfin account password. The trailing
 #. space separates it from what is typed; keep it.
@@ -1085,7 +1085,7 @@ msgstr "Serverio adresas"
 #. is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Username"
-msgstr "Vartotojo vardas"
+msgstr "Naudotojo vardas"
 
 #. Label of the field on the sign-in page where the Jellyfin account
 #. password is typed.
@@ -1558,7 +1558,7 @@ msgstr "%d kanalai"
 #. uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bitrate"
-msgstr "Bitų dažnis"
+msgstr "Sparta bitais"
 
 #. Value of the Bitrate row in the Media Info panel. Kilobits per second;
 #. the unit is normally left as-is.
@@ -3642,7 +3642,7 @@ msgstr ""
 #. disc format (SD, HD, 4K, 3D, DVD, Blu-ray, ISO).
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Video Types"
-msgstr ""
+msgstr "Vaizdo įrašų tipai"
 
 #. Checkbox in the filter panel's Video Types section: standard definition.
 #. An abbreviation most languages keep as-is.
@@ -3781,7 +3781,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Media Info"
-msgstr ""
+msgstr "Medijos informacija"
 
 #. Button that dismisses a notice, and the default confirming button of a
 #. yes/no dialog. Also closes the Media Info modal.
@@ -3849,7 +3849,7 @@ msgstr "Atsisiųsti"
 #. left out of the download.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
-msgstr ""
+msgstr "Įtraukti žiūrėtus"
 
 #. Shown in the Download modal when every item in the selection is already
 #. on disk.
@@ -4274,7 +4274,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Downloading %d%%"
-msgstr ""
+msgstr "Atsisiunčiama%d%%"
 
 #. State of a download that has started but has no progress figure yet.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -4571,7 +4571,7 @@ msgstr ""
 #. Transcoding.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Play method"
-msgstr ""
+msgstr "Leidimo metodas"
 
 #. Heading of a numbered block in the Playback Info panel, listing why the
 #. server had to re-encode. Do not confuse with "Seasons": an earlier
@@ -4687,7 +4687,7 @@ msgstr ""
 #. Status message confirming one programme is now set to record.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording scheduled."
-msgstr ""
+msgstr "Įrašas numatytas."
 
 #. Status message when the server refused to set up a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5702,12 +5702,12 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
 msgid "%d channels"
-msgstr ""
+msgstr "%d kanalai"
 
 #. Heading over the most recent recordings on the Live TV Recordings tab.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Latest Recordings"
-msgstr ""
+msgstr "Naujausi įrašai"
 
 #. Heading over the folders the server files recordings into, on the Live
 #. TV Recordings tab. A noun phrase: folders holding recordings.
@@ -6265,7 +6265,7 @@ msgstr ""
 #. Heading of the offline home-screen row listing films on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
-msgstr ""
+msgstr "Atsisiųsti filmai"
 
 #. Heading of the offline home-screen row listing standalone videos on this
 #. device.
@@ -6514,7 +6514,7 @@ msgstr ""
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Try Again"
-msgstr ""
+msgstr "Bandyti dar"
 
 #. Explanation in the Home Screen settings. "Jellyfin Web" is the browser
 #. client's product name; leave it as-is.
@@ -6547,7 +6547,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Section %d"
-msgstr ""
+msgstr "Skyrius %d"
 
 #. Checkbox in the Home Screen settings. The quoted names are home-screen
 #. rows; keep them matching those translations.
@@ -6608,7 +6608,7 @@ msgstr "Naršyti"
 #. application's local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Servers & Users"
-msgstr "Serveriai ir vartotojai"
+msgstr "Serveriai ir naudotojai"
 
 #. Name of a Settings tab showing this application's diagnostic output.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -6666,7 +6666,7 @@ msgstr "Neprisijungęs"
 #. each with its own servers, not Jellyfin accounts.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "New user name…"
-msgstr "Naujas vartotojo vardas…"
+msgstr "Naujas naudotojo vardas…"
 
 #. Button in the Users settings that creates a new local profile. An
 #. imperative verb phrase.
@@ -6684,7 +6684,7 @@ msgstr "Dar nėra sukonfigūruotų serverių."
 #. local profiles.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Users"
-msgstr "Vartotojai"
+msgstr "Naudotojai"
 
 #. Subtitle under the Users heading in Settings. These are this
 #. application's own local profiles, not Jellyfin accounts, and a locked
@@ -6694,6 +6694,8 @@ msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
+"Kiekvienas naudotojas turi savo serverio ir įrenginio tapatybę; norint "
+"persijungti į užrakintą naudotoją, reikia PIN kodo."
 
 #. Heading of the Servers section of Settings. %s is the name of the local
 #. profile whose servers are listed.
@@ -6730,7 +6732,7 @@ msgstr "Ar pašalinti naudotoją %s ir jo išsaugotus prisijungimo duomenis?"
 #. Title of the dialog that removes a local profile.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Delete User"
-msgstr ""
+msgstr "Ištrinti naudotoją"
 
 #. Marker beside the local profile currently in use, in the Users settings.
 #. Lower case, a small caption rather than a sentence.
@@ -6807,17 +6809,17 @@ msgstr ""
 #. Status message when creating a local profile failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be added."
-msgstr ""
+msgstr "Šio naudotojo nepavyko pridėti."
 
 #. Title of the dialog that changes a local profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Rename User"
-msgstr ""
+msgstr "Pervardyti naudotoją"
 
 #. Status message when changing a local profile's name failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be renamed."
-msgstr ""
+msgstr "Šio naudotojo nepavyko pervadinti."
 
 #. Column heading in a library shown as a list: the item's release year.
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -6982,7 +6984,7 @@ msgstr "Serveris"
 #. on this server.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "User"
-msgstr "Vartotojas"
+msgstr "Naudotojas"
 
 #. Placeholder in the empty search field on the navigation bar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -7030,7 +7032,7 @@ msgstr "Atnaujinimas pasiekiamas: %s"
 #. means it opens something else.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Details…"
-msgstr ""
+msgstr "Išsami informacija…"
 
 #. Button on the update banner that puts the notice off for now, so it
 #. returns next time. "Not now", not a direction in time. Two other buttons
@@ -7442,24 +7444,24 @@ msgstr "(numatytasis)"
 #. Terminal menu entry that creates a local profile of this application.
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Naujas naudotojas"
 
 #. Printed in the terminal when the profile asked to be deleted is the one
 #. in use.
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Prieš ištrindami šį naudotoją, perjunkite į kitą naudotoją."
 
 #. Printed in the terminal when deleting the last remaining local profile
 #. was refused.
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Reikalingas bent vienas naudotojas."
 
 #. Printed in the terminal when the named local profile does not exist.
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "Naudotojas nerastas."
 
 #. Stands in for a track's language when the file does not say.
 #. Deliberately clipped to four characters, because it sits inside a track
@@ -7558,7 +7560,7 @@ msgstr ""
 #. follows a wider one.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "Nenustatyta"
 
 #. Marks which video-profile scope is actually deciding right now. {0} is
 #. that scope's name; the arrow is drawn from plain characters and should
