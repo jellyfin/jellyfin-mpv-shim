@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 11:56+0000\n"
+"PO-Revision-Date: 2026-11-11 13:30+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -1379,20 +1379,20 @@ msgstr "Кароткаметражка"
 #. for it. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Unaired"
-msgstr ""
+msgstr "Не ў эфіры"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has aired and the library has no file for it -- a gap in the
 #. season, not an error. One word; the tile is about 150px wide.
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgid "Missing"
-msgstr ""
+msgstr "Адсутнічае"
 
 #. Heading over the video stream's rows in the Media Info panel. A stream
 #. kind, alongside Audio, Subtitle, Lyric and Image.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Video"
-msgstr ""
+msgstr "Відэа"
 
 #. One English word, three places. A group heading on the Playback tab of
 #. Settings; the heading over an audio stream's rows in the Media Info
@@ -3185,6 +3185,11 @@ msgid ""
 "this if playback keeps stopping for buffering. Larger buffers use more "
 "memory and make the first few seconds of a file slower to start."
 msgstr ""
+"На колькі апярэджваць прайграванне пры чытанні даных. Па змаўчанні ў MPV "
+"гэта адна секунда; гэтага можа быць мала для сервера праз інтэрнэт або пры "
+"павольным злучэнні — павялічце гэты параметр, калі прайграванне пастаянна "
+"спыняецца з-за буферызацыі. Большыя буферы займаюць больш памяці і "
+"запавольваюць запуск файла."
 
 #. Explanation shown under the "Motion Interpolation" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3247,6 +3252,10 @@ msgid ""
 "the buttons are normally hidden there. Turn this on to keep a way out of "
 "full screen that is not a keyboard shortcut."
 msgstr ""
+"У поўнаэкранным рэжыме няма радка загалоўка, а таксама нічога, што можна "
+"было б перамясціць ці разгарнуць, таму кнопкі звычайна схаваныя. Уключыце "
+"гэтую опцыю, каб захаваць магчымасць выйсці з поўнаэкраннага рэжыму без "
+"выкарыстання спалучэння клавіш."
 
 #. Explanation shown under the "Hide the Desktop Title Bar" setting
 #. (Settings > General > Window).
@@ -3305,6 +3314,12 @@ msgid ""
 "library a solid background, so the script's idle screen cannot show through "
 "it."
 msgstr ""
+"Па змаўчанні выкарыстоўваюцца спалучэнні клавіш MPV. Націсніце ENTER, каб "
+"кіраваць прайгравальнікам з дапамогай клавіятуры. Рэжым «Без элементаў "
+"кіравання» пакідае прайграванне без іх; бібліятэка, спалучэнні клавіш і "
+"клавіша меню працягваюць працаваць. Выберыце «Уласны OSC», калі вы "
+"ўстанавілі ўласны скрыпт OSC: гэта адключае ўласны OSC MPV і дае бібліятэцы "
+"суцэльны фон, каб экран чакання скрыпта не прасвечваў праз яго."
 
 #. Explanation shown under the "Scroll Wheel Pixels" setting (Settings >
 #. Browse > Library Browser).
