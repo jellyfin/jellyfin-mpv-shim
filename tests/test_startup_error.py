@@ -13,7 +13,7 @@ from unittest import mock
 
 sys.argv = [sys.argv[0]]
 
-from jellyfin_mpv_shim import startup_error  # noqa: E402
+from jellyfin_mpv_shim import autostart, startup_error  # noqa: E402
 
 
 def _missing_mpv():
@@ -160,6 +160,23 @@ class MainWrapperTest(unittest.TestCase):
             with self.assertRaises(RuntimeError) as caught:
                 self.wrapped(body)()
         self.assertIs(caught.exception, boom)
+
+
+class AutostartLauncherTest(unittest.TestCase):
+    def test_a_package_launcher_is_what_autostart_runs(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            launcher = os.path.join(d, "jellyhome-player")
+            with open(launcher, "w", encoding="utf-8") as fh:
+                fh.write("#!/bin/sh\n")
+            os.chmod(launcher, 0o755)
+            with mock.patch.dict(os.environ, {"JELLYHOME_LAUNCHER": launcher}):
+                self.assertEqual(autostart._launch_args(), [launcher, "--minimized"])
+
+    def test_a_stale_launcher_path_falls_back_to_the_module_form(self):
+        with mock.patch.dict(os.environ, {"JELLYHOME_LAUNCHER": "/nonexistent/x"}):
+            args = autostart._launch_args()
+        self.assertEqual(args[1:3], ["-m", "jellyfin_mpv_shim.mpv_shim"])
 
 
 if __name__ == "__main__":

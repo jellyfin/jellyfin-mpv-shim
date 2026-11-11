@@ -24,7 +24,7 @@
     <category>AudioVideo</category>
     <category>TV</category>
     <category>Player</category>
-  ​</categories>
+  </categories>
 
   <url type="homepage">https://github.com/braisravina/jellyhome-player</url>
   <url type="help">https://github.com/braisravina/jellyhome-player/blob/master/README.md</url>
@@ -37,9 +37,8 @@
   <launchable type="desktop-id">io.github.braisravina.JellyHomePlayer.desktop</launchable>
 
   <provides>
-    <binary>jellyfin-mpv-shim</binary>
+    <binary>jellyhome-player</binary>
   </provides>
-  <launchable type="desktop-id">io.github.braisravina.JellyHomePlayer.desktop</launchable>
 
   <content_rating type="oars-1.1" />
   <releases>

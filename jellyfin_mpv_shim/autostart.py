@@ -29,7 +29,17 @@ RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 
 def _launch_args():
-    """argv that starts this install, minimized."""
+    """argv that starts this install, minimized.
+
+    ``JELLYHOME_LAUNCHER`` comes first: a distribution package (the Linux
+    .deb) keeps the application and its libraries in a private directory that
+    only its launcher script puts on ``sys.path``, so ``python -m
+    jellyfin_mpv_shim.mpv_shim`` would be an entry that never starts anything.
+    The launcher exports its own path for exactly this.
+    """
+    launcher = os.environ.get("JELLYHOME_LAUNCHER")
+    if launcher and os.path.isfile(launcher) and os.access(launcher, os.X_OK):
+        return [launcher, "--minimized"]
     if getattr(sys, "frozen", False):
         return [sys.executable, "--minimized"]
     return [sys.executable, "-m", "jellyfin_mpv_shim.mpv_shim", "--minimized"]

@@ -1,0 +1,16 @@
+# Runtime dependencies bundled into the Linux .deb (Debian 13 / Python 3.13 / amd64).
+# Hash-pinned: build-deb.sh installs with --require-hashes --no-deps, so the build fails
+# rather than pick up a different file. The hashes were taken from the PyPI wheels on
+# 2026-11-05 (trust on first use: they are not a publisher signature).
+# Regenerate: see linux/README.md "Updating the lock".
+# Versions match dist/local-test/PIN.txt (pillow 12.3.0) and what the app was verified with.
+certifi==2026.10.23 --hash=sha256:e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1
+charset-normalizer==3.5.2 --hash=sha256:7218e8f32b0956cfcd048fd42d9d5779809745ca1d86113ca56f66e7ae1549c4
+idna==3.20 --hash=sha256:ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c
+jellyfin-apiclient-python==1.21.0 --hash=sha256:0ea9c4a3023420a3010920260970cd61bc51a8b9dba44158ed2357e59cb4d730
+pillow==12.3.0 --hash=sha256:0847a763afefb695bc912d7c131e7e0632d4edc1d8698f58ddabec8e46b8b6d3
+python-mpv==1.0.8 --hash=sha256:b5296403e990fb7348df4ca2211937a030f524bf638657bda7e45a00bc2df0cd
+python-mpv-jsonipc==1.5.0 --hash=sha256:f9ce720a07a005c6e37b3eacccffe220ad73cf5d5b0aa9dd77dbe8578be4f249
+requests==2.34.2 --hash=sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0
+urllib3==2.8.0 --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3
+websocket-client==1.9.2 --hash=sha256:e1a673830a9c7bfa47b1cd3d5e4178f4c9651d80a4eab02c9c23a1c3ec6250ce

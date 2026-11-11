@@ -67,6 +67,9 @@ means **the mouse cursor never hides again** for the rest of the session.
   `flatpak/shared-modules` first. `tools/check_flatpak_pins.py [manifest]` verifies
   every pinned sha256 in seconds — pass it the Flathub manifest, which is usually the
   one that has drifted. See `docs/packaging.md`.
+- Debian 13 / amd64 package: `linux/build-deb.sh` -> `publish/Linux/jellyhome-player_<version>-1_amd64.deb`
+  (hash-locked libraries, reproducible, installs nothing here). What is and is not verified on each platform:
+  `docs/native-verification.md`; third-party licences: `THIRD_PARTY_NOTICES.md`.
 - Tests: `xvfb-run -a python3 -m unittest discover tests` (stdlib unittest, no extra
   deps) — **~2m15s**. Integration matrix:
   `xvfb-run -a python3 tests/integration/run_integration.py` — **~10 minutes**.

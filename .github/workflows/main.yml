@@ -441,3 +441,69 @@ jobs:
       with:
         name: macos-${{ matrix.arch }}
         path: ${{ github.workspace }}/publish/macOS/*.dmg
+  validate-packaging:
+    # Cheap checks that need no build: desktop-entry and AppStream metadata, and
+    # the packaging/identity tests (plain file reads; they open no window).
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v7
+    - name: Install validators
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y desktop-file-utils appstream
+    - name: Validate desktop entry and AppStream metadata
+      run: |
+        desktop-file-validate jellyfin_mpv_shim/integration/io.github.braisravina.JellyHomePlayer.desktop
+        appstreamcli validate --no-net jellyfin_mpv_shim/integration/io.github.braisravina.JellyHomePlayer.appdata.xml
+    - name: Setup Python 3.13
+      uses: actions/setup-python@v7
+      with:
+        python-version: 3.13
+    - name: Packaging tests
+      run: |
+        python3 tests/test_desktop_packaging.py
+        python3 tests/test_startup_error.py
+  build-deb:
+    # Debian 13 / amd64 package, then installed into a CLEAN debian:13 container and started headlessly
+    # (--version, libmpv loading through the bundled binding). That is an install test of the package, not a
+    # playback test: no display, no server. Nothing is published.
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v7
+    - name: Setup Python 3.13
+      uses: actions/setup-python@v7
+      with:
+        python-version: 3.13
+    - name: Build the package
+      # The shader pack is pinned (tag and tree hash) inside linux/build-deb.sh, and the build tools here are
+      # pinned to the versions the package was verified with; the manifest records both.
+      run: |
+        python -m pip install pip==25.1.1 setuptools==78.1.1 wheel==0.46.1
+        ./linux/build-deb.sh
+    - name: Install it in a clean Debian 13 container
+      run: |
+        docker run --rm -v "$PWD/publish/Linux:/pkg:ro" debian:13 bash -euxc '
+          apt-get update
+          apt-get install -y --no-install-recommends /pkg/jellyhome-player_*_amd64.deb
+          jellyhome-player --version
+          test -x /usr/bin/jellyhome-player
+          test -f /usr/share/applications/io.github.braisravina.JellyHomePlayer.desktop
+          test -f /usr/share/icons/hicolor/256x256/apps/io.github.braisravina.JellyHomePlayer.png
+          python3 -sE -c "
+        import sys; sys.path.insert(0, \"/usr/lib/jellyhome-player\")
+        import PIL.features as f, mpv
+        assert f.check(\"raqm\") and f.check_feature(\"fribidi\"), \"text shaping unavailable\"
+        m = mpv.MPV(vo=\"null\", ao=\"null\", idle=True); print(m.mpv_version); m.terminate()"
+          apt-get remove -y jellyhome-player
+          test ! -e /usr/bin/jellyhome-player
+        '
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh deb amd64
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: linux-deb-amd64
+        path: ${{ github.workspace }}/publish/Linux/*

@@ -329,3 +329,64 @@ already handles, and the icons are prebuilt there. Nothing under `jellyfin_mpv_s
 **The DMG is signed ad hoc and not notarized**, so a downloaded copy is blocked on
 first launch until it is allowed in Privacy & Security. Notarizing needs a Developer
 ID, see `macos/README.md`.
+
+## 7. The Linux `.deb` (Debian 13, amd64)
+
+`linux/build-deb.sh` builds `publish/Linux/jellyhome-player_<version>-1_amd64.deb` from the working tree and installs
+nothing on the build machine. Status of every platform, and what has and has not been run: `docs/native-verification.md`.
+
+**Shape.** The application and its Python libraries go in the private directory `/usr/lib/jellyhome-player/`, found by
+the launcher `/usr/bin/jellyhome-player` relative to its own path. It is **not** installed into
+`dist-packages`: that would put `mpv.py` and `certifi` beside Debian's `python3-mpv` and `python3-certifi` (the lock needs
+`certifi >= 2026.10.19` and Debian carries 2025.1.31). The launcher runs `python3 -sE`: no user site, no `PYTHON*`
+variables, so a stray `pip install --user` cannot shadow what was tested. The shebang is the single argument `-sE`
+because Linux does not split `-s -E`.
+
+**Dependencies.** `python3 (>= 3.13), (<< 3.14)` because the bundled Pillow and charset-normalizer are CPython 3.13
+wheels; `libmpv2 (>= 0.38)` (the app's floor; Debian 13 has 0.40, where the window cannot be released at run time, so
+hiding to the tray quits the mpv instance and the app reopens one on demand, which is why the floor was not raised to
+0.41); **`libfribidi0`**, which Pillow's wheel loads at run time and does not carry (the same
+gap as Windows, see section 1; without it right-to-left text is drawn unshaped and nothing is kerned). Recommends
+a text font (`fonts-dejavu-core | fonts-noto-core`; the app has a built-in fallback), `python3-pystray` (tray),
+`zenity | kdialog` (the start-up error dialog) and `xdg-utils`; Suggests `fonts-noto-cjk` and `fonts-noto-color-emoji`.
+
+**Bundled libraries** come from `linux/requirements-linux-cp313-amd64.lock`, installed with
+`pip install --require-hashes --no-deps --target`. The hashes are trust-on-first-use from PyPI (2026-11-05), not a
+publisher signature. To update: change versions, `pip download --no-deps --only-binary=:all: --python-version 3.13
+--platform manylinux_2_28_x86_64 --platform any ...`, hash the files, run the tests, rebuild.
+
+**What is deliberately not in the package.** No `/etc/xdg/autostart` entry (autostart stays the app's own opt-in
+setting, off by default, and writes a per-user entry that points at the launcher through `JELLYHOME_LAUNCHER`); nothing
+in any home directory; no credentials or test state (the source is staged from `git ls-files` plus an allow-list, and the
+script fails the build if a `cred*`, `users.json*`, `conf.json`, `*.db` or `log.txt` is in the bundle).
+
+**Reproducibility.** Two builds with the same commit and `SOURCE_DATE_EPOCH` produce byte-identical packages (SHA-256
+identical, re-checked after the shader pack was pinned). That took four fixes worth knowing: `SOURCE_DATE_EPOCH` for every
+mtime; bytecode compiled with `--invalidation-mode checked-hash` **and `-s <staging prefix>`** (otherwise each `.pyc`
+embeds the temp build directory as `co_filename`); pip's `direct_url.json` and its `RECORD` line removed (they record the
+temp wheel path); archive written with `--root-owner-group`. Inputs that are now pinned: the Python libraries (hash lock),
+the shader pack (release tag and the hash of its extracted tree, checked by the script), and in CI pip 25.1.1,
+setuptools 78.1.1 and wheel 0.46.1. Not pinned: the CPython patch release of the runner and the exact base image of the
+install test. The manifest next to the package records the tool versions, the source commit (and whether the packaged
+paths were dirty), the shader pack tag, the maintainer and the lock file's hash. A build from a dirty working tree
+is not reproducible from a commit; release builds come from CI on a checkout.
+
+**Metadata.** `Maintainer:` defaults to a placeholder (the project's no-reply address); the build prints a note, and a
+release build sets `DEB_MAINTAINER="Name <address>"`. No personal details are invented.
+
+**Licences.** `tools/collect_licenses.py` copies every bundled library's licence files into
+`/usr/share/doc/jellyhome-player/licenses/` and fails the build for a library without one; `THIRD_PARTY_NOTICES.md`
+covers everything else, for every platform.
+
+**Not done / limits.** Not installed with `apt` and not launched in a window as part of this work; a CI job
+(`build-deb`) installs it into a clean `debian:13` container and runs `--version` and a headless libmpv load, but it has
+not been run. `lintian` was not available here. The package targets exactly Debian 13; Ubuntu 24.04 (Python 3.12) and
+Debian 12 are out of scope and should use the Flatpak.
+
+### Flatpak assessment
+
+The manifest is complete for what it says it is (CI/test bundles from the working tree; `--share=network` pip install,
+so it is not the Flathub manifest). It was **not** built here: this machine has `flatpak` but no `flatpak-builder`, only
+GNOME Platform 49 (the manifest wants Platform and SDK 51), and the first build compiles mpv and its dependencies from
+source. Completing it needs those installed (a few GB) and a long build, which was not done without approval. For a
+Debian laptop the `.deb` is the better fit; the Flatpak remains the cross-distribution route.

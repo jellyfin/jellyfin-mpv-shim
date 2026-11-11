@@ -1,0 +1,22 @@
+#!/usr/bin/python3 -sE
+# JellyHome Player launcher (Linux package).
+#
+# -s: ignore the user's site-packages; -E: ignore PYTHON* environment variables. Together they mean a stray
+# `pip install --user` or PYTHONPATH cannot shadow the libraries this package was tested with.
+# The application and its Python libraries live in <prefix>/lib/jellyhome-player, found relative to this file so
+# the same script runs from /usr/bin and from an unpacked tree.
+import multiprocessing
+import os
+import sys
+
+_here = os.path.dirname(os.path.realpath(__file__))
+_lib = os.path.normpath(os.path.join(_here, "..", "lib", "jellyhome-player"))
+sys.path.insert(0, _lib)
+# Autostart and restart re-run the app; this is how they find the launcher (autostart._launch_args).
+os.environ.setdefault("JELLYHOME_LAUNCHER", os.path.realpath(__file__))
+
+from jellyfin_mpv_shim.mpv_shim import main  # noqa: E402
+
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    main()

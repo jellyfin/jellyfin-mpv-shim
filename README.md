@@ -56,8 +56,11 @@ releases page above rather than turning off any protection.
 
 ### Linux
 
-A Flatpak can be built from this repository (`flatpak/`, see [docs/installation.md](docs/installation.md));
-it is **not** published on Flathub. To install with pip from a checkout you need `libmpv` (or
+On **Debian 13 (amd64)** build a `.deb` with `linux/build-deb.sh` and install it with
+`sudo apt install ./publish/Linux/jellyhome-player_*.deb`: it adds a "JellyHome Player" entry to the application menu,
+needs no Python or pip steps from you, and keeps your settings when removed or upgraded. A Flatpak can also be built
+from this repository (`flatpak/`); neither is published, and Flathub does not carry this fork. See
+[docs/installation.md](docs/installation.md). To install with pip from a checkout you need `libmpv` (or
 `mpv`). **MPV 0.41 or newer is recommended**:
 
 ```bash

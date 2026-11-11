@@ -22,7 +22,39 @@ belongs in it. Add a signing step to CI using repository secrets once a publishe
 
 ## Linux
 
-No package is published. Build the Flatpak locally:
+**Debian 13 (trixie), amd64: a `.deb` is built by `linux/build-deb.sh`.** It installs an application-menu launcher
+("JellyHome Player", Video category) with the app icon, the `jellyhome-player` command and the licence notices. It needs
+no Python installation or `pip` from you: apt pulls in `python3` (3.13), `libmpv2` and `libfribidi0`, and everything else
+(the Jellyfin client library, Pillow, requests, ...) is bundled and hash-pinned.
+
+```sh
+linux/build-deb.sh                      # -> publish/Linux/jellyhome-player_<version>-1_amd64.deb (+ .sha256, manifest)
+sudo apt install ./publish/Linux/jellyhome-player_3.3.0-1_amd64.deb     # apt resolves the dependencies
+# open "JellyHome Player" from the application menu, or run: jellyhome-player
+sudo apt remove jellyhome-player        # removes the program, menu entry and icons; your settings stay
+```
+
+* **Settings, logins and caches** are per user: `~/.config/jellyhome-player` and `~/.cache/jellyhome-player` (or
+  `$XDG_CONFIG_HOME` / `$XDG_CACHE_HOME`). The package never creates, reads or removes them, so an upgrade keeps your
+  settings and `apt remove`/`purge` leaves them; delete the two folders to forget saved logins.
+* **Autostart** is not installed. *Start With Computer* in Settings (off by default) writes
+  `~/.config/autostart/io.github.braisravina.JellyHomePlayer.desktop` pointing at the packaged launcher.
+* **Startup errors**: launched from the menu there is no terminal, so a fatal startup error is shown in a dialog
+  (needs `zenity` or `kdialog`, both recommended) with the one thing to try and the log location.
+* **mpv version**: Debian 13 provides libmpv 0.40; the package asks only for 0.38 or newer, the oldest the app supports.
+  The app prefers 0.41+, which can give up its window without restarting. With 0.40, hiding the window to the tray
+  quits the mpv instance instead (the log says so at start-up); the app itself keeps running as a cast target and opens a
+  new window when you play something or use the tray. Everything else was unaffected in what was tried.
+* **Fonts**: text is drawn with system fonts. The package recommends `fonts-dejavu-core` or `fonts-noto-core`; without any
+  font the app falls back to a small built-in one. For Chinese/Japanese/Korean titles and emoji install `fonts-noto-cjk`
+  and `fonts-noto-color-emoji` (suggested).
+* **Other Debian-family releases** (Ubuntu, Debian 12) carry a different Python and are **not** supported by this
+  package: its dependency is `python3 (>= 3.13), (<< 3.14)` because the bundled Pillow and charset-normalizer are
+  CPython 3.13 wheels. Use the Flatpak below.
+
+**Flatpak** (the route for other distributions): the manifest `flatpak/io.github.braisravina.JellyHomePlayer.json` is
+complete and is built by CI for amd64 and arm64, but it has **not been built or run on the machine this packaging was
+prepared on** (it needs `flatpak-builder`, the GNOME 51 runtime and SDK, and a from-source build of mpv). To build it:
 
 ```sh
 git clone --depth=1 https://github.com/flathub/shared-modules.git flatpak/shared-modules
