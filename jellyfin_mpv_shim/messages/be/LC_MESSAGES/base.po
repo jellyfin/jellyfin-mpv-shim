@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-09 13:53+0000\n"
+"PO-Revision-Date: 2026-11-11 09:48+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -103,7 +103,7 @@ msgstr "Налада бягучага..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
-"Адкрыйце Jellyfin, перайдзіце ў меню карыстальніка -> Хуткае падключэнне і "
+"Адкрыйце Jellyfin, перайдзіце ў меню карыстальніка -> Quick Connect і "
 "ўвядзіце гэты код:"
 
 #. Printed in the terminal while Quick Connect waits for someone to accept
@@ -176,12 +176,12 @@ msgstr "Не ўдалося падключыцца да сервера."
 #. Quick Connect feature off.
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr "Хуткае падключэнне не ўключана на гэтым серверы."
+msgstr "Quick Connect не ўключаны на гэтым серверы."
 
 #. Printed in the terminal when requesting a Quick Connect code failed.
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr "Не ўдалося запусціць хуткае падключэнне."
+msgstr "Не ўдалося запусціць Quick Connect."
 
 #. Label of the dropdown for the "segment_outro" setting (Settings >
 #. Playback > Skip Intro / Credits).
@@ -425,10 +425,8 @@ msgstr "Змяніць профіль прайгравання відэа"
 #. settings menu of the playback controls.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Выйсці і пазначыць як непрагледжанае"
 
 #. Saves a still of the current frame. On the in-player menu and on the
 #. settings menu of the playback controls. An imperative verb here.
@@ -539,14 +537,14 @@ msgstr "Уручную па індексу дорожкі (менш надзей
 #. Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never"
-msgstr ""
+msgstr "Ніколі"
 
 #. Choice shared by the "Skip Intros", "Skip Credits", "Skip Commercials",
 #. "Skip Previews", "Skip Recaps" dropdowns (Settings > Playback > Skip
 #. Intro / Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Спытаць"
 
 #. Choice shared by the "Tell Me About Updates", "Window Buttons in the Top
 #. Bar", "Skip Intros", "Skip Credits", "Skip Commercials", "Skip
@@ -555,7 +553,7 @@ msgstr ""
 #. Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Заўсёды"
 
 #. Title of the in-player submenu that sets the bandwidth limit used for
 #. remote playback from then on.
@@ -761,27 +759,27 @@ msgstr "Уключыць папярэдні прагляд мініяцюр"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Начны рэжым (аўтакарэкцыя гучнасці)"
 
 #. Title of the screen shown when the application is locked behind a
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Заблакавана"
 
 #. Status message when a page's content could not be fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Не ўдалося загрузіць. Праверце злучэнне."
 
 #. Label beside the number field in the Reading Progress dialog, where a
 #. page to jump to is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Старонка"
 
 #. Follows a page-number field, giving the total, as in "of 240". In the
 #. Reading Progress dialog, the comic reader and a paged library grid.
@@ -790,13 +788,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
-msgstr ""
+msgstr "з %d"
 
 #. Tooltip of the paging button that jumps to the first page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Першая старонка"
 
 #. Tooltip of the button that goes back one page: in a library grid, and in
 #. the book and comic readers.
@@ -812,13 +810,13 @@ msgstr "Папярэдняя старонка"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Наступная старонка"
 
 #. Tooltip of the paging button that jumps to the last page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Апошняя старонка"
 
 #. Status message when the server refused an edit, such as marking an item
 #. watched or removing it from a playlist.
@@ -826,7 +824,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "Не ўдалося ўжыць змену."
 
 #. Name of the broadcast television area of Jellyfin, used as a library
 #. tile, a home-screen section and a page title. A Jellyfin feature name;
@@ -835,14 +833,14 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Live TV"
-msgstr ""
+msgstr "Тэлеканалы"
 
 #. Status message naming what was just picked, when picking it does not
 #. open anything. %s is the item's name.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Выбрана: %s"
 
 #. Shown in a dialog or page while its content is being fetched from the
 #. server.
@@ -852,27 +850,27 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Загрузка…"
 
 #. Status message when starting an item failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Не ўдалося пачаць прайграванне."
 
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Nothing is downloaded to browse offline."
-msgstr ""
+msgstr "Няма спамповак для афлайн-прагляду."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Чарга"
 
 #. Button that tries a failed operation again: reaching a server at
 #. startup, an offline banner, a page that would not load, an item that
@@ -893,25 +891,27 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Не ўдалося перазапусціць аўтаматычна. Каб ужыць змены, выйдзіце і запусціце "
+"праграму зноў."
 
 #. Status message when a retry after a connection failure also failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Still can't reach the server."
-msgstr ""
+msgstr "Усё яшчэ не ўдаецца дасягнуць сервера."
 
 #. Title of the dialog that changes to another user of this server. %s is
 #. that user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Пераключыцца на %s"
 
 #. Placeholder in the empty field where a numeric passcode is typed, on the
 #. switch-user and lock screens. The abbreviation is widely kept as-is; use
 #. whatever word the local Jellyfin apps use for a numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "PIN"
 
 #. Button that dismisses a dialog without doing what it asked about. The
 #. counterpart of OK or of the action button beside it.
@@ -921,20 +921,20 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Cancel"
-msgstr ""
+msgstr "Скасаваць"
 
 #. Button that changes to the other user, on the switch-user dialog and the
 #. lock screen. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Пераключыцца"
 
 #. Error shown when the passcode typed to switch user or unlock does not
 #. match.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "Няправільны PIN."
 
 #. Title of the dialog that gives a user a numeric passcode. %s is that
 #. user's name.
@@ -947,13 +947,13 @@ msgstr "Задаць PIN для %s"
 #. PIN dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "Бягучы PIN"
 
 #. Label of the field asking for the passcode to change to, in the Set PIN
 #. dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "Новы PIN"
 
 #. Label of the field in the Set PIN dialog asking for the new passcode a
 #. second time, to check it was typed correctly. A verb. Split from the
@@ -961,57 +961,55 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgctxt "form label"
 msgid "Confirm"
-msgstr ""
+msgstr "Пацвердзіць"
 
 #. Checkbox in the Set PIN dialog. When on, the passcode is asked for every
 #. time the application opens.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Патрабаваць гэты PIN пры запуску"
 
 #. Button in the Set PIN dialog that takes the passcode off this user. An
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Выдаліць сервер"
+msgstr "Выдаліць PIN"
 
 #. Button in the Set PIN dialog that stores the new passcode. An imperative
 #. verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Save"
-msgstr ""
+msgstr "Захаваць"
 
 #. Error in the Set PIN dialog when the existing passcode was typed
 #. wrongly.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "Бягучы PIN няправільны."
 
 #. Error in the Set PIN dialog when the new-passcode field was left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Увядзіце новы PIN."
 
 #. Error in the Set PIN dialog when the passcode and its confirmation
 #. differ.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "PIN-коды не супадаюць."
 
 #. Error in the Set PIN dialog when the server refused to take the passcode
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "Не ўдалося выдаліць PIN."
 
 #. Error in the Set PIN dialog when the server refused to store the
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "Не ўдалося захаваць PIN."
 
 #. Button, and the title of the screen it opens. Signs back in to a server
 #. that is already saved, because the stored login stopped working -- not
@@ -1019,7 +1017,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Sign In Again"
-msgstr ""
+msgstr "Увайсці зноў"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1036,12 +1034,14 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Захаваныя даныя для ўваходу на %s больш не прымаюцца. Увайдзіце зноў, каб "
+"захаваць спампоўкі і налады."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Падключыцца да Jellyfin"
 
 #. Heading above the list of servers already signed in to, on the sign-in
 #. page.
@@ -1053,7 +1053,7 @@ msgstr "Раней дададзеныя серверы"
 #. server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Выкарыстаць"
 
 #. A Jellyfin feature that signs a device in by typing a short code into an
 #. already-signed-in app. Used as a button on the sign-in page and as the
@@ -1061,18 +1061,18 @@ msgstr ""
 #. feature's name; follow whatever they use in this language.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
-msgstr "Хуткае падключэнне"
+msgstr "Quick Connect"
 
 #. Instruction above the Quick Connect code on the sign-in page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "Увядзіце гэты код у праграме Jellyfin або вэб-кліенце:"
 
 #. Stands in for the Quick Connect code while it is being fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Requesting…"
-msgstr ""
+msgstr "Ідзе запыт…"
 
 #. Label of the field on the sign-in page where the Jellyfin server's web
 #. address is typed.
@@ -1097,7 +1097,7 @@ msgstr "Пароль"
 #. the entry of that name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use Quick Connect"
-msgstr ""
+msgstr "Выкарыстаць Quick Connect"
 
 #. Button on the startup screen that opens the sign-in page. An imperative
 #. verb.
@@ -1140,7 +1140,7 @@ msgstr ""
 #. Error shown when the Quick Connect code expired or was refused.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "Quick Connect не быў ухвалены."
 
 #. Error shown on the Sign In Again page when the address typed there
 #. belongs to a different Jellyfin server than the saved one being signed
