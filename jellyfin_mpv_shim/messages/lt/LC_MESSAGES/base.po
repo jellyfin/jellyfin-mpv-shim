@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 15:54+0000\n"
-"Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
+"PO-Revision-Date: 2026-11-11 18:18+0000\n"
+"Last-Translator: Kipras Vėberis <veberiskipras123@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
 "Language: lt\n"
@@ -2597,13 +2597,13 @@ msgstr "Nagrinėjami „Kitas“ įrašai"
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Kiek serijų išsaugoti iš anksto (0 - išjungta)"
 
 #. Label of the number field for the "auto_download_max_gb" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Automatinių atsisiuntimų saugyklos limitas (GB)"
 
 #. Label of the checkbox for the "auto_download_delete_watched" setting
 #. (Settings > Browse > Downloads).
@@ -2616,49 +2616,49 @@ msgstr "Ištrinti automatinius atsisiuntimus peržiūrėjus"
 #. before it is deleted to save space.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
-msgstr ""
+msgstr "Kiek valandų saugoti peržiūrėtas serijas (0 - ištrinti iškart)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Ištrinti neperžiūrėtas serijas po (dienų, 0 = niekada)"
 
 #. Label of the number field for the "auto_download_interval_mins" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Tikrinti kas (min.)"
 
 #. Label of the number field for the "auto_download_lookahead_min" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "Papildyti, kai lieka mažiau nei (serijų)"
 
 #. Label of the number field for the "auto_download_lookahead_max" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "Papildyti iki (serijų)"
 
 #. Label of the number field for the "auto_download_max_per_pass" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Didžiausias atsisiuntimų skaičius per vieną patikrinimą"
 
 #. Label of the checkbox for the "close_to_tray" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "Uždaryti į sistemos dėklą (palikti veikiančią)"
 
 #. Label of the checkbox for the "allow_background" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
-msgstr ""
+msgstr "Leisti veikti fone"
 
 #. Label of the checkbox for the "remember_window_size" setting (Settings >
 #. General > Window).
@@ -2670,19 +2670,19 @@ msgstr "Prisiminti lango dydį"
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "Lango mygtukai viršutinėje juostoje"
 
 #. Label of the checkbox for the "window_controls_fullscreen" setting
 #. (Settings > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Window Buttons in Full Screen"
-msgstr ""
+msgstr "Rodyti lango mygtukus viso ekrano režimu"
 
 #. Label of the checkbox for the "hide_title_bar" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "Slėpti darbalaukio lango antraštės juostą"
 
 #. Label of the dropdown for the "osc_style" setting (Settings > Playback >
 #. Player Controls).
@@ -2700,7 +2700,7 @@ msgstr "Įjungti Trickplay miniatiūrų peržiūrą"
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "Įkelti visas peržiūros miniatūras iškart"
 
 #. Label of the checkbox for the "discord_presence" setting (Settings >
 #. General > This Device).
@@ -2718,7 +2718,7 @@ msgstr "Darbalaukio medijos valdikliai"
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr ""
+msgstr "Sąsajos mastelis"
 
 #. Label of the dropdown for the "ui_text_scale" setting (Settings > Browse
 #. > Theme).
@@ -2730,7 +2730,7 @@ msgstr "Teksto dydis"
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "Mažiausias teksto dydis"
 
 #. Label of the dropdown for the "poster_scale" setting (Settings > Browse
 #. > Theme).
@@ -2743,7 +2743,7 @@ msgstr "Viršelio dydis"
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
-msgstr ""
+msgstr "Fono paveikslėliai per visą plotį"
 
 #. Label of the checkbox for the "clock_12h" setting (Settings > Browse >
 #. Library Browser).
@@ -2755,7 +2755,7 @@ msgstr "12 valandų laikrodžio sistema"
 #. Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
-msgstr ""
+msgstr "Tinklelio tarpai"
 
 #. Label of the checkbox for the "remember_filters" setting (Settings >
 #. Browse > Library Browser).
@@ -2767,13 +2767,13 @@ msgstr "Įsiminti bibliotekos filtrus"
 #. (Settings > Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "Pagerinti tiesioginės TV logotipų matomumą"
 
 #. Label of the checkbox for the "logo_legibility_library" setting
 #. (Settings > Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "Pagerinti bibliotekos logotipų matomumą"
 
 #. Label of the number field for the "reader_font_size" setting (Settings >
 #. Browse > Reading).
@@ -2785,7 +2785,7 @@ msgstr "Tipinis dydis"
 #. > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "Puslapio spalva"
 
 #. Label of the checkbox for the "reader_justify" setting (Settings >
 #. Browse > Reading).
@@ -2797,7 +2797,7 @@ msgstr "Lygiuoti pagal plotį"
 #. Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "Komiksų skaitymo režimas"
 
 #. Label of the checkbox for the "headless" setting (under Advanced on the
 #. General tab of Settings).
@@ -2809,31 +2809,31 @@ msgstr "Perdavimo paskirties režimas (be bibliotekos naršymo)"
 #. > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "Pradėjus transliaciją atidaryti bibliotekos naršyklę"
 
 #. Label of the checkbox for the "browser_fullscreen" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "Bibliotekos naršyklė viso ekrano režimu"
 
 #. Label of the checkbox for the "browse_block_keys" setting (Settings >
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Block Player Keybinds While Browsing"
-msgstr ""
+msgstr "Naršant išjungti grotuvo sparčiuosius klavišus"
 
 #. Label of the checkbox for the "hud_grab_keys" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "Visada priskirti rodyklių klavišus grotuvo valdymui"
 
 #. Label of the text field for the "hud_wake_key" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "Grotuvo valdiklių aktyvavimo klavišas"
 
 #. Label of the text field for the "ui_select_key" setting (under Advanced
 #. on the General tab of Settings).
@@ -2845,13 +2845,13 @@ msgstr "Pasirinkti raktą"
 #. Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Grotuvo valdiklių fono užtamsinimas"
 
 #. Label of the dropdown for the "hud_autohide" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "Kada paslėpti grotuvo valdiklius"
 
 #. Label of the number field for the "hud_hide_secs" setting (Settings >
 #. Playback > Player Controls).
