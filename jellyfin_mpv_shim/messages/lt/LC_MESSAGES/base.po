@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 13:30+0000\n"
+"PO-Revision-Date: 2026-11-11 15:54+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -2495,7 +2495,7 @@ msgstr "Informuoti apie atnaujinimus"
 #. General > Input).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Game Controller"
-msgstr "Žaidimo valdiklis"
+msgstr "Žaidimų valdiklis"
 
 #. Label of the checkbox for the "gamepad_swap_confirm" setting (Settings >
 #. General > Input).
@@ -2791,7 +2791,7 @@ msgstr ""
 #. Browse > Reading).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "Lygiuoti pagal plotį"
 
 #. Label of the dropdown for the "comic_fit" setting (Settings > Browse >
 #. Reading).
@@ -3828,7 +3828,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
-msgstr ""
+msgstr "%d žiūrėtas"
 
 #. Part of the Download modal's summary, in a parenthesised list: how many
 #. items the server would not give a size for.
@@ -3966,7 +3966,7 @@ msgstr "Rodyti pavadinimus"
 #. under its tile.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Show years"
-msgstr ""
+msgstr "Rodyti metus"
 
 #. Checkbox in a library's View settings, switching the layout from tiles
 #. to a single-column list.
@@ -4394,7 +4394,7 @@ msgstr "Neseniai pridėti"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Active Recordings"
-msgstr ""
+msgstr "Aktyvūs įrašai"
 
 #. Last entry of the subtitle dropdown on the playback controls. Opens a
 #. second list, for a second set of subtitles shown at the same time as the
@@ -4444,7 +4444,7 @@ msgstr "Vaizdo įrašo kokybė"
 #. speeds such as 1.5x.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Speed"
-msgstr ""
+msgstr "Atkūrimo greitis"
 
 #. Row on the settings menu of the playback controls, opening a list of
 #. picture shapes such as 16:9.
@@ -4496,7 +4496,7 @@ msgstr "Nėra (Išjungta)"
 #. the video, and by which method.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Hardware acceleration"
-msgstr ""
+msgstr "Aparatinis spartinimas"
 
 #. Row in the Playback Info panel: which MPV video output driver is drawing
 #. the picture.
@@ -4521,7 +4521,7 @@ msgstr ""
 #. apart, in seconds. Short for audio/video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "A/V sync"
-msgstr ""
+msgstr "A/V sinchronizavimas"
 
 #. Row in the Playback Info panel: how many seconds of the stream have been
 #. read ahead.
@@ -4534,7 +4534,7 @@ msgstr "Buferizuota"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f s"
-msgstr ""
+msgstr "%.1f s"
 
 #. Row in the Playback Info panel: how fast the stream is arriving from the
 #. server.
@@ -4558,7 +4558,7 @@ msgstr "atsisiųsta kopija"
 #. is being read from a shared folder rather than streamed.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
-msgstr ""
+msgstr "vietinis failas"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. is arriving over the network from the Jellyfin server.
@@ -4710,7 +4710,7 @@ msgstr "Įrašymas atšauktas."
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Cancel Recording"
-msgstr ""
+msgstr "Atšaukti įrašymą"
 
 #. Question in the dialog confirming the rule that records every episode is
 #. to be dropped.
@@ -4876,7 +4876,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Series Options"
-msgstr ""
+msgstr "Serialų parinktys"
 
 #. Title of the dialog holding one programme's recording settings. A noun
 #. naming the thing being set up.
@@ -4915,7 +4915,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "Only %s"
-msgstr ""
+msgstr "Tik %s"
 
 #. Choice in the "Channels" dropdown of the series recording dialog, used
 #. when the channel's name is not known.
@@ -4949,7 +4949,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "Around %s"
-msgstr ""
+msgstr "Maždaug %s"
 
 #. Choice in the "Air time" dropdown of the series recording dialog: only
 #. showings at the time the series normally airs.
@@ -5171,7 +5171,7 @@ msgstr "Kartoti vieną"
 #. ends.
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Repeat off"
-msgstr ""
+msgstr "Kartojimas išjungtas"
 
 #. Tooltip of the rewind button on the now-playing bar. %d is how many
 #. seconds it jumps.
@@ -5372,7 +5372,7 @@ msgstr ""
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "Priartinti"
 
 #. Heading of the row of items similar to the one being viewed. Jellyfin
 #. Web uses the same phrase.
@@ -5400,7 +5400,7 @@ msgstr "Scenos"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Version %d"
-msgstr ""
+msgstr "Versija %d"
 
 #. Label of the dropdown on an item's page choosing between several files
 #. of the same item, such as a 4K and a 1080p copy.
@@ -5449,7 +5449,7 @@ msgstr "Pridėjimo data"
 #. originally released.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Release Date"
-msgstr ""
+msgstr "Išleidimo data"
 
 #. Choice in a library's Sort dropdown: order items by the score viewers at
 #. large have given them.
@@ -5689,7 +5689,7 @@ msgstr "Ankstesni kanalai"
 #. TV guide.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
-msgstr ""
+msgstr "Daugiau kanalų"
 
 #. Shown on the Live TV Channels tab when it is filtered to favourites and
 #. none are marked.
@@ -5889,7 +5889,7 @@ msgstr "Šiame grojaraštyje nėra palaikomų medijos tipų."
 #. that queue when it is saved as a playlist.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Play Queue"
-msgstr ""
+msgstr "Atkūrimo eilė"
 
 #. Button on the queue and playlist editors that moves the selected rows to
 #. the start of the list. The beginning of an ordering, not a place on
@@ -5930,7 +5930,7 @@ msgstr ""
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Select All"
-msgstr ""
+msgstr "Pasirinkti viską"
 
 #. Button on the queue and playlist editors that unticks every row. An
 #. imperative verb; it deselects rather than deletes.
@@ -6185,7 +6185,7 @@ msgstr "Nepavyko įkelti šio puslapio."
 #. moment.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "On Now"
-msgstr ""
+msgstr "Dabar rodoma"
 
 #. Heading of a home-screen row of newly added items. {0} is a library's
 #. name, such as "Movies" or "Anime".
@@ -6217,7 +6217,7 @@ msgstr ""
 #. Heading of a Live TV row listing news programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming News"
-msgstr ""
+msgstr "Artėjančios naujienos"
 
 #. Name of a search-results group holding film trailers.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6233,7 +6233,7 @@ msgstr "Atsisiųsta"
 #. Name of the offline library holding downloaded television series.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "TV Shows"
-msgstr ""
+msgstr "TV serialai"
 
 #. A library tile in the offline (downloads) browser, holding downloaded
 #. items whose Jellyfin server this app could not determine -- their stored
@@ -6260,7 +6260,7 @@ msgstr "Grojaraščiai"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "%(name)s (%(server)s)"
-msgstr ""
+msgstr "%(name)s (%(server)s)"
 
 #. Heading of the offline home-screen row listing films on this device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6271,7 +6271,7 @@ msgstr "Atsisiųsti filmai"
 #. device.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Videos"
-msgstr ""
+msgstr "Atsisiųsti vaizdo įrašai"
 
 #. Heading of the offline home-screen row listing television series on this
 #. device.
@@ -6289,7 +6289,7 @@ msgstr "Atsisiųstos knygos"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "Season %d"
-msgstr ""
+msgstr "Sezonas %d"
 
 #. Status message confirming a setting was written. %s is that setting's
 #. name.
@@ -6473,7 +6473,7 @@ msgstr ""
 #. progress figure is known.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving downloads…"
-msgstr ""
+msgstr "Perkeliami atsisiuntimai…"
 
 #. Status message when a second download-folder move was asked for while
 #. one is running.
@@ -6497,7 +6497,7 @@ msgstr "Nepavyko pasiekti serverio."
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
-msgstr ""
+msgstr "Pagrindinis ekranas"
 
 #. Shown in the Home Screen settings while offline, because these are
 #. stored on the server.
@@ -6654,7 +6654,7 @@ msgstr "Prijungtas"
 #. other two states are "Connected" and "Offline".
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Signed out"
-msgstr ""
+msgstr "Atsijungta"
 
 #. State beside a server in Settings: the application cannot reach it.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
