@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 11:56+0000\n"
+"PO-Revision-Date: 2026-11-11 13:30+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -4508,7 +4508,7 @@ msgstr "Vaizdo išvestis"
 #. shown.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Dropped frames"
-msgstr ""
+msgstr "Pamesti kadrai"
 
 #. Value of the Dropped frames row in the Playback Info panel. Two counts:
 #. frames dropped by the video output, and frames dropped by the decoder.
@@ -4703,7 +4703,7 @@ msgstr "Atšaukti įrašymą?"
 #. Status message confirming a scheduled recording was called off.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording cancelled."
-msgstr ""
+msgstr "Įrašymas atšauktas."
 
 #. Button in the recording dialog that calls off this single recording. An
 #. imperative verb.
@@ -4820,7 +4820,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "Atidaromas %s…"
 
 #. Status message when the operating system has no application registered
 #. for that file type. %s is the item's name.
@@ -4921,7 +4921,7 @@ msgstr ""
 #. when the channel's name is not known.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "One channel"
-msgstr ""
+msgstr "Vienas kanalas"
 
 #. Label of the dropdown in the series recording dialog choosing which
 #. channels count. A form label, not the Live TV tab of the same English
@@ -5528,7 +5528,7 @@ msgstr "Kolekcijos"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "Filter (%d)"
-msgstr ""
+msgstr "Filtras (%d)"
 
 #. Button above a library grid that opens the filter panel, when no filters
 #. are set. A verb.
@@ -5826,7 +5826,7 @@ msgstr "Albumai"
 #. Heading of the row of musicians similar to the one being viewed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
-msgstr ""
+msgstr "Panašūs atlikėjai"
 
 #. Button that starts a queue of tracks like the one chosen. Jellyfin Web
 #. uses the same phrase; follow its wording in this language.
@@ -6097,7 +6097,7 @@ msgstr "Šios knygos nepavyko nupiešti."
 #. Tooltip of the book reader's button that shrinks the type.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
-msgstr ""
+msgstr "Mažesnis tekstas"
 
 #. Tooltip of the book reader's button that enlarges the type.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
