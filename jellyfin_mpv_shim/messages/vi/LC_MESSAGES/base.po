@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-22 06:55+0000\n"
-"Last-Translator: Jang <9xgiang@gmail.com>\n"
+"PO-Revision-Date: 2026-11-11 09:48+0000\n"
+"Last-Translator: Đinh Mạnh Tưởng <prism9x@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/vi/>\n"
 "Language: vi\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -406,7 +406,7 @@ msgstr "Thay đổi chất lượng video"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #: jellyfin_mpv_shim/syncplay.py
 msgid "SyncPlay"
-msgstr "SyncPlay"
+msgstr "Phát đồng bộ"
 
 #. Entry on the in-player menu, shown when a newer release exists. {0} is
 #. the version number. "MPV Shim" is this application's short name; leave
@@ -5008,10 +5008,8 @@ msgstr "Trước"
 #. previous chapter.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "Đã thêm máy chủ thành công."
+msgstr "Phần trước"
 
 #. Tooltip of the rewind button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
