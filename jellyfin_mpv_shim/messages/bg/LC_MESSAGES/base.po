@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-07 15:10+0000\n"
-"Last-Translator: fxmaster369 <fxvideo@gmail.com>\n"
+"PO-Revision-Date: 2026-11-11 20:21+0000\n"
+"Last-Translator: Nikolay Trifonov <trifonov88@gmail.com>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/bg/>\n"
 "Language: bg\n"
@@ -45,7 +45,7 @@ msgstr "Страница %d"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% прочетена"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -240,7 +240,7 @@ msgstr "Търсене за пропускане на обзора"
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Пропусни резюмето"
 
 #. Confirmation drawn over the video after a recap was jumped past. Past
 #. tense.
@@ -536,14 +536,14 @@ msgstr "Ръчно според индекса за пътеката (Не е н
 #. Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never"
-msgstr ""
+msgstr "Никога"
 
 #. Choice shared by the "Skip Intros", "Skip Credits", "Skip Commercials",
 #. "Skip Previews", "Skip Recaps" dropdowns (Settings > Playback > Skip
 #. Intro / Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Питай"
 
 #. Choice shared by the "Tell Me About Updates", "Window Buttons in the Top
 #. Bar", "Skip Intros", "Skip Credits", "Skip Commercials", "Skip
@@ -552,7 +552,7 @@ msgstr ""
 #. Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Винаги"
 
 #. Title of the in-player submenu that sets the bandwidth limit used for
 #. remote playback from then on.
@@ -758,27 +758,27 @@ msgstr "Активиране преглед на миниатюрни визуа
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Нощен режим (автоматично регулиране на звука)"
 
 #. Title of the screen shown when the application is locked behind a
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Заключено"
 
 #. Status message when a page's content could not be fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Зареждането е неуспешно. Проверете връзката към сървъра."
 
 #. Label beside the number field in the Reading Progress dialog, where a
 #. page to jump to is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Страница"
 
 #. Follows a page-number field, giving the total, as in "of 240". In the
 #. Reading Progress dialog, the comic reader and a paged library grid.
@@ -787,13 +787,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
-msgstr ""
+msgstr "от %d"
 
 #. Tooltip of the paging button that jumps to the first page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Първа страница"
 
 #. Tooltip of the button that goes back one page: in a library grid, and in
 #. the book and comic readers.
@@ -809,13 +809,13 @@ msgstr "Предишна страница"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Следваща страница"
 
 #. Tooltip of the paging button that jumps to the last page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Последна страница"
 
 #. Status message when the server refused an edit, such as marking an item
 #. watched or removing it from a playlist.
@@ -823,7 +823,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "Промяната не беше приложена успешно."
 
 #. Name of the broadcast television area of Jellyfin, used as a library
 #. tile, a home-screen section and a page title. A Jellyfin feature name;
