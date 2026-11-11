@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 09:48+0000\n"
+"PO-Revision-Date: 2026-11-11 11:56+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -1103,39 +1103,37 @@ msgstr "Выкарыстаць Quick Connect"
 #. verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Sign In"
-msgstr ""
+msgstr "Увайсці"
 
 #. Button on the sign-in page that signs in with the details typed above.
 #. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect"
-msgstr ""
+msgstr "Падключыцца"
 
 #. A heading above a list of Jellyfin servers that answered a broadcast on
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Канфігурацыя сервера"
+msgstr "Серверы ў вашай сетцы"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "Спачатку ўвядзіце URL сервера."
 
 #. Status shown while the Quick Connect code is being requested.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Contacting the server…"
-msgstr ""
+msgstr "Зварот да сервера…"
 
 #. Status shown while Quick Connect waits for someone to accept the code in
 #. another Jellyfin app.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "Чаканне ўхвалення…"
 
 #. Error shown when the Quick Connect code expired or was refused.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1152,11 +1150,13 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Гэты адрас належыць іншаму серверу. Каб увайсці ў яго, дадайце яго як новы "
+"сервер."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr ""
+msgstr "Падключэнне…"
 
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
@@ -1175,48 +1175,48 @@ msgstr "Не ўдалося падключыцца. Калі ласка, пра�
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "Падключэнне да сервера…"
 
 #. Button on the startup screen. Browses what has been downloaded to this
 #. device instead of waiting for the server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
+msgstr "Працаваць афлайн"
 
 #. Shown when Work Offline was pressed but nothing has been downloaded to
 #. this device.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "Нічога не спампавана для прагляду."
 
 #. Error on the startup screen when none of the remembered servers
 #. answered. The bracketed plural is because there may be one server or
 #. several.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Couldn't reach your saved server(s)."
-msgstr ""
+msgstr "Не ўдалося звязацца з захаваным(і) серверам(амі)."
 
 #. Heading of the lock screen, asking for the numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Увядзіце свой PIN"
 
 #. Shown under the lock screen's heading. %s is the locked user's name.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s заблакаваны."
 
 #. Button on the lock screen that opens the application with the passcode
 #. typed above. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
-msgstr ""
+msgstr "Разблакаваць"
 
 #. Heading above the list of other accounts on the lock screen.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Or switch to another user"
-msgstr ""
+msgstr "Або пераключыцца на іншага карыстальніка"
 
 #. Heading of the idle screen shown when this application is waiting to be
 #. sent something from another Jellyfin app.
@@ -1233,7 +1233,7 @@ msgstr "Выберыце свой медыяфайл у Jellyfin і прайгр
 #. uses the same phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Cast & Crew"
-msgstr ""
+msgstr "Акцёры і здымачная група"
 
 #. Button in the Download modal that starts fetching the selected items. An
 #. imperative verb. The modal's own title uses the same English word as a
@@ -1243,7 +1243,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Download"
-msgstr ""
+msgstr "Спампаваць"
 
 #. Button on an item's page that deletes the copy downloaded to this
 #. device. The item stays on the server. An imperative verb phrase.
@@ -1256,10 +1256,8 @@ msgstr "Прыбраць спампоўку"
 #. already is. Must not read the same as "Watch": in one language it did,
 #. and the play button came out saying "Seen".
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Прагледжана"
 
 #. Tooltip of the heart button that marks what is playing or being viewed
 #. as a favourite. A verb here.
@@ -1267,7 +1265,7 @@ msgstr "Выйсці і пазначыць неназіраным"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Favorite"
-msgstr ""
+msgstr "У абранае"
 
 #. An entry in the right-click menu on a library tile, shown only to server
 #. administrators: it asks the server to look again for this item's metadata
@@ -1275,7 +1273,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Refresh metadata"
-msgstr ""
+msgstr "Абнавіць метаданыя"
 
 #. Deletes the media file from the server itself, not just the entry. Used
 #. as the action on an item's menu and as the title and confirming button
@@ -1284,35 +1282,33 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Выдаліць з дыска"
 
 #. Button on a film's, episode's, show's or season's page that opens a short
 #. menu of less common actions (refresh metadata, delete from disk). Means
 #. "more options", not "more of this item"; Jellyfin Web uses the same word.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "More"
-msgstr ""
+msgstr "Яшчэ"
 
 #. Heading over the row of a film's or show's extras (featurettes, deleted
 #. scenes, interviews) on its page. Jellyfin Web uses the same words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Special Features"
-msgstr ""
+msgstr "Дадатковыя матэрыялы"
 
 #. Button on an item's page that plays its trailer, or opens it in the web
 #. browser when the server only has a link to one.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "Няўдача"
+msgstr "Трэйлер"
 
 #. Button on an item's page that opens the same item in Jellyfin's browser
 #. client. Short for the web client, since the button sits in a row of
 #. narrow buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Web"
-msgstr ""
+msgstr "Вэб"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
@@ -1320,7 +1316,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Featurette"
-msgstr ""
+msgstr "Фічарэт"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. Footage of the
@@ -1328,7 +1324,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Behind the Scenes"
-msgstr ""
+msgstr "За кадрам"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene cut
@@ -1336,7 +1332,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Deleted Scene"
-msgstr ""
+msgstr "Выдаленая сцэна"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. An interview
@@ -1344,7 +1340,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Interview"
-msgstr ""
+msgstr "Інтэрв'ю"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A scene from
@@ -1352,7 +1348,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Scene"
-msgstr ""
+msgstr "Сцэна"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short sample
@@ -1360,7 +1356,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Sample"
-msgstr ""
+msgstr "Урывак"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short
@@ -1368,7 +1364,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Clip"
-msgstr ""
+msgstr "Кліп"
 
 #. Caption under a special feature's tile on a film's or show's page, naming
 #. what kind of extra it is. Jellyfin Web uses the same word. A short film (a
@@ -1376,7 +1372,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/labels.py
 msgctxt "kind of special feature"
 msgid "Short"
-msgstr ""
+msgstr "Кароткаметражка"
 
 #. A chip drawn on the corner of an episode tile, and on nothing else: this
 #. episode has not been broadcast yet, so the server lists it but has no file
@@ -1582,7 +1578,7 @@ msgstr ""
 #. as 48 kHz.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Sample rate"
-msgstr ""
+msgstr "Частата дыскрэтызацыі"
 
 #. Value of the Sample rate row in the Media Info panel. Hertz; the unit is
 #. normally left as-is.
@@ -1885,7 +1881,7 @@ msgstr ""
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's sample rate is not supported"
-msgstr ""
+msgstr "Частата дыскрэтызацыі аўдыя не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -3071,6 +3067,10 @@ msgid ""
 "no video for them to act on. Turn it off to use your own MPV key bindings "
 "there."
 msgstr ""
+"Блакуе ўласныя спалучэнні клавіш MPV (для налады выявы, стварэння здымкаў "
+"экрана, пераключэння субцітраў і аўдыя) у бібліятэцы, дзе няма відэа, на "
+"якое яны маглі б паўплываць. Адключыце гэтую опцыю, калі хочаце "
+"выкарыстоўваць у бібліятэцы ўласныя прывязкі клавіш MPV."
 
 #. Explanation shown under the "Select Key" setting (under Advanced on the
 #. General tab of Settings).
@@ -4657,7 +4657,7 @@ msgstr ""
 #. translation sweep put a translation of that word here.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Reasons"
-msgstr ""
+msgstr "Прычыны"
 
 #. Heading of a block in the Playback Info panel holding MPV's own
 #. statistics. The player program, not a person.
@@ -6844,7 +6844,7 @@ msgstr "Задаць PIN"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Delete user %s and its saved logins?"
-msgstr ""
+msgstr "Выдаліць карыстальніка %s разам з захаванымі данымі для ўваходу?"
 
 #. Title of the dialog that removes a local profile.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -6861,7 +6861,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Remove %s and its saved login?"
-msgstr ""
+msgstr "Выдаліць %s разам з захаванымі данымі для ўваходу?"
 
 #. Title of the dialog that forgets a server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -6902,6 +6902,8 @@ msgid ""
 "%s answered, but it no longer accepts the saved login. Signing in again "
 "keeps its downloads and settings."
 msgstr ""
+"%s даступны, але захаваныя даныя для ўваходу больш не прымаюцца. Увайдзіце "
+"зноў, каб захаваць спампоўкі і налады."
 
 #. Body of the same dialog, for a server that did not respond at all. %s is
 #. the server's name.
@@ -7335,6 +7337,7 @@ msgstr "Уключыць SVP"
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Downloads are unavailable: the saved logins could not be read."
 msgstr ""
+"Спампоўкі недаступныя: не ўдалося прачытаць захаваныя даныя для ўваходу."
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
