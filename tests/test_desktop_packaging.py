@@ -22,6 +22,7 @@ sys.argv = [sys.argv[0]]
 from jellyfin_mpv_shim import constants  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPSTREAM_BUNDLE_ID = "com.github.iwalton3.jellyfin-mpv-shim"
 
 
 def read(*parts):
@@ -121,6 +122,132 @@ class LinuxPackageTest(unittest.TestCase):
     def test_the_docs_do_not_say_hiding_the_window_quits_the_app(self):
         # With libmpv 0.40 it quits the mpv instance; the app itself keeps running as a cast target.
         self.assertNotIn("quits the player instead", read("docs", "installation.md"))
+
+
+MAC_BUILD = os.path.join("macos", "build.sh")
+
+
+def mac_add_data():
+    """(source, destination) of every --add-data in macos/build.sh."""
+    return re.findall(r'--add-data "([^":]+):([^"]+)"', read(MAC_BUILD))
+
+
+def mac_ci_step(name):
+    ci = read(".github", "workflows", "main.yml")
+    m = re.search(r"(?ms)^    - name: %s\n(.*?)(?=^    - name: |\Z)" % re.escape(name), ci)
+    assert m, name
+    return m.group(1)
+
+
+class MacOSBundleTest(unittest.TestCase):
+    def setUp(self):
+        self.build = read(MAC_BUILD)
+
+    # Identity
+
+    def test_the_bundle_is_the_forks_and_not_upstreams(self):
+        self.assertIn('app="%s"' % constants.USER_APP_NAME, self.build)
+        self.assertIn("--osx-bundle-identifier " + constants.DESKTOP_ID, self.build)
+        self.assertNotIn(UPSTREAM_BUNDLE_ID, self.build)
+        self.assertNotIn('app="Jellyfin MPV Shim"', self.build)
+        self.assertNotIn("Jellyfin MPV Shim.app", self.build)
+        self.assertNotIn("Jellyfin MPV Shim.app", read("macos", "README.md"))
+
+    def test_the_names_shown_to_the_user_are_the_apps(self):
+        self.assertIn('plutil -replace CFBundleDisplayName -string "$app"', self.build)
+        # The only place the upstream name may appear in the script is the attribution in the copyright line.
+        rest = self.build.replace(
+            "A fork of Jellyfin MPV Shim; see LICENSE.md and THIRD_PARTY_NOTICES.md.", ""
+        )
+        self.assertNotIn("Jellyfin MPV Shim", rest)
+        self.assertIn("NSHumanReadableCopyright", self.build)
+
+    def test_the_plist_gets_the_version_and_the_real_minimum_system(self):
+        self.assertIn("grep '^CLIENT_VERSION' jellyfin_mpv_shim/constants.py", self.build)
+        for key in ("CFBundleShortVersionString", "CFBundleVersion"):
+            self.assertIn('plutil -replace %s -string "$version"' % key, self.build)
+        self.assertIn('plutil -replace LSMinimumSystemVersion -string "$floor"', self.build)
+        self.assertIn("plutil -replace LSUIElement -bool true", self.build)
+
+    # Build inputs
+
+    def test_the_notices_are_inside_the_app(self):
+        sources = [src for src, _dest in mac_add_data()]
+        self.assertIn("THIRD_PARTY_NOTICES.md", sources)
+        self.assertIn("LICENSE.md", sources)
+
+    def test_files_the_build_reads_exist(self):
+        for src, _dest in mac_add_data():
+            if os.path.basename(src) == "default_shader_pack":
+                continue  # fetched by gen_pkg.sh at build time
+            self.assertTrue(os.path.exists(os.path.join(ROOT, src)), src)
+        for path in (
+            "jellyfin.icns",
+            os.path.join("macos", "jellyfin.icon"),
+            os.path.join("macos", "pyi_rth_macos.py"),
+            os.path.join("macos", "dmg_settings.py"),
+        ):
+            self.assertTrue(os.path.exists(os.path.join(ROOT, path)), path)
+            self.assertIn(path.replace(os.sep, "/"), self.build)
+
+    def test_mpv_is_a_helper_bundle_the_app_finds_through_resources(self):
+        self.assertIn('cp -R macos/mpv.app "$contents/Helpers/mpv.app"', self.build)
+        self.assertIn('ln -s ../Helpers/mpv.app/Contents/MacOS/mpv "$contents/Resources/mpv"', self.build)
+
+    def test_the_build_is_one_cpu_per_dmg(self):
+        self.assertIn("never universal", self.build)
+        self.assertNotIn("universal2", self.build)
+        self.assertNotIn("--target-arch", self.build)
+
+    # Output
+
+    def test_the_dmg_name_is_the_one_artifacts_sh_collects(self):
+        self.assertIn("dist/jellyhome-player_version.dmg", self.build)
+        self.assertIn("dist/jellyhome-player_version.dmg", read("artifacts.sh"))
+        # The volume and the file inside it are named after the app.
+        self.assertRegex(self.build, r'"\$app" dist/jellyhome-player_version\.dmg')
+        self.assertIn("macOS_${2}.dmg", read("artifacts.sh"))
+
+    def test_the_signature_is_ad_hoc_and_verified(self):
+        self.assertIn('codesign --force --deep --sign - "$bundle"', self.build)
+        self.assertIn('codesign --verify --deep --strict "$bundle"', self.build)
+        self.assertNotRegex(self.build, r"(?i)notarytool|--options runtime|Developer ID")
+
+    # CI
+
+    def test_ci_checks_what_it_built(self):
+        step = mac_ci_step("Verify the bundle")
+        self.assertIn('lipo -archs "$app/Contents/MacOS/JellyHome Player"', step)
+        self.assertIn('lipo -archs "$app/Contents/Helpers/mpv.app/Contents/MacOS/mpv"', step)
+        self.assertEqual(step.count('= "${{ matrix.arch }}"'), 2)
+        self.assertIn('= "%s"' % constants.DESKTOP_ID, step)
+        self.assertIn("CFBundleIdentifier", step)
+        self.assertIn('codesign --verify --deep --strict "$app"', step)
+        self.assertIn("--version", step)
+        self.assertIn('app="dist/%s.app"' % constants.USER_APP_NAME, step)
+        ci = read(".github", "workflows", "main.yml")
+        self.assertLess(ci.index("- name: Main Build\n      run: |\n        ./macos/build.sh"), ci.index("- name: Verify the bundle"))
+        self.assertLess(ci.index("- name: Verify the bundle"), ci.index("./artifacts.sh macos"))
+
+    def test_ci_builds_one_dmg_per_cpu_with_the_documented_mpv(self):
+        ci = read(".github", "workflows", "main.yml")
+        job = ci[ci.index("\n  build-macos:") + 1 :]
+        job = re.split(r"(?m)^  [\w-]+:$", job, maxsplit=2)[1]
+        self.assertIn("arch: arm64", job)
+        self.assertIn("arch: x86_64", job)
+        tag = re.search(r"tag: '(v[\d.]+)'", job).group(1)
+        self.assertIn(tag, read("macos", "README.md"))
+        self.assertIn(tag, read("THIRD_PARTY_NOTICES.md"))
+        self.assertIn("MACOSX_DEPLOYMENT_TARGET", job)
+
+    def test_the_docs_describe_this_bundle(self):
+        for doc in (("docs", "installation.md"), ("macos", "README.md")):
+            text = read(*doc)
+            self.assertIn("JellyHome Player.app", text, doc)
+            self.assertNotIn(UPSTREAM_BUNDLE_ID, text, doc)
+        self.assertIn(constants.DESKTOP_ID, read("docs", "installation.md"))
+        self.assertIn("macOS 15", read("docs", "installation.md"))
+        self.assertIn("jellyhome-player_<version>_macOS_<arch>.dmg", read("docs", "installation.md"))
 
 
 WIN_SCRIPTS = ("build-win.bat", "build-win-arm64.bat", "build-win-dbg.bat")

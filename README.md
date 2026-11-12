@@ -90,8 +90,9 @@ a current one with `libmpv` by default; run `sudo ldconfig` afterwards. Add
 MacOS is not officially supported or released by this project, but unsigned builds are provided on a
 best-effort basis via CI. If anything breaks, feel free to to submit a PR (AI is allowed subject to review) to fix it.
 
-No macOS builds of this fork are published. Build one yourself from a checkout (`setup-mac.py`),
-then, since it is unsigned, use **System Settings > Privacy & Security > Open Anyway**
+No macOS builds of this fork are published. `macos/build.sh` builds `JellyHome Player.app` and a DMG (one per CPU:
+`arm64` or `x86_64`; macOS 15 or newer; not yet run on a Mac, see [docs/native-verification.md](docs/native-verification.md)),
+or build from a checkout (`setup-mac.py`). Since it is unsigned, use **System Settings > Privacy & Security > Open Anyway**
 to run the application or use the following command in your terminal to allow it:
 
 ```bash

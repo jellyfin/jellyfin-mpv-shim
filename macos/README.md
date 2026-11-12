@@ -13,7 +13,7 @@ MACOSX_DEPLOYMENT_TARGET=15.0 python tools/build_win_fribidi.py --output-dir mac
 curl -Lo macos/mpv.zip https://github.com/mpv-player/mpv/releases/download/v0.41.0/mpv-v0.41.0-macos-15-arm.zip
 unzip -o macos/mpv.zip -d macos && tar xzf macos/mpv.tar.gz -C macos
 ./macos/build.sh
-./artifacts.sh macos arm64   # -> publish/macOS/jellyfin-mpv-shim_<version>_macOS_arm64.dmg
+./artifacts.sh macos arm64   # -> publish/macOS/jellyhome-player_<version>_macOS_arm64.dmg
 ```
 
 Run the commands from the repository root. Use the `macos-15-intel` mpv asset
@@ -67,7 +67,7 @@ then use **System Settings > Privacy & Security > Open Anyway**. Or clear the
 quarantine flag:
 
 ```sh
-xattr -dr com.apple.quarantine "/Applications/Jellyfin MPV Shim.app"
+xattr -dr com.apple.quarantine "/Applications/JellyHome Player.app"
 ```
 
 A DMG built on the same Mac is not quarantined and opens directly.

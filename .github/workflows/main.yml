@@ -433,6 +433,18 @@ jobs:
     - name: Main Build
       run: |
         ./macos/build.sh
+    - name: Verify the bundle
+      # Like check_win_arch.py for Windows on Arm: an architecture or identity
+      # mistake is not a build error, it is an app that will not open on the
+      # user's Mac. Checked on the built result rather than trusted from flags.
+      run: |
+        app="dist/JellyHome Player.app"
+        test "$(lipo -archs "$app/Contents/MacOS/JellyHome Player")" = "${{ matrix.arch }}"
+        test "$(lipo -archs "$app/Contents/Helpers/mpv.app/Contents/MacOS/mpv")" = "${{ matrix.arch }}"
+        test "$(plutil -extract CFBundleIdentifier raw "$app/Contents/Info.plist")" = "io.github.braisravina.JellyHomePlayer"
+        codesign --verify --deep --strict "$app"
+        # --version parses arguments and exits before any window or mpv exists.
+        "$app/Contents/MacOS/JellyHome Player" --version
     - name: Artifact Rename
       run: |
         ./artifacts.sh macos ${{ matrix.arch }}

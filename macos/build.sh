@@ -3,7 +3,7 @@
 # See macos/README.md.
 set -e
 
-app="Jellyfin MPV Shim"
+app="JellyHome Player"
 version=$(grep '^CLIENT_VERSION' jellyfin_mpv_shim/constants.py | cut -d '"' -f 2)
 
 for input in macos/mpv.app/Contents/MacOS/mpv macos/libfribidi.0.dylib; do
@@ -31,7 +31,7 @@ codesign --force --sign - build/mac/libfribidi.dylib
 # against Contents/Resources. renderer.lua is loaded relative to mpvtk.
 pyinstaller --noconfirm --windowed \
     --name "$app" \
-    --osx-bundle-identifier com.github.iwalton3.jellyfin-mpv-shim \
+    --osx-bundle-identifier io.github.braisravina.JellyHomePlayer \
     --icon jellyfin.icns \
     --workpath build/pyinstaller \
     --runtime-hook macos/pyi_rth_macos.py \
@@ -39,6 +39,8 @@ pyinstaller --noconfirm --windowed \
     --hidden-import pystray._darwin \
     --add-binary "build/mac/libfribidi.dylib:." \
     --add-data "macos/systray.png:." \
+    --add-data "LICENSE.md:." \
+    --add-data "THIRD_PARTY_NOTICES.md:." \
     --add-data "jellyfin_mpv_shim/logo.png:." \
     --add-data "jellyfin_mpv_shim/lua_probe.lua:." \
     --add-data "jellyfin_mpv_shim/mouse.lua:." \
@@ -74,6 +76,12 @@ fi
 plutil -replace CFBundleShortVersionString -string "$version" "$plist"
 plutil -replace CFBundleVersion -string "$version" "$plist"
 plutil -replace LSUIElement -bool true "$plist"
+plutil -replace CFBundleDisplayName -string "$app" "$plist"
+plutil -replace LSApplicationCategoryType -string public.app-category.video "$plist"
+plutil -replace NSHumanReadableCopyright -string "GPL-3.0-or-later. A fork of Jellyfin MPV Shim; see LICENSE.md and THIRD_PARTY_NOTICES.md." "$plist"
+# The architecture this bundle contains, for the build log: one build per CPU (arm64 and x86_64), never universal.
+echo "Architecture of the app: $(lipo -archs "$contents/MacOS/$app" 2> /dev/null || file -b "$contents/MacOS/$app")"
+echo "Architecture of mpv:     $(lipo -archs "$contents/Helpers/mpv.app/Contents/MacOS/mpv" 2> /dev/null)"
 
 # The minimum macOS is the newest one any bundled binary was built for.
 floor=$(find "$bundle" -type f \( -perm -u+x -o -name '*.dylib' -o -name '*.so' \) \
@@ -89,4 +97,4 @@ codesign --verify --deep --strict "$bundle"
 
 dmgbuild -s macos/dmg_settings.py \
     -D app="$bundle" -D icon="$contents/Resources/jellyfin.icns" \
-    "$app" dist/jellyfin-mpv-shim_version.dmg
+    "$app" dist/jellyhome-player_version.dmg

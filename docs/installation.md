@@ -101,6 +101,18 @@ The optional tray (`pystray`, which needs `python3-gi` and an AppIndicator) and 
 this virtualenv; the app logs that they are unavailable and carries on. What was and was not checked about a build made
 this way is in `docs/testing.md` ("Local Debian test build").
 
+## macOS
+
+`macos/build.sh` builds `JellyHome Player.app` (bundle id `io.github.braisravina.JellyHomePlayer`) with Python and
+upstream's mpv inside it, and packs `jellyhome-player_<version>_macOS_<arch>.dmg`. **One DMG per CPU, no universal
+binary**: `arm64` (Apple silicon) and `x86_64` (Intel). Both are built by CI against macOS 15.0 as the deployment
+target, so **macOS 15 (Sequoia) or newer** is required on either; the build reads the real minimum off every bundled
+binary and writes it to `LSMinimumSystemVersion`. Open the DMG, drag the app to *Applications*, open it from there.
+The first launch of a downloaded copy is blocked until it is allowed in *System Settings → Privacy & Security* (ad hoc
+signature, not notarized: `docs/native-verification.md` lists what notarization needs). Settings, logins and caches are in
+`~/Library/Application Support/jellyhome-player` and `~/Library/Caches/jellyhome-player`; deleting the app leaves them.
+**Nothing here has been built or run on a Mac** (this was prepared on Linux).
+
 ## Coexistence and migration
 
 Both apps can run at once; they share nothing. To copy preferences from an existing upstream install:
