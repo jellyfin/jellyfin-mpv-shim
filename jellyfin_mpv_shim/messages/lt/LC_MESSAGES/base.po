@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-12 10:16+0000\n"
-"Last-Translator: Kipras Vėberis <veberiskipras123@gmail.com>\n"
+"PO-Revision-Date: 2026-11-12 21:07+0000\n"
+"Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
 "Language: lt\n"
@@ -3880,7 +3880,7 @@ msgstr "Filtrai"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%d items"
-msgstr ""
+msgstr "%d elementų"
 
 #. Button in the Filters modal. Removes every filter that is set.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -4267,7 +4267,7 @@ msgstr "Specialūs"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Season %s"
-msgstr ""
+msgstr "Sezonas %s"
 
 #. State of a download in progress. %d is the percentage finished; the
 #. doubled percent sign prints one.
@@ -4348,7 +4348,7 @@ msgstr "Nėra"
 #. follow its wording in this language.
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "My Media"
-msgstr ""
+msgstr "Mano medija"
 
 #. Films and episodes started and not finished. The name of a home-screen
 #. row and the choice for one in the Home Screen settings. Jellyfin Web
@@ -4731,7 +4731,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Cancel Series"
-msgstr ""
+msgstr "Atšaukti serijas"
 
 #. Status message when the server refused to call off a recording.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -4935,7 +4935,7 @@ msgstr "Kanalai"
 #. the show wherever it airs.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "All channels"
-msgstr ""
+msgstr "Visi kanalai"
 
 #. Label of the dropdown in the series recording dialog deciding whether
 #. only showings at the usual time count. The time of day a programme is
@@ -5386,7 +5386,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
-msgstr ""
+msgstr "Eiti į serialą"
 
 #. Heading over an item's chapter thumbnails on its page. Jellyfin Web uses
 #. the same word.
@@ -5739,7 +5739,7 @@ msgstr ""
 #. State of a Live TV programme: it is being recorded at this moment.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording now"
-msgstr ""
+msgstr "Dabar įrašoma"
 
 #. State of a Live TV programme: a rule is recording every episode of this
 #. show.
@@ -6036,7 +6036,7 @@ msgstr "Šios knygos nepavyko atversti."
 #. the pointer on the clipboard. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
-msgstr ""
+msgstr "Kopijuoti pastraipą"
 
 #. Entry on the book reader's context menu that puts the whole page on the
 #. clipboard. An imperative verb phrase.
@@ -6109,7 +6109,7 @@ msgstr "Didesnis tekstas"
 #. row of the same meaning is spelled the same way.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
-msgstr ""
+msgstr "Puslapio spalva"
 
 #. Shown on the search page before anything has been typed.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -6162,7 +6162,7 @@ msgstr ""
 #. to.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 msgid "To Series"
-msgstr ""
+msgstr "Į serijas"
 
 #. Heading over a series' seasons on its page. Do not confuse with
 #. "Reasons": an earlier translation sweep put a translation of this word
@@ -6212,7 +6212,7 @@ msgstr ""
 #. Heading of a Live TV row listing children's programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Kids"
-msgstr ""
+msgstr "Būsimi vaikams"
 
 #. Heading of a Live TV row listing news programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6303,7 +6303,7 @@ msgstr "Išsaugota: %s"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Invalid value: %s"
-msgstr ""
+msgstr "Netinkama reikšmė: %s"
 
 #. Status message when saving one setting forced another off. Both
 #. placeholders are settings' names.
