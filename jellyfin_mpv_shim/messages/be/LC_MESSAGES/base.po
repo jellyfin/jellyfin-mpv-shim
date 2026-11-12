@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 13:30+0000\n"
+"PO-Revision-Date: 2026-11-12 05:43+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -1402,16 +1402,14 @@ msgstr "Відэа"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Audio"
-msgstr ""
+msgstr "Аўдыя"
 
 #. Heading over a subtitle stream's rows in the Media Info panel. A stream
 #. kind, singular.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Памер субцітраў: {0}"
+msgstr "Субцітры"
 
 #. Heading over a lyrics stream's rows in the Media Info panel. A stream
 #. kind, singular: the timed words of a song.
@@ -1434,10 +1432,8 @@ msgstr ""
 #. Row label in the Media Info panel, listing the formats the file also
 #. identifies as.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "Нармальны"
+msgstr "Фармат"
 
 #. Row label in the Media Info panel: where the file sits on the server's
 #. disk.
@@ -1460,10 +1456,8 @@ msgstr ""
 #. Interlaced.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "Няма"
+msgstr "Не"
 
 #. Two uses. A row in the Media Info panel giving the name a stream
 #. carries, such as "English (SDH)"; and a column heading over item names
@@ -1548,11 +1542,9 @@ msgstr ""
 #. has. A count, not the Live TV channels this word means elsewhere, which
 #. is why it carries a context.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgctxt "audio channel count"
 msgid "Channels"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Каналы"
 
 #. Value beside the audio channel-count row in the Media Info panel. The
 #. abbreviation is for "channels"; %d is how many.
@@ -1602,18 +1594,14 @@ msgstr ""
 #. Row label in the Media Info panel: whether the picture is standard
 #. dynamic range or high.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "Параметры відэа"
+msgstr "Відэадыяпазон"
 
 #. Row label in the Media Info panel: which high dynamic range system the
 #. video uses, such as HDR10 or Dolby Vision.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "Падтып профілю відэа"
+msgstr "Тып відэадыяпазону"
 
 #. Row label in the Media Info panel: the colour space the video is encoded
 #. in, such as BT.709.
@@ -1683,10 +1671,8 @@ msgstr ""
 #. Row label in the Media Info panel. "DV" is Dolby Vision; the
 #. abbreviation is normally kept.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "DV title"
-msgstr "Памер субцітраў: {0}"
+msgstr "Назва DV"
 
 #. Row label in the Media Info panel: the major part of the Dolby Vision
 #. version number.
@@ -1929,7 +1915,7 @@ msgstr ""
 #. range system the video uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's range type is not supported"
-msgstr ""
+msgstr "Тып відэадыяпазону не падтрымліваецца"
 
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
