@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-12 10:16+0000\n"
+"PO-Revision-Date: 2026-11-12 12:50+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -2506,7 +2506,7 @@ msgstr ""
 #. Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
-msgstr ""
+msgstr "Тэчка спамповак"
 
 #. Label of the checkbox for the "prefer_downloaded" setting (Settings >
 #. Browse > Downloads).
@@ -4812,7 +4812,7 @@ msgid ""
 "library. Are you sure you wish to continue?"
 msgstr ""
 "Выдаленне гэтага элемента выдаліць яго як з файлавай сістэмы, так і з вашай "
-"медыятэкі. Вы ўпэўнены, што хочаце працягнуць?"
+"медыятэкі. Вы ўпэўнены, што жадаеце працягнуць?"
 
 #. Status message confirming an item was deleted from the server. %s is its
 #. name.
@@ -5766,10 +5766,8 @@ msgstr ""
 #. Heading over the folders the server files recordings into, on the Live
 #. TV Recordings tab. A noun phrase: folders holding recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Recording Folders"
-msgstr "Адкрыць папку канфігурацыі"
+msgstr "Тэчкі запісаў"
 
 #. Shown on the Live TV Recordings tab when there are no recordings.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -6432,7 +6430,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
 msgid "Open Config Folder"
-msgstr "Адкрыць папку канфігурацыі"
+msgstr "Адкрыць тэчку канфігурацыі"
 
 #. Explanation under the Open Config Folder button in Settings. "mpv.conf"
 #. is a filename and "hwdec" an MPV option name; leave both as they are.
@@ -6445,6 +6443,10 @@ msgid ""
 "Hardware Decoding is the exception: set hwdec there and this app leaves it "
 "alone."
 msgstr ""
+"Пашыраныя параметры MPV змяшчаюцца ў mpv.conf у гэтай тэчцы. MPV чытае яго "
+"пры запуску, а затым ужываюцца гэтыя налады, таму большасць з іх перакрывае "
+"яго. Апаратнае дэкадаванне — выключэнне: задайце hwdec там, і праграма не "
+"будзе яго чапаць."
 
 #. Caption under a settings row whose change does nothing until the
 #. application is started again.
@@ -6520,13 +6522,13 @@ msgstr ""
 #. application chooses itself.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
-msgstr ""
+msgstr "Перамясціць спампоўкі назад у тэчку па змаўчанні?"
 
 #. Confirming button of the dialog that returns downloads to the folder
 #. this application chooses itself.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the default folder"
-msgstr ""
+msgstr "Выкарыстоўваць тэчку па змаўчанні"
 
 #. Status message while downloaded files are being relocated. %d is the
 #. percentage done; the doubled percent sign prints one.
@@ -6545,6 +6547,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Download folder moved. Restart to finish switching."
 msgstr ""
+"Тэчка спамповак перамешчана. Перазапусціце праграму, каб завяршыць "
+"пераключэнне."
 
 #. Status message while downloaded files are being relocated, before any
 #. progress figure is known.
@@ -7304,7 +7308,7 @@ msgstr ""
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "The downloads are already in that folder."
-msgstr ""
+msgstr "Спампоўкі ўжо ў гэтай тэчцы."
 
 #. Error when the download folder was changed while something is being
 #. fetched.
@@ -7313,6 +7317,8 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"Нельга змяніць тэчку спамповак, пакуль ідзе спампоўка. Дачакайцеся яе "
+"завяршэння і паспрабуйце зноў."
 
 #. Error when the folder chosen for downloads sits within the present one,
 #. which the move cannot handle.
@@ -7320,17 +7326,19 @@ msgstr ""
 msgid ""
 "That folder is inside the current download folder. Choose one outside it."
 msgstr ""
+"Гэтая тэчка знаходзіцца ўнутры бягучай тэчкі спамповак. Выберыце тэчку па-за "
+"яе межамі."
 
 #. Error when the folder chosen for downloads could not be opened.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't read that folder. Check the path and its permissions."
-msgstr ""
+msgstr "Немагчыма прачытаць гэтую тэчку. Праверце шлях і правы доступу."
 
 #. Error when the folder chosen for downloads already holds this
 #. application's files.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
-msgstr ""
+msgstr "Гэтая тэчка ўжо змяшчае спампоўкі. Выберыце пустую тэчку."
 
 #. Error when the folder chosen for downloads holds other files, which this
 #. application would take charge of.
@@ -7339,11 +7347,13 @@ msgid ""
 "That folder isn't empty. Choose an empty folder — the download folder is "
 "managed by this app and anything else in it can be moved or removed."
 msgstr ""
+"Гэтая тэчка не пустая. Выберыце пустую тэчку — тэчкай спамповак кіруе гэтая "
+"праграма, і ўсё іншае ў ёй можа быць перамешчана або выдалена."
 
 #. Error when the folder chosen for downloads could not be made.
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
-msgstr ""
+msgstr "Немагчыма стварыць гэтую тэчку. Праверце шлях і правы доступу."
 
 #. Shown after choosing a new download folder the app cannot write into --
 #. another account's folder, or a read-only disk. Nothing has been moved.
@@ -7352,6 +7362,8 @@ msgid ""
 "This app isn't allowed to write to that folder. Pick one you own, or change "
 "its permissions, and try again."
 msgstr ""
+"Гэтая праграма не мае права запісваць у гэтую тэчку. Выберыце тэчку, якой вы "
+"валодаеце, або змяніце яе правы доступу і паспрабуйце зноў."
 
 #. Error when the download folder was changed while a transfer is still
 #. ending.
@@ -7374,6 +7386,8 @@ msgid ""
 "This app wasn't allowed to write to that folder. The downloads were left in "
 "place; check the folder's permissions and try again."
 msgstr ""
+"Гэтая праграма не мела права запісваць у гэтую тэчку. Спампоўкі засталіся на "
+"месцы; праверце правы доступу да тэчкі і паспрабуйце зноў."
 
 #. Error when relocating the downloads did not finish, saying nothing was
 #. lost.
@@ -7382,6 +7396,8 @@ msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"Не ўдалося перамясціць спампоўкі. Яны засталіся на месцы; тэчка спамповак не "
+"зменена."
 
 #. Error when the watch-together group asked for is gone.
 #: jellyfin_mpv_shim/syncplay.py
