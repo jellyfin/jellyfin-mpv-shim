@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-10-21 03:07+0000\n"
-"Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
+"PO-Revision-Date: 2026-11-12 21:07+0000\n"
+"Last-Translator: g10rga321 <giorgimodebadze499@gmail.com>\n"
 "Language-Team: Georgian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ka/>\n"
 "Language: ka\n"
@@ -16,14 +16,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.15.1\n"
+"X-Generator: Weblate 2026.11\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
 #. is. Shown where EPUB or PDF would otherwise appear.
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "უცნობი ფორმატი"
 
 #. Position in a book or comic, shown in the reader's bottom bar and in the
 #. Reading Progress dialog. Both placeholders are page numbers.
@@ -31,21 +31,21 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "გვერდი %(page)d %(total)d-დან"
 
 #. Position in a book whose length is unknown, so no total can be given. %d
 #. is the page number.
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "გვერდი %d"
 
 #. How far through a book the reader has got, as a percentage. Shown under
 #. the book's tile.
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "წაკითხულია %d%%"
 
 #. Heading of the on-screen report drawn over the video while audio and
 #. subtitle tracks are being set for every episode of a series. The lines
@@ -102,18 +102,20 @@ msgstr "მიმდინარეს დაყენება..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"გახსენით Jellyfin, შედით მომხმარებლის მენიუში -> სწრაფი კავშირი და შეიყვანეთ "
+"ეს კოდი:"
 
 #. Printed in the terminal while Quick Connect waits for someone to accept
 #. the code in another Jellyfin app.
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "ავტორიზაციის მოლოდინში..."
 
 #. Printed in the terminal when the saved logins are being discarded before
 #. signing in again.
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "მიმდინარეობს ყველა არსებული ანგარიშის წაშლა."
 
 #. Printed in the terminal after a server was signed in to.
 #: jellyfin_mpv_shim/clients.py
@@ -129,7 +131,7 @@ msgstr "სერვერის დამატება ჩავარდა.
 #. saved, so its saved login is replaced.
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "ანგარიში უკვე არსებობს. მიმდინარეობს მონაცემების განახლება."
 
 #. Printed in the terminal after a saved login was replaced.
 #: jellyfin_mpv_shim/clients.py
@@ -177,12 +179,12 @@ msgstr "სერვერთან დაკავშირება შეუ�
 #. Quick Connect feature off.
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "სწრაფი კავშირი ამ სერვერზე გათიშულია."
 
 #. Printed in the terminal when requesting a Quick Connect code failed.
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "სწრაფი კავშირის გაშვება ვერ მოხერხდა."
 
 #. Label of the dropdown for the "segment_outro" setting (Settings >
 #. Playback > Skip Intro / Credits).
@@ -866,7 +868,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Live TV"
-msgstr "ცოცხალი ტელევიზია"
+msgstr "პირდაპირი ტელევიზია"
 
 #. Status message naming what was just picked, when picking it does not
 #. open anything. %s is the item's name.
@@ -4410,10 +4412,9 @@ msgstr ""
 #. One row of the SyncPlay group list. %s is a group's name, and the suffix
 #. marks the group this device is currently in.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "შემოგვიერთდა {0}."
+msgstr "%s (დაკავშირებული)"
 
 #. Stands in for the name of a SyncPlay group the server did not name. A
 #. set of people watching in sync.
@@ -5157,10 +5158,9 @@ msgstr ""
 #. item stays on the server. %s is its name.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "სერვერის წაშლა"
+msgstr "წაიშალოს %s-ის ჩამოტვირთული ასლი?"
 
 #. Title of the dialog that removes a downloaded copy from this device.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -5471,7 +5471,7 @@ msgstr "პროგრამები"
 #. Checkbox in Guide Settings: badge programmes going out as they happen.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Live broadcasts"
-msgstr "ცოცხალი ტრანსლაცია"
+msgstr "პირდაპირი ტრანსლაცია"
 
 # seeded from jellyfin-web: NewEpisodesOnly
 #. Checkbox in Guide Settings: badge first-run episodes.
@@ -5525,7 +5525,7 @@ msgstr "სიახლეები"
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Live"
-msgstr "ცოცხალი"
+msgstr "პირდაპირი"
 
 # seeded from jellyfin-web: Premiere
 #. Badge on a Live TV guide cell: the first showing of this programme. Kept
