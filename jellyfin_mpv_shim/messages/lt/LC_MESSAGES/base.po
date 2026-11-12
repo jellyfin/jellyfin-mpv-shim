@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 18:18+0000\n"
+"PO-Revision-Date: 2026-11-12 10:16+0000\n"
 "Last-Translator: Kipras Vėberis <veberiskipras123@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -2597,7 +2597,7 @@ msgstr "Nagrinėjami „Kitas“ įrašai"
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr "Kiek serijų išsaugoti iš anksto (0 - išjungta)"
+msgstr "Kiek serijų išsaugoti iš anksto (0 = išjungta)"
 
 #. Label of the number field for the "auto_download_max_gb" setting
 #. (Settings > Browse > Downloads).
