@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-12 05:43+0000\n"
+"PO-Revision-Date: 2026-11-12 06:56+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -1738,10 +1738,8 @@ msgstr ""
 #. original file untouched. Shown on the playback information panel.
 #. Jellyfin Web uses the same four words.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "Прамыя шляхі"
+msgstr "Прамое прайграванне"
 
 #. How the video is reaching this device: the server is repackaging the
 #. file but not re-encoding the picture. Shown on the playback information
@@ -1989,10 +1987,8 @@ msgstr ""
 
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Прапусціць цітры"
+msgstr "Прапусціць уступ / цітры"
 
 #. Heading of the group in Settings holding every row not sorted into a
 #. named group.
@@ -2094,10 +2090,8 @@ msgstr ""
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "hable".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Disable"
 msgid "Hable"
-msgstr "Адключыць"
+msgstr "Hable"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "reinhard".
@@ -2120,10 +2114,8 @@ msgstr ""
 #. Choice in the "Rendering Quality" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "high".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "High quality"
-msgstr "Змяніць якасць відэа"
+msgstr "Высокая якасць"
 
 #. Choice in the "Network Buffer" dropdown (Settings > Playback >
 #. Playback); stored as "default".
@@ -2339,10 +2331,8 @@ msgstr ""
 #. Choice in the "Shading Behind the Player Controls" dropdown (Settings >
 #. Playback > Player Controls); stored as "none".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "Няма (адключана)"
+msgstr "Няма (тэкст з ценем)"
 
 #. Choice in the "When the Player Controls Hide" dropdown (Settings >
 #. Playback > Player Controls); stored as "hover".
@@ -2353,10 +2343,8 @@ msgstr ""
 #. Choice in the "When the Player Controls Hide" dropdown (Settings >
 #. Playback > Player Controls); stored as "always".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "Заўсёды прапускаць цітры"
+msgstr "Заўсёды хаваць"
 
 #. Choice in the "When the Player Controls Hide" dropdown (Settings >
 #. Playback > Player Controls); stored as "paused".
@@ -2409,10 +2397,8 @@ msgstr ""
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "1.7".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Вялікі"
+msgstr "Вельмі вялікі"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "auto".
@@ -2579,10 +2565,8 @@ msgstr ""
 #. Label of the dropdown for the "render_quality" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Rendering Quality"
-msgstr "Змяніць якасць відэа"
+msgstr "Якасць рэндэрынгу"
 
 #. Label of the dropdown for the "network_buffer" setting (Settings >
 #. Playback > Playback).
@@ -2708,10 +2692,8 @@ msgstr ""
 #. Label of the checkbox for the "thumbnail_enable" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Enable thumbnail previews"
 msgid "Enable Trickplay Thumbnails"
-msgstr "Уключыць папярэдні прагляд мініяцюр"
+msgstr "Уключыць мініяцюры Trickplay"
 
 #. Label of the checkbox for the "trickplay_fast_mode" setting (Settings >
 #. Playback > Player Controls).
@@ -2728,10 +2710,8 @@ msgstr ""
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Ask to Skip Intros"
 msgid "Desktop Media Controls"
-msgstr "Спытаць каб прапусціць уступы"
+msgstr "Кіраванне медыя з працоўнага стала"
 
 #. Label of the dropdown for the "ui_scale" setting (Settings > Browse >
 #. Theme).
@@ -2911,10 +2891,8 @@ msgstr ""
 #. Label of the checkbox for the "shader_pack_enable" setting (Settings >
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "Профілі прайгравання відэа"
+msgstr "Уключыць профілі прайгравання відэа"
 
 #. Label of the dropdown for the "shader_pack_subtype" setting (Settings >
 #. Playback > Video Enhancement).
@@ -3582,10 +3560,8 @@ msgstr ""
 #. items the viewer has already watched. Must read differently from "Play":
 #. in one language these collapsed and the row read "Not played / Play".
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Played"
-msgstr "SyncPlay"
+msgstr "Прагледжаныя"
 
 #. Three uses, all about items the viewer has marked with the heart. A
 #. checkbox in the library filter panel; a button that filters the Live TV
@@ -3643,10 +3619,8 @@ msgstr ""
 #. Heading of a filter-panel section, above a dropdown of the subtitle
 #. languages available in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Language"
-msgstr "Памер субцітраў: {0}"
+msgstr "Мова субцітраў"
 
 #. Heading of a filter-panel section, above checkboxes for extras an item
 #. may have (subtitles, a trailer, a theme song).
@@ -3815,10 +3789,8 @@ msgstr ""
 #. Stands in for the name of a media source (a file or version of an item)
 #. that the server did not name, in the Media Info modal.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Unkn"
 msgid "Unknown"
-msgstr "Невядомы"
+msgstr "Невядома"
 
 #. Shown in the Media Info modal when the server returned no video, audio
 #. or subtitle stream details for the item.
@@ -3936,10 +3908,8 @@ msgstr ""
 
 #. Button in the Filters modal. Removes every filter that is set.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Clear All"
-msgstr "SyncPlay"
+msgstr "Ачысціць усё"
 
 #. Button that closes the Filters modal, and the View settings modal,
 #. keeping what was chosen. Not "finished" in the sense of a task
@@ -3979,10 +3949,8 @@ msgstr ""
 #. Choice in the Artwork dropdown of a library's View settings: a wide,
 #. short banner image.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Banner"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Банер"
 
 #. Choice in the Artwork dropdown of a library's View settings: the title
 #. treatment artwork, usually white lettering on a transparent background.
@@ -4015,10 +3983,8 @@ msgstr ""
 #. Checkbox in a library's View settings. Draws each item's name under its
 #. tile.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "Памер субцітраў: {0}"
+msgstr "Паказваць назвы"
 
 #. Checkbox in a library's View settings. Draws each item's release year
 #. under its tile.
@@ -4147,10 +4113,8 @@ msgstr ""
 #. Title of the dialog that reads or writes how far through a book the
 #. viewer is.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Reading Progress"
-msgstr "Адкрыць папку канфігурацыі"
+msgstr "Прагрэс чытання"
 
 #. Shown in the Reading Progress dialog while the stored position is being
 #. fetched from the server.
