@@ -390,3 +390,10 @@ so it is not the Flathub manifest). It was **not** built here: this machine has 
 GNOME Platform 49 (the manifest wants Platform and SDK 51), and the first build compiles mpv and its dependencies from
 source. Completing it needs those installed (a few GB) and a long build, which was not done without approval. For a
 Debian laptop the `.deb` is the better fit; the Flatpak remains the cross-distribution route.
+
+## 8. Startup errors
+
+An exception escaping `main()` is shown by `startup_error.report_fatal` as a native dialog when no terminal is attached
+(`MessageBoxW` on Windows, `osascript` on macOS, `zenity` / `kdialog` / `notify-send` on Linux), with a platform-specific
+hint for the libmpv case and the log location (`write_logs`). From a terminal it stays silent, since the traceback is
+there. `JELLYHOME_NO_ERROR_DIALOG=1` suppresses it.
