@@ -123,6 +123,165 @@ class LinuxPackageTest(unittest.TestCase):
         self.assertNotIn("quits the player instead", read("docs", "installation.md"))
 
 
+WIN_SCRIPTS = ("build-win.bat", "build-win-arm64.bat", "build-win-dbg.bat")
+ISS = "JellyHome Player.iss"
+# Fetched by gen_pkg.sh at build time (not tracked), so it cannot be checked for existence in a checkout.
+FETCHED_AT_BUILD = ("default_shader_pack",)
+
+
+def iss_define(name):
+    m = re.search(r'(?m)^#define %s "([^"]*)"' % name, read(ISS))
+    assert m, name
+    return m.group(1)
+
+
+def iss_sections():
+    """{"Setup": [lines], "Files": [...]} with comments and blank lines dropped; keeps #ifdef lines in place."""
+    out, cur = {}, None
+    for line in read(ISS).splitlines():
+        line = line.strip()
+        m = re.match(r"\[(\w+)\]$", line)
+        if m:
+            cur = out.setdefault(m.group(1), [])
+        elif cur is not None and line and not line.startswith(";"):
+            cur.append(line)
+    return out
+
+
+def pyinstaller_args(script):
+    """(name, add-data pairs) of the one pyinstaller command in a build script."""
+    text = read(script)
+    name = re.search(r"--name (\S+)", text).group(1)
+    data = re.findall(r'--add-data "([^";]+);([^"]+)"', text)
+    return name, data
+
+
+class WindowsInstallerTest(unittest.TestCase):
+    # Identity
+
+    def test_the_installer_is_named_and_versioned_like_the_app(self):
+        self.assertEqual(iss_define("MyAppName"), constants.USER_APP_NAME)
+        self.assertEqual(iss_define("MyAppVersion"), constants.CLIENT_VERSION)
+        setup = iss_sections()["Setup"]
+        self.assertIn("AppName={#MyAppName}", setup)
+        self.assertIn("AppVersion={#MyAppVersion}", setup)
+        self.assertNotIn("Jellyfin MPV Shim", read(ISS))
+
+    def test_the_installer_has_its_own_app_id(self):
+        ids = re.findall(r"(?m)^AppId=\{\{([0-9A-F-]{36})\}", read(ISS))
+        self.assertEqual(len(ids), 1)
+        self.assertRegex(ids[0], r"^[0-9A-F]{8}-([0-9A-F]{4}-){3}[0-9A-F]{12}$")
+
+    def test_the_installer_executable_is_what_every_pyinstaller_script_builds(self):
+        exe = iss_define("MyAppExeName")
+        for script in WIN_SCRIPTS:
+            name, _ = pyinstaller_args(script)
+            self.assertEqual(name + ".exe", exe, script)
+        # ...and is the payload directory the [Files] section copies.
+        self.assertIn('Source: "dist\\%s\\*"' % exe[:-4], read(ISS))
+
+    def test_shortcuts_run_and_close_the_right_executable(self):
+        sections = iss_sections()
+        icons = sections["Icons"]
+        self.assertEqual(len(icons), 2)
+        for line in icons:
+            self.assertIn('Filename: "{app}\\{#MyAppExeName}"', line)
+        self.assertTrue(icons[0].startswith('Name: "{autoprograms}\\{#MyAppName}"'))
+        self.assertTrue(icons[1].startswith('Name: "{autodesktop}\\{#MyAppName}"'))
+        self.assertIn("Tasks: desktopicon", icons[1])
+        self.assertIn("UninstallDisplayIcon={app}\\{#MyAppExeName}", sections["Setup"])
+        self.assertIn("CloseApplicationsFilter={#MyAppExeName},mpv-2.dll", sections["Setup"])
+        self.assertTrue(sections["Run"][0].startswith('Filename: "{app}\\{#MyAppExeName}"'))
+
+    # Install, upgrade and uninstall
+
+    def test_install_stays_per_user_and_upgrades_in_place(self):
+        setup = iss_sections()["Setup"]
+        for line in (
+            "PrivilegesRequired=lowest",
+            "PrivilegesRequiredOverridesAllowed=dialog",
+            "DefaultDirName={autopf}\\{#MyAppName}",
+            "CloseApplications=yes",
+            "RestartApplications=no",
+        ):
+            self.assertIn(line, setup)
+
+    def test_the_installer_filename_is_the_one_artifacts_sh_collects(self):
+        self.assertIn("OutputBaseFilename=jellyhome-player_version_installer", iss_sections()["Setup"])
+        self.assertIn("dist/jellyhome-player_version_installer.exe", read("artifacts.sh"))
+
+    def test_uninstall_does_not_delete_user_data(self):
+        sections = iss_sections()
+        for section in ("UninstallDelete", "InstallDelete", "Code"):
+            self.assertNotIn(section, sections)
+        # Directives only (comments explain where the settings live and are dropped).
+        directives = "\n".join(l for lines in sections.values() for l in lines)
+        self.assertNotRegex(directives, r"(?i)\{userappdata\}|\{localappdata\}|deletekey|dirifempty")
+
+    def test_start_with_computer_is_the_apps_own_opt_in_and_uninstall_removes_it(self):
+        from jellyfin_mpv_shim import autostart
+
+        entries = iss_sections()["Registry"]
+        self.assertEqual(len(entries), 1)
+        entry = entries[0]
+        self.assertIn("Root: HKCU;", entry)
+        self.assertIn('Subkey: "%s"' % autostart.RUN_KEY, entry)
+        self.assertIn('ValueName: "{#MyAppName}"', entry)
+        self.assertEqual(iss_define("MyAppName"), constants.USER_APP_NAME)
+        flags = re.search(r"Flags: ([\w ]+)$", entry).group(1).split()
+        self.assertEqual(sorted(flags), ["dontcreatekey", "uninsdeletevalue"])
+        # With no ValueType or ValueData the installer creates nothing: autostart stays off until the user turns it on.
+        self.assertNotRegex(entry, r"ValueType|ValueData")
+
+    # Architecture
+
+    def test_arm64_restrictions_apply_to_the_arm64_build_only(self):
+        iss = read(ISS)
+        block = re.search(r"(?s)#ifdef Arm64\n(.*?)#endif", iss)
+        self.assertIsNotNone(block)
+        self.assertEqual(
+            block.group(1).split(), ["ArchitecturesAllowed=arm64", "ArchitecturesInstallIn64BitMode=arm64"]
+        )
+        self.assertEqual(iss.count("ArchitecturesAllowed"), 1)
+        self.assertEqual(iss.count("ArchitecturesInstallIn64BitMode"), 1)
+        self.assertIn("/DArm64", read("build-win-arm64.bat"))
+        for script in ("build-win.bat", "build-win-dbg.bat"):
+            self.assertNotIn("Arm64", read(script))
+
+    # Files the installer and the builds depend on
+
+    def test_files_the_installer_reads_exist(self):
+        setup = iss_sections()["Setup"]
+        for key in ("LicenseFile", "SetupIconFile"):
+            path = [l.split("=", 1)[1] for l in setup if l.startswith(key + "=")]
+            self.assertEqual(len(path), 1, key)
+            self.assertTrue(os.path.isfile(os.path.join(ROOT, path[0])), path[0])
+        sources = [re.match(r'Source: "([^"]+)"', l).group(1) for l in iss_sections()["Files"]]
+        self.assertIn("THIRD_PARTY_NOTICES.md", sources)
+        self.assertIn("LICENSE.md", sources)
+        for src in sources:
+            if src.startswith("dist\\"):
+                continue  # PyInstaller output
+            self.assertTrue(os.path.isfile(os.path.join(ROOT, src)), src)
+
+    def test_pyinstaller_resources_exist_and_the_scripts_agree(self):
+        reference = None
+        for script in WIN_SCRIPTS:
+            _, data = pyinstaller_args(script)
+            self.assertTrue(data, script)
+            for src, _dest in data:
+                rel = src.replace("\\", "/")
+                if os.path.basename(rel) in FETCHED_AT_BUILD:
+                    continue
+                self.assertTrue(os.path.exists(os.path.join(ROOT, rel)), "%s: %s" % (script, rel))
+            self.assertEqual(len(data), len(set(data)), script)
+            reference = reference or sorted(data)
+            self.assertEqual(sorted(data), reference, script)
+        icon = re.search(r"--icon (\S+)", read("build-win.bat")).group(1)
+        self.assertTrue(os.path.isfile(os.path.join(ROOT, icon)))
+        self.assertIn("SetupIconFile=" + icon, iss_sections()["Setup"])
+
+
 class CiTest(unittest.TestCase):
     def test_the_workflow_builds_validates_and_never_publishes(self):
         ci = read(".github", "workflows", "main.yml")

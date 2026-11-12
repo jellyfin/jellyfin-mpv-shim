@@ -46,6 +46,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=dist
 OutputBaseFilename=jellyhome-player_version_installer
 SetupIconFile=jellyfin.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -62,11 +63,18 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "dist\JellyHomePlayer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Licence and third-party notices travel with the program (mpv, FFmpeg, FriBiDi, the Vulkan loader, ...).
+Source: "LICENSE.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+; Uninstalling removes the program, its Start menu and desktop shortcuts and the "Start with computer" value below. It
+; deliberately does NOT remove settings, logins or caches: they live in %APPDATA%\jellyhome-player and
+; %LOCALAPPDATA%\jellyhome-player, belong to the user, and survive an upgrade or a reinstall. See docs/installation.md.
 
 [Registry]
 ; "Start with computer" is the app's own opt-in (Settings). It writes this
