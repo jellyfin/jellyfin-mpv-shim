@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-12 06:56+0000\n"
+"PO-Revision-Date: 2026-11-12 10:16+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -682,7 +682,7 @@ msgstr "Аўтаматычна на поўны экран"
 #. media keys skip within a video rather than between items.
 #: jellyfin_mpv_shim/menu.py
 msgid "Media Key Seek"
-msgstr "Пошук медыя-ключа"
+msgstr "Перамотка медыяклавішамі"
 
 #. Toggle on the in-player Player Preferences menu: take the skip-forward
 #. and skip-back amounts from the server's web client settings. "Pref"
@@ -1227,7 +1227,7 @@ msgstr "Гатовы да перадачы"
 #. Instruction under the idle cast screen's heading.
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Выберыце свой медыяфайл у Jellyfin і прайграйце яго тут."
+msgstr "Выберыце свае медыя ў Jellyfin і прайграйце іх тут."
 
 #. Heading over the actors and film-makers on an item's page. Jellyfin Web
 #. uses the same phrase.
@@ -1646,7 +1646,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgctxt "media stream flag"
 msgid "Default"
-msgstr ""
+msgstr "Па змаўчанні"
 
 #. Flag row in the Media Info panel, marking a subtitle track meant to be
 #. shown even when subtitles are off, such as translations of on-screen
@@ -1973,7 +1973,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Playback"
-msgstr ""
+msgstr "Прайграванне"
 
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2518,7 +2518,7 @@ msgstr ""
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Левы клік ставіць прайграванне на паўзу"
 
 #. Label of the checkbox for the "detail_poster" setting (Settings > Browse
 #. > Library Browser).
@@ -3320,6 +3320,10 @@ msgid ""
 "widgets play, pause and skip, and shows what is playing with its cover "
 "(MPRIS, Linux only)."
 msgstr ""
+"Дазваляе кіраваць прайграваннем (паўза, перамотка і пераключэнне) з "
+"дапамогай медыяклавіш клавіятуры, кнопак гарнітуры, экрана блакіроўкі і "
+"віджэтаў працоўнага стала, а таксама паказвае назву і вокладку бягучага "
+"медыя (MPRIS, толькі для Linux)."
 
 #. Explanation shown under the "Audio Output Device" setting (Settings >
 #. Playback > Audio).
@@ -3385,6 +3389,9 @@ msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"Палітра, падсвятленне, стыль вокладак і памер вокладак па змаўчанні. Колеры "
+"змяняюцца адразу; памеры вокладак і загалоўкаў уступяць у сілу пасля "
+"перазапуску."
 
 #. Explanation shown under the "Grid Spacing" setting (Settings > Browse >
 #. Library Browser).
@@ -3459,6 +3466,9 @@ msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
+"Толькі падчас прайгравання; у бібліятэцы гэтыя кнопкі застаюцца «Назад» і «"
+"Наперад». Па змаўчанні выключана, бо на некаторых мышках іх лёгка націснуць "
+"выпадкова."
 
 #. Explanation shown under the "Interface Scale" setting (Settings > Browse
 #. > Theme).
@@ -3608,7 +3618,7 @@ msgstr ""
 #. items in this library.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Tags"
-msgstr ""
+msgstr "Меткі"
 
 #. Heading of a filter-panel section, above a dropdown of the spoken
 #. languages available in this library.
@@ -3796,7 +3806,7 @@ msgstr "Невядома"
 #. or subtitle stream details for the item.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No media information is available."
-msgstr ""
+msgstr "Інфармацыя пра медыя недаступная."
 
 #. The panel listing an item's video, audio and subtitle stream details.
 #. Used as the modal's title and as the action on an item's menu that opens
@@ -3805,7 +3815,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Media Info"
-msgstr ""
+msgstr "Медыяінфармацыя"
 
 #. Button that dismisses a notice, and the default confirming button of a
 #. yes/no dialog. Also closes the Media Info modal.
@@ -4201,7 +4211,7 @@ msgstr "Новая група"
 #. alone, out of sync with the group.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Resume local playback"
-msgstr ""
+msgstr "Аднавіць лакальнае прайграванне"
 
 #. Button in the SyncPlay dialog that takes this device out of the watch-
 #. together group. An imperative verb.
@@ -4235,7 +4245,7 @@ msgstr ""
 #. Error shown when returning to synchronised playback failed.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Could not resume SyncPlay playback."
-msgstr ""
+msgstr "Не ўдалося аднавіць прайграванне SyncPlay."
 
 #. Heading of a downloads group: episodes fetched automatically because
 #. they are next to watch in a series being followed.
@@ -4328,10 +4338,8 @@ msgstr ""
 
 #. State of a download that did not finish.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Failed"
-msgstr "Няўдача"
+msgstr "Не ўдалося"
 
 #. Stands in for the name of a downloaded playlist the catalog did not
 #. name.
@@ -4367,8 +4375,6 @@ msgstr ""
 #. the word the language uses for a section or row, which is why it is a
 #. separate entry from the "None" that means no subtitle track.
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#, fuzzy
-#| msgid "None"
 msgctxt "home screen section type"
 msgid "None"
 msgstr "Няма"
@@ -4378,7 +4384,7 @@ msgstr "Няма"
 #. follow its wording in this language.
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "My Media"
-msgstr ""
+msgstr "Мае медыя"
 
 #. Films and episodes started and not finished. The name of a home-screen
 #. row and the choice for one in the Home Screen settings. Jellyfin Web
@@ -4436,10 +4442,8 @@ msgstr ""
 #. Tooltip of the subtitle button on the playback controls drawn over the
 #. video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Subtitle Track"
 msgid "Subtitle Track"
-msgstr "Выбраць дарожку субцітраў"
+msgstr "Дарожка субцітраў"
 
 #. Stands in for the name of a chapter the file did not name, wherever
 #. chapters are listed. %d is its number.
@@ -4469,16 +4473,14 @@ msgstr "Аўдыёдарожка"
 #. Tooltip of the quality button on the playback controls, which limits how
 #. much bandwidth the server may use.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video Quality"
-msgstr "Змяніць якасць відэа"
+msgstr "Якасць відэа"
 
 #. Row on the settings menu of the playback controls, opening a list of
 #. speeds such as 1.5x.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Speed"
-msgstr ""
+msgstr "Хуткасць прайгравання"
 
 #. Row on the settings menu of the playback controls, opening a list of
 #. picture shapes such as 16:9.
@@ -4496,34 +4498,28 @@ msgstr ""
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing how large subtitles are drawn.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Size"
-msgstr "Памер субцітраў: {0}"
+msgstr "Памер субцітраў"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing where on screen subtitles are drawn.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Position: {0}"
 msgid "Subtitle Position"
-msgstr "Пазіцыя субцітраў: {0}"
+msgstr "Пазіцыя субцітраў"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. in-player submenu, choosing the colour subtitles are drawn in. American
 #. spelling of "colour".
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Color: {0}"
 msgid "Subtitle Color"
-msgstr "Колер субцітраў: {0}"
+msgstr "Колер субцітраў"
 
 #. Row on the settings menu of the playback controls, and the title of the
 #. panel it opens, listing how the video is reaching this device and what
 #. MPV is doing with it.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Playback Info"
-msgstr ""
+msgstr "Інфармацыя пра прайграванне"
 
 #. Means "nothing chosen, and the feature is off". The first entry of the
 #. SyncPlay list on the playback controls, and of the video-profile list.
@@ -4541,10 +4537,8 @@ msgstr ""
 #. Row in the Playback Info panel: which MPV video output driver is drawing
 #. the picture.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video output"
-msgstr "Змяніць якасць відэа"
+msgstr "Відэавыхад"
 
 #. Row in the Playback Info panel: how many frames were skipped rather than
 #. shown.
@@ -4587,10 +4581,8 @@ msgstr "Хуткасць спампоўкі"
 #. Row in the Playback Info panel: what kind of item is playing, such as
 #. Movie or Episode.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Media Key Seek"
 msgid "Media type"
-msgstr "Пошук медыя-ключа"
+msgstr "Медыятып"
 
 #. Parenthesised after the play method in the Playback Info panel: the file
 #. being played was downloaded to this device earlier.
@@ -4719,7 +4711,7 @@ msgstr "Аўтаматычна на поўны экран"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr ""
+msgstr "Прайграванне спынена, таму гэтая чарга знікла."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -4819,6 +4811,8 @@ msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
 msgstr ""
+"Выдаленне гэтага элемента выдаліць яго як з файлавай сістэмы, так і з вашай "
+"медыятэкі. Вы ўпэўнены, што хочаце працягнуць?"
 
 #. Status message confirming an item was deleted from the server. %s is its
 #. name.
@@ -5935,7 +5929,7 @@ msgstr ""
 #. Status message when music would not start playing.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Could not start playback."
-msgstr ""
+msgstr "Не ўдалося запусціць прайграванне."
 
 #. Appended to a playlist's name in the page title, marking that the
 #. playlist is open for editing. A verb.
@@ -5953,7 +5947,7 @@ msgstr "Гэты плэйліст пусты."
 #. application cannot play.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
-msgstr "Гэты плэйліст не змяшчае падтрыманых тыпаў медыя."
+msgstr "Гэты плэйліст не змяшчае падтрыманых медыятыпаў."
 
 #. Title of the page listing what is queued to play, and the name given to
 #. that queue when it is saved as a playlist.
@@ -6472,6 +6466,9 @@ msgid ""
 "Only the General, Browse and Playback tabs are searched. Some settings are "
 "hidden until the setting they depend on is turned on."
 msgstr ""
+"Пошук вядзецца толькі па ўкладках «Агульныя», «Агляд» і «Прайграванне». "
+"Некаторыя налады схаваныя, пакуль не ўключаны параметр, ад якога яны "
+"залежаць."
 
 #. Caption under settings search results. %d is how many were found.
 #. Phrased with a count after a colon on purpose, because this application
@@ -7201,7 +7198,7 @@ msgstr ""
 #. MPV's own statistics overlay.
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
-msgstr ""
+msgstr "Даныя прайгравання"
 
 #. Marker beside a quality option on the playback controls, meaning the
 #. server would re-encode the video to reach it. A noun here.
@@ -7640,7 +7637,7 @@ msgstr ""
 #. narrower is set.
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Default (all media)"
-msgstr ""
+msgstr "Па змаўчанні (усе медыя)"
 
 #. Name of a video-profile scope: the profile applies to everything in the
 #. library being viewed.
@@ -7671,10 +7668,8 @@ msgstr ""
 #. Title of the in-player screen that chooses a video profile per scope. A
 #. video profile is a saved set of MPV shader and rendering options.
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Video Playback Profile"
-msgstr "Профілі прайгравання відэа"
+msgstr "Профіль прайгравання відэа"
 
 #. Title of the in-player submenu listing the shader profiles that can be
 #. applied.
