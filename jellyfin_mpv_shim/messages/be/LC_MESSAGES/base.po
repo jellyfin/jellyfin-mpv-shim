@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-13 07:56+0000\n"
+"PO-Revision-Date: 2026-11-13 11:03+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -676,7 +676,7 @@ msgstr "Аўтапрайграванне"
 #. playback starts.
 #: jellyfin_mpv_shim/menu.py
 msgid "Auto Fullscreen"
-msgstr "Аўтаматычна на поўны экран"
+msgstr "Аўтаматычна на ўвесь экран"
 
 #. Toggle on the in-player Player Preferences menu: let the keyboard's
 #. media keys skip within a video rather than between items.
@@ -1523,20 +1523,20 @@ msgstr "Анамарфотны"
 #. interlaced fields rather than whole frames.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Interlaced"
-msgstr ""
+msgstr "Празрадковы"
 
 #. Row label in the Media Info panel: how many frames a second the video
 #. runs at.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Framerate"
-msgstr ""
+msgstr "Частата кадраў"
 
 #. Row label in the Media Info panel: how the audio channels are arranged,
 #. such as 5.1.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Layout"
-msgstr ""
+msgstr "Схема каналаў"
 
 #. Row label in the Media Info panel: how many audio channels the track
 #. has. A count, not the Live TV channels this word means elsewhere, which
@@ -1551,20 +1551,20 @@ msgstr "Каналы"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d ch"
-msgstr ""
+msgstr "%d кан."
 
 #. Row label in the Media Info panel: how much data a second this stream
 #. uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bitrate"
-msgstr ""
+msgstr "Бітрэйт"
 
 #. Value of the Bitrate row in the Media Info panel. Kilobits per second;
 #. the unit is normally left as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d кбіт/с"
 
 #. Row label in the Media Info panel: how many audio samples a second, such
 #. as 48 kHz.
@@ -1577,19 +1577,19 @@ msgstr "Частата дыскрэтызацыі"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d Гц"
 
 #. Row label in the Media Info panel: how many bits each sample or colour
 #. uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bit depth"
-msgstr ""
+msgstr "Бітавая глыбіня"
 
 #. Value of the Bit depth row in the Media Info panel, as in "10 bit".
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d біт"
 
 #. Row label in the Media Info panel: whether the picture is standard
 #. dynamic range or high.
@@ -1607,37 +1607,37 @@ msgstr "Тып відэадыяпазону"
 #. in, such as BT.709.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color space"
-msgstr ""
+msgstr "Каляровая прастора"
 
 #. Row label in the Media Info panel: the transfer function, the curve
 #. relating stored values to light.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color transfer"
-msgstr ""
+msgstr "Каляровая перадача"
 
 #. Row label in the Media Info panel: which red, green and blue the
 #. encoding is measured against.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color primaries"
-msgstr ""
+msgstr "Асноўныя колеры"
 
 #. Row label in the Media Info panel: how the pixels are laid out in
 #. memory, such as yuv420p.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Pixel format"
-msgstr ""
+msgstr "Фармат пікселяў"
 
 #. Row label in the Media Info panel: how many earlier frames the codec may
 #. refer back to. Short for "reference frames".
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Ref frames"
-msgstr ""
+msgstr "Апорныя кадры"
 
 #. Row label in the Media Info panel: how far the picture must be turned to
 #. be upright, in degrees.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Rotation"
-msgstr ""
+msgstr "Паварот"
 
 #. Flag row in the Media Info panel, marking the stream a player picks when
 #. the viewer has expressed no preference. Split from the settings dropdown
@@ -1660,13 +1660,13 @@ msgstr "Прымусова"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "External"
-msgstr ""
+msgstr "Знешні"
 
 #. Row label in the Media Info panel: where in the container the timestamps
 #. are stored.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Timestamp"
-msgstr ""
+msgstr "Пазнака часу"
 
 #. Row label in the Media Info panel. "DV" is Dolby Vision; the
 #. abbreviation is normally kept.
@@ -1678,19 +1678,19 @@ msgstr "Назва DV"
 #. version number.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV version major"
-msgstr ""
+msgstr "Асноўная версія DV"
 
 #. Row label in the Media Info panel: the minor part of the Dolby Vision
 #. version number.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV version minor"
-msgstr ""
+msgstr "Дадатковая версія DV"
 
 #. Row label in the Media Info panel: which Dolby Vision profile the video
 #. uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV profile"
-msgstr ""
+msgstr "Профіль DV"
 
 #. Row label in the Media Info panel: which Dolby Vision level the video
 #. uses.
@@ -1703,7 +1703,7 @@ msgstr "Узровень DV"
 #. server; several languages keep them as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV rpu preset flag"
-msgstr ""
+msgstr "Сцяг наяўнасці DV rpu"
 
 #. Row label in the Media Info panel: whether the Dolby Vision enhancement
 #. layer is present. Technical field names taken from the server; several
@@ -1823,13 +1823,13 @@ msgstr ""
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's bit depth is not supported"
-msgstr ""
+msgstr "Бітавая глыбіня відэа не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's framerate is not supported"
-msgstr ""
+msgstr "Частата кадраў відэа не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode: how many earlier
 #. frames the codec refers back to.
@@ -1871,25 +1871,25 @@ msgstr "Частата дыскрэтызацыі аўдыя не падтрым
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's bit depth is not supported"
-msgstr ""
+msgstr "Бітавая глыбіня аўдыя не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's bitrate exceeds the limit"
-msgstr ""
+msgstr "Бітрэйт відэа перавышае ліміт"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's bitrate is not supported"
-msgstr ""
+msgstr "Бітрэйт відэа не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's bitrate is not supported"
-msgstr ""
+msgstr "Бітрэйт аўдыя не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode: it could not read
 #. the video stream's details.
@@ -2814,7 +2814,7 @@ msgstr ""
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "Агляд бібліятэкі на ўвесь экран"
 
 #. Label of the checkbox for the "browse_block_keys" setting (Settings >
 #. General > Input).
@@ -3596,7 +3596,7 @@ msgstr ""
 #. way in.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Resumable"
-msgstr "Працягнуць"
+msgstr "Можна працягнуць"
 
 #. Heading of the library filter panel's genre section, and the label of
 #. the buttons that open the genre list from a library grid or a music
@@ -4255,10 +4255,8 @@ msgstr "Не ўдалося аднавіць прайграванне SyncPlay."
 #. Heading of a downloads group: episodes fetched automatically because
 #. they are next to watch in a series being followed.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Automatic"
 msgid "Automatic: Next Up"
-msgstr "Аўтаматычна"
+msgstr "Аўтаматычна: Наступнае"
 
 #. Heading of a downloads group: episodes fetched automatically because the
 #. series is being watched right now.
@@ -4970,11 +4968,9 @@ msgstr ""
 #. channels count. A form label, not the Live TV tab of the same English
 #. word.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgctxt "series recording rule setting"
 msgid "Channels"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Каналы"
 
 #. Choice in the "Channels" dropdown of the series recording dialog: record
 #. the show wherever it airs.
@@ -5061,10 +5057,8 @@ msgstr "Нумар канала"
 #. Choice in the "Sort channels by" dropdown of Guide Settings: put the
 #. channels watched most recently first.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Recently watched"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Нядаўна прагледжаныя"
 
 #. Checkbox in Guide Settings, moving channels marked as favourites to the
 #. top of the guide.
@@ -5199,10 +5193,8 @@ msgstr ""
 #. Button on the playback error screen that tries again while asking the
 #. server to re-encode the video. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid "No Transcode"
 msgid "Retry with Transcode"
-msgstr "Без перакадзіравання"
+msgstr "Паўтарыць з перакадзіраваннем"
 
 #. State of the repeat button on the now-playing bar: play the whole queue
 #. again when it ends.
@@ -5238,10 +5230,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play"
-msgstr "SyncPlay"
+msgstr "Прайграць"
 
 #. Tooltip of the button on the now-playing bar that halts playback. An
 #. imperative verb.
@@ -5552,10 +5542,8 @@ msgstr ""
 #. Button under "No items match these filters." on an empty library grid.
 #. Removes every filter set on the library. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Clear Filters"
-msgstr "SyncPlay"
+msgstr "Ачысціць фільтры"
 
 #. Button above a library grid that opens the View settings modal. A noun:
 #. how this library is displayed.
@@ -5593,10 +5581,8 @@ msgstr ""
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play All"
-msgstr "SyncPlay"
+msgstr "Прайграць усё"
 
 #. Button on a library grid, an album, a playlist, a series or a season that
 #. queues everything in it in a random order and starts playing; on the Play
@@ -5813,19 +5799,15 @@ msgstr ""
 #. language it did, and the button came out saying "Seen".
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Глядзець"
 
 #. Button that starts playing the channel a programme is on, when that
 #. programme is not airing now. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch Channel"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Глядзець канал"
 
 #. Button that ends the recording currently running for this programme. An
 #. imperative verb.
@@ -5853,10 +5835,8 @@ msgstr ""
 #. verb.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Record series"
-msgstr "Выдаліць сервер"
+msgstr "Запісаць серыял"
 
 #. Shown on a channel's page when the server has no listings for it.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -5872,10 +5852,8 @@ msgstr ""
 
 #. Stands in for the name of a Live TV channel the server did not name.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Channel"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Канал"
 
 #. Name of a tab on the music page, and of a search-results and library
 #. group, holding music albums.
@@ -5958,10 +5936,9 @@ msgstr ""
 #. the start of the list. The beginning of an ordering, not a place on
 #. screen. Split from the subtitle position of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgctxt "list position"
 msgid "Top"
-msgstr "Зверху"
+msgstr "У пачатак"
 
 #. Button on the queue and playlist editors that moves the selected rows
 #. one place earlier. A direction.
@@ -5979,10 +5956,9 @@ msgstr ""
 #. the end of the list. The end of an ordering, not a place on screen.
 #. Split from the subtitle position of the same English word.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgctxt "list position"
 msgid "Bottom"
-msgstr "Знізу"
+msgstr "У канец"
 
 #. Caption on the queue and playlist editors, counting how many rows are
 #. ticked.
@@ -6017,10 +5993,8 @@ msgstr "У плэйліст"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove"
-msgstr "Выдаліць сервер"
+msgstr "Выдаліць"
 
 #. Shown on the queue editor when nothing is queued.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -6168,10 +6142,8 @@ msgstr ""
 
 #. Tooltip of the book reader's button that enlarges the type.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Large"
 msgid "Larger text"
-msgstr "Вялікі"
+msgstr "Павялічыць тэкст"
 
 #. Tooltip of the book reader's button that switches between the dark,
 #. sepia and light page backgrounds. British spelling here; the settings
@@ -6290,10 +6262,8 @@ msgstr ""
 
 #. Name of a search-results group holding film trailers.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailers"
-msgstr "Няўдача"
+msgstr "Трэйлеры"
 
 #. Name given to the stand-in server that holds what is on this device,
 #. shown in the server picker when browsing offline.
@@ -6391,19 +6361,15 @@ msgstr ""
 #. Button beside a downloads group that deletes the items in it already
 #. watched. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Remove Watched"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Выдаліць прагледжанае"
 
 #. Marker beside a download that has been watched, in a row of small
 #. captions. Lower case, because it sits among other fragments rather than
 #. starting a sentence.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "watched"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "прагледжанае"
 
 #. Question in the dialog that removes watched downloads. %s is the group
 #. they are in, such as a series name.
@@ -6666,13 +6632,13 @@ msgstr ""
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr ""
+msgstr "Размяшчэнне галоўнага экрана захавана."
 
 #. Status message when the order of the home screen rows could not be
 #. written to the server.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Could not save the home screen layout."
-msgstr ""
+msgstr "Не ўдалося захаваць размяшчэнне галоўнага экрана."
 
 #. Name of the first tab of Settings, holding what belongs to this
 #. installation rather than to browsing or watching.
@@ -6753,10 +6719,8 @@ msgstr "Імя новага карыстальніка…"
 #. Button in the Users settings that creates a new local profile. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Add Server"
 msgid "Add User"
-msgstr "Дадаць сервер"
+msgstr "Дадаць карыстальніка"
 
 #. Shown in the Servers settings when this profile has signed in to
 #. nothing.
@@ -6795,10 +6759,8 @@ msgstr "Серверы"
 #. Button beside a local profile in Settings that alters its numeric
 #. passcode. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Change Audio"
 msgid "Change PIN"
-msgstr "Змяніць аўдыё"
+msgstr "Змяніць PIN"
 
 #. Button beside a local profile in Settings that gives it a numeric
 #. passcode. An imperative verb phrase.
@@ -6936,26 +6898,20 @@ msgstr ""
 #. Action on an item's menu that puts it directly after what is playing
 #. now. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play next"
-msgstr "SyncPlay"
+msgstr "Прайграць наступным"
 
 #. Action on an item's menu that tells the server it has not been watched.
 #. An imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark unplayed"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Пазначыць як непрагледжанае"
 
 #. Action on an item's menu that tells the server it has been watched. An
 #. imperative verb phrase.
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark played"
-msgstr "Выйсці і пазначыць неназіраным"
+msgstr "Пазначыць як прагледжанае"
 
 #. Action on an item's menu that opens the playlist chooser. An imperative
 #. verb phrase.
@@ -7043,10 +6999,8 @@ msgstr ""
 
 #. Tooltip of the window button that fills the screen with the window.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Maximum"
 msgid "Maximize"
-msgstr "Максімум"
+msgstr "Разгарнуць"
 
 #. Tooltip of the grip in the window's bottom corner that drags the window
 #. larger or smaller. A verb.
@@ -7425,8 +7379,7 @@ msgstr "Адмоўлена ў доступе да бібліятэкі SyncPlay.
 #. started it; the possessive ending is English and should be rendered
 #. however the language marks possession.
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0}'s Group"
+#, python-brace-format
 msgid "{0}'s group"
 msgstr "Група {0}"
 
@@ -7536,16 +7489,13 @@ msgstr ""
 #. exists. {0} is the version number and the quoted text a shell command.
 #. Keep the line break.
 #: jellyfin_mpv_shim/update_check.py
-#, fuzzy, python-brace-format
-#| msgid ""
-#| "MPV Shim v{0} Update Available\n"
-#| "Open menu (press c) for details."
+#, python-brace-format
 msgid ""
 "MPV Shim v{0} Update Available\n"
 "Run \"flatpak update\" to install it."
 msgstr ""
 "MPV Shim v{0} даступна абнаўленне\n"
-"Адкрыйце меню (націсніце С) для дэталяў."
+"Выканайце «flatpak update», каб усталяваць яго."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
@@ -7580,7 +7530,7 @@ msgstr ""
 #. name in a narrow list.
 #: jellyfin_mpv_shim/utils.py
 msgid "Unkn"
-msgstr "Невядомы"
+msgstr "Невяд."
 
 #. Appended to a subtitle track's name when it is meant to be shown even
 #. with subtitles off, such as for on-screen signs. The leading space
