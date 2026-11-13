@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-12 12:50+0000\n"
+"PO-Revision-Date: 2026-11-13 07:56+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -1415,19 +1415,19 @@ msgstr "Субцітры"
 #. kind, singular: the timed words of a song.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Lyric"
-msgstr ""
+msgstr "Тэкст песні"
 
 #. Heading over an embedded image stream's rows in the Media Info panel,
 #. such as cover art inside an audio file. A stream kind, singular.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Image"
-msgstr ""
+msgstr "Выява"
 
 #. Row label in the Media Info panel: the file format wrapping the streams,
 #. such as MKV or MP4.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Container"
-msgstr ""
+msgstr "Кантэйнер"
 
 #. Row label in the Media Info panel, listing the formats the file also
 #. identifies as.
@@ -1439,18 +1439,18 @@ msgstr "Фармат"
 #. disk.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Path"
-msgstr ""
+msgstr "Шлях"
 
 #. Row label in the Media Info panel: how large the file is on disk.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Size"
-msgstr ""
+msgstr "Памер"
 
 #. Value of a yes/no row in the Media Info panel, such as Anamorphic or
 #. Interlaced.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Yes"
-msgstr ""
+msgstr "Так"
 
 #. Value of a yes/no row in the Media Info panel, such as Anamorphic or
 #. Interlaced.
@@ -1467,7 +1467,7 @@ msgstr "Не"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Title"
-msgstr ""
+msgstr "Назва"
 
 #. One English word, two places. The label of the interface-language row at
 #. the top of Settings; and a row in the Media Info panel giving which
@@ -1475,19 +1475,19 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Language"
-msgstr ""
+msgstr "Мова"
 
 #. Row label in the Media Info panel: the compression format of this
 #. stream, such as H264 or AAC.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Codec"
-msgstr ""
+msgstr "Кодэк"
 
 #. Row label in the Media Info panel: the four-character code the container
 #. files this codec under.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Codec tag"
-msgstr ""
+msgstr "Метка кодэка"
 
 #. Row label in the Media Info panel: the codec profile, such as High or
 #. Main 10.
@@ -1499,25 +1499,25 @@ msgstr "Профіль"
 #. resolution and bitrate.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Level"
-msgstr ""
+msgstr "Узровень"
 
 #. Row label in the Media Info panel: the picture size in pixels, shown as
 #. width by height.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Resolution"
-msgstr ""
+msgstr "Разрозненне"
 
 #. Row label in the Media Info panel: the shape of the picture, such as
 #. 16:9.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Aspect ratio"
-msgstr ""
+msgstr "Суадносіны бакоў"
 
 #. Row label in the Media Info panel: whether the picture is stored
 #. squeezed and stretched back out on playback.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Anamorphic"
-msgstr ""
+msgstr "Анамарфотны"
 
 #. Row label in the Media Info panel: whether the video is stored as
 #. interlaced fields rather than whole frames.
@@ -1696,7 +1696,7 @@ msgstr ""
 #. uses.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV level"
-msgstr ""
+msgstr "Узровень DV"
 
 #. Row label in the Media Info panel: whether the Dolby Vision reference
 #. processing unit data is present. Technical field names taken from the
@@ -1811,7 +1811,7 @@ msgstr ""
 #. limit on resolution and bitrate.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video codec's level is not supported"
-msgstr ""
+msgstr "Узровень відэакодэка не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -1934,7 +1934,7 @@ msgstr ""
 #. the text field for the "theme" setting (Settings > Browse > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme"
-msgstr ""
+msgstr "Тэма"
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2374,7 +2374,7 @@ msgstr ""
 #. as "None".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Па змаўчанні тэмы"
 
 #. Choice in the "Cover Size" dropdown (Settings > Browse > Theme); stored
 #. as "0.75".
@@ -3372,6 +3372,12 @@ msgid ""
 "get a drop shadow so they keep an edge against it. Off, they get the theme's "
 "card colour and no shadow, as Jellyfin Web does."
 msgstr ""
+"Лагатыпы каналаў — гэта чарніла на празрыстым фоне, намаляваныя для белай "
+"старонкі, на якую іх змяшчаюць іншыя кліенты, таму на цёмнай старонцы чорныя "
+"лагатыпы знікаюць. Калі ўключыць, кожны лагатып атрымлівае светлую "
+"падкладку, для якой ён быў створаны, а некаторыя з белым контурам "
+"атрымліваюць цень, каб захаваць мяжу на фоне. Калі выключыць, яны "
+"атрымліваюць колер карткі тэмы і без ценю, як у Jellyfin Web."
 
 #. Explanation shown under the "Make library logos more legible" setting
 #. (Settings > Browse > Library Browser).
@@ -3416,6 +3422,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
+"Перакрывае памер вокладкі тэмы. Таксама ёсць у меню «Выгляд» любой "
+"бібліятэкі."
 
 #. Explanation shown under the "12-Hour Clock" setting (Settings > Browse >
 #. Library Browser).
@@ -3587,10 +3595,8 @@ msgstr ""
 #. items that were started and not finished, so playback would resume part
 #. way in.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Disable"
 msgid "Resumable"
-msgstr "Адключыць"
+msgstr "Працягнуць"
 
 #. Heading of the library filter panel's genre section, and the label of
 #. the buttons that open the genre list from a library grid or a music
@@ -3641,18 +3647,14 @@ msgstr ""
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items that carry subtitles.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Has Subtitles"
-msgstr "Памер субцітраў: {0}"
+msgstr "Ёсць субцітры"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items that have a trailer.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Has Trailer"
-msgstr "Няўдача"
+msgstr "Ёсць трэйлер"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with bonus material (deleted scenes, featurettes).
@@ -3664,13 +3666,13 @@ msgstr ""
 #. to items with a theme song attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "Ёсць фонавая музыка"
 
 #. Checkbox in the filter panel's Features section. Restricts the library
 #. to items with a theme video attached.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "Ёсць фонавае відэа"
 
 #. Heading of a filter-panel section, above checkboxes for resolution and
 #. disc format (SD, HD, 4K, 3D, DVD, Blu-ray, ISO).
@@ -4045,6 +4047,9 @@ msgid ""
 "shadows the ones whose own outline is white. Off puts the theme's card "
 "colour behind them instead, with no shadows."
 msgstr ""
+"Дадае светлую падкладку пад празрыстыя лагатыпы і дадае цень тым, у каго "
+"белы контур. Калі выключыць, замест гэтага ставіцца колер карткі тэмы, без "
+"ценю."
 
 #. Default title of the plain message dialog, used when the caller supplied
 #. none.
@@ -4619,10 +4624,8 @@ msgstr "Прычыны"
 #. Heading of a block in the Playback Info panel holding MPV's own
 #. statistics. The player program, not a person.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Player"
-msgstr "SyncPlay"
+msgstr "Прайгравальнік"
 
 #. Heading of a block in the Playback Info panel holding the media file's
 #. own attributes, such as its container and size.
@@ -4702,10 +4705,8 @@ msgstr "Налады"
 #. Tooltip of the button on the playback controls that fills the screen
 #. with the video.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Fullscreen"
 msgid "Fullscreen"
-msgstr "Аўтаматычна на поўны экран"
+msgstr "На ўвесь экран"
 
 #. Status message after clicking a row on the Play Queue page when playback
 #. has already ended, so there is no queue left to jump within.
