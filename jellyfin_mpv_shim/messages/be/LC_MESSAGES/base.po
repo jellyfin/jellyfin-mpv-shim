@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-13 11:03+0000\n"
+"PO-Revision-Date: 2026-11-13 13:02+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -1523,7 +1523,7 @@ msgstr "Анамарфотны"
 #. interlaced fields rather than whole frames.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Interlaced"
-msgstr "Празрадковы"
+msgstr "Празрадковае"
 
 #. Row label in the Media Info panel: how many frames a second the video
 #. runs at.
@@ -1732,7 +1732,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f Mbps"
-msgstr ""
+msgstr "%.1f Мбіт/с"
 
 #. How the video is reaching this device: the server is sending the
 #. original file untouched. Shown on the playback information panel.
@@ -1746,14 +1746,14 @@ msgstr "Прамое прайграванне"
 #. panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Direct streaming"
-msgstr ""
+msgstr "Прамая трансляцыя"
 
 #. How the video is reaching this device: the streams are being put into a
 #. different container, with no re-encoding. Shown on the playback
 #. information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Remuxing"
-msgstr ""
+msgstr "Перапакаванне"
 
 #. One English word, two senses. A group heading on the Playback tab of
 #. Settings, over the options that decide when the server may re-encode;
@@ -1769,43 +1769,43 @@ msgstr "Перакадаванне"
 #. fragments completing "Reason:".
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The container is not supported"
-msgstr ""
+msgstr "Кантэйнер не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video codec is not supported"
-msgstr ""
+msgstr "Відэакодэк не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio codec is not supported"
-msgstr ""
+msgstr "Аўдыякодэк не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The subtitle codec is not supported"
-msgstr ""
+msgstr "Кодэк субцітраў не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode: the audio is in a
 #. separate file from the video.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio stream is external"
-msgstr ""
+msgstr "Аўдыяпаток знешні"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Secondary audio tracks are not supported"
-msgstr ""
+msgstr "Дадатковыя аўдыядарожкі не падтрымліваюцца"
 
 #. One reason the server gives for having to re-encode. "Profile" is a
 #. codec feature set, such as High or Main 10.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video codec's profile is not supported"
-msgstr ""
+msgstr "Профіль відэакодэка не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode. "Level" is a codec
 #. limit on resolution and bitrate.
@@ -1817,7 +1817,7 @@ msgstr "Узровень відэакодэка не падтрымліваец�
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's resolution is not supported"
-msgstr ""
+msgstr "Разрозненне відэа не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -1835,31 +1835,31 @@ msgstr "Частата кадраў відэа не падтрымліваецц
 #. frames the codec refers back to.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Reference frames are not supported"
-msgstr ""
+msgstr "Апорныя кадры не падтрымліваюцца"
 
 #. One reason the server gives for having to re-encode: the picture is
 #. stored squeezed and stretched back out on playback.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Anamorphic video is not supported"
-msgstr ""
+msgstr "Анамарфотнае відэа не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Interlaced video is not supported"
-msgstr ""
+msgstr "Празрадковае відэа не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The number of audio channels is not supported"
-msgstr ""
+msgstr "Колькасць аўдыяканалаў не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio codec's profile is not supported"
-msgstr ""
+msgstr "Профіль аўдыякодэка не падтрымліваецца"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
@@ -1895,19 +1895,19 @@ msgstr "Бітрэйт аўдыя не падтрымліваецца"
 #. the video stream's details.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video stream info is unknown"
-msgstr ""
+msgstr "Інфармацыя пра відэапаток невядомая"
 
 #. One reason the server gives for having to re-encode: it could not read
 #. the audio stream's details.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio stream info is unknown"
-msgstr ""
+msgstr "Інфармацыя пра аўдыяпаток невядомая"
 
 #. One reason the server gives for having to re-encode, listed on the
 #. playback information panel.
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "There was an error starting direct playback"
-msgstr ""
+msgstr "Памылка пры запуску прамога прайгравання"
 
 #. One reason the server gives for having to re-encode: which high dynamic
 #. range system the video uses.
@@ -1918,7 +1918,7 @@ msgstr "Тып відэадыяпазону не падтрымліваецца"
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "Гэта прылада"
 
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2235,19 +2235,19 @@ msgstr ""
 #. stored as "None".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
-msgstr ""
+msgstr "Як на дысплеі"
 
 #. Choice in the "Interface Scale" dropdown (Settings > Browse > Theme);
 #. stored as "2.0".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "200%"
-msgstr ""
+msgstr "200%"
 
 #. Choice in the "Scroll Mode" dropdown (Settings > Browse > Library
 #. Browser); stored as "continuous".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr ""
+msgstr "Бесперапынная"
 
 #. Choice in the "Scroll Mode" dropdown (Settings > Browse > Library
 #. Browser); stored as "aligned".
@@ -3950,7 +3950,7 @@ msgstr "Аўта"
 #. portrait cover art.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Poster"
-msgstr ""
+msgstr "Постар"
 
 #. Choice in the Artwork dropdown of a library's View settings: a wide
 #. landscape still.
