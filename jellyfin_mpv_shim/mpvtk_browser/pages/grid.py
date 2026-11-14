@@ -1487,6 +1487,8 @@ class ListPage(GridPage):
         return self.route.get("list") or {}
 
     def _sortable(self):
+        if self._spec().get("include_item_types") == "Person":
+            return False  # /Persons has no SortBy/SortOrder parameters
         return self._spec().get("type") not in self.UNSORTABLE
 
     def load(self, epoch):
@@ -1607,8 +1609,23 @@ class PersonPage(GridPage):
             route["_items"] = pagination.spread([], total, items, 0)
 
         self.route_async(work, done, epoch)
+        # Fetch the person's own user data independently of their credits.
+        # A cast entry is only a name/id/image, not a favorite state.
+        self.ctx.run.run(
+            lambda: source.get_item(srv, route["person_id"]),
+            lambda person: route.__setitem__("_person", person), epoch)
 
     def _header(self, items, width=0):
-        return [Text(self.route.get("title", ""), size="page", bold=True),
-                self._sort_bar()]
+        title = Text(self.route.get("title", ""), size="page", bold=True,
+                     flex=1)
+        person = self.route.get("_person")
+        header = [title]
+        if person:
+            header.append(controls.action_btn(
+                "favorite", _("Favorite"), "person-favorite",
+                lambda: self.ctx.actions.toggle_favorite(
+                    self.route["_person"],
+                    self.route.get("server") or self.ctx.server),
+                on=bool((person.get("UserData") or {}).get("IsFavorite"))))
+        return [Row(header, gap=12, align="center"), self._sort_bar()]
 
