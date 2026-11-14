@@ -71,13 +71,37 @@ class TilesMixin:
     # ------------------------------------------------------ tile context menu
 
     def _open_tile_menu(self, item, x, y):
-        # Nothing on offer for this type (a cast member): no menu at all,
+        # Nothing on offer for this type: no menu at all,
         # rather than an empty one.
         if not self._tile_menu_entries(item):
             return
         self._menu = {"item": item,
                       "server": self.route.get("server") or self.server,
                       "x": x, "y": y}
+        if item.get("Type") == "Person":
+            # Cast entries embedded in a film carry no UserData. Read the
+            # person's own DTO before offering Add/Remove from favorites.
+            menu = self._menu
+            menu["_loading"] = True
+
+            def failed(_exc):
+                if self._menu is menu:
+                    self._close_menu()
+                    self.set_status(_("Failed to load. Check the connection."))
+
+            def done(person):
+                if self._menu is not menu:
+                    return  # dismissed, or another tile's menu opened
+                if not person:
+                    failed(None)
+                    return
+                item["UserData"] = dict(person.get("UserData") or {})
+                menu.pop("_loading", None)
+                self.invalidate()
+
+            self.run_async(
+                lambda: self.source.get_item(menu["server"], item["Id"]),
+                done, self._epoch, on_error=failed)
         self.invalidate()
 
     def _close_menu(self):
@@ -109,7 +133,9 @@ class TilesMixin:
     # favoriting one posts a non-favoritable id and the server rejects it.
     # (The old `MENU_PLAYABLE | {"MusicAlbum", "MusicArtist"}` read as
     # widening but was a no-op — both names were already in the set.)
-    MENU_FAVORITE = MENU_PLAYABLE - {"MusicGenre"}
+    # A person has user data too, even though their credits are not a
+    # playable item. Keep this separate from playback/watch/download.
+    MENU_FAVORITE = (MENU_PLAYABLE - {"MusicGenre"}) | {"Person"}
 
     MENU_ADD_TO = PLAYABLE_TYPES | {"Audio", "AudioBook", "MusicAlbum",
                                     "MusicArtist", "MusicGenre", "Series",
@@ -450,6 +476,8 @@ class TilesMixin:
 
     def _tile_menu_node(self):
         m = self._menu
+        if m.get("_loading"):
+            return None
         entries = self._tile_menu_entries(m["item"])
         if not entries:
             return None
@@ -459,7 +487,7 @@ class TilesMixin:
 
     def _menu_action(self, index, value):
         m = self._menu
-        if m is None:
+        if m is None or m.get("_loading"):
             return
         item, server = m["item"], m["server"]
         entries = self._tile_menu_entries(item)

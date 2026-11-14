@@ -1885,6 +1885,7 @@ class LibrarySource:
         ("artists", lambda: _("Artists"), "MusicArtist"),
         ("albums", lambda: _("Albums"), "MusicAlbum"),
         ("songs", lambda: _("Songs"), "Audio"),
+        ("people", lambda: _("People"), "Person"),
         # jellyfin-web's global Favorites screen has no book rows -- it
         # reaches a favourited book through the books LIBRARY's Favorites
         # tab (constants/views/books.ts, slot 6), which is a per-library
@@ -2003,6 +2004,17 @@ class LibrarySource:
         (``#/list?genreId=…``, ``&IsFavorite=true``).
         """
         api = self._conn(server_uuid).api
+        if spec.get("include_item_types") == "Person":
+            # /Items can omit people. /Persons filters favorites, but 10.11
+            # ignores StartIndex and counts only the rows left after Limit.
+            # Read the favorite set and slice locally on both server versions.
+            # get_persons() does not expose IsFavorite.
+            params = {"UserId": "{UserId}", "EnableUserData": True}
+            if spec.get("is_favorite"):
+                params["IsFavorite"] = True
+            result = api._get("Persons", params) or {}
+            people = result.get("Items", [])
+            return people[start_index:start_index + limit], len(people)
         kwargs = dict(self._filter_kwargs(filters))
         for key in ("genre_ids", "person_ids", "artist_ids",
                     "include_item_types", "parent_id"):

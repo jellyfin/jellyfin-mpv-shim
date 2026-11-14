@@ -40,6 +40,7 @@ class FavoritesPage(Page):
         "artists": ("geom_square", "Primary", True),
         "albums": ("geom_square", "Primary", True),
         "songs": ("geom_square", "Primary", True),
+        "people": ("geom", "Primary", False),
         # Books get the portrait shape web gives them wherever it draws one
         # explicitly (its Continue Reading row is the only place, and it is
         # getPortraitShape). Audiobooks square, like the albums they are
@@ -91,7 +92,10 @@ class FavoritesPage(Page):
         types = row.get("types")
         if not types:
             return None
+        spec = {"type": "items", "is_favorite": True,
+                "include_item_types": types}
+        if types == "Person":
+            spec["shape"] = "poster"
         return lambda: self.ctx.nav.navigate({
             "kind": "list", "server": server, "title": title,
-            "list": {"type": "items", "is_favorite": True,
-                     "include_item_types": types}})
+            "list": spec})
