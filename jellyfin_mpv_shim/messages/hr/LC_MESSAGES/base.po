@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-12 11:04+0000\n"
+"PO-Revision-Date: 2026-11-14 10:54+0000\n"
 "Last-Translator: Alen Bajo <abajo62@gmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
@@ -116,7 +116,7 @@ msgstr "Čekanje na autorizaciju..."
 #. signing in again.
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr "Očistiti sve postojeće račune."
+msgstr "Čišćenje svih postojećih računa."
 
 #. Printed in the terminal after a server was signed in to.
 #: jellyfin_mpv_shim/clients.py
@@ -2006,7 +2006,7 @@ msgstr "Ovaj uređaj"
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr "PHP maksimalne vrijednosti ulaznih varijabli"
+msgstr "Unos"
 
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2623,7 +2623,7 @@ msgstr "Prikaži plakate na stranicama detalja"
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr "Prikaži minijature epizoda na stranicama s detaljima"
+msgstr "Prikaži sličice epizoda na stranicama s detaljima"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #. Label of the dropdown for the "hwdec" setting (Settings > Playback >
@@ -3207,7 +3207,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
-msgstr "Minijatura epizode je kadar iz epizode koju možda još niste pogledali."
+msgstr "Sličica epizode je kadar iz epizode koju možda još niste pogledali."
 
 #. Explanation shown under the "Left Click Pauses Playback" setting
 #. (Settings > Playback > Player Controls).
@@ -4998,7 +4998,7 @@ msgstr "Prethodno poglavlje"
 #. Tooltip of the rewind button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
-msgstr "Natrag za 10 sekundi"
+msgstr "Natrag 10 sekundi"
 
 #. Tooltip of the fast-forward button on the playback controls.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
