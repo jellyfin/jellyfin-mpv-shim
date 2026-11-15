@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-11 09:48+0000\n"
-"Last-Translator: Đinh Mạnh Tưởng <prism9x@gmail.com>\n"
+"PO-Revision-Date: 2026-11-15 15:01+0000\n"
+"Last-Translator: ImHuyOkekek99227 <huykenz72ilove@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/vi/>\n"
 "Language: vi\n"
@@ -239,7 +239,7 @@ msgstr "Tua qua đoạn xem trước"
 #. jumps past it. An imperative verb phrase.
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Bỏ qua đoạn giới thiệu"
 
 #. Confirmation drawn over the video after a recap was jumped past. Past
 #. tense.
@@ -551,7 +551,7 @@ msgstr "Không Bao Giờ"
 #. Intro / Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Hỏi"
 
 #. Choice shared by the "Tell Me About Updates", "Window Buttons in the Top
 #. Bar", "Skip Intros", "Skip Credits", "Skip Commercials", "Skip
@@ -560,7 +560,7 @@ msgstr ""
 #. Credits). One translation has to serve all of them.
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Luôn"
 
 #. Title of the in-player submenu that sets the bandwidth limit used for
 #. remote playback from then on.
@@ -775,27 +775,27 @@ msgstr "Bật hình nhỏ xem trước"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Chế độ ban đêm (Tự động điều chỉnh âm lượng)"
 
 #. Title of the screen shown when the application is locked behind a
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Đã khoá"
 
 #. Status message when a page's content could not be fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Thất bại khi tải. Kiểm tra kết nối mạng."
 
 #. Label beside the number field in the Reading Progress dialog, where a
 #. page to jump to is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Trang"
 
 #. Follows a page-number field, giving the total, as in "of 240". In the
 #. Reading Progress dialog, the comic reader and a paged library grid.
@@ -804,13 +804,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
-msgstr ""
+msgstr "trong số %d"
 
 #. Tooltip of the paging button that jumps to the first page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Trang đầu tiên"
 
 #. Tooltip of the button that goes back one page: in a library grid, and in
 #. the book and comic readers.
@@ -828,13 +828,13 @@ msgstr "Đã thêm máy chủ thành công."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Trang tiếp theo"
 
 #. Tooltip of the paging button that jumps to the last page of a library
 #. grid.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Trang cuối cùng"
 
 #. Status message when the server refused an edit, such as marking an item
 #. watched or removing it from a playlist.
@@ -842,7 +842,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "Thay đổi vẫn chưa được áp dụng."
 
 # seeded from jellyfin-web: LiveTV
 #. Name of the broadcast television area of Jellyfin, used as a library
@@ -859,7 +859,7 @@ msgstr "TV Trực Tiếp"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Đã chọn: %s"
 
 #. Shown in a dialog or page while its content is being fetched from the
 #. server.
@@ -869,27 +869,27 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Đang tải…"
 
 #. Status message when starting an item failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Phát lại vẫn chưa được bắt đầu."
 
 #. Status line after picking Offline in the top bar's server picker when
 #. there are no downloads to browse.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Nothing is downloaded to browse offline."
-msgstr ""
+msgstr "Chưa có gì đã tải để duyệt ngoại tuyến."
 
 #. Tooltip of the button on the now-playing bar that opens the list of what
 #. is queued to play. A noun.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Hàng chờ"
 
 #. Button that tries a failed operation again: reaching a server at
 #. startup, an offline banner, a page that would not load, an item that
@@ -910,6 +910,8 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Không thể tự động khởi động lại — thoát và khởi động lại ứng dụng để áp dụng "
+"thay đổi của bạn."
 
 #. Status message when a retry after a connection failure also failed.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
@@ -927,14 +929,14 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Chuyển sang %s"
 
 #. Placeholder in the empty field where a numeric passcode is typed, on the
 #. switch-user and lock screens. The abbreviation is widely kept as-is; use
 #. whatever word the local Jellyfin apps use for a numeric passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "Mã PIN"
 
 # seeded from jellyfin-web: ButtonCancel
 #. Button that dismisses a dialog without doing what it asked about. The
@@ -952,13 +954,13 @@ msgstr "Hủy bỏ"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Chuyển"
 
 #. Error shown when the passcode typed to switch user or unlock does not
 #. match.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "Sai mã PIN."
 
 #. Title of the dialog that gives a user a numeric passcode. %s is that
 #. user's name.
@@ -972,13 +974,13 @@ msgstr "Máy chủ:"
 #. PIN dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "mã PIN hiện tại"
 
 #. Label of the field asking for the passcode to change to, in the Set PIN
 #. dialog.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "Mã PIN mới"
 
 #. Label of the field in the Set PIN dialog asking for the new passcode a
 #. second time, to check it was typed correctly. A verb. Split from the
@@ -986,21 +988,19 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgctxt "form label"
 msgid "Confirm"
-msgstr ""
+msgstr "Xác nhận"
 
 #. Checkbox in the Set PIN dialog. When on, the passcode is asked for every
 #. time the application opens.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Yêu cầu mã PIN này khi khởi động"
 
 #. Button in the Set PIN dialog that takes the passcode off this user. An
 #. imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Xóa máy chủ"
+msgstr "Xóa mã PIN"
 
 # seeded from jellyfin-web: Save
 #. Button in the Set PIN dialog that stores the new passcode. An imperative
@@ -1014,30 +1014,30 @@ msgstr "Lưu"
 #. wrongly.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "Mã PIN hiện tại chưa đúng."
 
 #. Error in the Set PIN dialog when the new-passcode field was left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Nhập mã PIN mới."
 
 #. Error in the Set PIN dialog when the passcode and its confirmation
 #. differ.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "Mã PIN không khớp nhau."
 
 #. Error in the Set PIN dialog when the server refused to take the passcode
 #. off.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "Mã PIN không thể bị xoá."
 
 #. Error in the Set PIN dialog when the server refused to store the
 #. passcode.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "Mã PIN vẫn chưa được lưu."
 
 # seeded from jellyfin-web: ButtonSignIn
 #. Button, and the title of the screen it opens. Signs back in to a server
@@ -1045,10 +1045,8 @@ msgstr ""
 #. adding a new one. "Again" is the load-bearing word.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Sign In"
 msgid "Sign In Again"
-msgstr "Đăng nhập"
+msgstr "Đăng nhập lại"
 
 #. Title of the page that connects this application to a Jellyfin server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -1065,26 +1063,26 @@ msgid ""
 "Your saved login for %s is no longer accepted. Signing in again keeps its "
 "downloads and settings."
 msgstr ""
+"Thông tin đăng nhập đã lưu của bạn cho %s không còn được chấp nhận. Hãy đăng "
+"nhập lại để giữ tải về và cài đặt."
 
 #. Main heading of the sign-in page. "Jellyfin" is the product name; leave
 #. it as-is.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Kết nối tới Jellyfin"
 
 #. Heading above the list of servers already signed in to, on the sign-in
 #. page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Đã thêm máy chủ thành công."
+msgstr "Đã thêm máy chủ trước đó."
 
 #. Button beside a remembered server on the sign-in page, choosing that
 #. server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Dùng"
 
 # seeded from jellyfin-web: QuickConnect
 #. A Jellyfin feature that signs a device in by typing a short code into an
@@ -1098,23 +1096,19 @@ msgstr "Kết Nối Nhanh"
 #. Instruction above the Quick Connect code on the sign-in page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "Nhập mã này trong ứng dụng Jellyfin hoặc trình duyệt máy khách:"
 
 #. Stands in for the Quick Connect code while it is being fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "Cài đặt SVP"
+msgstr "Đang yêu cầu…"
 
 #. Label of the field on the sign-in page where the Jellyfin server's web
 #. address is typed.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "URL máy chủ: "
+msgstr "URL máy chủ:"
 
 #. Label of the field on the sign-in page where the Jellyfin account name
 #. is typed.
@@ -1158,38 +1152,30 @@ msgstr "Kết nối"
 #. the local network, on the add-server screen. The list below it is
 #. "Previously added servers".
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Servers on your network"
-msgstr "Cấu hình máy chủ"
+msgstr "Máy chủ trong mạng của bạn"
 
 #. Error on the sign-in page when Quick Connect was pressed with the server
 #. address left empty.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "Hãy nhập URL máy chủ trước."
 
 #. Status shown while the Quick Connect code is being requested.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Không thể thêm máy chủ.\n"
-"Vui lòng kiểm tra thông tin kết nối của bạn."
+msgstr "Đang liên hệ tới máy chủ…"
 
 #. Status shown while Quick Connect waits for someone to accept the code in
 #. another Jellyfin app.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "Đang chờ yêu cầu…"
 
 #. Error shown when the Quick Connect code expired or was refused.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "Kết nối nhanh không được chấp thuận."
 
 #. Error shown on the Sign In Again page when the address typed there
 #. belongs to a different Jellyfin server than the saved one being signed
@@ -1201,54 +1187,44 @@ msgid ""
 "That address is a different server. To sign in to it, add it as a new server "
 "instead."
 msgstr ""
+"Địa chỉ là địa chỉ máy chủ khác. Để đăng nhập tới máy chủ đó, hãy thêm nó "
+"như một máy chủ mới."
 
 #. Status shown on the sign-in page while the server is being contacted.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr ""
+msgstr "Đang kết nối…"
 
 #. Error under the Sign In Again form when the server refused the username
 #. or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not sign in. Please check your details."
-msgstr ""
-"Không thể thêm máy chủ.\n"
-"Vui lòng kiểm tra thông tin kết nối của bạn."
+msgstr "Không thể đăng nhập. Hãy kiểm tra lại thông tin đăng nhập của bạn."
 
 #. Error on the sign-in page when signing in failed, most often a wrong
 #. address, name or password.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Không thể thêm máy chủ.\n"
-"Vui lòng kiểm tra thông tin kết nối của bạn."
+msgstr "Không thể kết nối. Hãy kiểm tra lại thông tin đăng nhập của bạn."
 
 #. Heading of the startup screen shown while the saved servers are being
 #. reached.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "Đang kết nối tới máy chủ của bạn…"
 
 #. Button on the startup screen. Browses what has been downloaded to this
 #. device instead of waiting for the server. An imperative verb.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
+msgstr "Làm việc ngoại tuyến"
 
 #. Shown when Work Offline was pressed but nothing has been downloaded to
 #. this device.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "Không có gì đã tải để duyệt."
 
 #. Error on the startup screen when none of the remembered servers
 #. answered. The bracketed plural is because there may be one server or
