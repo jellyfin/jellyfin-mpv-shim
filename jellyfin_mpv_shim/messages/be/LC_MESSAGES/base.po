@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-16 06:24+0000\n"
+"PO-Revision-Date: 2026-11-16 06:44+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -7151,7 +7151,7 @@ msgstr "Паказаць спампоўкі"
 #. starting one.
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr ""
+msgstr "невядомы"
 
 #. Entry on the settings menu of the classic on-screen controls, opening
 #. MPV's own statistics overlay.
@@ -7169,7 +7169,7 @@ msgstr "Перакадаванне"
 #. overriding and follow the wider setting".
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 msgid "Use the default"
-msgstr ""
+msgstr "Выкарыстоўваць па змаўчанні"
 
 #. Value shown beside the SyncPlay row on the playback controls when this
 #. device is watching in sync with a group.
@@ -7180,7 +7180,7 @@ msgstr "SyncPlay уключаны"
 #. Shown over the video while the next item is being opened.
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
-msgstr ""
+msgstr "Калі ласка, пачакайце, ідзе загрузка..."
 
 #. Warning drawn over the video when the server is re-encoding it. "c" is a
 #. keyboard key; leave the letter as it is. Keep the line break.
@@ -7198,13 +7198,13 @@ msgstr ""
 #. "Could not play this item: <title> — "; "it" is that item.
 #: jellyfin_mpv_shim/player.py
 msgid "The server stopped sending it partway through."
-msgstr ""
+msgstr "Сервер перастаў адказваць падчас прайгравання."
 
 #. Shown over the video when playback reaches the end of a downloaded
 #. episode and the one after it is not on this device.
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
+msgstr "Наступная серыя не спампавана."
 
 #. How an episode is named in what this application reports to the server
 #. and to Discord. {0} and {1} are numbers.
@@ -7325,6 +7325,7 @@ msgstr ""
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
 msgstr ""
+"Спампоўка яшчэ не скончылася. Дачакайцеся яе завяршэння і паспрабуйце зноў."
 
 #. Error when the disk holding the chosen folder is too small for what is
 #. already downloaded.
