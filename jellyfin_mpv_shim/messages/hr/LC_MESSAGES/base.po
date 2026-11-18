@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-14 10:54+0000\n"
+"PO-Revision-Date: 2026-11-18 20:33+0000\n"
 "Last-Translator: Alen Bajo <abajo62@gmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
@@ -4055,7 +4055,7 @@ msgstr "Privatno (samo ti to možeš vidjeti)"
 #. Collection modal. The ellipsis means it opens another view.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Collections…"
-msgstr "Zbirke…"
+msgstr "Kolekcije…"
 
 #. Button that dismisses something without acting. Used on modals (Add to
 #. Playlist, Reading Progress, SyncPlay, the recording dialogs) and as the
