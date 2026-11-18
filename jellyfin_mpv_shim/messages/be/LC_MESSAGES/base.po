@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-18 10:25+0000\n"
+"PO-Revision-Date: 2026-11-18 14:00+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -2151,85 +2151,85 @@ msgstr "Інтэрфейс MPV"
 #. Player Controls); stored as "custom".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "Уласны OSC"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "none".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
-msgstr ""
+msgstr "Без элементаў кіравання"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "0.75".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "0.85".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "0.9".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #. Choice shared by the "Text size", "Interface Scale" dropdowns (Settings
 #. > Browse > Theme). One translation has to serve all of them.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
-msgstr ""
+msgstr "100% (без маштабавання)"
 
 #. Choice in the "Text size" dropdown (Settings > Browse > Theme); stored
 #. as "1.1".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #. Choice shared by the "Text size", "Interface Scale" dropdowns (Settings
 #. > Browse > Theme). One translation has to serve all of them.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
-msgstr ""
+msgstr "125%"
 
 #. Choice shared by the "Text size", "Interface Scale" dropdowns (Settings
 #. > Browse > Theme). One translation has to serve all of them.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "150%"
-msgstr ""
+msgstr "150%"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "0".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No minimum"
-msgstr ""
+msgstr "Без мінімуму"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "14".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "14 px"
-msgstr ""
+msgstr "14 px"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "16".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "16 px"
-msgstr ""
+msgstr "16 px"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "18".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "18 px"
-msgstr ""
+msgstr "18 px"
 
 #. Choice in the "Minimum Text Size" dropdown (Settings > Browse > Theme);
 #. stored as "20".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "20 px"
-msgstr ""
+msgstr "20 px"
 
 #. Choice in the "Interface Scale" dropdown (Settings > Browse > Theme);
 #. stored as "None".
@@ -2253,13 +2253,13 @@ msgstr "Бесперапынная"
 #. Browser); stored as "aligned".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr ""
+msgstr "Выраўноўванне па радках"
 
 #. Choice in the "Scroll Mode" dropdown (Settings > Browse > Library
 #. Browser); stored as "row".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr ""
+msgstr "Адзін радок за пстрычку"
 
 #. Choice in several settings dropdowns, meaning the application decides
 #. rather than the viewer: whether to announce updates, when to download
@@ -2275,28 +2275,28 @@ msgstr "Аўтаматычна"
 #. General > Window); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
-msgstr ""
+msgstr "Толькі калі акно без загалоўка"
 
 #. Choice in the "Page Colour" dropdown (Settings > Browse > Reading);
 #. stored as "dark".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Dark"
-msgstr ""
+msgstr "Цёмная"
 
 #. Choice in the "Page Colour" dropdown (Settings > Browse > Reading);
 #. stored as "sepia".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Sepia"
-msgstr ""
+msgstr "Сепія"
 
 #. Choice in the "Page Colour" dropdown (Settings > Browse > Reading);
 #. stored as "light".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "Светлая"
 
 #. Choice in the "Comic Reading Mode" dropdown (Settings > Browse >
 #. Reading); stored as "width".
@@ -2404,37 +2404,37 @@ msgstr "Вельмі вялікі"
 #. Video Enhancement); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
-msgstr ""
+msgstr "Аўтаматычна (рэкамендуецца)"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "vulkan".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Vulkan"
-msgstr ""
+msgstr "Vulkan"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "d3d11".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Direct3D 11 (Windows only)"
-msgstr ""
+msgstr "Direct3D 11 (толькі для Windows)"
 
 #. Choice in the "Graphics API for Shaders" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "opengl".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "OpenGL (compatibility)"
-msgstr ""
+msgstr "OpenGL (сумяшчальнасць)"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default (auto)"
-msgstr ""
+msgstr "Па змаўчанні (аўта)"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "stereo".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Force Stereo"
-msgstr ""
+msgstr "Прымусовае стэрэа"
 
 #. Choice in the "Audio Output Mode" dropdown (Settings > Playback >
 #. Audio); stored as "optical".
