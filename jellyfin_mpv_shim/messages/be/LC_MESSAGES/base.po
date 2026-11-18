@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-16 06:44+0000\n"
+"PO-Revision-Date: 2026-11-18 10:25+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -1923,12 +1923,12 @@ msgstr "Гэта прылада"
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Увод"
 
 #. Heading of a group of settings on the General tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "Акно"
 
 #. Heading of a group of settings on the Browse tab of Settings. Label of
 #. the text field for the "theme" setting (Settings > Browse > Theme).
@@ -1939,7 +1939,7 @@ msgstr "Тэма"
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Library Browser"
-msgstr ""
+msgstr "Агляд бібліятэкі"
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1953,7 +1953,7 @@ msgstr "Чытанне"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Downloads"
-msgstr ""
+msgstr "Спампоўкі"
 
 #. Heading of a group of settings on the Browse tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1963,7 +1963,7 @@ msgstr "Налады спампоўкі"
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls"
-msgstr ""
+msgstr "Кіраванне прайгравальнікам"
 
 #. One English word, three places. A group heading on the Playback tab of
 #. Settings; the name of that tab's own section; and the heading of the
@@ -1978,12 +1978,12 @@ msgstr "Прайграванне"
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
-msgstr ""
+msgstr "Субцітры і мовы"
 
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
-msgstr ""
+msgstr "Паляпшэнне відэа"
 
 #. Heading of a group of settings on the Playback tab of Settings.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1994,98 +1994,98 @@ msgstr "Прапусціць уступ / цітры"
 #. named group.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Advanced"
-msgstr ""
+msgstr "Пашыраныя"
 
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "no".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "Выключана (праграмнае дэкадаванне)"
 
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "over-1080p".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "Толькі вышэй за 1080p"
 
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "On"
-msgstr ""
+msgstr "Уключана"
 
 #. Choice in the "Hardware Decoding" dropdown (Settings > Playback >
 #. Playback); stored as "auto-copy".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Copy (advanced)"
-msgstr ""
+msgstr "Капіяванне (пашыранае)"
 
 #. Choice shared by the "Motion Interpolation", "Debanding" dropdowns
 #. (Settings > Playback > Video Enhancement). One translation has to serve
 #. all of them.
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off"
-msgstr ""
+msgstr "Выключана"
 
 #. Choice in the "Motion Interpolation" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "smooth".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Плыўны рух"
 
 #. Choice in the "Motion Interpolation" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "blend".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Blend Frames"
-msgstr ""
+msgstr "Змешванне кадраў"
 
 #. Choice in the "Motion Interpolation" dropdown (Settings > Playback >
 #. Video Enhancement); stored as "hq".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Плыўна (высокая якасць)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "light".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Слабы (гульнявое кіно)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "standard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Стандартны (анімацыя)"
 
 #. Choice in the "Debanding" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "strong".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Моцны"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "auto".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (MPV decides)"
-msgstr ""
+msgstr "Аўтаматычна (вызначае MPV)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2390".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 (эталонны)"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "bt.2446a".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "BT.2446a"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "spline".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "Сплайн"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "hable".
@@ -2097,19 +2097,19 @@ msgstr "Hable"
 #. Enhancement); stored as "reinhard".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "Рэйнхард"
 
 #. Choice in the "HDR Tone Mapping" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "clip".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Адсячэнне (без тонавага адлюстравання)"
 
 #. Choice in the "Rendering Quality" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "default".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default"
-msgstr ""
+msgstr "Па змаўчанні MPV"
 
 #. Choice in the "Rendering Quality" dropdown (Settings > Playback > Video
 #. Enhancement); stored as "high".
@@ -2121,31 +2121,31 @@ msgstr "Высокая якасць"
 #. Playback); stored as "default".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default (1 second)"
-msgstr ""
+msgstr "Па змаўчанні MPV (1 секунда)"
 
 #. Choice in the "Network Buffer" dropdown (Settings > Playback >
 #. Playback); stored as "large".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Large (20 seconds)"
-msgstr ""
+msgstr "Вялікі (20 секунд)"
 
 #. Choice in the "Network Buffer" dropdown (Settings > Playback >
 #. Playback); stored as "huge".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Very large (60 seconds)"
-msgstr ""
+msgstr "Вельмі вялікі (60 секунд)"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "mpvtk".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
-msgstr ""
+msgstr "Інтэрфейс Jellyfin"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "mpv".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV UI"
-msgstr ""
+msgstr "Інтэрфейс MPV"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "custom".
