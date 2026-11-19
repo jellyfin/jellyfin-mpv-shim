@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-19 06:23+0000\n"
+"PO-Revision-Date: 2026-11-19 12:12+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -126,7 +126,7 @@ msgstr "Сервер паспяхова дададзены."
 #. Printed in the terminal when signing in to a server failed.
 #: jellyfin_mpv_shim/clients.py
 msgid "Adding server failed."
-msgstr "Не атрымалася дадаць сервер."
+msgstr "Не ўдалося дадаць сервер."
 
 #. Printed in the terminal when the server being added is one already
 #. saved, so its saved login is replaced.
@@ -2578,19 +2578,19 @@ msgstr ""
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr "Аўтаматычна спампоўваць новыя серыі"
+msgstr "Аўтаматычна спампоўваць будучыя серыі"
 
 #. Label of the checkbox for the "auto_download_next_up" setting (Settings
 #. > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Уключыць \"Наступнае\""
 
 #. Label of the number field for the "auto_download_next_up_limit" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "Колькасць запісаў \"Наступнае\" для ўліку"
 
 #. Label of the number field for the "auto_download_lookahead" setting
 #. (Settings > Browse > Downloads).
@@ -2705,7 +2705,7 @@ msgstr ""
 #. General > This Device).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
-msgstr ""
+msgstr "Паказваць у Discord, што вы глядзіце"
 
 #. Label of the checkbox for the "mpris" setting (Settings > General > This
 #. Device). Turns on control by the desktop's media keys and media widgets.
@@ -2971,7 +2971,7 @@ msgid ""
 msgstr ""
 "Гэты спіс сам па сабе нічога не робіць — уключыце адзін з двух перамыкачоў "
 "ніжэй. Ён змяняе, якія дарожкі прапануюць меню аўдыя і субцітраў, а не якую "
-"выбіраюць аўтаматычна; за гэта адказвае папярэдняя налада вышэй. «und» "
+"выбіраюць аўтаматычна; за гэта адказвае папярэдняя налада вышэй. \"und\" "
 "азначае «без пазнакі мовы», таму яго выдаленне схавае таксама і непазначаныя "
 "дарожкі."
 
@@ -3007,9 +3007,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
-"Варыянт «Аўтаматычна» адключае гэтую функцыю ўнутры Flatpak, дзе ваша "
-"працоўнае асяроддзе ўжо паведамляе пра абнаўленні, а каманда «flatpak update"
-"» іх усталёўвае, і пакідае яе ўключанай ва ўсіх астатніх выпадках."
+"Варыянт \"Аўтаматычна\" адключае гэтую функцыю ўнутры Flatpak, дзе ваша "
+"працоўнае асяроддзе ўжо паведамляе пра абнаўленні, а каманда \"flatpak "
+"update\" іх усталёўвае, і пакідае яе ўключанай ва ўсіх астатніх выпадках."
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3052,6 +3052,10 @@ msgid ""
 "controls. An mpv key name; changing it hands Enter back to MPV. The game "
 "controller's Confirm button and a phone's Select follow it."
 msgstr ""
+"Актывуе вылучаны элемент у бібліятэцы і на панэлі кіравання плэерам. Гэта "
+"назва клавішы mpv; яе змена вяртае клавішу Enter пад кіраванне MPV. Кнопка "
+"пацвярджэння геймпада і кнопка выбару на тэлефоне прывязваюцца да гэтага ж "
+"дзеяння."
 
 #. Help text under the setting above. "Grace period" and "rewatch" are
 #. also the words people search the settings box for, so keep whatever the
@@ -3063,6 +3067,11 @@ msgid ""
 "instead of going on the next check. Running out of storage still removes "
 "watched downloads before the time is up."
 msgstr ""
+"Пасля таго як вы скончыце глядзець, пачынаецца льготны перыяд: элемент "
+"застаецца спампаваным на працягу гэтага часу, каб вы маглі перагледзець яго "
+"або хтосьці іншы ў доме паспеў дагледзець, замест таго каб ён знік пры "
+"наступнай праверцы. Калі сховішча заканчваецца, прагледжаныя спампоўкі ўсё "
+"роўна выдаляюцца да заканчэння гэтага часу."
 
 #. Explanation shown under the "Top Up When Fewer Than (episodes)" setting
 #. (Settings > Browse > Download Tuning).
@@ -3079,6 +3088,7 @@ msgstr ""
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
 msgstr ""
+"Мініяцюра серыі — гэта кадр з серыі, якую вы, магчыма, яшчэ не глядзелі."
 
 #. Explanation shown under the "Left Click Pauses Playback" setting
 #. (Settings > Playback > Player Controls).
@@ -3088,6 +3098,9 @@ msgid ""
 "window, and the right button does whatever your MPV config gives it. Double "
 "click is full screen either way."
 msgstr ""
+"Калі адключана, выкарыстоўваюцца ўласныя паводзіны мышы MPV: перацягванне "
+"відэа рухае акно, а правая кнопка робіць тое, што зададзена ў вашым канфігу "
+"MPV. Двайны клік у любым выпадку пераключае поўнаэкранны рэжым."
 
 #. Explanation shown under the "Deinterlace Automatically" setting
 #. (Settings > Playback > Video Enhancement).
@@ -3126,7 +3139,7 @@ msgid ""
 msgstr ""
 "Як HDR-відэа адаптуецца для SDR-дысплэя. Гэта налада нічога не робіць, калі "
 "HDR перадаецца на HDR-дысплэй, бо ніякіх змен тонавага адлюстравання не "
-"адбываецца. Пакіньце значэнне «Аўтаматычна», калі толькі HDR-фільмы не "
+"адбываецца. Пакіньце значэнне \"Аўтаматычна\", калі толькі HDR-фільмы не "
 "выглядаюць няправільна; BT.2390 — гэта эталонная крывая, а варыянт «Адсячэнне"
 "» варта паспрабаваць, калі светлыя ўчасткі здаюцца хутчэй шэрымі, чым яркімі."
 
@@ -3279,6 +3292,12 @@ msgid ""
 "the next time you seek somewhere new; turning it off applies to the next "
 "video."
 msgstr ""
+"Перадпрагляды перамоткі звычайна загружаюцца невялікімі порцыямі (па "
+"некалькі хвілін) вакол таго месца, куды вы перамотваеце, таму пры пераходзе "
+"ў новае месца даводзіцца крыху чакаць. Уключыце гэтую опцыю, каб загадзя "
+"загрузіць усе перадпрагляды: тады чакання не будзе, але доўгі фільм можа "
+"спажыць некалькі сотняў МБ памяці. Уключэнне дзейнічае для бягучага відэа "
+"пры наступнай перамсотцы ў новае месца; выключэнне — для наступнага відэа."
 
 #. Explanation shown under the "Player Controls Style" setting (Settings >
 #. Playback > Player Controls).
@@ -3292,9 +3311,9 @@ msgid ""
 "it."
 msgstr ""
 "Па змаўчанні выкарыстоўваюцца спалучэнні клавіш MPV. Націсніце ENTER, каб "
-"кіраваць прайгравальнікам з дапамогай клавіятуры. Рэжым «Без элементаў "
-"кіравання» пакідае прайграванне без іх; бібліятэка, спалучэнні клавіш і "
-"клавіша меню працягваюць працаваць. Выберыце «Уласны OSC», калі вы "
+"кіраваць прайгравальнікам з дапамогай клавіятуры. Рэжым \"Без элементаў "
+"кіравання\" пакідае прайграванне без іх; бібліятэка, спалучэнні клавіш і "
+"клавіша меню працягваюць працаваць. Выберыце \"Уласны OSC\", калі вы "
 "ўстанавілі ўласны скрыпт OSC: гэта адключае ўласны OSC MPV і дае бібліятэцы "
 "суцэльны фон, каб экран чакання скрыпта не прасвечваў праз яго."
 
@@ -3435,7 +3454,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
-"Перакрывае памер вокладкі тэмы. Таксама ёсць у меню «Выгляд» любой "
+"Перакрывае памер вокладкі тэмы. Таксама ёсць у меню \"Выгляд\" любой "
 "бібліятэкі."
 
 #. Explanation shown under the "12-Hour Clock" setting (Settings > Browse >
@@ -3487,9 +3506,9 @@ msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
-"Толькі падчас прайгравання; у бібліятэцы гэтыя кнопкі застаюцца «Назад» і «"
-"Наперад». Па змаўчанні выключана, бо на некаторых мышках іх лёгка націснуць "
-"выпадкова."
+"Толькі падчас прайгравання; у бібліятэцы гэтыя кнопкі застаюцца \"Назад\" і "
+"\"Наперад\". Па змаўчанні выключана, бо на некаторых мышках іх лёгка "
+"націснуць выпадкова."
 
 #. Explanation shown under the "Interface Scale" setting (Settings > Browse
 #. > Theme).
@@ -3549,9 +3568,9 @@ msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
-"Пакіньце «Аўтаматычна», калі толькі відэа не ламаецца пры загрузцы профілю. "
-"Гэта дзейнічае толькі падчас актыўнага профілю, а выкарыстанне OpenGL можа "
-"пазбавіць вас вываду HDR."
+"Пакіньце \"Аўтаматычна\", калі толькі відэа не ламаецца пры загрузцы "
+"профілю. Гэта дзейнічае толькі падчас актыўнага профілю, а выкарыстанне "
+"OpenGL можа пазбавіць вас вываду HDR."
 
 #. Explanation shown under the "Type Size" setting (Settings > Browse >
 #. Reading).
@@ -3568,6 +3587,8 @@ msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
 msgstr ""
+"Як старонка комікса прыстасоўваецца да акна пры адкрыцці. Кнопкі самой "
+"чыталкі таксама змяняюць гэта."
 
 #. Explanation shown under the "Night Mode (Auto Volume Adj)" setting
 #. (Settings > Playback > Audio).
@@ -4007,8 +4028,8 @@ msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
-"Варыянт «Аўта» фармуе пліткі з самой выявы, што звычайна выглядае як "
-"постэры. Выберыце «Постар», каб выкарыстоўваць іх."
+"Варыянт \"Аўта\" фармуе пліткі з самой выявы, што звычайна выглядае як "
+"постэры. Выберыце \"Постар\", каб выкарыстоўваць іх."
 
 #. Checkbox in a library's View settings. Draws each item's name under its
 #. tile.
@@ -4437,7 +4458,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Next Up"
-msgstr ""
+msgstr "Наступнае"
 
 #. Newly added items. The name of a home-screen row and the choice for one
 #. in the Home Screen settings. Jellyfin Web uses the same phrase.
@@ -4967,7 +4988,7 @@ msgstr ""
 #. own Jellyfin collection.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Don't record episodes that are already in my library"
-msgstr ""
+msgstr "Не запісваць серыі, якія ўжо ёсць у маёй бібліятэцы"
 
 #. Choice in the "Channels" dropdown of the series recording dialog,
 #. restricting it to one channel. %s is that channel's name.
@@ -5051,14 +5072,14 @@ msgstr ""
 #. singular of "%d episodes".
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "1 episode"
-msgstr ""
+msgstr "1 серыя"
 
 #. Choice in the "Keep up to" dropdown of the series recording dialog, for
 #. counts of two or more. The singular case is a separate string.
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "%d episodes"
-msgstr ""
+msgstr "%d серый(і)"
 
 #. Label of the dropdown in Guide Settings choosing the order of channels.
 #. Followed by "Channel number" or "Recently watched".
@@ -5128,7 +5149,7 @@ msgstr ""
 #. Checkbox in Guide Settings: badge first-run episodes.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "New episodes"
-msgstr ""
+msgstr "Новыя серыі"
 
 #. Checkbox in Guide Settings: badge first showings.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -5138,7 +5159,7 @@ msgstr ""
 #. Checkbox in Guide Settings: badge episodes shown before.
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Repeat episodes"
-msgstr ""
+msgstr "Паўторныя серыі"
 
 #. Checkbox in Guide Settings, colour coding film programmes. Also a
 #. Jellyfin library kind.
@@ -5548,7 +5569,7 @@ msgstr ""
 #. their newest episode arrived.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Date Episode Added"
-msgstr ""
+msgstr "Дата дадання серыі"
 
 #. Shown in place of the grid when a library's filters match nothing. The
 #. filters may have been chosen on an earlier visit and remembered, so this
@@ -6085,6 +6106,8 @@ msgid ""
 "Still reading this playlist's visibility from the server. Try again in a "
 "moment."
 msgstr ""
+"Яшчэ атрымліваем звесткі пра бачнасць гэтага плэйліста з сервера. "
+"Паспрабуйце яшчэ раз праз імгненне."
 
 #. Error shown when a book file would not open.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -6256,27 +6279,27 @@ msgstr ""
 #. Heading of a Live TV row listing episodes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
-msgstr ""
+msgstr "Бліжэйшыя серыі"
 
 #. Heading of a Live TV row listing films airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Movies"
-msgstr ""
+msgstr "Бліжэйшыя фільмы"
 
 #. Heading of a Live TV row listing sports airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Sports"
-msgstr ""
+msgstr "Бліжэйшыя спартыўныя падзеі"
 
 #. Heading of a Live TV row listing children's programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Kids"
-msgstr ""
+msgstr "Бліжэйшыя дзіцячыя перадачы"
 
 #. Heading of a Live TV row listing news programmes airing soon.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming News"
-msgstr ""
+msgstr "Бліжэйшыя навіны"
 
 #. Name of a search-results group holding film trailers.
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -6453,9 +6476,9 @@ msgid ""
 "Only the General, Browse and Playback tabs are searched. Some settings are "
 "hidden until the setting they depend on is turned on."
 msgstr ""
-"Пошук вядзецца толькі па ўкладках «Агульныя», «Агляд» і «Прайграванне». "
-"Некаторыя налады схаваныя, пакуль не ўключаны параметр, ад якога яны "
-"залежаць."
+"Пошук вядзецца толькі па ўкладках \"Агульныя\", \"Агляд\" і "
+"\"Прайграванне\". Некаторыя налады схаваныя, пакуль не ўключаны параметр, ад "
+"якога яны залежаць."
 
 #. Caption under settings search results. %d is how many were found.
 #. Phrased with a count after a colon on purpose, because this application
@@ -6620,6 +6643,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
 msgstr ""
+"Выкарыстоўваць выявы серый у раздзелах \"Наступнае\" і \"Працягнуць прагляд\""
 
 #. Explanation under the episode-images checkbox in the Home Screen
 #. settings.
@@ -6628,6 +6652,8 @@ msgid ""
 "Off by default: the show's artwork is used instead, because an episode image "
 "can spoil the episode you have not watched yet."
 msgstr ""
+"Па змаўчанні выключана: замест яе выкарыстоўваецца вокладка серыяла, бо "
+"мініяцюра серыі можа сапсаваць уражанне ад яшчэ не прагледжанай серыі."
 
 #. Status message when the home screen settings would not come back from
 #. the server.
@@ -6865,7 +6891,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Couldn't connect to %s"
-msgstr ""
+msgstr "Не атрымалася падключыцца да %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7124,7 +7150,7 @@ msgstr ""
 #. "Retry" and "Go Offline" buttons.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "The server isn't answering."
-msgstr ""
+msgstr "Сервер не адказвае."
 
 #. Button on the "server isn't answering" banner: browse only what is
 #. downloaded to this computer instead.
@@ -7136,7 +7162,7 @@ msgstr ""
 #. are listed.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "Афлайн — паказана тое, што даступна."
 
 #. Button on the offline banner that opens the server settings. An
 #. imperative verb phrase.
@@ -7352,6 +7378,8 @@ msgid ""
 "There isn't enough space on that drive to move the downloads. Free some "
 "space and try again — nothing was moved."
 msgstr ""
+"На гэтым дыску не хапае месца для пераносу спамповак. Вызваліце крыху месца "
+"і паспрабуйце зноў — нічога не было перанесена."
 
 #. The same problem, discovered part way through the move rather than
 #. before it started. Past tense for that reason. Nothing was lost.
@@ -7514,7 +7542,7 @@ msgid ""
 "Run \"flatpak update\" to install it."
 msgstr ""
 "MPV Shim v{0} даступна абнаўленне\n"
-"Выканайце «flatpak update», каб усталяваць яго."
+"Выканайце \"flatpak update\", каб усталяваць яго."
 
 #. Marker beside the local profile used when none is chosen, in the
 #. terminal's user list. Lower case and bracketed, appended after a name.
