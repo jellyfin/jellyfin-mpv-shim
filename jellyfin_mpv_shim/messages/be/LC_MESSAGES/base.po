@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-18 14:00+0000\n"
+"PO-Revision-Date: 2026-11-19 05:45+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -2542,7 +2542,7 @@ msgstr ""
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Аўтаматычна выпраўляць празрадковасць"
 
 #. Label of the dropdown for the "motion_interpolation" setting (Settings >
 #. Playback > Video Enhancement).
@@ -2578,7 +2578,7 @@ msgstr ""
 #. Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Аўтаматычна спампоўваць новыя серыі"
 
 #. Label of the checkbox for the "auto_download_next_up" setting (Settings
 #. > Browse > Downloads).
@@ -2602,7 +2602,7 @@ msgstr ""
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Ліміт сховішча для аўтаматычных спамповак (ГБ)"
 
 #. Label of the checkbox for the "auto_download_delete_watched" setting
 #. (Settings > Browse > Downloads).
@@ -2969,6 +2969,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"Гэты спіс сам па сабе нічога не робіць — уключыце адзін з двух перамыкачоў "
+"ніжэй. Ён змяняе, якія дарожкі прапануюць меню аўдыя і субцітраў, а не якую "
+"выбіраюць аўтаматычна; за гэта адказвае папярэдняя налада вышэй. «und» "
+"азначае «без пазнакі мовы», таму яго выдаленне схавае таксама і непазначаныя "
+"дарожкі."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -3002,6 +3007,9 @@ msgid ""
 "announces updates and \"flatpak update\" installs them, and leaves it on "
 "everywhere else."
 msgstr ""
+"Варыянт «Аўтаматычна» адключае гэтую функцыю ўнутры Flatpak, дзе ваша "
+"працоўнае асяроддзе ўжо паведамляе пра абнаўленні, а каманда «flatpak update"
+"» іх усталёўвае, і пакідае яе ўключанай ва ўсіх астатніх выпадках."
 
 #. Explanation shown under the "Game Controller" setting (Settings >
 #. General > Input).
@@ -3116,6 +3124,11 @@ msgid ""
 "is the reference curve, and Clip is what to try if highlights look grey "
 "rather than bright."
 msgstr ""
+"Як HDR-відэа адаптуецца для SDR-дысплэя. Гэта налада нічога не робіць, калі "
+"HDR перадаецца на HDR-дысплей, бо ніякіх змен тонавага адлюстравання не "
+"адбываецца. Пакіньце значэнне «Аўтаматычна», калі HDR-фільмы выглядаюць "
+"нармальна; BT.2390 — гэта эталонная крывая, а варыянт «Адсячэнне» варта "
+"паспрабаваць, калі светлыя ўчасткі здаюцца хутчэй шэрымі, чым яркімі."
 
 #. Explanation shown under the "Rendering Quality" setting (Settings >
 #. Playback > Video Enhancement).
