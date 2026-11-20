@@ -2073,7 +2073,7 @@ class TestTileMenuGating(unittest.TestCase):
 
     def test_a_person_gets_nothing_playable(self):
         acts = self._actions({"Id": "p1", "Type": "Person"})
-        self.assertEqual(acts, [], "offered actions on a Person")
+        self.assertEqual(acts, ["favorite"])
 
     def test_a_music_genre_is_not_downloadable_or_watchable(self):
         acts = self._actions({"Id": "g1", "Type": "MusicGenre"})
@@ -2102,7 +2102,7 @@ class TestTileMenuGating(unittest.TestCase):
         self.assertNotIn("download", acts)
 
     def test_an_empty_menu_renders_nothing(self):
-        self.b._menu = {"item": {"Id": "p1", "Type": "Person"},
+        self.b._menu = {"item": {"Id": "s1", "Type": "Studio"},
                         "server": "srv1", "x": 10, "y": 10}
         self.assertIsNone(self.b._tile_menu_node())
 
@@ -2334,8 +2334,8 @@ class TestCollections(unittest.TestCase):
         self.assertIn("add-newname", ids(nodes))
 
 class TestRightClickCrash(unittest.TestCase):
-    """Right-clicking an item with no applicable menu entries (a cast
-    member) built a None menu node, appended it to the scene tree, and
+    """Right-clicking an item with no applicable menu entries built a None
+    menu node, appended it to the scene tree, and
     took down the whole browser render loop."""
 
     def setUp(self):
@@ -2346,8 +2346,8 @@ class TestRightClickCrash(unittest.TestCase):
         self.b._open_tile_menu({"Id": "p1", "Type": "Person"}, 10, 10)
         build_scene(self.b)          # would raise before the fix
 
-    def test_no_menu_opens_for_a_person(self):
-        self.b._open_tile_menu({"Id": "p1", "Type": "Person"}, 10, 10)
+    def test_no_menu_opens_for_a_studio(self):
+        self.b._open_tile_menu({"Id": "s1", "Type": "Studio"}, 10, 10)
         self.assertIsNone(self.b._menu, "opened an empty menu")
 
     def test_a_movie_still_opens_its_menu(self):
@@ -2359,7 +2359,7 @@ class TestRightClickCrash(unittest.TestCase):
     def test_a_stale_empty_menu_still_renders(self):
         """Belt and braces: even if _menu is set to something with no
         entries by another path, the build must survive."""
-        self.b._menu = {"item": {"Id": "p1", "Type": "Person"},
+        self.b._menu = {"item": {"Id": "s1", "Type": "Studio"},
                         "server": "srv1", "x": 5, "y": 5}
         build_scene(self.b)
 
