@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-20 06:19+0000\n"
+"PO-Revision-Date: 2026-11-20 07:19+0000\n"
 "Last-Translator: \"Troj@\" <d.iwowi.b@gmail.com>\n"
 "Language-Team: Belarusian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/be/>\n"
@@ -2524,19 +2524,19 @@ msgstr "Левы клік ставіць прайграванне на паўз�
 #. > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Паказваць постары на старонках апісання"
 
 #. Label of the checkbox for the "detail_episode_image" setting (Settings >
 #. Browse > Library Browser).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Паказваць мініяцюры серый на старонках апісання"
 
 #. Label of the dropdown for the "hwdec" setting (Settings > Playback >
 #. Playback).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hardware Decoding"
-msgstr ""
+msgstr "Апаратнае дэкадаванне"
 
 #. Label of the checkbox for the "deinterlace_auto" setting (Settings >
 #. Playback > Video Enhancement).
@@ -2548,7 +2548,7 @@ msgstr "Аўтаматычна выпраўляць празрадковасць
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Інтэрпаляцыя руху"
 
 #. Label of the dropdown for the "deband" setting (Settings > Playback >
 #. Video Enhancement).
@@ -2560,7 +2560,7 @@ msgstr "Змякчэнне палос"
 #. Playback > Video Enhancement).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "Тонавае адлюстраванне HDR"
 
 #. Label of the dropdown for the "render_quality" setting (Settings >
 #. Playback > Video Enhancement).
@@ -2572,7 +2572,7 @@ msgstr "Якасць рэндэрынгу"
 #. Playback > Playback).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Сеткавы буфер"
 
 #. Label of the checkbox for the "auto_download_enable" setting (Settings >
 #. Browse > Downloads).
@@ -2596,7 +2596,7 @@ msgstr "Колькасць запісаў \"Наступнае\" для ўлік
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Серый наперад для спампоўкі (0 = выкл.)"
 
 #. Label of the number field for the "auto_download_max_gb" setting
 #. (Settings > Browse > Downloads).
@@ -2616,78 +2616,79 @@ msgstr "Выдаляць аўтаматычныя спампоўкі пасля 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Watched Downloads For (hours, 0 = delete right away)"
 msgstr ""
+"Захоўваць прагледжаныя спампоўкі на працягу (гадзін, 0 = выдаліць адразу)"
 
 #. Label of the number field for the "auto_download_keep_days" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Выдаляць няпрагледжаныя праз (дзён, 0 = ніколі)"
 
 #. Label of the number field for the "auto_download_interval_mins" setting
 #. (Settings > Browse > Downloads).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Правяраць кожныя (хвілін)"
 
 #. Label of the number field for the "auto_download_lookahead_min" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "Папаўняць, калі менш за (серый)"
 
 #. Label of the number field for the "auto_download_lookahead_max" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "Папаўняць да (серый)"
 
 #. Label of the number field for the "auto_download_max_per_pass" setting
 #. (Settings > Browse > Download Tuning).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Максімум спамповак за праверку"
 
 #. Label of the checkbox for the "close_to_tray" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "Згортваць у трэй пры закрыцці (не завяршаць працу)"
 
 #. Label of the checkbox for the "allow_background" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
-msgstr ""
+msgstr "Працягваць працу ў фоне"
 
 #. Label of the checkbox for the "remember_window_size" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
-msgstr ""
+msgstr "Запамінаць памер акна"
 
 #. Label of the dropdown for the "window_controls" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "Кнопкі акна ў верхняй панэлі"
 
 #. Label of the checkbox for the "window_controls_fullscreen" setting
 #. (Settings > General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Window Buttons in Full Screen"
-msgstr ""
+msgstr "Пакідаць кнопкі акна ў поўнаэкранным рэжыме"
 
 #. Label of the checkbox for the "hide_title_bar" setting (Settings >
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Desktop Title Bar"
-msgstr ""
+msgstr "Схаваць загаловак акна"
 
 #. Label of the dropdown for the "osc_style" setting (Settings > Playback >
 #. Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
-msgstr ""
+msgstr "Стыль элементаў кіравання прайгравальнікам"
 
 #. Label of the checkbox for the "thumbnail_enable" setting (Settings >
 #. Playback > Player Controls).
@@ -2699,7 +2700,7 @@ msgstr "Уключыць мініяцюры Trickplay"
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "Загружаць усе перадпрагляды перамоткі адразу"
 
 #. Label of the checkbox for the "discord_presence" setting (Settings >
 #. General > This Device).
@@ -2717,19 +2718,19 @@ msgstr "Кіраванне медыя з працоўнага стала"
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr ""
+msgstr "Маштаб інтэрфейсу"
 
 #. Label of the dropdown for the "ui_text_scale" setting (Settings > Browse
 #. > Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Text size"
-msgstr ""
+msgstr "Памер тэксту"
 
 #. Label of the dropdown for the "ui_text_min" setting (Settings > Browse >
 #. Theme).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "Мінімальны памер тэксту"
 
 #. Label of the dropdown for the "poster_scale" setting (Settings > Browse
 #. > Theme).
