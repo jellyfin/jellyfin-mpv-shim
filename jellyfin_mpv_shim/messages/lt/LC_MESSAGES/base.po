@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-12 21:15+0000\n"
+"PO-Revision-Date: 2026-11-21 18:29+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -2140,7 +2140,7 @@ msgstr "Labai didelis (60 sekundžių)"
 #. Player Controls); stored as "mpvtk".
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
-msgstr "Jellyfin vartotojo sąsaja"
+msgstr "Jellyfin naudotojo sąsaja"
 
 #. Choice in the "Player Controls Style" dropdown (Settings > Playback >
 #. Player Controls); stored as "mpv".
