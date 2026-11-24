@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-22 13:22+0000\n"
+"PO-Revision-Date: 2026-11-24 14:47+0000\n"
 "Last-Translator: Maciej Jankowicz <mj6367@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/pl/>\n"
@@ -2898,7 +2898,7 @@ msgstr ""
 #. General > Window).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "Pełnoekranowa Przeglądarka Biblioteki"
 
 #. Label of the checkbox for the "browse_block_keys" setting (Settings >
 #. General > Input).
@@ -2910,13 +2910,13 @@ msgstr "Zablokuj skróty klawiszowe odtwarzacza podczas przeglądania"
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "Zawsze Przypisuj Klawisze Strzałek do Sterowania Odtwarzacza"
 
 #. Label of the text field for the "hud_wake_key" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "Klawisz Aktywacji Sterowania Odtwarzacza"
 
 # seeded from jellyfin-web: SelectAll
 #. Label of the text field for the "ui_select_key" setting (under Advanced
@@ -2929,15 +2929,13 @@ msgstr "Wybierz przycisk"
 #. Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Przyciemnienie Tła Sterowania Odtwarzacza"
 
 #. Label of the dropdown for the "hud_autohide" setting (Settings >
 #. Playback > Player Controls).
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "When the Player Controls Hide"
-msgstr "Styl kontrolek odtwarzacza"
+msgstr "Styl Ukrywania Kontrolek Odtwarzacza"
 
 #. Label of the number field for the "hud_hide_secs" setting (Settings >
 #. Playback > Player Controls).
@@ -3056,6 +3054,11 @@ msgid ""
 "which one is picked automatically; the preset above is what does that. "
 "\"und\" means untagged, so removing it hides untagged tracks as well."
 msgstr ""
+"Ta lista nic nie zmienia samodzielnie -- włącz jeden z dwóch przełączników "
+"poniżej. Zmieniają który kanał audio i napisów jest oferowany przez menu a "
+"nie ten, który jest wybierany automatycznie; Ustawienie powyżej to zmienia. "
+"\"und\" znaczy nieotagowane, więc usunięcie go ukrywa również nieotagowane "
+"ścieżki."
 
 #. Explanation shown under the track-preset dropdown (Settings > Playback >
 #. Subtitles & Languages). "Subbed", "Dubbed", "shows only" and "Custom" are
@@ -3080,6 +3083,9 @@ msgid ""
 "far; the rest stays in English. Translations are contributed at "
 "translate.jellyfin.org."
 msgstr ""
+"Wartość procentowa postępu tłumaczenia na dany język aplikacji na chwilę "
+"obecną; Reszta pozostaje po Angielsku. Tłumaczenia są dodawane na "
+"translate.jellyfin.org."
 
 #. Explanation shown under the "Tell Me About Updates" setting (Settings >
 #. General > This Device).
