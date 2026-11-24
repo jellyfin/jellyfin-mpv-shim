@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-24 14:47+0000\n"
+"PO-Revision-Date: 2026-11-24 23:36+0000\n"
 "Last-Translator: ErikNLM <erik2980@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
@@ -191,7 +191,7 @@ msgstr "Spring rulleteksten over"
 #. past. Past tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr "Sprunget rulleteksten over"
+msgstr "Sprang rulleteksten over"
 
 #. Prompt drawn over the video offering to jump past the closing credits,
 #. shown when the viewer seeks into them.
@@ -263,7 +263,7 @@ msgstr "Spring introduktion over"
 #. past. Past tense.
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
-msgstr "Sprunget introer over"
+msgstr "Sprang introer over"
 
 #. Prompt drawn over the video offering to jump past the opening titles,
 #. shown when the viewer seeks into them. "Seek" here means moving the
