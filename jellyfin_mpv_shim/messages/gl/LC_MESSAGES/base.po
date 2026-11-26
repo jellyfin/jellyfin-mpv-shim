@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-07 18:51+0000\n"
+"PO-Revision-Date: 2026-11-26 20:37+0000\n"
 "Last-Translator: miluchin <milumiluchin@gmail.com>\n"
 "Language-Team: Galician <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/gl/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.11\n"
+"X-Generator: Weblate 2026.11.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -99,9 +99,12 @@ msgstr "Configuración actual..."
 #. Instruction printed in the terminal when signing in without a window.
 #. The arrow is a menu path; "Quick Connect" is the Jellyfin feature name.
 #: jellyfin_mpv_shim/clients.py
+#, fuzzy
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Abre Jellyfin, vai ao teu menu de usuario -> Conexión rápida, e escribe este "
+"codigo:"
 
 #. Printed in the terminal while Quick Connect waits for someone to accept
 #. the code in another Jellyfin app.
@@ -1116,7 +1119,7 @@ msgstr "Usar"
 #. feature's name; follow whatever they use in this language.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
-msgstr "Ligazón Rápida"
+msgstr "Conexión Rápida"
 
 #. Instruction above the Quick Connect code on the sign-in page.
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -5874,7 +5877,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "More Like This"
-msgstr "Máis Así"
+msgstr "Máis Coma Esto"
 
 #. Action on an episode's menu that opens the page of the series it belongs
 #. to. An imperative verb phrase.
@@ -7680,10 +7683,8 @@ msgstr "Servidor:"
 #. Tooltip of the navigation bar's dropdown that switches between accounts
 #. on this server.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Usuario:"
+msgstr "Usuario"
 
 #. Placeholder in the empty search field on the navigation bar.
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
