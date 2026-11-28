@@ -33,6 +33,8 @@ Jellyfin MPV Shim is a fully featured Jellyfin client built on top of MPV with s
 - **Uncompromising Playback**: MPV's rendering and video pipelines are completely untouched. It's not redirected, broken, or embedded in a toolkit. Native HDR and Dolby Vision are supported on Windows and Linux.
 - **Browse and play your entire library** including films, shows, music, photos, [Live TV](#live-tv)
   and [books, comics and audiobooks](#books-comics-and-audiobooks).
+- **Favorite cast and crew** from their page or context menu, and find them under
+  People in Favorites.
 - **Offline sync**: download media for offline viewing, automatically if desired.
 - **Cast target**: Fully controllable from Jellyfin web and mobile apps.
 - **SyncPlay**: Watch media with friends, without screen shares or awkward syncing.

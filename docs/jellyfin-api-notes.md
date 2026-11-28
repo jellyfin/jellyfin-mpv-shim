@@ -804,6 +804,12 @@ Two consequences worth keeping separate:
   (the artists endpoint includes track-level and featured artists that are not
   library items), and on at least one real server it returned none at all.
   Artists and people get their own endpoints, exactly as in jellyfin-web.
+- **10.11's `/Persons` has no `StartIndex` or sort parameters.** It ignores
+  them, applies `Limit`, and reports the limited result's length as
+  `TotalRecordCount` (measured on 10.11.11 with 61 favorite people). For
+  Favorites, fetch the user's favorite people without a limit and slice
+  locally; otherwise every page repeats the first one. `/Persons` has no
+  `SortBy`/`SortOrder` in 12 either, so this listing offers no sort menu.
 - **Search sorting is the server's and it does not interleave by type**, so one
   shared result budget is taken off the bottom in whole rows rather than spread
   evenly — a term matching a lot of episodes spent a 60-item allowance on them

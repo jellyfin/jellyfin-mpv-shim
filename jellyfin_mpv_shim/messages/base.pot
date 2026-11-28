@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 07:52+0000\n"
+"POT-Creation-Date: 2026-11-14 23:42+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -765,6 +765,7 @@ msgstr ""
 #. Status message when a page's content could not be fetched from the
 #. server.
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Failed to load. Check the connection."
 msgstr ""
 
@@ -1252,6 +1253,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Favorite"
 msgstr ""
 
@@ -6131,6 +6133,7 @@ msgstr ""
 
 #. Heading of the search-results row holding actors and film-makers.
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "People"
 msgstr ""
 
