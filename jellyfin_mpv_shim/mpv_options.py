@@ -99,6 +99,43 @@ def hwdec_pinned_by_config():
     return None
 
 
+def volume_pinned_by_config():
+    """The ``volume`` the user's own ``mpv.conf`` sets, or None.
+
+    The same plain top-level scan as ``hwdec_pinned_by_config``: profile
+    sections are conditional, so a ``volume`` reachable only inside one
+    is not a pin. The value is mpv's own number, which may be written
+    ``50.0`` -- the #768 reporter's spelling -- so it is read as a float
+    and truncated to the int mpv itself stores it as. Where the file
+    repeats the setting, the last parseable one wins, as mpv's own
+    precedence has it; an unparseable value is ignored, and with no
+    parseable value at all there is no pin -- the live volume, not a
+    guess, decides then.
+    """
+    from . import conffile
+    from .constants import APP_NAME
+
+    pin = None
+    try:
+        path = conffile.get(APP_NAME, "mpv.conf", True)
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.split("#", 1)[0].strip()
+                if line.startswith("["):
+                    break            # a profile section; see the docstring
+                if not line:
+                    continue
+                key, sep, value = line.partition("=")
+                if sep and key.strip().lstrip("-") == "volume":
+                    try:
+                        pin = int(float(value.strip().strip("\"'")))
+                    except ValueError:
+                        pass
+    except Exception:
+        log.debug("could not read mpv.conf for a volume pin", exc_info=True)
+    return pin
+
+
 #: Direct mode -> the copy-back variant of the same thing. Used when
 #: something in the pipeline needs frames in system RAM; see hwdec_for.
 _COPY_OF = {"auto": "auto-copy"}
