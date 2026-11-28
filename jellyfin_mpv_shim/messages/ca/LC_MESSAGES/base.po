@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-09 10:05+0000\n"
-"Last-Translator: sarnoso <illeida@tuta.io>\n"
+"PO-Revision-Date: 2026-11-28 10:09+0000\n"
+"Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
 "Language: ca\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.11\n"
+"X-Generator: Weblate 2026.11.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -4339,16 +4339,13 @@ msgstr ""
 #. a software package name and the parenthesis holds a shell command; leave
 #. both untranslated.
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Install the \"%(package)s\" package (for example \"apt install "
-#| "%(package)s\"), or use MPV 0.41 or newer."
+#, python-format
 msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\")."
 msgstr ""
-"Instal·leu el paquet \"%(package)s\" (per exemple, \"apt install "
-"%(package)s\"), o feu servir MPV 0.41 o posterior."
+"Instal·leu el paquet \"%(package)s\" (per exemple, \"apt install %(package)"
+"s\")."
 
 #. Follows the clipboard message above, naming the MPV version that gained
 #. clipboard support.
@@ -4595,10 +4592,9 @@ msgstr "S'està descarregant"
 #. "Queued": it was queued by another profile whose saved login no longer
 #. works, so it waits for that person to sign in. %s is the profile's name.
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy, python-format
-#| msgid "Waiting for approval…"
+#, python-format
 msgid "Waiting for %s to sign in…"
-msgstr "S'està esperant l'aprovació…"
+msgstr "S'està esperant que %s iniciï la sessió…"
 
 #. Same status as "Waiting for %s to sign in…", when no profile on this
 #. computer holds the login that queued the download any more.
@@ -7221,17 +7217,15 @@ msgstr ""
 
 #. Status message after a manual retry succeeded. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connected"
+#, python-format
 msgid "Connected to %s."
-msgstr "Connectat"
+msgstr "S'ha connectat a %s."
 
 #. Status message while a manual retry is running. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Connecting…"
+#, python-format
 msgid "Connecting to %s…"
-msgstr "S'està connectant…"
+msgstr "S'està connectant a %s…"
 
 #. Body of the dialog shown when a server could not be reached. %s is the
 #. server's name. This is the version for a server that IS reachable and
@@ -7254,10 +7248,9 @@ msgstr ""
 
 #. Title of that dialog. %s is the server's name.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Could not connect to the server."
+#, python-format
 msgid "Couldn't connect to %s"
-msgstr "No s'ha pogut connectar al servidor."
+msgstr "No s'ha pogut connectar al servidor %s"
 
 #. Status message when forgetting a server failed.
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -7685,10 +7678,8 @@ msgstr ""
 
 #. Error when the folder chosen for downloads is the one already in use.
 #: jellyfin_mpv_shim/sync/manager.py
-#, fuzzy
-#| msgid "Move the downloads back to the default folder?"
 msgid "The downloads are already in that folder."
-msgstr "Desitgeu traslladar les descàrregues al directori per defecte?"
+msgstr "Les descàrregues ja es troben en aquest directori."
 
 #. Error when the download folder was changed while something is being
 #. fetched.
