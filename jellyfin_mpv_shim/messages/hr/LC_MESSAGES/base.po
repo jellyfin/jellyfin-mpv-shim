@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-24 02:13-0400\n"
-"PO-Revision-Date: 2026-11-21 18:29+0000\n"
+"PO-Revision-Date: 2026-11-28 09:17+0000\n"
 "Last-Translator: Alen Bajo <abajo62@gmail.com>\n"
 "Language-Team: Croatian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hr/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 2026.11\n"
+"X-Generator: Weblate 2026.11.2\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #. Stands in for a book's file format when the server did not say what it
@@ -4964,7 +4964,7 @@ msgstr "Razlozi"
 #. statistics. The player program, not a person.
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Player"
-msgstr "Igrač"
+msgstr "Reproduktor"
 
 # seeded from jellyfin-web: File
 #. Heading of a block in the Playback Info panel holding the media file's
@@ -5057,13 +5057,13 @@ msgstr "Puni zaslon"
 #. has already ended, so there is no queue left to jump within.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Playback has stopped, so this queue is gone."
-msgstr "Izvođenje je stalo, pa je lista čekanja prazna."
+msgstr "Reprodukcija je stala, pa je lista čekanja prazna."
 
 #. Status message when adding items to the play queue failed.
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Those items could not be added to the queue."
-msgstr "Te stavke nisu mogle biti dodane u red."
+msgstr "Te stavke nisu mogle biti dodane u red čekanja."
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #. Status message confirming every episode of a show is now set to record.
